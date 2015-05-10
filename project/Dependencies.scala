@@ -2,18 +2,18 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.3.9"
-    val akkaExperimental = "1.0-M5"
-    val scalaz = "7.1.1"
-    val slick = "3.0.0-RC3"
+    val akka = "2.3.10"
+    val akkaExperimental = "1.0-RC2"
+    val scalaz = "7.1.2"
+    val slick = "3.0.0"
   }
 
   object Compile {
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
     val akkaKernel      = "com.typesafe.akka"             %% "akka-kernel"                   % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
-    val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
-    val akkaHttpCore    = "com.typesafe.akka"             %% "akka-http-core-experimental"   % V.akkaExperimental
+    val akkaHttpCore    = "com.typesafe.akka"             %% "akka-http-core-experimental"   % V.akkaExperimental;
+    val akkaHttp        = "com.typesafe.akka"             %% "akka-http-scala-experimental"  % V.akkaExperimental
     val akkaHttpSpray   = "com.typesafe.akka"             %% "akka-http-spray-json-experimental" % V.akkaExperimental
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
 
@@ -23,12 +23,16 @@ object Dependencies {
     val sprayJson       = "io.spray"                      %% "spray-json"                    % "1.3.1"
     val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
     val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.2.8"
+    val argonaut        = "io.argonaut"                   %% "argonaut"                      % "6.1"
+
+    val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.0"
 
     val config          = "com.typesafe"                  %  "config"                        % "1.2.1"
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1201-jdbc41" exclude("org.slf4j", "slf4j-simple")
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
-    val slickJoda       = "com.github.tototoshi"          %% "slick-joda-mapper"             % "2.0.0-SNAPSHOT"
+    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.9.0"
+    val slickJoda       = "com.github.tototoshi"          %% "slick-joda-mapper"             % "2.0.0"
     val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.6"
 

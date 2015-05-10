@@ -1,11 +1,11 @@
 import sbt._
 import sbt.Keys._
-import akka.sbt.AkkaKernelPlugin
-import akka.sbt.AkkaKernelPlugin.{ Dist, outputDirectory, distJvmOptions, distBootClass }
 import spray.revolver.RevolverPlugin._
+import com.typesafe.sbt.SbtNativePackager, SbtNativePackager._
+import com.typesafe.sbt.packager.Keys._
 
 object Build extends sbt.Build {
-  val Organization = "Functional Comb"
+  val Organization = "io.fcomb"
   val Version = "0.1-SNAPSHOT"
   val ScalaVersion = "2.11.6"
 
@@ -20,11 +20,12 @@ object Build extends sbt.Build {
         organizationHomepage := Some(url("https://fcomb.io"))
       )
 
-  val compilerWarnings = Seq(
+  val compilerFlags = Seq(
     "-Ywarn-dead-code",
     "-Ywarn-infer-any",
     "-Ywarn-numeric-widen",
     "-Ywarn-unused"
+    // "-Xfatal-warnings"
   )
 
   lazy val defaultSettings =
@@ -51,13 +52,10 @@ object Build extends sbt.Build {
     file("."),
     settings =
       defaultSettings               ++
-      AkkaKernelPlugin.distSettings ++
+      SbtNativePackager.packageArchetype.java_application ++
       Revolver.settings             ++
       Seq(
         libraryDependencies                       ++= Dependencies.root,
-        distJvmOptions       in Dist              :=  "-server -Xms256M -Xmx1024M",
-        distBootClass        in Dist              :=  "io.fcomb.server.ApiKernel",
-        outputDirectory      in Dist              :=  file("target/dist"),
         Revolver.reStartArgs                      :=  Seq("io.fcomb.server.Main"),
         mainClass            in Revolver.reStart  :=  Some("io.fcomb.server.Main"),
         autoCompilerPlugins                       :=  true,
@@ -65,12 +63,23 @@ object Build extends sbt.Build {
           "-groups",
           "-implicits",
           "-diagrams"
-        ) ++ compilerWarnings
+        ) ++ compilerWarnings,
+        executableScriptName                      := "start",
+        javaOptions in Universal                  ++= Seq(
+          "-server",
+          "-Xms2048M",
+          "-Xmx2048M",
+          "-Xss6M",
+          "-XX:+CMSClassUnloadingEnabled"
+        ),
+        packageName in Universal := "dist",
+        scriptClasspath ~= (cp => "../config" +: cp)
       )
   ).dependsOn(api)
+    .enablePlugins(SbtNativePackager)
 
   lazy val api = Project(
-     id = "fcomb-api",
+     id = "api",
      base = file("fcomb-api"),
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.api
@@ -86,7 +95,7 @@ object Build extends sbt.Build {
   )
 
   lazy val utils = Project(
-     id = "fcomb-utils",
+     id = "utils",
      base = file("fcomb-utils"),
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.utils
@@ -94,7 +103,7 @@ object Build extends sbt.Build {
   )
 
   lazy val persist = Project(
-     id = "fcomb-persist",
+     id = "persist",
      base = file("fcomb-persist"),
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.persist
