@@ -3,6 +3,8 @@ import sbt.Keys._
 import spray.revolver.RevolverPlugin._
 import com.typesafe.sbt.SbtNativePackager, SbtNativePackager._
 import com.typesafe.sbt.packager.Keys._
+import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
+import com.gilt.sbt.newrelic.NewRelic, NewRelic.autoImport._
 
 object Build extends sbt.Build {
   val Organization = "io.fcomb"
@@ -28,6 +30,15 @@ object Build extends sbt.Build {
     // "-Xfatal-warnings"
   )
 
+  val javaRunOptions = Seq(
+    "-server",
+    "-Xms2048M",
+    "-Xmx2048M",
+    "-Xss6M",
+    "-XX:+CMSClassUnloadingEnabled"
+    // "-agentlib:TakipiAgent"
+  )
+
   lazy val defaultSettings =
     buildSettings ++
     net.virtualvoid.sbt.graph.Plugin.graphSettings ++
@@ -40,19 +51,25 @@ object Build extends sbt.Build {
           "-unchecked",
           "-feature",
           "-language:higherKinds"
-        ) ++ compilerWarnings,
+        ) ++ compilerFlags,
         javaOptions               ++= Seq("-Dfile.encoding=UTF-8", "-Dscalac.patmat.analysisBudget=off"),
         javacOptions              ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation"),
         parallelExecution in Test :=  false,
-        fork              in Test :=  true
+        fork              in Test :=  true,
+        unmanagedResourceDirectories in Compile <+= baseDirectory(_ / "src/main/scala")
       )
 
+  private def getWeaver = update map { report =>
+    report.matching(moduleFilter(organization = "org.aspectj", name = "aspectjweaver")).headOption
+  }
+
   lazy val root = Project(
-    "fcomb-server",
+    "server",
     file("."),
     settings =
       defaultSettings               ++
       SbtNativePackager.packageArchetype.java_application ++
+      SbtAspectj.aspectjSettings ++
       Revolver.settings             ++
       Seq(
         libraryDependencies                       ++= Dependencies.root,
@@ -63,17 +80,17 @@ object Build extends sbt.Build {
           "-groups",
           "-implicits",
           "-diagrams"
-        ) ++ compilerWarnings,
+        ) ++ compilerFlags,
         executableScriptName                      := "start",
-        javaOptions in Universal                  ++= Seq(
-          "-server",
-          "-Xms2048M",
-          "-Xmx2048M",
-          "-Xss6M",
-          "-XX:+CMSClassUnloadingEnabled"
-        ),
-        packageName in Universal := "dist",
-        scriptClasspath ~= (cp => "../config" +: cp)
+        javaOptions in Universal                  ++= javaRunOptions.map { o => s"-J$o" },
+        packageName in Universal                  := "dist",
+        mappings in Universal <++= (AspectjKeys.weaver in SbtAspectj.Aspectj).map { path =>
+          Seq(path.get -> "aspectj/weaver.jar")
+        },
+        bashScriptExtraDefines                    += """addJava "-javaagent:${app_home}/../aspectj/weaver.jar"""",
+        scriptClasspath                           ~= (cp => "../config" +: cp),
+        newrelicAppName                           := "fcomb-server",
+        fork in run                               := true
       )
   ).dependsOn(api)
     .enablePlugins(SbtNativePackager)
@@ -87,7 +104,7 @@ object Build extends sbt.Build {
   ).dependsOn(persist, utils)
 
   lazy val models = Project(
-     id = "fcomb-models",
+     id = "models",
      base = file("fcomb-models"),
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.models
