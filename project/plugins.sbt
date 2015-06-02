@@ -16,7 +16,7 @@ addSbtPlugin("org.flywaydb" % "flyway-sbt" % "3.1")
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.1.0")
 
-addSbtPlugin("com.sksamuel.scapegoat" %% "sbt-scapegoat" % "0.94.6")
+addSbtPlugin("com.sksamuel.scapegoat" %% "sbt-scapegoat" % "1.0.0")
 
 addSbtPlugin("com.gilt.sbt" % "sbt-newrelic" % "0.1.0")
 

@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
   object V {
     val akka = "2.3.11"
-    val akkaExperimental = "1.0-RC2"
+    val akkaExperimental = "1.0-RC3"
     val scalaz = "7.1.2"
     val hazelcast = "3.4.2"
     val kamon = "0.4.0"
@@ -13,9 +13,8 @@ object Dependencies {
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
     val akkaKernel      = "com.typesafe.akka"             %% "akka-kernel"                   % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
-    val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.1"
-    val akkaHttpCore    = "com.typesafe.akka"             %% "akka-http-core-experimental"   % V.akkaExperimental
-    val akkaHttp        = "com.typesafe.akka"             %% "akka-http-scala-experimental"  % V.akkaExperimental
+    val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
+    val akkaHttp        = "com.typesafe.akka"             %% "akka-http-core-experimental"   % V.akkaExperimental
     val akkaHttpSpray   = "com.typesafe.akka"             %% "akka-http-spray-json-experimental" % V.akkaExperimental
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
 
@@ -35,7 +34,7 @@ object Dependencies {
     val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.2.8"
     val argonaut        = "io.argonaut"                   %% "argonaut"                      % "6.1"
 
-    val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.0"
+    val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
 
@@ -43,8 +42,8 @@ object Dependencies {
     val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % "2.2.6"
     val scalikeJdbcAsync = "org.scalikejdbc"              %% "scalikejdbc-async"             % "0.5.+"
     val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.+"
-    val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.1"
-    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.7"
+    val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
+    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.8"
 
     val scredis         = "com.livestream"                %% "scredis"                       % "2.0.7-RC1"
 
@@ -55,13 +54,13 @@ object Dependencies {
 
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
-    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.0-RC6"
+    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.0"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.3"
 
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.3"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
 
-    val jodaTime        = "joda-time"                     %  "joda-time"                     % "2.7"
+    val jodaTime        = "joda-time"                     %  "joda-time"                     % "2.8"
     val jodaConvert     = "org.joda"                      %  "joda-convert"                  % "1.7"
 
     val xml             = "org.scala-lang.modules"        %% "scala-xml"                     % "1.0.3"
@@ -71,8 +70,8 @@ object Dependencies {
 
   object Test {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
-    val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.2" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "2.4.15" % "test"
+    val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.3" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "2.4.17" % "test"
   }
 
   import Compile._, Test._
@@ -87,7 +86,7 @@ object Dependencies {
 
   val akka = Seq(
     akkaSlf4j, akkaActor, akkaKernel, akkaStream, akkaHttp,
-    akkaHttpCore, akkaHttpSpray, akkaStreamExtensions
+    akkaHttpSpray, akkaStreamExtensions
   )
 
   val root = common ++ akka ++ Seq(
