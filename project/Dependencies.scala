@@ -5,6 +5,7 @@ object Dependencies {
     val akka = "2.3.11"
     val akkaExperimental = "1.0-RC3"
     val scalaz = "7.1.2"
+    val scalikeJdbc = "2.2.6"
     val hazelcast = "3.4.2"
     val kamon = "0.4.0"
   }
@@ -39,11 +40,12 @@ object Dependencies {
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1201-jdbc41" exclude("org.slf4j", "slf4j-simple")
-    val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % "2.2.6"
+    val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % V.scalikeJdbc
+    val scalikeJdbcMacros = "org.scalikejdbc"             %% "scalikejdbc-syntax-support-macro" % V.scalikeJdbc
     val scalikeJdbcAsync = "org.scalikejdbc"              %% "scalikejdbc-async"             % "0.5.+"
     val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.+"
-    val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
-    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.8"
+    val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.1"
+    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.7"
 
     val scredis         = "com.livestream"                %% "scredis"                       % "2.0.7-RC1"
 
@@ -104,7 +106,14 @@ object Dependencies {
 
   val models = common ++ Seq()
 
-  val persist = common ++ Seq(postgresJdbc, flywayCore, hikariCp, bcrypt)
+  val persist = common ++ Seq(
+    postgresJdbc, scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
+    flywayCore, hikariCp, bcrypt, commonsCodec
+  )
 
-  val utils = common ++ Seq(scalazCore, scalazConcurrent, shapeless, shapelessScalaz)
+  val utils = common ++ Seq(
+    scalazCore, scalazConcurrent,
+    shapeless, shapelessScalaz,
+    scredis
+  )
 }

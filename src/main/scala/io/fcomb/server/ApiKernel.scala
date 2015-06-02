@@ -1,5 +1,6 @@
 package io.fcomb.server
 
+import io.fcomb.Db
 import io.fcomb.utils.Config
 import akka.actor.ActorSystem
 import akka.kernel.Bootable
@@ -16,10 +17,9 @@ class ApiKernel extends Bootable {
   import system.dispatcher
 
   def startup() = {
-    // Db.check()
-    // Db.migrate()
+    Db.migrate()
 
-    // HttpApiService.start(Config.serverConfig)
+    HttpApiService.start(Config.serverConfig)
   }
 
   def shutdown() = {

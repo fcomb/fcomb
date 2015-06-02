@@ -5,9 +5,9 @@ import org.joda.time.DateTime
 case class User
 (
   id: Option[Int],
-  email: String,
+  username: String,
+  email: Option[String],
   fullName: Option[String],
-  phoneNumber: Option[String],
   passwordHash: String,
   salt: String,
   createdAt: DateTime,
