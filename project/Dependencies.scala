@@ -44,8 +44,8 @@ object Dependencies {
     val scalikeJdbcMacros = "org.scalikejdbc"             %% "scalikejdbc-syntax-support-macro" % V.scalikeJdbc
     val scalikeJdbcAsync = "org.scalikejdbc"              %% "scalikejdbc-async"             % "0.5.+"
     val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.+"
-    val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.1"
-    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.7"
+    val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
+    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.8"
 
     val scredis         = "com.livestream"                %% "scredis"                       % "2.0.7-RC1"
 
@@ -57,7 +57,7 @@ object Dependencies {
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
     val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.0"
-    val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.3"
+    val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
 
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.3"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
@@ -104,7 +104,9 @@ object Dependencies {
 
   val data = common ++ Seq(xml, scalazCore, shapeless, shapelessScalaz)
 
-  val models = common ++ Seq()
+  val models = common ++ Seq(
+    bcrypt
+  )
 
   val persist = common ++ Seq(
     postgresJdbc, scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,

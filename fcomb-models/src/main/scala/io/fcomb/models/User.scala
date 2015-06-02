@@ -1,6 +1,7 @@
 package io.fcomb.models
 
 import org.joda.time.DateTime
+import com.github.t3hnar.bcrypt._
 
 case class User
 (
@@ -12,4 +13,7 @@ case class User
   salt: String,
   createdAt: DateTime,
   updatedAt: DateTime
-)
+) {
+  def isValidPassword(password: String) =
+    password.isBcrypted(passwordHash)
+}
