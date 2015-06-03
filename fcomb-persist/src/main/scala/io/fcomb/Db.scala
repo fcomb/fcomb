@@ -16,6 +16,7 @@ object Db {
     ds.addDataSourceProperty("url", Config.jdbcConfig.getString("url"))
     ds.addDataSourceProperty("user", Config.jdbcConfig.getString("user"))
     ds.addDataSourceProperty("password", Config.jdbcConfig.getString("password"))
+    ds.setMaximumPoolSize(Config.jdbcConfig.getInt("max-pool-size"))
     ds
   }
 
