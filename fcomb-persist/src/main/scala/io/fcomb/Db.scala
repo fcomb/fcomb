@@ -10,20 +10,9 @@ import com.zaxxer.hikari.HikariDataSource
 import javax.sql.DataSource
 
 object Db {
-  def migrate(): Unit = {
-    val flyway = new Flyway()
-    flyway.setDataSource(
-      Config.jdbcConfig.getString("url"),
-      Config.jdbcConfig.getString("user"),
-      Config.jdbcConfig.getString("password")
-    )
-    flyway.setLocations("sql.migration")
-    flyway.migrate()
-  }
-
   val dataSource: DataSource = {
     val ds = new HikariDataSource()
-    ds.setDataSourceClassName("org.postgresql.Driver")
+    ds.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource")
     ds.addDataSourceProperty("url", Config.jdbcConfig.getString("url"))
     ds.addDataSourceProperty("user", Config.jdbcConfig.getString("user"))
     ds.addDataSourceProperty("password", Config.jdbcConfig.getString("password"))
@@ -33,6 +22,13 @@ object Db {
   val pool = ConnectionPool.singleton(new DataSourceConnectionPool(dataSource))
 
   implicit val session = AutoSession
+
+  def migrate(): Unit = {
+    val flyway = new Flyway()
+    flyway.setDataSource(dataSource)
+    flyway.setLocations("sql.migration")
+    flyway.migrate()
+  }
 
   val cache = Redis(Config.scredis)
 }

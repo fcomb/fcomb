@@ -84,7 +84,7 @@ object Dependencies {
     sprayJson
   )
 
-  val kamon = Seq(kamonScala, kamonNewrelic, /*kamonStatsd,*/ kamonAkka, kamonAkkaRemote, kamonJdbc)
+  val kamon = Seq(kamonScala/*, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
 
   val akka = Seq(
     akkaSlf4j, akkaActor, akkaKernel, akkaStream, akkaHttp,

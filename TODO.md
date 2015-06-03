@@ -11,3 +11,9 @@ Tasks:
 * Integrate Stripe API
 * Directory of microservices API
 * Search of microservices API
+
+
+
+## Ideas
+
+* Own page for comb with custom domain (like gumroad or github pages)
