@@ -5,7 +5,6 @@ import scalikejdbc._
 import org.flywaydb.core.Flyway
 import scredis.Redis
 import scala.concurrent.{ Await, ExecutionContext, Future, blocking }
-import scala.concurrent.duration._
 import com.zaxxer.hikari.HikariDataSource
 import javax.sql.DataSource
 

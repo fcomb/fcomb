@@ -5,6 +5,8 @@ object Dependencies {
     val akka = "2.3.11"
     val akkaExperimental = "1.0-RC3"
     val scalaz = "7.1.2"
+    val algebra = "0.2.0-SNAPSHOT"
+    val cats = "0.1.0-SNAPSHOT"
     val scalikeJdbc = "2.2.6"
     val hazelcast = "3.4.2"
     val kamon = "0.4.0"
@@ -15,7 +17,7 @@ object Dependencies {
     val akkaKernel      = "com.typesafe.akka"             %% "akka-kernel"                   % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
     val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
-    val akkaHttp        = "com.typesafe.akka"             %% "akka-http-core-experimental"   % V.akkaExperimental
+    val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
     val akkaHttpSpray   = "com.typesafe.akka"             %% "akka-http-spray-json-experimental" % V.akkaExperimental
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
 
@@ -56,11 +58,19 @@ object Dependencies {
 
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
-    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.0"
+    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.1"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
+
+    val algebra         = "org.spire-math"                %% "algebra"                       % V.algebra
+    val algebraStd      = "org.spire-math"                %% "algebra-std"                   % V.algebra
+
+    val cats            = "org.spire-math"                %% "cats-core"                     % V.cats
+    val catsStd         = "org.spire-math"                %% "cats-std"                      % V.cats
 
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.3"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
+
+    val bridj           = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
 
     val jodaTime        = "joda-time"                     %  "joda-time"                     % "2.8"
     val jodaConvert     = "org.joda"                      %  "joda-convert"                  % "1.7"

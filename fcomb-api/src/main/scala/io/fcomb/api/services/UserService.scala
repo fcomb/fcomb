@@ -30,14 +30,38 @@ import scalaz.syntax.foldable._
 
 object UserService extends JsonService {
   def create(implicit ec: ExecutionContext, materializer: ActorFlowMaterializer) = jsonRequest { json =>
-    val fields = json.get[String]("username", Some(_.present.max(255))) ::
-      json.getOpt[String]("email", Some(_.email.max(255))) ::
+    val fields = json.get[String]("email", Some(_.email.max(255))) ::
+      json.get[String]("username", Some(_.present.max(255))) ::
       json.get[String]("password", Some(_.present.range(6, 50))) ::
       json.getOpt[String]("fullName") ::
       HNil
-    // val res = sequence(fields).map((persist.User.create _).toProduct).map(_.map(_.map(user2Json)))
-    // jsonResponse[UserResponse](res)
-    ???
+
+    import org.joda.time.DateTime
+    implicit object DateTimeFormat extends RootJsonFormat[DateTime] {
+      def write(s: DateTime) = JsString(s.toString)
+
+      def read(v: JsValue) = v match {
+        case JsString(v) => DateTime.parse(v)
+        case _ =>
+          throw new DeserializationException("invalid DateTime")
+      }
+    }
+
+    import java.util.UUID
+    implicit object UuidFormat extends RootJsonFormat[UUID] {
+      def write(u: UUID) = JsString(u.toString)
+
+      def read(v: JsValue) = v match {
+        case JsString(s) => UUID.fromString(s)
+        case _ =>
+          throw new DeserializationException("invalid UUID")
+      }
+    }
+
+    implicit val userJsonResponseFormat = jsonFormat7(models.User)
+
+    val res = sequence(fields).map((persist.User.create _).toProduct)
+    jsonResponse[models.User](res.toOption.get)
   }
 
   // private def user2Json(u: models.User) =

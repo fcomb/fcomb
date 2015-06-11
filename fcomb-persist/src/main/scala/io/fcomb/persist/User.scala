@@ -1,10 +1,12 @@
 package io.fcomb.persist
 
+import io.fcomb.Db._
 import io.fcomb.models
 import scalikejdbc._
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ ExecutionContext, Future, blocking }
 import java.util.UUID
-import io.fcomb.Db._
+import com.github.t3hnar.bcrypt._
+import org.joda.time.DateTime
 
 object User extends PersistModel[models.User] {
   override val tableName = "users"
@@ -17,14 +19,43 @@ object User extends PersistModel[models.User] {
     apply(p.resultName)(rs)
 
   def apply(rn: ResultName[models.User])(rs: WrappedResultSet): models.User =
-    models.User(
-      id = rs.get(rn.id),
-      username = rs.get(rn.username),
-      email = rs.get(rn.email),
-      fullName = rs.get(rn.fullName),
-      salt = rs.get(rn.salt),
-      passwordHash = rs.get(rn.passwordHash),
-      createdAt = rs.get(rn.createdAt),
-      updatedAt = rs.get(rn.updatedAt)
-    )
+    autoConstruct(rs, rn)
+
+  def create(
+    email: String,
+    username: String,
+    password: String,
+    fullName: Option[String]
+  )(implicit ec: ExecutionContext): Future[models.User] = DB.futureLocalTx { implicit session =>
+    Future {
+      blocking {
+        val salt = generateSalt
+        val passwordHash = password.bcrypt(salt)
+        val timeAt = DateTime.now()
+        val id = UUID.randomUUID()
+        withSQL {
+          insert
+            .into(User)
+            .namedValues(
+              column.id -> id,
+              column.email -> email,
+              column.username -> username,
+              column.fullName -> fullName,
+              column.passwordHash -> passwordHash,
+              column.createdAt -> timeAt,
+              column.updatedAt -> timeAt
+            )
+        }.update.apply()
+        models.User(
+          id = id,
+          email = email,
+          username = username,
+          fullName = fullName,
+          passwordHash = passwordHash,
+          createdAt = timeAt,
+          updatedAt = timeAt
+        )
+      }
+    }
+  }
 }

@@ -230,3 +230,5 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
       }
     }
 }
+
+
