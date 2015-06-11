@@ -241,6 +241,7 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
 
   implicit val mappable: Mappable[T]
 
+  // TODO: move it to ModelWithPk for PK as Option[Int] with returning item.copy(id = Some(id))
   def createDBIO(item: T) = {
     val m = materialize[T](item).toList
     val values = m.map {
@@ -278,4 +279,20 @@ trait PersistModelWithPk[T <: models.ModelWithPk[_, PK], PK] extends PersistMode
 
   // def findById(id: PK)(implicit ec: ExecutionContext): Future[Option[T]] =
   //   findByIds(List(id)).map(_.headOption)
+}
+
+trait PersistModelWithAutoPk[T <: models.ModelWithId] extends PersistModelWithPk[T, Long] {
+  override def createDBIO(item: T) = {
+    val m = materialize[T](item).toList
+    val values = m.collect {
+      case (c, v) if !(c == "id" && item.id.isEmpty) =>
+        (column.field(c), v)
+    }
+    val id = withSQL {
+      insert
+        .into(this)
+        .namedValues(values: _*)
+    }.updateAndReturnGeneratedKey.apply()
+    item.withId(id)
+  }
 }

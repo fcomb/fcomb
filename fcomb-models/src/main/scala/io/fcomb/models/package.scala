@@ -13,6 +13,8 @@ package object models {
     val id: Option[Long]
 
     def getId: Long = id.get
+
+    def withId[T <: ModelWithId](id: Long): T
   }
 
   trait ModelWithUuid extends ModelWithPk[UUID, UUID] {
