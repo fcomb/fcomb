@@ -128,4 +128,6 @@ object Dependencies {
     shapeless, shapelessScalaz,
     scredis
   )
+
+  val macros = common
 }

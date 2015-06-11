@@ -4,8 +4,9 @@ import io.fcomb.models
 import io.fcomb.Db._
 import io.fcomb.DBIO, DBIO._
 import io.fcomb.utils.validation
+import io.fcomb.macros._
 import scalikejdbc._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ ExecutionContext, Future, blocking }
 import scalaz._, syntax.validation._, syntax.applicative._
 
 trait PersistTypes[T] {
@@ -22,6 +23,7 @@ trait PersistTypes[T] {
     Future.successful(recordNotFound(field, id))
 }
 
+// TODO: move common methods into Plain* traits
 trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
   lazy val alias = syntax
 
@@ -229,6 +231,51 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
         else (columnName, errorMsg).failureNel[Unit]
       }
     }
+
+  // --------------------------------------------------
+
+  def apply(p: SyntaxProvider[T])(rs: WrappedResultSet): T =
+    apply(p.resultName)(rs)
+
+  def apply(rn: ResultName[T])(rs: WrappedResultSet): T
+
+  implicit val mappable: Mappable[T]
+
+  def createDBIO(item: T) = {
+    val m = materialize[T](item).toList
+    val values = m.map {
+      case (c, v) =>
+        (column.field(c), v)
+    }
+    withSQL {
+      insert
+        .into(this)
+        .namedValues(values: _*)
+    }.update.apply()
+    item
+  }
+
+  // TODO: add validation and run through DBIO.run
+  def create(item: T)(implicit ec: ExecutionContext): Future[T] =
+    DB.futureLocalTx { implicit session =>
+      Future {
+        blocking {
+          createDBIO(item)
+        }
+      }
+    }
 }
 
+trait PersistModelWithPk[T <: models.ModelWithPk[_, PK], PK] extends PersistModel[T] {
+  lazy val pkColumn = syntax.column(column.id)
 
+  // def findByIds(ids: List[PK])(implicit ec: ExecutionContext): Future[List[T]] = {
+  //   if (ids.isEmpty) Future.successful(List.empty)
+  //   else asyncJdbc {
+  //     mapListScope(sql"$scopeSql where $pkColumn IN ($ids)").list.apply // TODO: view source for investigate performance for single element
+  //   }.flatMap(mapScopeItems)
+  // }
+
+  // def findById(id: PK)(implicit ec: ExecutionContext): Future[Option[T]] =
+  //   findByIds(List(id)).map(_.headOption)
+}

@@ -119,11 +119,19 @@ object Build extends sbt.Build {
      )
   )
 
+  lazy val macros = Project(
+     id = "macros",
+     base = file("fcomb-macros"),
+     settings = defaultSettings ++ Seq(
+       libraryDependencies ++= Dependencies.macros
+     )
+  )
+
   lazy val persist = Project(
      id = "persist",
      base = file("fcomb-persist"),
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.persist
      )
-  ).dependsOn(models, utils)
+  ).dependsOn(macros, models, utils)
 }
