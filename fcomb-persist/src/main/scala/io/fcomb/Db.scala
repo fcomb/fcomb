@@ -23,11 +23,13 @@ object Db {
 
   implicit val session = AutoSession
 
-  def migrate(): Unit = {
-    val flyway = new Flyway()
-    flyway.setDataSource(dataSource)
-    flyway.setLocations("sql.migration")
-    flyway.migrate()
+  def migrate()(implicit ec: ExecutionContext) = Future {
+    blocking {
+      val flyway = new Flyway()
+      flyway.setDataSource(dataSource)
+      flyway.setLocations("sql.migration")
+      flyway.migrate()
+    }
   }
 
   val cache = Redis(Config.scredis)

@@ -53,12 +53,13 @@ object Dependencies {
 
     val oauth           = "com.nulab-inc"                 %% "scala-oauth2-core"             % "0.13.1"
     val bcrypt          = "com.github.t3hnar"             %% "scala-bcrypt"                  % "2.4"
+    val nacl4s          = "com.github.emstlk"             %% "nacl4s"                        % "1.0.0" 
 
     val aws             = "com.github.seratch"            %% "awscala"                       % "0.5.0" // TODO: replace by aws-wrap
 
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
-    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.1"
+    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.3"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
 
     val algebra         = "org.spire-math"                %% "algebra"                       % V.algebra
@@ -72,12 +73,14 @@ object Dependencies {
 
     val bridj           = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
 
-    val jodaTime        = "joda-time"                     %  "joda-time"                     % "2.8"
+    val jodaTime        = "joda-time"                     %  "joda-time"                     % "2.8.1"
     val jodaConvert     = "org.joda"                      %  "joda-convert"                  % "1.7"
 
     val xml             = "org.scala-lang.modules"        %% "scala-xml"                     % "1.0.3"
 
     val commonsCodec    = "commons-codec"                 %  "commons-codec"                 % "1.10"
+
+    val ffi             = "com.nativelibs4java"           % "bridj"                          % "0.7.0"
   }
 
   object Test {
@@ -91,7 +94,8 @@ object Dependencies {
   val common = Seq(
     logbackClassic, scalaLogging, jodaTime, jodaConvert,
     config, json4sJackson, pickling, argonaut,
-    sprayJson
+    sprayJson,
+    argonaut
   )
 
   val kamon = Seq(kamonScala/*, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)

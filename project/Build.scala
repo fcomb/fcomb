@@ -9,7 +9,7 @@ import com.gilt.sbt.newrelic.NewRelic, NewRelic.autoImport._
 object Build extends sbt.Build {
   val Organization = "io.fcomb"
   val Version = "0.1-SNAPSHOT"
-  val ScalaVersion = "2.11.6"
+  val ScalaVersion = "2.11.7"
 
   lazy val buildSettings =
     Defaults.defaultSettings ++
