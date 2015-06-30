@@ -2,8 +2,8 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.3.11"
-    val akkaExperimental = "1.0-RC3"
+    val akka = "2.4-M2"
+    val akkaExperimental = "1.0-RC4"
     val scalaz = "7.1.2"
     val algebra = "0.2.0-SNAPSHOT"
     val cats = "0.1.0-SNAPSHOT"
@@ -30,6 +30,8 @@ object Dependencies {
     val kamonJdbc       = "io.kamon"                      %% "kamon-jdbc"                    % V.kamon
 
     val dispatch        = "net.databinder.dispatch"       %% "dispatch-core"                 % "0.11.2"
+    val finagle         = "com.github.finagle"            %% "finch-core"                    % "0.7.1"
+    val finagleArgonaut = "com.github.finagle"            %% "finch-argonaut"                % "0.7.1"
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
     val sprayJson       = "io.spray"                      %% "spray-json"                    % "1.3.2"

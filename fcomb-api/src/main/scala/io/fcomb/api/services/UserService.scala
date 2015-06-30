@@ -6,7 +6,7 @@ import io.fcomb.utils.validation._
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.server.RequestContext
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.stream.ActorFlowMaterializer
+import akka.stream.ActorMaterializer
 import scala.language.implicitConversions
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.mutable
@@ -29,7 +29,7 @@ import scalaz.syntax.foldable._
 // }
 
 object UserService extends JsonService {
-  def create(implicit ec: ExecutionContext, materializer: ActorFlowMaterializer) = jsonRequest { json =>
+  def create(implicit ec: ExecutionContext, materializer: ActorMaterializer) = jsonRequest { json =>
     val fields = json.get[String]("email", Some(_.email.max(255))) ::
       json.get[String]("username", Some(_.present.max(255))) ::
       json.get[String]("password", Some(_.present.range(6, 50))) ::
@@ -75,7 +75,7 @@ object UserService extends JsonService {
   //   )
 
   // import akka.http.scaladsl.model.headers.Authorization
-  // def me(ctx: RequestContext)(implicit ec: ExecutionContext, materializer: ActorFlowMaterializer) = {
+  // def me(ctx: RequestContext)(implicit ec: ExecutionContext, materializer: ActorMaterializer) = {
   //   ctx.request.headers.collectFirst {
   //     case a: Authorization ⇒ a
   //   } match {

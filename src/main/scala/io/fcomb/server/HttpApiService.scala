@@ -3,15 +3,16 @@ package io.fcomb.server
 import io.fcomb.api.JsonErrors
 import io.fcomb.api.services._
 import akka.actor._
-import akka.stream.ActorFlowMaterializer
+import akka.stream.ActorMaterializer
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.model._, ContentTypes.`application/json`
 import akka.stream.scaladsl.Sink
 import com.typesafe.config.Config
 import scala.language.postfixOps
 
-class HttpApiService(config: Config)(implicit system: ActorSystem, materializer: ActorFlowMaterializer) {
+class HttpApiService(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer) {
   implicit val executionContext = system.dispatcher
 
   val interface = config.getString("rest-api.interface")
@@ -30,6 +31,14 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
     }
     .result
 
+  private val pongJsonResponse = HttpResponse(
+    status = StatusCodes.OK,
+    entity = HttpEntity(
+      `application/json`,
+      """{"pong":true}"""
+    )
+  )
+
   // format: OFF
   val routes: Route =
     pathPrefix("v1") {
@@ -40,6 +49,9 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
         path("me") {
           get(UserService.me)
         }*/
+      } ~
+      path("ping") {
+        get(complete(pongJsonResponse))
       }
     }
   // format: ON
@@ -58,6 +70,6 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
 }
 
 object HttpApiService {
-  def start(config: Config)(implicit system: ActorSystem, materializer: ActorFlowMaterializer) =
+  def start(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer) =
     new HttpApiService(config).bind()
 }

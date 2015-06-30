@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.RequestContext
 import akka.http.scaladsl.unmarshalling.{ FromEntityUnmarshaller, Unmarshal, Unmarshaller }
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.stream.ActorFlowMaterializer
+import akka.stream.ActorMaterializer
 import scala.language.implicitConversions
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.mutable
@@ -51,19 +51,19 @@ trait JsonService extends JsonHelpers with JsonErrors {
   def jsonErrorsResponse(statusCode: StatusCode, e: NonEmptyList[(String, String)]): HttpResponse =
     jsonResponse(statusCode, mapErrors(e))
 
-  implicit def unmarshaller(implicit ec: ExecutionContext, materializer: ActorFlowMaterializer): FromEntityUnmarshaller[JsValue] =
+  implicit def unmarshaller(implicit ec: ExecutionContext, materializer: ActorMaterializer): FromEntityUnmarshaller[JsValue] =
     Unmarshaller.byteStringUnmarshaller.forContentTypes(`application/json`).mapWithCharset { (data, charset) ⇒
       if (data.nonEmpty) data.decodeString(charset.nioCharset.name()).parseJson
       else JsNull
     }
 
-  def jsonRequest[T](f: JsObject => T)(implicit ec: ExecutionContext, materializer: ActorFlowMaterializer, conv: T => ToResponseMarshallable) = { ctx: RequestContext =>
+  def jsonRequest[T](f: JsObject => T)(implicit ec: ExecutionContext, materializer: ActorMaterializer, conv: T => ToResponseMarshallable) = { ctx: RequestContext =>
     ctx.complete(Unmarshal(ctx.request.entity).to[JsValue].map { json =>
       conv(f(json.asJsObject))
     })
   }
 
-  def complete[T](f: => T)(implicit ec: ExecutionContext, materializer: ActorFlowMaterializer, conv: T => ToResponseMarshallable) = { ctx: RequestContext =>
+  def complete[T](f: => T)(implicit ec: ExecutionContext, materializer: ActorMaterializer, conv: T => ToResponseMarshallable) = { ctx: RequestContext =>
     ctx.complete(conv(f))
   }
 
