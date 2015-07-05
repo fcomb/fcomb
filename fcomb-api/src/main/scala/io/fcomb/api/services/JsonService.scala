@@ -52,7 +52,7 @@ trait JsonService extends JsonHelpers with JsonErrors {
   //
   // implicit def unmarshaller(implicit ec: ExecutionContext, materializer: ActorMaterializer): FromEntityUnmarshaller[Json] =
   //   Unmarshaller.byteStringUnmarshaller.forContentTypes(`application/json`).mapWithCharset { (data, charset) ⇒
-  //     if (data.nonEmpty) data.decodeString(charset.nioCharset.name()).asJson
+  //     if (data.nonEmpty) data.decodeString(charset.nioCharset.name()).parse
   //     else jNull
   //   }
   //
