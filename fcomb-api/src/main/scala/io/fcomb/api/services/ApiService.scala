@@ -50,20 +50,27 @@ object ServiceFlow {
 }
 
 trait ApiService {
-  def requestAs[T <: ApiServiceRequest](
-    f: T => ApiServiceResponse
+  def requestAs[T <: ApiServiceRequest, E <: ApiServiceResponse](
+    f: T => E
   )(
     implicit
     ec:           ExecutionContext,
     materializer: Materializer,
-    m:            Manifest[T],
-    dj:           DecodeJson[T] // TODO
+    tm:           Manifest[T],
+    em:           Manifest[E],
+    dj:           DecodeJson[T],
+    ej:           EncodeJson[E]
   ): ServiceResponse =
     new ServiceResponse {
       def apply(contentType: ContentType, entity: Source[ByteString, Any]) = {
         ServiceFlow(contentType, entity).map {
           case \/-(JsonServiceFlow(json)) =>
-            json.as[T].map(f)
+            json.as[T] match {
+              case DecodeResult(\/-(res)) =>
+                ej(f(res))
+              case DecodeResult(-\/((e, cursor))) =>
+                s"e: $e, cursor: $cursor, ${cursor.toList}"
+            }
           case -\/(e) =>
             println(s"e: $e")
             throw new Exception(e.toString)

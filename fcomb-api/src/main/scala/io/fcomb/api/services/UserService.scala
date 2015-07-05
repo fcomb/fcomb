@@ -20,7 +20,7 @@ object UserService extends ApiService {
     ec:           ExecutionContext,
     materializer: Materializer
   ) =
-    requestAs[UserRequest] { user =>
+    requestAs { user: UserRequest =>
       // val res = sequence(fields).map((persist.User.create _).toProduct)
       // jsonResponse[models.User](res.toOption.get)
       UserResponse(java.util.UUID.randomUUID, user.email, user.username, user.fullName)

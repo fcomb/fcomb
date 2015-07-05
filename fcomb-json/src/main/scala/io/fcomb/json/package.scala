@@ -7,15 +7,11 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 package object json {
-  implicit def DateTimeEncodeJson: EncodeJson[LocalDateTime] =
+  implicit val dateTimeEncodeJson: EncodeJson[LocalDateTime] =
     EncodeJson((d: LocalDateTime) => jString(d.toString))
 
-  implicit def UuidEncodeJson: EncodeJson[UUID] =
+  implicit val uuidEncodeJson: EncodeJson[UUID] =
     EncodeJson((uuid: UUID) => jString(uuid.toString))
-
-  implicit def UserEncodeJson: EncodeJson[User] =
-    jencode4L((u: User) =>
-      (u.id, u.email, u.username, u.fullName))("id", "email", "username", "fullName")
 
   private object shapelessImplicits {
     val userResponseEncodeJson: EncodeJson[UserResponse] =
