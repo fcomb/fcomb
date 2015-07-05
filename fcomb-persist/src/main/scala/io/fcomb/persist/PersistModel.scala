@@ -3,7 +3,6 @@ package io.fcomb.persist
 import io.fcomb.models
 import io.fcomb.Db._
 import io.fcomb.DBIO, DBIO._
-import io.fcomb.utils.validation
 import io.fcomb.macros._
 import scalikejdbc._
 import scala.concurrent.{ ExecutionContext, Future, blocking }
@@ -142,14 +141,6 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
     }
   }
 
-  // def strictUpdateDBIO[E, U, C[_]](
-  //   q:    Query[E, U, C],
-  //   item: U
-  // )(implicit ec: ExecutionContext) = q.update(item).flatMap {
-  //   case 0 => DBIO.failed(new RecordNotFound)
-  //   case _ => DBIO.successful(item)
-  // }
-
   def validateModel(item: T)(implicit ec: ExecutionContext): ValidationDbResult =
     validate(item)
 
@@ -165,18 +156,6 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
   def validateModelWithDBIO(item: T)(f: => DBIOAction[T])(implicit ec: ExecutionContext, m: Manifest[T]) =
     validateWithDBIO(validateModel(item))(f)
 
-  // def createDBIO(item: T): ModelDBIO =
-  //   table returning table.map(i => i) += item.asInstanceOf[Q#TableElementType]
-
-  // def createDBIO(items: Seq[T]) =
-  //   table returning table.map(i => i) ++= items.asInstanceOf[Seq[Q#TableElementType]]
-
-  // def createDBIO(itemOpt: Option[T])(implicit ec: ExecutionContext): ModelDBIOOption =
-  //   itemOpt match {
-  //     case Some(item) => createDBIO(item).map(Some(_))
-  //     case None       => DBIO.successful(Option.empty[T])
-  //   }
-
   // // TODO: move into validation scope
   // // TODO: add default error message
 
@@ -191,46 +170,46 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
       }
     }
 
-  protected def email(columnName: String, errorMsg: String)(f: T => String) =
-    new PlainMethodValidation {
-      def apply(item: T)(implicit ec: ExecutionContext) = {
-        if (validation.emailRegEx.findFirstIn(f(item)).isDefined) ().successNel[FieldError]
-        else (columnName, errorMsg).failureNel[Unit]
-      }
-    }
+  // protected def email(columnName: String, errorMsg: String)(f: T => String) =
+  //   new PlainMethodValidation {
+  //     def apply(item: T)(implicit ec: ExecutionContext) = {
+  //       if (validation.emailRegEx.findFirstIn(f(item)).isDefined) ().successNel[FieldError]
+  //       else (columnName, errorMsg).failureNel[Unit]
+  //     }
+  //   }
 
-  protected def present(columnName: String, errorMsg: String)(f: T => String) =
-    new PlainMethodValidation {
-      def apply(item: T)(implicit ec: ExecutionContext) = {
-        if (f(item).nonEmpty) ().successNel[FieldError]
-        else (columnName, errorMsg).failureNel[Unit]
-      }
-    }
+  // protected def present(columnName: String, errorMsg: String)(f: T => String) =
+  //   new PlainMethodValidation {
+  //     def apply(item: T)(implicit ec: ExecutionContext) = {
+  //       if (f(item).nonEmpty) ().successNel[FieldError]
+  //       else (columnName, errorMsg).failureNel[Unit]
+  //     }
+  //   }
 
-  protected def maxLength(columnName: String, length: Int, errorMsg: String)(f: T => String) =
-    new PlainMethodValidation {
-      def apply(item: T)(implicit ec: ExecutionContext) = {
-        if (f(item).length <= length) ().successNel[FieldError]
-        else (columnName, errorMsg).failureNel[Unit]
-      }
-    }
+  // protected def maxLength(columnName: String, length: Int, errorMsg: String)(f: T => String) =
+  //   new PlainMethodValidation {
+  //     def apply(item: T)(implicit ec: ExecutionContext) = {
+  //       if (f(item).length <= length) ().successNel[FieldError]
+  //       else (columnName, errorMsg).failureNel[Unit]
+  //     }
+  //   }
 
-  protected def minLength(columnName: String, length: Int, errorMsg: String)(f: T => String) =
-    new PlainMethodValidation {
-      def apply(item: T)(implicit ec: ExecutionContext) = {
-        if (f(item).length >= length) ().successNel[FieldError]
-        else (columnName, errorMsg).failureNel[Unit]
-      }
-    }
+  // protected def minLength(columnName: String, length: Int, errorMsg: String)(f: T => String) =
+  //   new PlainMethodValidation {
+  //     def apply(item: T)(implicit ec: ExecutionContext) = {
+  //       if (f(item).length >= length) ().successNel[FieldError]
+  //       else (columnName, errorMsg).failureNel[Unit]
+  //     }
+  //   }
 
-  protected def rangeLength(columnName: String, range: (Int, Int), errorMsg: String)(f: T => String) =
-    new PlainMethodValidation {
-      def apply(item: T)(implicit ec: ExecutionContext) = {
-        val length = f(item).length
-        if (length >= range._1 && length <= range._2) ().successNel[FieldError]
-        else (columnName, errorMsg).failureNel[Unit]
-      }
-    }
+  // protected def rangeLength(columnName: String, range: (Int, Int), errorMsg: String)(f: T => String) =
+  //   new PlainMethodValidation {
+  //     def apply(item: T)(implicit ec: ExecutionContext) = {
+  //       val length = f(item).length
+  //       if (length >= range._1 && length <= range._2) ().successNel[FieldError]
+  //       else (columnName, errorMsg).failureNel[Unit]
+  //     }
+  //   }
 
   // --------------------------------------------------
 
@@ -268,7 +247,9 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
 }
 
 trait PersistModelWithPk[T <: models.ModelWithPk[_, PK], PK] extends PersistModel[T] {
-  lazy val pkColumn = syntax.column(column.id)
+  val pkColumnName = "id"
+
+  lazy val pkColumn = syntax.column(pkColumnName)
 
   // def findByIds(ids: List[PK])(implicit ec: ExecutionContext): Future[List[T]] = {
   //   if (ids.isEmpty) Future.successful(List.empty)
@@ -285,7 +266,7 @@ trait PersistModelWithAutoPk[T <: models.ModelWithId] extends PersistModelWithPk
   override def createDBIO(item: T) = {
     val m = materialize[T](item).toList
     val values = m.collect {
-      case (c, v) if !(c == "id" && item.id.isEmpty) =>
+      case (c, v) if !(c == pkColumnName && item.id.isEmpty) =>
         (column.field(c), v)
     }
     val id = withSQL {

@@ -19,7 +19,10 @@ object Build extends sbt.Build {
         scalaVersion         := ScalaVersion,
         crossPaths           := false,
         organizationName     := Organization,
-        organizationHomepage := Some(url("https://fcomb.io"))
+        organizationHomepage := Some(url("https://fcomb.io")),
+        ivyScala             := ivyScala.value.map(_.copy(
+          overrideScalaVersion = true
+        ))
       )
 
   val compilerFlags = Seq(
@@ -101,7 +104,7 @@ object Build extends sbt.Build {
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.api
      )
-  ).dependsOn(persist, utils)
+  ).dependsOn(persist, utils, json, request, response)
 
   lazy val models = Project(
      id = "models",
@@ -117,7 +120,7 @@ object Build extends sbt.Build {
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.utils
      )
-  )
+  ).dependsOn(json)
 
   lazy val macros = Project(
      id = "macros",
@@ -134,4 +137,28 @@ object Build extends sbt.Build {
        libraryDependencies ++= Dependencies.persist
      )
   ).dependsOn(macros, models, utils)
+
+  lazy val json = Project(
+    id = "json",
+    base = file("fcomb-json"),
+    settings = defaultSettings ++ Seq(
+      libraryDependencies ++= Dependencies.json
+    )
+  ).dependsOn(models)
+
+  lazy val request = Project(
+    id = "request",
+    base = file("fcomb-request"),
+    settings = defaultSettings ++ Seq(
+      libraryDependencies ++= Dependencies.request
+    )
+  ).dependsOn(models)
+
+  lazy val response = Project(
+    id = "response",
+    base = file("fcomb-response"),
+    settings = defaultSettings ++ Seq(
+      libraryDependencies ++= Dependencies.response
+    )
+  ).dependsOn(models)
 }

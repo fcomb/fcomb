@@ -24,26 +24,6 @@ class ApiKernel extends Bootable {
       case Failure(e) =>
         throw e
     }
-
-    // {
-    //   import argonaut._, Argonaut._
-    //   import scalaz._, Scalaz._
-
-    //   case class A(a: Option[String], l: List[Int])
-
-    //   implicit def ACodecJson: DecodeJson[A] =
-    //     DecodeJson(c => for {
-    //       a <- (c --\ "a").as[Option[String]]
-    //       l <- (c --\ "l").as[Option[List[Int]]]
-    //     } yield A(a, l.getOrElse(List.empty)))
-
-    //   val a = """
-    //   {
-    //     "a": "wow"
-    //   }
-    //   """.decode[A]
-    //   println(s"a: $a")
-    // }
   }
 
   def shutdown() = {

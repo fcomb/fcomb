@@ -18,8 +18,8 @@ object Dependencies {
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
     val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
-    val akkaHttpSpray   = "com.typesafe.akka"             %% "akka-http-spray-json-experimental" % V.akkaExperimental
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
+    val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence-experimental" % V.akka
 
     val akkaTracing     = "com.github.levkhomich"         %% "akka-tracing-core"             % "0.5-SNAPSHOT" changing()
     val kamonScala      = "io.kamon"                      %% "kamon-scala"                   % V.kamon
@@ -34,10 +34,10 @@ object Dependencies {
     val finagleArgonaut = "com.github.finagle"            %% "finch-argonaut"                % "0.7.1"
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
-    val sprayJson       = "io.spray"                      %% "spray-json"                    % "1.3.2"
     val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
     val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.2.8"
     val argonaut        = "io.argonaut"                   %% "argonaut"                      % "6.1"
+    val argonautShapeless = "com.github.alexarchambault"  %% "argonaut-shapeless_6.1"        % "0.3.0"
 
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
@@ -50,6 +50,9 @@ object Dependencies {
     val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.+"
     val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.8"
+
+    val levelDb         = "org.iq80.leveldb"              % "leveldb"                        % "0.7"
+    val levelDbJni      = "org.fusesource.leveldbjni"     % "leveldbjni-all"                 % "1.8"
 
     val scredis         = "com.livestream"                %% "scredis"                       % "2.0.7-RC1"
 
@@ -64,6 +67,9 @@ object Dependencies {
     val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.3"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
 
+    val raptureCore     = "com.propensive"                %% "rapture-core"                  % "1.1.0"
+    val raptureIo       = "com.propensive"                %% "rapture-io"                    % "0.9.0"
+
     val algebra         = "org.spire-math"                %% "algebra"                       % V.algebra
     val algebraStd      = "org.spire-math"                %% "algebra-std"                   % V.algebra
 
@@ -74,9 +80,6 @@ object Dependencies {
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
 
     val bridj           = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
-
-    val jodaTime        = "joda-time"                     %  "joda-time"                     % "2.8.1"
-    val jodaConvert     = "org.joda"                      %  "joda-convert"                  % "1.7"
 
     val xml             = "org.scala-lang.modules"        %% "scala-xml"                     % "1.0.3"
 
@@ -94,22 +97,20 @@ object Dependencies {
   import Compile._, Test._
 
   val common = Seq(
-    logbackClassic, scalaLogging, jodaTime, jodaConvert,
-    config, json4sJackson, pickling, argonaut,
-    sprayJson,
-    argonaut
+    logbackClassic, scalaLogging,
+    config, json4sJackson, pickling, upickle,
+    argonaut, argonautShapeless
   )
 
   val kamon = Seq(kamonScala/*, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
 
   val akka = Seq(
     akkaSlf4j, akkaActor, akkaKernel, akkaStream, akkaHttp,
-    akkaHttpSpray, akkaStreamExtensions
+    akkaStreamExtensions
   )
 
   val root = common ++ akka ++ Seq(
     postgresJdbc, flywayCore, hikariCp,
-    sprayJson, upickle,
     commonsCodec,
     scalazCore, scalazConcurrent, shapeless, shapelessScalaz
   )
@@ -136,4 +137,10 @@ object Dependencies {
   )
 
   val macros = common
+
+  val json = common
+
+  val request = common
+
+  val response = common
 }

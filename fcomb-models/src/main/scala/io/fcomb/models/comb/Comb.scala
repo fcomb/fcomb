@@ -1,6 +1,6 @@
 package com.fcomb.models.comb
 
-import org.joda.time.DateTime
+import java.time.LocalDateTime
 import java.util.UUID
 
 @SerialVersionUID(1L)
@@ -9,6 +9,6 @@ case class Comb(
   userId: UUID,
   name: Option[String],
   slug: String,
-  createdAt: DateTime,
-  updatedAt: DateTime
+  createdAt: LocalDateTime,
+  updatedAt: LocalDateTime
 )

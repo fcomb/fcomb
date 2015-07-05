@@ -7,12 +7,12 @@ import scalikejdbc._
 import scala.concurrent.{ ExecutionContext, Future }
 import java.util.UUID
 import com.github.t3hnar.bcrypt._
-import org.joda.time.DateTime
+import java.time.LocalDateTime
 
 object User extends PersistModelWithPk[models.User, UUID] {
   override val tableName = "users"
   override val columns = Seq(
-    "id", "username", "email", "full_name", "salt",
+    "id", "username", "email", "full_name",
     "password_hash", "created_at", "updated_at"
   )
 
@@ -27,7 +27,7 @@ object User extends PersistModelWithPk[models.User, UUID] {
     password: String,
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[models.User] = {
-    val timeAt = DateTime.now()
+    val timeAt = LocalDateTime.now()
     create(models.User(
       id = UUID.randomUUID(),
       email = email,
