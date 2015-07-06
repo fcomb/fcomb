@@ -17,8 +17,10 @@ case class User(
     password.isBcrypted(passwordHash)
 }
 
+// TODO
 trait ApiServiceRequest
 
+// TODO
 trait ApiServiceResponse
 
 case class UserRequest(

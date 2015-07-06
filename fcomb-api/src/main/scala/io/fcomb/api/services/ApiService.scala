@@ -69,11 +69,11 @@ trait ApiService {
               case DecodeResult(\/-(res)) =>
                 ej(f(res))
               case DecodeResult(-\/((e, cursor))) =>
-                s"e: $e, cursor: $cursor, ${cursor.toList}"
+                s"e: $e, cursor: $cursor, ${cursor.toList}" // TODO: response as json error
             }
           case -\/(e) =>
             println(s"e: $e")
-            throw new Exception(e.toString)
+            throw new Exception(e.toString) // TODO: handle exceptions within content type
         }
       }
     }
