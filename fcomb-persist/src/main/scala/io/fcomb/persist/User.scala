@@ -115,31 +115,40 @@ object User extends PersistModelWithPk[models.User, UUID] {
     def isValid(): ResultContainerValue = rv
   }
 
-  trait ValidationV[T] {
+  trait Effect
+  object Effect {
+    trait Plain extends Effect
+    trait Future extends Effect
+    trait IO extends Effect
+    trait DBIOAction extends Effect
+    trait All extends Plain with Future with IO with DBIOAction
+  }
+
+  trait ValidationV[T, E <: Effect] {
     def apply(obj: T)(implicit ec: ExecutionContext): ResultContainer
 
-    def `&&`(v: ValidationV[T])(implicit ec: ExecutionContext): ValidationV[T] = {
+    def `&&`[E2 <: Effect](v: ValidationV[T, E2])(implicit ec: ExecutionContext) = {
       def g(obj: T) = apply(obj)
 
-      new ValidationV[T] {
+      new ValidationV[T, E with E2] {
         def apply(obj: T)(implicit ec: ExecutionContext) =
           g(obj) && v(obj)
       }
     }
 
-    def `||`(v: ValidationV[T])(implicit ec: ExecutionContext): ValidationV[T] = {
+    def `||`[E2 <: Effect](v: ValidationV[T, E2])(implicit ec: ExecutionContext) = {
       def g(obj: T)(implicit ec: ExecutionContext) = apply(obj)
 
-      new ValidationV[T] {
+      new ValidationV[T, E with E2] {
         def apply(obj: T)(implicit ec: ExecutionContext) =
           g(obj) || v(obj)
       }
     }
 
-    def unary_!(implicit ec: ExecutionContext): ValidationV[T] = {
+    def unary_!(implicit ec: ExecutionContext) = {
       def g(obj: T)(implicit ec: ExecutionContext) = apply(obj)
 
-      new ValidationV[T] {
+      new ValidationV[T, E] {
         def apply(obj: T)(implicit ec: ExecutionContext) =
           !g(obj)
       }
@@ -158,16 +167,16 @@ object User extends PersistModelWithPk[models.User, UUID] {
   }
 
   object ValidationVV {
-    def present[T](implicit v: PresentValidator[T]): ValidationV[T] =
-      new ValidationV[T] {
+    def present[T](implicit v: PresentValidator[T]) =
+      new ValidationV[T, Effect.Plain] {
         def apply(obj: T)(implicit ec: ExecutionContext) = v(obj)
       }
 
-    def notEmpty[T](implicit v: PresentValidator[T]): ValidationV[T] =
+    def notEmpty[T](implicit v: PresentValidator[T]) =
       present[T]
 
-    def futureCheck[T]: ValidationV[T] =
-      new ValidationV[T] {
+    def futureCheck[T] =
+      new ValidationV[T, Effect.Future] {
         def apply(obj: T)(implicit ec: ExecutionContext) = FutureValidationResult(
           Future.successful(true, "error")
         )
@@ -176,21 +185,26 @@ object User extends PersistModelWithPk[models.User, UUID] {
   import ValidationVV._
 
   implicit class StringV(val s: String) extends AnyVal {
-    def is(v: ValidationV[String])(implicit ec: ExecutionContext): ResultContainer =
+    def is[E <: Effect](v: ValidationV[String, E])(implicit ec: ExecutionContext): ResultContainer =
       v(s)
   }
 
+  def validateP[T, E <: Effect.Plain](
+    v: ValidationV[T, E]
+  )(
+    implicit
+    eq: ValidationV[T, E] =:= ValidationV[T, Effect.Plain]
+  ): Int = 0
+
+  // def validateF[T <: ValidationN[Effect.Future]](v: T): Int = 1
+
   import scala.concurrent.ExecutionContext.Implicits.global
   val res = "wow".is(present && !notEmpty)
+  val v = present && !notEmpty
 
-  // TODO: split plain and future into to separate classes
-
-  val m = Map(
-    "name" -> "wow".is(present && !notEmpty),
-    "lol" -> "kek".is(futureCheck)
-  )
-
-
+  validateP(v)
+  // validateP(v && futureCheck)
+  // validateP(futureCheck)
 
   import scalaz._, Scalaz._
 

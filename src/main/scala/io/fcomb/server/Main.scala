@@ -30,6 +30,8 @@ object Main extends App {
       ValidationContainer[E with E2](List(this, b2))
   }
 
+  // TODO AndContainer, OrContainer, NotContainer
+
   private case class ValidationContainer[E2 <: Effect](l: List[ValidationN[Effect]]) extends ValidationN[E2]
 
   case class FutureValidation() extends ValidationN[Effect.Future]
