@@ -18,11 +18,11 @@ object Main extends App {
 
   trait Effect
   object Effect {
-    trait Pure extends Effect
+    trait Plain extends Effect
     trait Future extends Effect
     trait IO extends Effect
     trait DBIOAction extends Effect
-    trait All extends Pure with Future with IO with DBIOAction
+    trait All extends Plain with Future with IO with DBIOAction
   }
 
   sealed trait ValidationN[+E <: Effect] {
@@ -34,23 +34,19 @@ object Main extends App {
 
   case class FutureValidation() extends ValidationN[Effect.Future]
 
-  case class PureValidation() extends ValidationN[Effect.Pure]
+  case class PlainValidation() extends ValidationN[Effect.Plain]
 
-  sealed trait CanValidate[T]
- 
-  implicit object OnlyPureValidate extends CanValidate[ValidationN[Effect.Pure]]
-
-  def validateP[T <: Effect.Pure](v: ValidationN[T])(implicit c: CanValidate[ValidationN[T]]): Int = 0
+  def validateP[T <: Effect.Plain](v: ValidationN[T])(implicit eq: ValidationN[T] =:= ValidationN[Effect.Plain]): Int = 0
 
   def validateF[T <: ValidationN[Effect.Future]](v: T): Int = 1
 
-  val l = FutureValidation() :: PureValidation()
+  val l = FutureValidation() :: PlainValidation()
 
-  validateP(PureValidation())
-  validateP(PureValidation() :: PureValidation())
+  validateP(PlainValidation())
+  validateP(PlainValidation() :: PlainValidation())
   // validateP(l)
   validateF(l)
-  // validateF(PureValidation())
+  // validateF(PlainValidation())
 
   //
   // (for {
