@@ -24,8 +24,6 @@ object User extends PersistModelWithPk[models.User, UUID] {
 
   // import scalaz._, Scalaz._
 
-  // TODO: add future validation
-
   type ResultContainerValue = (Boolean, String)
 
   sealed trait ResultContainer {
@@ -36,7 +34,6 @@ object User extends PersistModelWithPk[models.User, UUID] {
     def unary_!(implicit ec: ExecutionContext): ResultContainer
 
     protected def and(fst: ResultContainerValue, snd: ResultContainerValue): ResultContainerValue = {
-
       val errorMsg =
         if (!fst._1) fst._2
         else if (!snd._1) snd._2
@@ -53,7 +50,9 @@ object User extends PersistModelWithPk[models.User, UUID] {
     }
   }
 
-  case class FutureValidationResult(f: Future[ResultContainerValue]) extends ResultContainer {
+  sealed trait FutureTestT
+
+  case class FutureValidationResult(f: Future[ResultContainerValue]) extends ResultContainer with FutureTestT {
     def `&&`(v: => ResultContainer)(implicit ec: ExecutionContext): ResultContainer = {
       val res = v match {
         case ValidationResultV(rv) =>
@@ -167,14 +166,6 @@ object User extends PersistModelWithPk[models.User, UUID] {
     def notEmpty[T](implicit v: PresentValidator[T]): ValidationV[T] =
       present[T]
 
-    // def isEmpty[T](implicit v: PresentValidator[T]): ValidationV[T] =
-    //   new ValidationV[T] {
-    //     def apply(obj: T) = {
-    //       val res = v(obj)
-    //       res.copy(isValid = !res.isValid)
-    //     }
-    //   }
-
     def futureCheck[T]: ValidationV[T] =
       new ValidationV[T] {
         def apply(obj: T)(implicit ec: ExecutionContext) = FutureValidationResult(
@@ -191,6 +182,17 @@ object User extends PersistModelWithPk[models.User, UUID] {
 
   import scala.concurrent.ExecutionContext.Implicits.global
   val res = "wow".is(present && !notEmpty)
+
+  // TODO: split plain and future into to separate classes
+
+  val m = Map(
+    "name" -> "wow".is(present && !notEmpty),
+    "lol" -> "kek".is(futureCheck)
+  )
+
+
+
+  import scalaz._, Scalaz._
 
   def create(
     email:    String,

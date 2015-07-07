@@ -14,7 +14,6 @@ object Dependencies {
 
   object Compile {
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
-    val akkaKernel      = "com.typesafe.akka"             %% "akka-kernel"                   % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
     val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
@@ -105,7 +104,7 @@ object Dependencies {
   val kamon = Seq(kamonScala/*, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
 
   val akka = Seq(
-    akkaSlf4j, akkaActor, akkaKernel, akkaStream, akkaHttp,
+    akkaSlf4j, akkaActor, akkaStream, akkaHttp,
     akkaStreamExtensions
   )
 
