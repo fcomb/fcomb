@@ -2,32 +2,34 @@ package io.fcomb.persist
 
 import io.fcomb.Db._
 import io.fcomb.models
-import io.fcomb.macros._
-import scalikejdbc._
+import io.fcomb.RichPostgresDriver.api._
 import scala.concurrent.{ ExecutionContext, Future }
 import java.util.UUID
 import com.github.t3hnar.bcrypt._
 import java.time.LocalDateTime
 
-object User extends PersistModelWithPk[models.User, UUID] {
-  override val tableName = "users"
-  override val columns = Seq(
-    "id", "username", "email", "full_name",
-    "password_hash", "created_at", "updated_at"
-  )
+class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistTableWithUuidPk {
+  def email = column[String]("email")
+  def username = column[String]("username")
+  def fullName = column[Option[String]]("full_name")
+  def passwordHash = column[String]("password_hash")
+  def createdAt = column[LocalDateTime]("created_at")
+  def updatedAt = column[LocalDateTime]("updated_at")
 
-  implicit val mappable = materializeMappable[models.User]
+  def * =
+    (id, email, username, fullName, passwordHash, createdAt, updatedAt) <>
+      ((models.User.apply _).tupled, models.User.unapply)
+}
 
-  def apply(rn: ResultName[models.User])(rs: WrappedResultSet): models.User =
-    autoConstruct(rs, rn)
+object User extends PersistModelWithUuid[models.User, UserTable] {
+  val table = TableQuery[UserTable]
 
-  // import scalaz._, Scalaz._
   def create(
     email:    String,
     username: String,
     password: String,
     fullName: Option[String]
-  )(implicit ec: ExecutionContext): Future[models.User] = {
+  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = LocalDateTime.now()
     create(models.User(
       id = UUID.randomUUID(),

@@ -2,18 +2,19 @@ package io.fcomb.persist
 
 import io.fcomb.models
 import io.fcomb.Db._
-import io.fcomb.DBIO, DBIO._
-import io.fcomb.macros._
-import scalikejdbc._
+import slick.jdbc.TransactionIsolation
 import scala.concurrent.{ ExecutionContext, Future, blocking }
+import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.RichPostgresDriver.IntoInsertActionComposer
 import scalaz._, syntax.validation._, syntax.applicative._
+import java.util.UUID
 
 trait PersistTypes[T] {
   type FieldError = (String, String)
   type ValidationType[M] = Validation[NonEmptyList[FieldError], M]
   type ValidationModel = ValidationType[T]
   type ValidationResult = ValidationType[Unit]
-  type ValidationDbResult = Future[DBIOAction[ValidationResult]]
+  type ValidationDbResult = Future[DBIOAction[ValidationResult, NoStream, Effect.All]]
 
   def recordNotFound(columnName: String, id: String): ValidationModel =
     (columnName, s"not found record with id: $id").failureNel[T]
@@ -22,12 +23,14 @@ trait PersistTypes[T] {
     Future.successful(recordNotFound(field, id))
 }
 
-// TODO: move common methods into Plain* traits
-trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
-  lazy val alias = syntax
+trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
+  val table: TableQuery[Q]
 
-  type ModelDBIO = DBIOAction[T]
-  type ModelDBIOOption = DBIOAction[Option[T]]
+  type ModelDBIO = DBIOAction[T, NoStream, Effect.All]
+  type ModelDBIOOption = DBIOAction[Option[T], NoStream, Effect.All]
+
+  sealed trait DBException extends Exception
+  class RecordNotFound extends DBException
 
   sealed trait MethodValidation {
     def apply(user: T)(implicit ec: ExecutionContext): Any
@@ -39,7 +42,7 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
     def apply(user: T)(implicit ec: ExecutionContext): Future[ValidationResult]
   }
   trait DbMethodValidation extends MethodValidation {
-    def apply(user: T)(implicit ec: ExecutionContext): DBIOAction[ValidationResult]
+    def apply(user: T)(implicit ec: ExecutionContext): DBIOAction[ValidationResult, NoStream, Effect.All]
   }
 
   type ValidationSeq = (List[PlainMethodValidation], List[FutureMethodValidation], List[DbMethodValidation])
@@ -64,7 +67,7 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
 
   val emptyDbResult = Future.successful(DBIO.successful(fieldErrorNel))
 
-  val validations: ValidationSeq = emptyValidations
+  val validations = emptyValidations
 
   protected def validate(items: T*)(implicit ec: ExecutionContext): ValidationDbResult = {
     val futureSeq = items.flatMap { i => validations._2.map(_(i)) }
@@ -103,16 +106,16 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
     f: Future[ValidationModel]
   )(implicit ec: ExecutionContext): Future[ValidationModel] =
     f.recover {
-      case RecordNotFound => ("record", "not found").failureNel[T]
+      case _: RecordNotFound => ("record", "not found").failureNel[T]
     }
 
   @inline
   private def runInTransaction[Q](
-    q: DBIOAction[Q]
+    q: DBIOAction[Q, NoStream, Effect.All]
   )(implicit ec: ExecutionContext): Future[Q] =
-    run[Q](q.transactionally(TransactionLevel.ReadCommitted)).map(_.toOption.get) // TODO
+    db.run(q.transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted))
 
-  protected def validateWithDBIO(items: T*)(f: => DBIOAction[T])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+  protected def validateWith(items: T*)(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     validate(items: _*).flatMap { dbValidation =>
       val dbAction = dbValidation.flatMap {
         case Success(_) => f.map(Success(_))
@@ -131,7 +134,7 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
     }
   }
 
-  protected def validateWithDBIO(validations: ValidationDbResult*)(f: => DBIOAction[T])(implicit ec: ExecutionContext): Future[ValidationModel] = {
+  protected def validateWith(validations: ValidationDbResult*)(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext): Future[ValidationModel] = {
     validationsFold(validations: _*).flatMap { dbValidation =>
       val dbAction = dbValidation.flatMap {
         case Success(_) => f.map(Success(_))
@@ -139,6 +142,29 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
       }
       recoverPersistExceptions(runInTransaction(dbAction))
     }
+  }
+
+  protected def validateWithAsChain(
+    validations: ValidationDbResult*
+  )(
+    beforeF: => DBIOAction[_, NoStream, Effect.All],
+    afterF:  => DBIOAction[T, NoStream, Effect.All]
+  )(implicit ec: ExecutionContext, m: Manifest[T]) = {
+    validationsFold(validations: _*).flatMap { dbValidation =>
+      val dbAction = dbValidation.flatMap {
+        case Success(_) => afterF.map(Success(_))
+        case Failure(e) => DBIO.successful(Failure(e))
+      }
+      recoverPersistExceptions(runInTransaction(beforeF.andThen(dbAction)))
+    }
+  }
+
+  def strictUpdateDBIO[E, U, C[_]](
+    q:    Query[E, U, C],
+    item: U
+  )(implicit ec: ExecutionContext) = q.update(item).flatMap {
+    case 0 => DBIO.failed(new RecordNotFound)
+    case _ => DBIO.successful(item)
   }
 
   def validateModel(item: T)(implicit ec: ExecutionContext): ValidationDbResult =
@@ -153,127 +179,87 @@ trait PersistModel[T] extends SQLSyntaxSupport[T] with PersistTypes[T] {
   def validateModel(items: Seq[T])(implicit ec: ExecutionContext): ValidationDbResult =
     validationsFold(items.map(validateModel(_)): _*)
 
-  def validateModelWithDBIO(item: T)(f: => DBIOAction[T])(implicit ec: ExecutionContext, m: Manifest[T]) =
-    validateWithDBIO(validateModel(item))(f)
+  def validateModelWith(item: T)(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]) =
+    validateWith(validateModel(item))(f)
 
-  // // TODO: move into validation scope
-  // // TODO: add default error message
+  def validateModelWithAsChain(item: T)(
+    beforeF: => DBIOAction[_, NoStream, Effect.All],
+    afterF:  => DBIOAction[T, NoStream, Effect.All]
+  )(
+    implicit
+    ec: ExecutionContext, m: Manifest[T]
+  ) =
+    validateWithAsChain(validateModel(item))(beforeF, afterF)
 
-  protected def unique[E](columnName: String, errorMsg: String)(f: T => SQL[E, _]) =
-    new DbMethodValidation {
-      def apply(item: T)(implicit ec: ExecutionContext) = {
-        // f(item).take(1).exists.result.map {
-        //   case true  => (columnName, errorMsg).failureNel[Unit]
-        //   case false => ().successNel[FieldError]
-        // }
-        ???
-      }
-    }
+  def createDBIO(item: T): ModelDBIO =
+    table returning table.map(i => i) += item.asInstanceOf[Q#TableElementType]
 
-  // protected def email(columnName: String, errorMsg: String)(f: T => String) =
-  //   new PlainMethodValidation {
-  //     def apply(item: T)(implicit ec: ExecutionContext) = {
-  //       if (validation.emailRegEx.findFirstIn(f(item)).isDefined) ().successNel[FieldError]
-  //       else (columnName, errorMsg).failureNel[Unit]
-  //     }
-  //   }
+  def createDBIO(items: Seq[T]) =
+    table returning table.map(i => i) ++= items.asInstanceOf[Seq[Q#TableElementType]]
 
-  // protected def present(columnName: String, errorMsg: String)(f: T => String) =
-  //   new PlainMethodValidation {
-  //     def apply(item: T)(implicit ec: ExecutionContext) = {
-  //       if (f(item).nonEmpty) ().successNel[FieldError]
-  //       else (columnName, errorMsg).failureNel[Unit]
-  //     }
-  //   }
-
-  // protected def maxLength(columnName: String, length: Int, errorMsg: String)(f: T => String) =
-  //   new PlainMethodValidation {
-  //     def apply(item: T)(implicit ec: ExecutionContext) = {
-  //       if (f(item).length <= length) ().successNel[FieldError]
-  //       else (columnName, errorMsg).failureNel[Unit]
-  //     }
-  //   }
-
-  // protected def minLength(columnName: String, length: Int, errorMsg: String)(f: T => String) =
-  //   new PlainMethodValidation {
-  //     def apply(item: T)(implicit ec: ExecutionContext) = {
-  //       if (f(item).length >= length) ().successNel[FieldError]
-  //       else (columnName, errorMsg).failureNel[Unit]
-  //     }
-  //   }
-
-  // protected def rangeLength(columnName: String, range: (Int, Int), errorMsg: String)(f: T => String) =
-  //   new PlainMethodValidation {
-  //     def apply(item: T)(implicit ec: ExecutionContext) = {
-  //       val length = f(item).length
-  //       if (length >= range._1 && length <= range._2) ().successNel[FieldError]
-  //       else (columnName, errorMsg).failureNel[Unit]
-  //     }
-  //   }
-
-  // --------------------------------------------------
-
-  def apply(p: SyntaxProvider[T])(rs: WrappedResultSet): T =
-    apply(p.resultName)(rs)
-
-  def apply(rn: ResultName[T])(rs: WrappedResultSet): T
-
-  implicit val mappable: Mappable[T]
-
-  // TODO: move it to ModelWithPk for PK as Option[Int] with returning item.copy(id = Some(id))
-  def createDBIO(item: T) = {
-    val m = materialize[T](item).toList
-    val values = m.map {
-      case (c, v) =>
-        (column.field(c), v)
-    }
-    withSQL {
-      insert
-        .into(this)
-        .namedValues(values: _*)
-    }.update.apply()
-    item
-  }
-
-  // TODO: add validation and run through DBIO.run
-  def create(item: T)(implicit ec: ExecutionContext): Future[T] =
-    DB.futureLocalTx { implicit session =>
-      Future {
-        blocking {
-          createDBIO(item)
-        }
-      }
+  def createDBIO(itemOpt: Option[T])(implicit ec: ExecutionContext): ModelDBIOOption =
+    itemOpt match {
+      case Some(item) => createDBIO(item).map(Some(_))
+      case None       => DBIO.successful(Option.empty[T])
     }
 }
 
-trait PersistModelWithPk[T <: models.ModelWithPk[_, PK], PK] extends PersistModel[T] {
-  val pkColumnName = "id"
+trait PersistTableWithPk[T] { this: Table[_] =>
+  def id: Rep[T]
+}
 
-  lazy val pkColumn = syntax.column(pkColumnName)
+trait PersistTableWithUuidPk extends PersistTableWithPk[UUID] { this: Table[_] =>
+  def id = column[UUID]("id", O.PrimaryKey)
+}
 
-  // def findByIds(ids: List[PK])(implicit ec: ExecutionContext): Future[List[T]] = {
-  //   if (ids.isEmpty) Future.successful(List.empty)
-  //   else asyncJdbc {
-  //     mapListScope(sql"$scopeSql where $pkColumn IN ($ids)").list.apply // TODO: view source for investigate performance for single element
-  //   }.flatMap(mapScopeItems)
+trait PersistTableWithAutoIntPk extends PersistTableWithPk[Int] { this: Table[_] =>
+  def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+}
+
+trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with PersistTableWithPk[Id]] extends PersistModel[T, Q] {
+  val tableWithId: IntoInsertActionComposer[T, T]
+
+  @inline
+  def findByIdQuery(id: T#IdType): Query[Q, T, Seq]
+
+  override def createDBIO(item: T) =
+    tableWithId += item
+
+  override def createDBIO(items: Seq[T]) =
+    tableWithId ++= items
+
+  @inline
+  def mapModel(item: T): T = item
+
+  def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+    val mappedItem = mapModel(item)
+    validateWith(mappedItem) {
+      tableWithId += mappedItem
+    }
+  }
+
+  def findByIdDBIO(id: T#IdType) =
+    findByIdQuery(id).take(1).result.headOption
+
+  def findById(id: T#IdType): Future[Option[T]] =
+    db.run(findByIdDBIO(id))
+
+  // def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+  //   val mappedItem = mapModel(item)
+  //   validateWith(mappedItem) {
+  //     strictUpdateDBIO(table.filter(_.id === mappedItem.id), mappedItem)
+  //   }
   // }
 
-  // def findById(id: PK)(implicit ec: ExecutionContext): Future[Option[T]] =
-  //   findByIds(List(id)).map(_.headOption)
+  // // TODO: return Unit or errors
+  def destroy(id: T#IdType)(implicit ec: ExecutionContext) =
+    db
+      .run(findByIdQuery(id).delete)
 }
 
-trait PersistModelWithAutoPk[T <: models.ModelWithId] extends PersistModelWithPk[T, Long] {
-  override def createDBIO(item: T) = {
-    val m = materialize[T](item).toList
-    val values = m.collect {
-      case (c, v) if !(c == pkColumnName && item.id.isEmpty) =>
-        (column.field(c), v)
-    }
-    val id = withSQL {
-      insert
-        .into(this)
-        .namedValues(values: _*)
-    }.updateAndReturnGeneratedKey.apply()
-    item.withId(id)
-  }
+trait PersistModelWithUuid[T <: models.ModelWithUuid, Q <: Table[T] with PersistTableWithUuidPk] extends PersistModelWithPk[UUID, T, Q] {
+  val tableWithId = table returning table.map(_.id) into ((item, _) => item)
+
+  def findByIdQuery(id: T#IdType): Query[Q, T, Seq] =
+    table.filter(_.id === id)
 }

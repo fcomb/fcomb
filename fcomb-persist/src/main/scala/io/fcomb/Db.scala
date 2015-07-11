@@ -1,6 +1,7 @@
 package io.fcomb
 
 import io.fcomb.utils.Config
+import io.fcomb.RichPostgresDriver.api.Database
 import scalikejdbc._
 import org.flywaydb.core.Flyway
 import scredis.Redis
@@ -19,7 +20,9 @@ object Db {
     ds
   }
 
-  val pool = ConnectionPool.singleton(new DataSourceConnectionPool(dataSource))
+  ConnectionPool.singleton(new DataSourceConnectionPool(dataSource))
+
+  val db = Database.forConfig("", Config.jdbcConfig)
 
   implicit val session = AutoSession
 

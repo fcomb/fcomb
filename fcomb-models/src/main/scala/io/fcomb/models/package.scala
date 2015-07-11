@@ -4,6 +4,9 @@ import java.util.UUID
 
 package object models {
   sealed trait ModelWithPk[PK, ID] {
+    type PkType = PK
+    type IdType = ID
+
     val id: PK
 
     def getId: ID
