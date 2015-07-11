@@ -60,6 +60,14 @@ object JsonResponseMarshaller extends ResponseMarshaller {
 }
 
 trait ApiService {
+  def validationErrors(errors: (String, String)*): ValidationErrors =
+    ValidationErrors(errors.map {
+      case (k, v) => (k, NonEmptyList(v))
+    }.toMap)
+
+  import io.fcomb.json._
+  implicitly[EncodeJson[ValidationErrors]]
+
   def handleRequest[T <: ApiServiceRequest](
     f: (T, ResponseMarshaller) => Future[(_, StatusCode)]
   )(
@@ -77,7 +85,15 @@ trait ApiService {
               case DecodeResult(\/-(res)) =>
                 f(res, JsonResponseMarshaller)
               case DecodeResult(-\/((e, cursor))) =>
-                Future.successful((s"e: $e, cursor: $cursor, ${cursor.toList}", StatusCodes.UnprocessableEntity)) // TODO: response as json error
+                val res: ValidationErrors = cursor.head match {
+                  case Some(El(CursorOpDownField(field), _)) =>
+                    validationErrors(field.toString -> s"empty or invalid: $e")
+                  case _ =>
+                    validationErrors("json" -> s"$e, $cursor")
+                }
+                Future.successful(
+                  (JsonResponseMarshaller(res), StatusCodes.UnprocessableEntity)
+                )
             }
           case -\/(e) =>
             println(s"e: $e")
@@ -108,8 +124,7 @@ trait ApiService {
     materializer: Materializer,
     tm:           Manifest[T],
     dj:           DecodeJson[T],
-    ej:           EncodeJson[E],
-    ejve:         EncodeJson[ValidationErrors]
+    ej:           EncodeJson[E]
   ): ServiceResponse =
     handleRequest[T] { (req, marshaller) =>
       f(req).map {
