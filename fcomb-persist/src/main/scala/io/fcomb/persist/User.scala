@@ -2,11 +2,13 @@ package io.fcomb.persist
 
 import io.fcomb.Db._
 import io.fcomb.models
+import io.fcomb.validations._
 import io.fcomb.RichPostgresDriver.api._
 import scala.concurrent.{ ExecutionContext, Future }
 import java.util.UUID
 import com.github.t3hnar.bcrypt._
 import java.time.LocalDateTime
+import scalaz._, Scalaz._
 
 class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistTableWithUuidPk {
   def email = column[String]("email")
@@ -40,5 +42,17 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
       createdAt = timeAt,
       updatedAt = timeAt
     ))
+  }
+
+  override def validate(user: models.User)(implicit ec: ExecutionContext) = {
+    import Validations._
+
+    validateChain(
+      user.email.is("email", present && isEmail) ::
+        user.username.is("username", present)
+    ).map {
+        case Success(_) => user.success[ValidationMapResult]
+        case Failure(e) => e.failure[models.User]
+      }
   }
 }

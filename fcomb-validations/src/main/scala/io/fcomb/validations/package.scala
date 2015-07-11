@@ -141,10 +141,18 @@ package object validations {
       PlainValidationResult(s.nonEmpty, "is empty")
   }
 
+  val emailRegEx = """\A([a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+)@([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*)\z""".r
+
   trait ValidationMethods {
     def present[T](implicit v: PresentValidator[T]) =
       new ValidationWithEffect[T, Effect.Plain] {
         def apply(obj: T)(implicit ec: ExecutionContext) = v(obj)
+      }
+
+    def isEmail =
+      new ValidationWithEffect[String, Effect.Plain] {
+        def apply(s: String)(implicit ec: ExecutionContext) =
+          PlainValidationResult(emailRegEx.findFirstIn(s).isDefined, "invalid email format")
       }
 
     def notEmpty[T](implicit v: PresentValidator[T]) =
@@ -157,6 +165,7 @@ package object validations {
         )
       }
   }
+  object Validations extends ValidationMethods
 
   sealed trait ValidationContainerChain[+E <: Effect] {
     val containers: List[ColumnValidationContainer[_]]
@@ -175,9 +184,9 @@ package object validations {
     val containers = List(this)
   }
 
-  implicit class StringValidators(val s: String) extends AnyVal {
-    def is[E <: Effect](v: ValidationWithEffect[String, E])(implicit ec: ExecutionContext): ValidationResultChain =
-      v(s)
+  implicit class StringValidators(val value: String) extends AnyVal {
+    def is[E <: Effect](column: String, validation: ValidationWithEffect[String, E])(implicit ec: ExecutionContext) =
+      ColumnValidationContainer[E](column, validation(value))
   }
 
   def validateColumn[T, E <: Effect](
@@ -207,28 +216,33 @@ package object validations {
     }
   }
 
+  type ValidationMapResult = Map[String, NonEmptyList[String]]
+  type FutureValidationMapResult = Future[Validation[ValidationMapResult, Unit]]
+
+  val emptyValidationMapResult = Map.empty[String, NonEmptyList[String]] 
+
   def validateChain[E <: Effect](chain: ValidationContainerChain[E])(
     implicit
     ec: ExecutionContext
-  ): Future[Map[String, List[String]] \/ Unit] = {
-    val acc = Future.successful(Map.empty[String, List[String]])
+  ): FutureValidationMapResult = {
+    val acc = Future.successful(emptyValidationMapResult)
     chain.containers.foldLeft(acc) { (f, c) =>
       f.flatMap { m =>
         val container = c.asInstanceOf[ColumnValidationContainer[_]]
         container.result match {
           case PlainValidationResult(rv) => Future.successful {
             if (rv._1) m
-            else m + ((container.column, List(rv._2)))
+            else m + ((container.column, NonEmptyList(rv._2)))
           }
           case FutureValidationResult(f) => f.map { rv =>
             if (rv._1) m
-            else m + ((container.column, List(rv._2)))
+            else m + ((container.column, NonEmptyList(rv._2)))
           }
         }
       }
     }.map {
-      case m if m.isEmpty => ().right
-      case m              => m.left
+      case m if m.isEmpty => ().success[ValidationMapResult]
+      case m              => m.failure[Unit]
     }
   }
 }
