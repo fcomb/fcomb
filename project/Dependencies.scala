@@ -101,7 +101,9 @@ object Dependencies {
   val common = Seq(
     logbackClassic, scalaLogging,
     config, json4sJackson, pickling, upickle,
-    argonaut, argonautShapeless
+    argonaut, argonautShapeless,
+    scalazCore, scalazConcurrent,
+    shapeless, shapelessScalaz
   )
 
   val kamon = Seq(kamonScala/*, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
@@ -135,8 +137,6 @@ object Dependencies {
   )
 
   val utils = common ++ Seq(
-    scalazCore, scalazConcurrent,
-    shapeless, shapelessScalaz,
     scredis
   )
 
@@ -147,4 +147,6 @@ object Dependencies {
   val request = common
 
   val response = common
+
+  val validations = common
 }

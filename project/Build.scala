@@ -104,7 +104,7 @@ object Build extends sbt.Build {
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.api
      )
-  ).dependsOn(persist, utils, json, request, response)
+  ).dependsOn(persist, utils, json, request, response, validations)
 
   lazy val models = Project(
      id = "models",
@@ -136,7 +136,7 @@ object Build extends sbt.Build {
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.persist
      )
-  ).dependsOn(macros, models, utils)
+  ).dependsOn(macros, models, utils, validations)
 
   lazy val json = Project(
     id = "json",
@@ -159,6 +159,14 @@ object Build extends sbt.Build {
     base = file("fcomb-response"),
     settings = defaultSettings ++ Seq(
       libraryDependencies ++= Dependencies.response
+    )
+  ).dependsOn(models)
+
+  lazy val validations = Project(
+    id = "validations",
+    base = file("fcomb-validations"),
+    settings = defaultSettings ++ Seq(
+      libraryDependencies ++= Dependencies.validations
     )
   ).dependsOn(models)
 }

@@ -15,57 +15,18 @@ object Main extends App {
   implicit val materializer = ActorMaterializer()
   import system.dispatcher
 
-
-  trait Effect
-  object Effect {
-    trait Plain extends Effect
-    trait Future extends Effect
-    trait IO extends Effect
-    trait DBIOAction extends Effect
-    trait All extends Plain with Future with IO with DBIOAction
+  (for {
+    _ <- Db.migrate()
+    _ <- HttpApiService.start(Config.config)
+  } yield ()).onComplete {
+    case Success(_) =>
+    case Failure(e) =>
+      println(s"e: $e\n${e.getMessage()}\n${e.getStackTrace().mkString("\n\t")}")
+      try {
+        // Kamon.shutdown()
+        system.terminate()
+      } finally {
+        System.exit(-1)
+      }
   }
-
-  sealed trait ValidationN[+E <: Effect] {
-    def `::`[E2 <: Effect](b2: ValidationN[E2]): ValidationN[E with E2] =
-      ValidationContainer[E with E2](List(this, b2))
-  }
-
-  // TODO AndContainer, OrContainer, NotContainer
-
-  private case class ValidationContainer[E2 <: Effect](l: List[ValidationN[Effect]]) extends ValidationN[E2]
-
-  case class FutureValidation() extends ValidationN[Effect.Future]
-
-  case class PlainValidation() extends ValidationN[Effect.Plain]
-
-  def validateP[T <: Effect.Plain](v: ValidationN[T])(implicit eq: ValidationN[T] =:= ValidationN[Effect.Plain]): Int = 0
-
-  def validateF[T <: ValidationN[Effect.Future]](v: T): Int = 1
-
-  val l = FutureValidation() :: PlainValidation()
-
-  validateP(PlainValidation())
-  validateP(PlainValidation() :: PlainValidation())
-  // validateP(l)
-  validateF(l)
-  // validateF(PlainValidation())
-
-  println(s"res: ${io.fcomb.persist.User.res}")
-
-  //
-  // (for {
-  //   _ <- Db.migrate()
-  //   _ <- HttpApiService.start(Config.config)
-  // } yield ()).onComplete {
-  //   case Success(_) =>
-  //     println(s"res: ${io.fcomb.persist.User.res}")
-  //   case Failure(e) =>
-  // println(s"e: $e\n${e.getMessage()}\n${e.getStackTrace().mkString("\n\t")}")
-  // try {
-  //   Kamon.shutdown()
-  //   system.shutdown()
-  // } finally {
-  //   System.exit(-1)
-  // }
-  // }
 }
