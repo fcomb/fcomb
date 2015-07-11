@@ -8,7 +8,7 @@ object Dependencies {
     val algebra = "0.2.0-SNAPSHOT"
     val cats = "0.1.0-SNAPSHOT"
     val scalikeJdbc = "2.2.6"
-    val hazelcast = "3.4.2"
+    val slick = "3.0.0"
     val kamon = "0.4.0"
   }
 
@@ -34,21 +34,24 @@ object Dependencies {
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
     val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
-    val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.2.8"
+    val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.1"
     val argonaut        = "io.argonaut"                   %% "argonaut"                      % "6.1"
-    val argonautShapeless = "com.github.alexarchambault"  %% "argonaut-shapeless_6.1"        % "0.3.0"
+    val argonautShapeless = "com.github.alexarchambault"  %% "argonaut-shapeless_6.1"        % "0.3.1"
 
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1201-jdbc41" exclude("org.slf4j", "slf4j-simple")
+    val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
+    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.9.0"
+    val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.2"
     val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % V.scalikeJdbc
     val scalikeJdbcMacros = "org.scalikejdbc"             %% "scalikejdbc-syntax-support-macro" % V.scalikeJdbc
     val scalikeJdbcAsync = "org.scalikejdbc"              %% "scalikejdbc-async"             % "0.5.+"
     val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.+"
     val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
-    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.8"
+    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.9"
 
     val levelDb         = "org.iq80.leveldb"              % "leveldb"                        % "0.7"
     val levelDbJni      = "org.fusesource.leveldbjni"     % "leveldbjni-all"                 % "1.8"
@@ -63,7 +66,7 @@ object Dependencies {
 
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
-    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.3"
+    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.4"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
 
     val raptureCore     = "com.propensive"                %% "rapture-core"                  % "1.1.0"
@@ -125,7 +128,9 @@ object Dependencies {
   )
 
   val persist = common ++ Seq(
-    postgresJdbc, scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
+    postgresJdbc,
+    scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
+    slick, slickPg, slickJdbc,
     flywayCore, hikariCp, bcrypt, commonsCodec
   )
 

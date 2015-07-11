@@ -50,6 +50,8 @@ object Main extends App {
   validateF(l)
   // validateF(PlainValidation())
 
+  println(s"res: ${io.fcomb.persist.User.res}")
+
   //
   // (for {
   //   _ <- Db.migrate()
@@ -58,8 +60,12 @@ object Main extends App {
   //   case Success(_) =>
   //     println(s"res: ${io.fcomb.persist.User.res}")
   //   case Failure(e) =>
-  //     // Kamon.shutdown()
-  //     system.terminate()
-  //     throw e
+  // println(s"e: $e\n${e.getMessage()}\n${e.getStackTrace().mkString("\n\t")}")
+  // try {
+  //   Kamon.shutdown()
+  //   system.shutdown()
+  // } finally {
+  //   System.exit(-1)
+  // }
   // }
 }

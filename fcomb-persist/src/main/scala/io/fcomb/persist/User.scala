@@ -5,7 +5,7 @@ import io.fcomb.models
 import io.fcomb.macros._
 import scalikejdbc._
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.language.{ implicitConversions, postfixOps }
+import scala.language.{ implicitConversions, postfixOps, existentials }
 import java.util.UUID
 import com.github.t3hnar.bcrypt._
 import java.time.LocalDateTime
@@ -189,20 +189,92 @@ object User extends PersistModelWithPk[models.User, UUID] {
       v(s)
   }
 
-  def validateP[T, E <: Effect.Plain](
+  sealed trait ValidationContainerChain[+E <: Effect] {
+    val containers: List[ColumnValidationContainer[_]]
+
+    def `::`[E2 <: Effect](chain: ValidationContainerChain[E2]): ValidationContainerChain[E with E2] = {
+      val chainContainers = chain.containers ::: this.containers
+      new ValidationsContainer[E with E2] {
+        val containers = chainContainers
+      }
+    }
+  }
+
+  sealed trait ValidationsContainer[E <: Effect] extends ValidationContainerChain[E]
+
+  case class ColumnValidationContainer[E <: Effect](column: String, result: ResultContainer) extends ValidationContainerChain[E] {
+    val containers = List(this)
+  }
+
+  def validateColumn[T, E <: Effect](
+    column: String,
+    s:      T
+  )(
     v: ValidationV[T, E]
   )(
     implicit
-    eq: ValidationV[T, E] =:= ValidationV[T, Effect.Plain]
-  ): Int = 0
-
-  // def validateF[T <: ValidationN[Effect.Future]](v: T): Int = 1
+    ec: ExecutionContext
+  ) =
+    ColumnValidationContainer[E](column, v(s))
 
   import scala.concurrent.ExecutionContext.Implicits.global
   val res = "wow".is(present && !notEmpty)
-  val v = present && !notEmpty
+  val v = present && notEmpty
 
-  validateP(v)
+  // validateP("kek")(v)
+  val vr = validateColumn("name", "kek")(v) ::
+    validateColumn("name2", "")(v) ::
+    validateColumn("name3", "kek2")(v /* || futureCheck*/ )
+
+  import scalaz._, Scalaz._
+  def validatePlainChain[E <: Effect](chain: ValidationContainerChain[E])(
+    implicit
+    ec: ExecutionContext,
+    eq: ValidationContainerChain[E] =:= ValidationContainerChain[Effect.Plain]
+  ): Map[String, List[String]] \/ Unit = {
+    chain.containers.foldLeft(Map.empty[String, List[String]]) { (m, c) =>
+      val container = c.asInstanceOf[ColumnValidationContainer[_]]
+      val result = container.result.asInstanceOf[ValidationResultV]
+      if (result.rv._1) m
+      else m + ((container.column, List(result.rv._2)))
+    } match {
+      case m if m.isEmpty => ().right
+      case m              => m.left
+    }
+  }
+
+  def validateChain[E <: Effect](chain: ValidationContainerChain[E])(
+    implicit
+    ec: ExecutionContext
+  ): Future[Map[String, List[String]] \/ Unit] = {
+    val acc = Future.successful(Map.empty[String, List[String]])
+    chain.containers.foldLeft(acc) { (f, c) =>
+      f.flatMap { m =>
+        val container = c.asInstanceOf[ColumnValidationContainer[_]]
+        container.result match {
+          case ValidationResultV(rv) => Future.successful {
+            if (rv._1) m
+            else m + ((container.column, List(rv._2)))
+          }
+          case FutureValidationResult(f) => f.map { rv =>
+            if (rv._1) m
+            else m + ((container.column, List(rv._2)))
+          }
+        }
+      }
+    }.map {
+      case m if m.isEmpty => ().right
+      case m              => m.left
+    }
+  }
+
+  val vpc = validatePlainChain(vr)
+  println(s"vpc: $vpc")
+
+  validateChain(vr :: validateColumn("future", "kek2")(futureCheck)).map { vc =>
+    println(s"vc: $vc")
+  }
+
   // validateP(v && futureCheck)
   // validateP(futureCheck)
 
