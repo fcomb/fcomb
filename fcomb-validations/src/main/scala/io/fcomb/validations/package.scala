@@ -217,14 +217,14 @@ package object validations {
   }
 
   type ValidationMapResult = Map[String, NonEmptyList[String]]
-  type FutureValidationMapResult = Future[Validation[ValidationMapResult, Unit]]
+  type FutureValidationMapResult[T] = Future[Validation[ValidationMapResult, T]]
 
-  val emptyValidationMapResult = Map.empty[String, NonEmptyList[String]] 
+  val emptyValidationMapResult = Map.empty[String, NonEmptyList[String]]
 
-  def validateChain[E <: Effect](chain: ValidationContainerChain[E])(
+  def validateChainAs[T](successValue: T, chain: ValidationContainerChain[_])(
     implicit
     ec: ExecutionContext
-  ): FutureValidationMapResult = {
+  ): FutureValidationMapResult[T] = {
     val acc = Future.successful(emptyValidationMapResult)
     chain.containers.foldLeft(acc) { (f, c) =>
       f.flatMap { m =>
@@ -241,8 +241,8 @@ package object validations {
         }
       }
     }.map {
-      case m if m.isEmpty => ().success[ValidationMapResult]
-      case m              => m.failure[Unit]
+      case m if m.isEmpty => successValue.success[ValidationMapResult]
+      case m              => m.failure[T]
     }
   }
 }

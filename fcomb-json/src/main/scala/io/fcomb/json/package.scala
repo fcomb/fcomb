@@ -14,9 +14,15 @@ package object json {
     EncodeJson((uuid: UUID) => jString(uuid.toString))
 
   private object shapelessImplicits {
+    val validationErrorsEncodeJson: EncodeJson[ValidationErrors] =
+      implicitly[EncodeJson[ValidationErrors]]
+
     val userResponseEncodeJson: EncodeJson[UserResponse] =
       implicitly[EncodeJson[UserResponse]]
   }
+
+  implicit val validationErrorsEncodeJson: EncodeJson[ValidationErrors] =
+    shapelessImplicits.validationErrorsEncodeJson
 
   implicit val userRequestDecodeJson: DecodeJson[UserRequest] =
     DecodeJson(c => for {

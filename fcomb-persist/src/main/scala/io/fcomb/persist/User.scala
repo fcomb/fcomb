@@ -33,7 +33,7 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = LocalDateTime.now()
-    create(models.User(
+    val user = mapModel(models.User(
       id = UUID.randomUUID(),
       email = email,
       username = username,
@@ -42,17 +42,20 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
       createdAt = timeAt,
       updatedAt = timeAt
     ))
+    validateWith(user, validationUserWithPassword(user, password)) {
+      createDBIO(user)
+    }
   }
 
-  override def validate(user: models.User)(implicit ec: ExecutionContext) = {
-    import Validations._
+  import Validations._
 
-    validateChain(
-      user.email.is("email", present && isEmail) ::
-        user.username.is("username", present)
-    ).map {
-        case Success(_) => user.success[ValidationMapResult]
-        case Failure(e) => e.failure[models.User]
-      }
-  }
+  def validationUserChain(user: models.User)(implicit ec: ExecutionContext) =
+    user.email.is("email", present && isEmail) ::
+      user.username.is("username", present)
+
+  def validationUserWithPassword(user: models.User, password: String)(implicit ec: ExecutionContext) =
+    validationUserChain(user) :: password.is("password", present)
+
+  override def validate(user: models.User)(implicit ec: ExecutionContext) =
+    validateChainAs(user, validationUserChain(user))
 }

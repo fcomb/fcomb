@@ -20,7 +20,31 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   type ModelDBIO = DBIOAction[T, NoStream, Effect.All]
   type ModelDBIOOption = DBIOAction[Option[T], NoStream, Effect.All]
 
-  val validationsOpt = Option.empty[T => validations.FutureValidationMapResult]
+  val validationsOpt = Option.empty[T => validations.FutureValidationMapResult[_]]
+
+  // @inline
+  // private def recoverPersistExceptions(
+  //   f: Future[ValidationModel]
+  // )(implicit ec: ExecutionContext): Future[ValidationModel] =
+  //   f.recover {
+  //     case _: RecordNotFound => ("record", "not found").failureNel[T]
+  //   }
+
+  @inline
+  private def runInTransaction[Q](
+    q: DBIOAction[Q, NoStream, Effect.All]
+  )(implicit ec: ExecutionContext): Future[Q] =
+    db.run(q.transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted))
+
+  protected def validateWith(item: T, vm: Future[ValidationModel])(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+    vm.flatMap {
+      case Success(_)     => runInTransaction(f).map(_ => Success(item))
+      case e @ Failure(_) => Future.successful(e)
+    }
+  }
+
+  protected def validateWith(item: T, chain: validations.ValidationContainerChain[_])(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] =
+    validateWith(item, validations.validateChainAs(item, chain))(f)
 
   def validate(item: T)(implicit ec: ExecutionContext): Future[ValidationModel] =
     Future.successful(item.success[validations.ValidationMapResult])
@@ -67,10 +91,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
 
   def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val mappedItem = mapModel(item)
-    validate(mappedItem).map { res =>
-      db.run(tableWithId += mappedItem)
-      res
-    }
+    validateWith(mappedItem, validate(mappedItem))(createDBIO(mappedItem))
   }
 
   def findByIdDBIO(id: T#IdType) =
@@ -95,8 +116,8 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
 }
 
 trait PersistModelWithUuid[T <: models.ModelWithUuid, Q <: Table[T] with PersistTableWithUuidPk] extends PersistModelWithPk[UUID, T, Q] {
-  val tableWithId = table returning table.map(_.id) into ((item, _) => item)
+  lazy val tableWithId = table returning table.map(_.id) into ((item, _) => item)
 
-  def findByIdQuery(id: T#IdType): Query[Q, T, Seq] =
+  def findByIdQuery(id: UUID): Query[Q, T, Seq] =
     table.filter(_.id === id)
 }

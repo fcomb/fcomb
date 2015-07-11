@@ -1,6 +1,7 @@
 package io.fcomb.api.services
 
 import io.fcomb.models._
+import io.fcomb.validations
 import akka.util.ByteString
 import akka.http.scaladsl.model._, ContentTypes.`application/json`
 import akka.stream.scaladsl.Source
@@ -10,7 +11,7 @@ import argonaut._, Argonaut._
 import scalaz._, Scalaz._
 
 trait ServiceResponse {
-  def apply(contentType: ContentType, entity: Source[ByteString, Any]): Future[Any]
+  def apply(contentType: ContentType, entity: Source[ByteString, Any]): Future[(Any, StatusCode)]
 }
 
 trait ResponseEntity
@@ -44,37 +45,78 @@ object ServiceFlow {
     materializer: Materializer
   ): Future[String \/ ServiceFlow[_]] =
     contentType match {
-      case JsonServiceFlow.contentType =>
+      case JsonServiceFlow.contentType => // TODO: add json as default
         JsonServiceFlow(entity)
     }
 }
 
+sealed trait ResponseMarshaller {
+  def apply[T](v: T)(implicit ej: EncodeJson[T]): String
+}
+
+object JsonResponseMarshaller extends ResponseMarshaller {
+  def apply[T](v: T)(implicit ej: EncodeJson[T]) =
+    ej(v).toString
+}
+
 trait ApiService {
-  def requestAs[T <: ApiServiceRequest, E <: ApiServiceResponse](
-    f: T => E
+  def handleRequest[T <: ApiServiceRequest](
+    f: (T, ResponseMarshaller) => Future[(_, StatusCode)]
   )(
     implicit
     ec:           ExecutionContext,
     materializer: Materializer,
     tm:           Manifest[T],
-    em:           Manifest[E],
-    dj:           DecodeJson[T],
-    ej:           EncodeJson[E]
+    dj:           DecodeJson[T]
   ): ServiceResponse =
     new ServiceResponse {
       def apply(contentType: ContentType, entity: Source[ByteString, Any]) = {
-        ServiceFlow(contentType, entity).map {
+        ServiceFlow(contentType, entity).flatMap {
           case \/-(JsonServiceFlow(json)) =>
             json.as[T] match {
               case DecodeResult(\/-(res)) =>
-                ej(f(res))
+                f(res, JsonResponseMarshaller)
               case DecodeResult(-\/((e, cursor))) =>
-                s"e: $e, cursor: $cursor, ${cursor.toList}" // TODO: response as json error
+                Future.successful((s"e: $e, cursor: $cursor, ${cursor.toList}", StatusCodes.UnprocessableEntity)) // TODO: response as json error
             }
           case -\/(e) =>
             println(s"e: $e")
             throw new Exception(e.toString) // TODO: handle exceptions within content type
         }
+      }
+    }
+
+  def requestAs[T <: ApiServiceRequest, E <: ApiServiceResponse](
+    f: T => Future[E]
+  )(
+    implicit
+    ec:           ExecutionContext,
+    materializer: Materializer,
+    tm:           Manifest[T],
+    dj:           DecodeJson[T],
+    ej:           EncodeJson[E]
+  ): ServiceResponse =
+    handleRequest[T] { (req, marshaller) =>
+      f(req).map { res => (marshaller(res), StatusCodes.OK) }
+    }
+
+  def requestAsWithValidation[T <: ApiServiceRequest, E <: ApiServiceResponse](
+    f: T => validations.FutureValidationMapResult[E]
+  )(
+    implicit
+    ec:           ExecutionContext,
+    materializer: Materializer,
+    tm:           Manifest[T],
+    dj:           DecodeJson[T],
+    ej:           EncodeJson[E],
+    ejve:         EncodeJson[ValidationErrors]
+  ): ServiceResponse =
+    handleRequest[T] { (req, marshaller) =>
+      f(req).map {
+        case Success(res) =>
+          (marshaller(res), StatusCodes.OK)
+        case Failure(e) =>
+          (marshaller(ValidationErrors(e)), StatusCodes.UnprocessableEntity)
       }
     }
 }

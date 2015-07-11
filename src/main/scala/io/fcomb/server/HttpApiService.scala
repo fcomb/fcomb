@@ -44,9 +44,9 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
     { ctx: RequestContext =>
       val ct = ctx.request.entity.contentType()
       println(s"contentType: $ct")
-      val res = r(ct, ctx.request.entity.dataBytes).map { body =>
+      val res = r(ct, ctx.request.entity.dataBytes).map { case (body, status) =>
         HttpResponse(
-          status = StatusCodes.OK,
+          status = status,
           entity = HttpEntity(ct, body.toString)
         )
       }

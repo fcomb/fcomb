@@ -3,6 +3,7 @@ package io.fcomb.models
 import java.time.LocalDateTime
 import com.github.t3hnar.bcrypt._
 import java.util.UUID
+import scalaz._
 
 case class User(
     id:           UUID,
@@ -20,6 +21,8 @@ case class User(
 // TODO
 trait ApiServiceRequest
 
+import argonaut._
+
 // TODO
 trait ApiServiceResponse
 
@@ -35,4 +38,8 @@ case class UserResponse(
   email:    String,
   username: String,
   fullName: Option[String]
+) extends ApiServiceResponse
+
+case class ValidationErrors(
+  errors: Map[String, NonEmptyList[String]]
 ) extends ApiServiceResponse
