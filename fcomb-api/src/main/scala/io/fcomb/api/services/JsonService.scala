@@ -12,7 +12,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.mutable
 import shapeless._, contrib.scalaz._, syntax.std.function._
 import scalaz._, scalaz.syntax.foldable._
-import argonaut._, Argonaut._
+import spray._
 
 trait JsonService extends JsonHelpers with JsonErrors {
   // type ValidationResponse[T] = Validation[NonEmptyList[(String, String)], T]

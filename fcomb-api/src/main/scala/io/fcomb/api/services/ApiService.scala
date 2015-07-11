@@ -7,7 +7,7 @@ import akka.http.scaladsl.model._, ContentTypes.`application/json`
 import akka.stream.scaladsl.Source
 import akka.stream.Materializer
 import scala.concurrent.{ ExecutionContext, Future }
-import argonaut._, Argonaut._
+import spray.json._
 import scalaz._, Scalaz._
 
 trait ServiceResponse {
@@ -20,7 +20,7 @@ trait ServiceFlow[T] {
   val body: T
 }
 
-case class JsonServiceFlow(body: Json) extends ServiceFlow[Json]
+case class JsonServiceFlow(body: JsValue) extends ServiceFlow[JsValue]
 
 object JsonServiceFlow {
   val contentType = `application/json`
@@ -32,7 +32,7 @@ object JsonServiceFlow {
   ): Future[String \/ JsonServiceFlow] =
     entity
       .runFold(ByteString.empty)(_ ++ _)
-      .map(_.utf8String.parse.map(JsonServiceFlow(_)))
+      .map { data => JsonServiceFlow(data.utf8String.parseJson).right }
 }
 
 object ServiceFlow {
@@ -51,12 +51,12 @@ object ServiceFlow {
 }
 
 sealed trait ResponseMarshaller {
-  def apply[T](v: T)(implicit ej: EncodeJson[T]): String
+  def apply[T](v: T)(implicit jw: JsonWriter[T]): String
 }
 
 object JsonResponseMarshaller extends ResponseMarshaller {
-  def apply[T](v: T)(implicit ej: EncodeJson[T]) =
-    ej(v).toString
+  def apply[T](v: T)(implicit jw: JsonWriter[T]) =
+    jw.write(v).toString
 }
 
 trait ApiService {
@@ -66,7 +66,10 @@ trait ApiService {
     }.toMap)
 
   import io.fcomb.json._
-  implicitly[EncodeJson[ValidationErrors]]
+  implicitly[JsonWriter[ValidationErrors]]
+
+  def toResponse[T, E <: ApiServiceResponse](value: T)(implicit f: T => E) =
+    f(value)
 
   def handleRequest[T <: ApiServiceRequest](
     f: (T, ResponseMarshaller) => Future[(_, StatusCode)]
@@ -75,25 +78,20 @@ trait ApiService {
     ec:           ExecutionContext,
     materializer: Materializer,
     tm:           Manifest[T],
-    dj:           DecodeJson[T]
+    jr:           JsonReader[T]
   ): ServiceResponse =
     new ServiceResponse {
       def apply(contentType: ContentType, entity: Source[ByteString, Any]) = {
         ServiceFlow(contentType, entity).flatMap {
           case \/-(JsonServiceFlow(json)) =>
-            json.as[T] match {
-              case DecodeResult(\/-(res)) =>
+            scala.util.Try(json.convertTo[T]) match {
+              case scala.util.Success(res) =>
                 f(res, JsonResponseMarshaller)
-              case DecodeResult(-\/((e, cursor))) =>
-                val res: ValidationErrors = cursor.head match {
-                  case Some(El(CursorOpDownField(field), _)) =>
-                    validationErrors(field.toString -> s"empty or invalid: $e")
-                  case _ =>
-                    validationErrors("json" -> s"$e, $cursor")
-                }
-                Future.successful(
-                  (JsonResponseMarshaller(res), StatusCodes.UnprocessableEntity)
-                )
+              case scala.util.Failure(e) =>
+                Future.successful((
+                  JsonResponseMarshaller(validationErrors("json" -> e.getMessage())),
+                  StatusCodes.UnprocessableEntity
+                ))
             }
           case -\/(e) =>
             println(s"e: $e")
@@ -109,8 +107,8 @@ trait ApiService {
     ec:           ExecutionContext,
     materializer: Materializer,
     tm:           Manifest[T],
-    dj:           DecodeJson[T],
-    ej:           EncodeJson[E]
+    jr:           JsonReader[T],
+    jw:           JsonWriter[E]
   ): ServiceResponse =
     handleRequest[T] { (req, marshaller) =>
       f(req).map { res => (marshaller(res), StatusCodes.OK) }
@@ -123,8 +121,8 @@ trait ApiService {
     ec:           ExecutionContext,
     materializer: Materializer,
     tm:           Manifest[T],
-    dj:           DecodeJson[T],
-    ej:           EncodeJson[E]
+    jr:           JsonReader[T],
+    jw:           JsonWriter[E]
   ): ServiceResponse =
     handleRequest[T] { (req, marshaller) =>
       f(req).map {

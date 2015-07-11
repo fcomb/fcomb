@@ -3,7 +3,7 @@ package io.fcomb.api
 import akka.http.scaladsl.unmarshalling.Unmarshaller._
 import akka.http.scaladsl.model._, ContentTypes.`application/json`
 import akka.http.scaladsl.server._
-import argonaut._, Argonaut._, Shapeless._
+import spray.json._
 
 case class DeserializationException(msg: String) extends Throwable(msg)
 

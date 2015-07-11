@@ -21,14 +21,18 @@ case class User(
 // TODO
 trait ApiServiceRequest
 
-import argonaut._
-
 // TODO
 trait ApiServiceResponse
 
-case class UserRequest(
+case class UserSignUpRequest(
   email:    String,
   password: String,
+  username: String,
+  fullName: Option[String]
+) extends ApiServiceRequest
+
+case class UserRequest(
+  email:    String,
   username: String,
   fullName: Option[String]
 ) extends ApiServiceRequest
@@ -43,3 +47,14 @@ case class UserResponse(
 case class ValidationErrors(
   errors: Map[String, NonEmptyList[String]]
 ) extends ApiServiceResponse
+
+import scala.language.implicitConversions
+object ResponseConversions {
+  implicit def user2Response(u: User): UserResponse =
+    UserResponse(
+      id = u.id,
+      email = u.email,
+      username = u.username,
+      fullName = u.fullName
+    )
+}

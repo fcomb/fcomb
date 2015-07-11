@@ -44,11 +44,12 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
     { ctx: RequestContext =>
       val ct = ctx.request.entity.contentType()
       println(s"contentType: $ct")
-      val res = r(ct, ctx.request.entity.dataBytes).map { case (body, status) =>
-        HttpResponse(
-          status = status,
-          entity = HttpEntity(ct, body.toString)
-        )
+      val res = r(ct, ctx.request.entity.dataBytes).map {
+        case (body, status) =>
+          HttpResponse(
+            status = status,
+            entity = HttpEntity(ct, body.toString)
+          )
       }
       ctx.complete(res)
     }
@@ -57,12 +58,15 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
   val routes: Route =
     pathPrefix("v1") {
       pathPrefix("users") {
-        pathEndOrSingleSlash {
+        /* pathEndOrSingleSlash {
           post(UserService.create)
-        } /*~
+        } ~
         path("me") {
           get(UserService.me)
-        }*/
+         }*/
+        path("sign_up") {
+          post(UserService.signUp)
+        }
       } ~
       path("ping") {
         get(complete(pongJsonResponse))

@@ -13,21 +13,20 @@ import scala.collection.mutable
 import shapeless._, contrib.scalaz._, syntax.std.function._
 import scalaz._
 import scalaz.syntax.foldable._
+import ResponseConversions._
 
 object UserService extends ApiService {
-  def create(
+  def signUp(
     implicit
     ec:           ExecutionContext,
     materializer: Materializer
   ) =
-    requestAsWithValidation { user: UserRequest =>
+    requestAsWithValidation { user: UserSignUpRequest =>
       persist.User.create(
         email = user.email,
         username = user.username,
         fullName = user.fullName,
         password = user.password
-      ).map(_.map { res =>
-        UserResponse(res.id, res.email, res.username, res.fullName)
-      })
+      ).map(_.map(toResponse[User, UserResponse]))
     }
 }

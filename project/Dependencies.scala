@@ -30,13 +30,12 @@ object Dependencies {
 
     val dispatch        = "net.databinder.dispatch"       %% "dispatch-core"                 % "0.11.2"
     val finagle         = "com.github.finagle"            %% "finch-core"                    % "0.7.1"
-    val finagleArgonaut = "com.github.finagle"            %% "finch-argonaut"                % "0.7.1"
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
     val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
     val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.1"
-    val argonaut        = "io.argonaut"                   %% "argonaut"                      % "6.1"
-    val argonautShapeless = "com.github.alexarchambault"  %% "argonaut-shapeless_6.1"        % "0.3.1"
+    val sprayJson       = "io.spray"                      %%  "spray-json"                   % "1.3.2"
+    val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.0.0"
 
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
@@ -101,7 +100,7 @@ object Dependencies {
   val common = Seq(
     logbackClassic, scalaLogging,
     config, json4sJackson, pickling, upickle,
-    argonaut, argonautShapeless,
+    sprayJson, sprayJsonShapeless,
     scalazCore, scalazConcurrent,
     shapeless, shapelessScalaz
   )

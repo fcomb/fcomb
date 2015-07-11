@@ -1,7 +1,7 @@
 package io.fcomb.api
 
 import akka.http.scaladsl.model._, ContentTypes.`application/json`
-import argonaut._
+import spray.json._
 
 trait JsonHelpers {
   // def jsonResponse[T](statusCode: StatusCode, item: T)(implicit j: EncodeJson[T]): HttpResponse =

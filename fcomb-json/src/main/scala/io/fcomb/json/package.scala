@@ -1,42 +1,46 @@
 package io.fcomb
 
 import io.fcomb.models._
-import argonaut._, Argonaut._, Shapeless._
+import spray.json._, DefaultJsonProtocol._
 import scalaz._, Scalaz._
 import java.time.LocalDateTime
 import java.util.UUID
 
 package object json {
-  implicit val dateTimeEncodeJson: EncodeJson[LocalDateTime] =
-    EncodeJson((d: LocalDateTime) => jString(d.toString))
+  implicit object UuidFormat extends RootJsonFormat[UUID] {
+    def write(u: UUID) = JsString(u.toString)
 
-  implicit val uuidEncodeJson: EncodeJson[UUID] =
-    EncodeJson((uuid: UUID) => jString(uuid.toString))
-
-  private object shapelessImplicits {
-    val validationErrorsEncodeJson: EncodeJson[ValidationErrors] =
-      implicitly[EncodeJson[ValidationErrors]]
-
-    val userResponseEncodeJson: EncodeJson[UserResponse] =
-      implicitly[EncodeJson[UserResponse]]
+    def read(v: JsValue) = v match {
+      case JsString(s) => UUID.fromString(s)
+      case _ =>
+        throw new DeserializationException("invalid UUID")
+    }
   }
 
-  implicit val validationErrorsEncodeJson: EncodeJson[ValidationErrors] =
-    shapelessImplicits.validationErrorsEncodeJson
+  implicit object LocalDateTimeFormat extends RootJsonFormat[LocalDateTime] {
+    def write(s: LocalDateTime) = JsString(s.toString)
 
-  implicit val userRequestDecodeJson: DecodeJson[UserRequest] =
-    DecodeJson(c => for {
-      email <- (c --\ "email").as[String]
-      password <- (c --\ "password").as[String]
-      username <- (c --\ "username").as[String]
-      fullName <- (c --\ "fullName").as[Option[String]]
-    } yield UserRequest(
-      email = email,
-      password = password,
-      username = username,
-      fullName = fullName
-    ))
+    def read(v: JsValue) = v match {
+      case JsString(v) => LocalDateTime.parse(v)
+      case _ =>
+        throw new DeserializationException("invalid LocalDateTime")
+    }
+  }
 
-  implicit val userResponseEncodeJson: EncodeJson[UserResponse] =
-    shapelessImplicits.userResponseEncodeJson
+  implicit object ValidationMapResultFormat extends RootJsonFormat[Map[String, NonEmptyList[String]]] {
+    def write(m: Map[String, NonEmptyList[String]]) = JsObject(m.map {
+      case (k, l) =>
+        k -> JsArray(l.map(JsString(_)).toList)
+    })
+
+    def read(v: JsValue) = throw new Exception("invalid")
+  }
+
+  implicit val validationErrorsJsonProtocol = jsonFormat1(ValidationErrors)
+
+  implicit val userSignUpRequestJsonProtocol = jsonFormat4(UserSignUpRequest)
+
+  implicit val userRequestJsonProtocol = jsonFormat3(UserRequest)
+
+  implicit val userResponseJsonProtocol = jsonFormat4(UserResponse)
 }
