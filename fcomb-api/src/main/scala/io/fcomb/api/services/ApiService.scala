@@ -4,14 +4,25 @@ import io.fcomb.models._
 import io.fcomb.validations
 import akka.util.ByteString
 import akka.http.scaladsl.model._, ContentTypes.`application/json`
+import akka.http.scaladsl.model.headers.Authorization
 import akka.stream.scaladsl.Source
 import akka.stream.Materializer
 import scala.concurrent.{ ExecutionContext, Future }
 import spray.json._
 import scalaz._, Scalaz._
 
+sealed trait RequestParams
+
+case class HttpRequestParams(
+  request: HttpRequest
+) extends RequestParams
+
 trait ServiceResponse {
-  def apply(contentType: ContentType, entity: Source[ByteString, Any]): Future[(Any, StatusCode)]
+  def apply(
+    contentType:   ContentType,
+    entity:        Source[ByteString, Any],
+    requestParams: => RequestParams
+  ): Future[(Any, StatusCode)]
 }
 
 trait ResponseEntity
@@ -21,6 +32,12 @@ trait ServiceFlow[T] {
 }
 
 case class JsonServiceFlow(body: JsValue) extends ServiceFlow[JsValue]
+
+object utils {
+  def Try[T](value: => T): String \/ T =
+    try \/-(value) catch { case e: Throwable => -\/(e.getMessage) }
+}
+import utils._
 
 object JsonServiceFlow {
   val contentType = `application/json`
@@ -32,7 +49,7 @@ object JsonServiceFlow {
   ): Future[String \/ JsonServiceFlow] =
     entity
       .runFold(ByteString.empty)(_ ++ _)
-      .map { data => JsonServiceFlow(data.utf8String.parseJson).right }
+      .map { data => Try(JsonServiceFlow(data.utf8String.parseJson)) }
 }
 
 object ServiceFlow {
@@ -45,9 +62,22 @@ object ServiceFlow {
     materializer: Materializer
   ): Future[String \/ ServiceFlow[_]] =
     contentType match {
-      case JsonServiceFlow.contentType => // TODO: add json as default
+      case _ => // TODO: add json as default
         JsonServiceFlow(entity)
     }
+
+  def render[T <: ApiServiceResponse](
+    contentType: ContentType,
+    entity:      T
+  )(
+    implicit
+    jw: JsonWriter[T]
+  ) = {
+    contentType match {
+      case _ =>
+        JsonResponseMarshaller(entity)
+    }
+  }
 }
 
 sealed trait ResponseMarshaller {
@@ -81,7 +111,11 @@ trait ApiService {
     jr:           JsonReader[T]
   ): ServiceResponse =
     new ServiceResponse {
-      def apply(contentType: ContentType, entity: Source[ByteString, Any]) = {
+      def apply(
+        contentType:   ContentType,
+        entity:        Source[ByteString, Any],
+        requestParams: => RequestParams
+      ) = {
         ServiceFlow(contentType, entity).flatMap {
           case \/-(JsonServiceFlow(json)) =>
             scala.util.Try(json.convertTo[T]) match {
@@ -130,6 +164,67 @@ trait ApiService {
           (marshaller(res), StatusCodes.OK)
         case Failure(e) =>
           (marshaller(ValidationErrors(e)), StatusCodes.UnprocessableEntity)
+      }
+    }
+
+  def renderAs[T <: ApiServiceResponse](
+    contentType: ContentType,
+    entity:      T,
+    statusCode:  StatusCode
+  )(
+    implicit
+    jw: JsonWriter[T]
+  ) =
+    (ServiceFlow.render(contentType, entity), statusCode)
+
+  def unauthorizedError(contentType: ContentType, message: String) =
+    renderAs(
+      contentType,
+      validationErrors("auth" -> message),
+      StatusCodes.Unauthorized
+    )
+
+  def authorization(
+    f: User => ServiceResponse
+  )(
+    implicit
+    ec:           ExecutionContext,
+    materializer: Materializer
+  ): ServiceResponse =
+    new ServiceResponse {
+      def apply(
+        contentType:   ContentType,
+        entity:        Source[ByteString, Any],
+        requestParams: => RequestParams
+      ) = requestParams match {
+        case HttpRequestParams(request) =>
+          def g(token: String) =
+            // persist.Session.findById(token).flatMap {
+            Future.successful(Option.empty[User]).flatMap { // TODO
+              case Some(user) => f(user)(contentType, entity, requestParams)
+              case None => Future.successful {
+                unauthorizedError(contentType, "Invalid token")
+              }
+            }
+
+          val authHeader = request.headers.collectFirst {
+            case a: Authorization ⇒ a
+          }
+
+          val authParameter = request.uri.query.get("auth_token")
+          (authHeader, authParameter) match {
+            case (Some(token), _) =>
+              token.value.split(' ') match {
+                case Array("Token" | "token", token) => g(token)
+                case _ => Future.successful {
+                  unauthorizedError(contentType, "Expected format 'Token <token>'")
+                }
+              }
+            case (_, Some(token)) => g(token)
+            case _ => Future.successful {
+              unauthorizedError(contentType, "Expected 'Authorization' header with token or GET 'auth_token' parameter")
+            }
+          }
       }
     }
 }

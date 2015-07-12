@@ -44,7 +44,7 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
     { ctx: RequestContext =>
       val ct = ctx.request.entity.contentType()
       println(s"contentType: $ct")
-      val res = r(ct, ctx.request.entity.dataBytes).map {
+      val res = r(ct, ctx.request.entity.dataBytes, HttpRequestParams(ctx.request)).map {
         case (body, status) =>
           HttpResponse(
             status = status,
@@ -66,6 +66,9 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
          }*/
         path("sign_up") {
           post(UserService.signUp)
+        } ~
+        path("me") {
+          put(UserService.updateProfile)
         }
       } ~
       path("ping") {

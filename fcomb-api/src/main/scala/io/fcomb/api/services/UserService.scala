@@ -13,6 +13,7 @@ import scala.collection.mutable
 import shapeless._, contrib.scalaz._, syntax.std.function._
 import scalaz._
 import scalaz.syntax.foldable._
+import java.util.UUID
 import ResponseConversions._
 
 object UserService extends ApiService {
@@ -21,12 +22,28 @@ object UserService extends ApiService {
     ec:           ExecutionContext,
     materializer: Materializer
   ) =
-    requestAsWithValidation { user: UserSignUpRequest =>
+    requestAsWithValidation { req: UserSignUpRequest =>
       persist.User.create(
-        email = user.email,
-        username = user.username,
-        fullName = user.fullName,
-        password = user.password
+        email = req.email,
+        username = req.username,
+        fullName = req.fullName,
+        password = req.password
       ).map(_.map(toResponse[User, UserResponse]))
     }
+
+  def updateProfile(
+    implicit
+    ec:           ExecutionContext,
+    materializer: Materializer
+  ) =
+    authorization { user =>
+      requestAsWithValidation { req: UserRequest =>
+        persist.User.update(user.id)(
+          email = req.email,
+          username = req.username,
+          fullName = req.fullName
+        ).map(_.map(toResponse[User, UserResponse]))
+      }
+    }
+
 }

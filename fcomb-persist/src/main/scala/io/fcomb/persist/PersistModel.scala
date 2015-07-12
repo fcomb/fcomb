@@ -12,6 +12,12 @@ import java.util.UUID
 
 trait PersistTypes[T] {
   type ValidationModel = Validation[validations.ValidationMapResult, T]
+
+  def recordNotFound(columnName: String, id: String): ValidationModel =
+    Map(columnName -> NonEmptyList(s"not found record with id: $id")).failure[T]
+
+  def recordNotFoundAsFuture(field: String, id: String): Future[ValidationModel] =
+    Future.successful(recordNotFound(field, id))
 }
 
 trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
@@ -88,6 +94,12 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
 
   @inline
   def mapModel(item: T): T = item
+
+  def recordNotFound(id: T#IdType): ValidationModel =
+    recordNotFound("id", id.toString)
+
+  def recordNotFoundAsFuture(id: T#IdType): Future[ValidationModel] =
+    Future.successful(recordNotFound(id))
 
   def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val mappedItem = mapModel(item)

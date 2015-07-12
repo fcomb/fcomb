@@ -47,6 +47,20 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     }
   }
 
+  def update(id: UUID)(
+    email:    String,
+    username: String,
+    fullName: Option[String]
+  )(implicit ec: ExecutionContext): Future[ValidationModel] = findById(id).flatMap {
+    case Some(user) => update(user.copy(
+      email = email,
+      username = username,
+      fullName = fullName,
+      updatedAt = LocalDateTime.now()
+    ))
+    case None => recordNotFoundAsFuture(id)
+  }
+
   import Validations._
 
   def validationUserChain(user: models.User)(implicit ec: ExecutionContext) =
