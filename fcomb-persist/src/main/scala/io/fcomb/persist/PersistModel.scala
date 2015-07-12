@@ -11,7 +11,7 @@ import scalaz._, syntax.validation._, syntax.applicative._
 import java.util.UUID
 
 trait PersistTypes[T] {
-  type ValidationModel = Validation[validations.ValidationMapResult, T]
+  type ValidationModel = validations.ValidationType[T]
 
   def recordNotFound(columnName: String, id: String): ValidationModel =
     Map(columnName -> NonEmptyList(s"not found record with id: $id")).failure[T]

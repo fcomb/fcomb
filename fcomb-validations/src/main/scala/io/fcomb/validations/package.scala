@@ -217,7 +217,8 @@ package object validations {
   }
 
   type ValidationMapResult = Map[String, NonEmptyList[String]]
-  type FutureValidationMapResult[T] = Future[Validation[ValidationMapResult, T]]
+  type ValidationType[M] = Validation[validations.ValidationMapResult, M]
+  type FutureValidationMapResult[T] = Future[ValidationType[T]]
 
   val emptyValidationMapResult = Map.empty[String, NonEmptyList[String]]
 
@@ -245,4 +246,9 @@ package object validations {
       case m              => m.failure[T]
     }
   }
+
+  def validationErrorsMap[M](errors: (String, String)*): ValidationType[M] =
+    errors.map {
+      case (k, v) => (k, NonEmptyList(v))
+    }.toMap.failure[M]
 }

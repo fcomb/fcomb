@@ -1,6 +1,7 @@
 package io.fcomb.api.services
 
 import io.fcomb.models._
+import io.fcomb.persist
 import io.fcomb.validations
 import akka.util.ByteString
 import akka.http.scaladsl.model._, ContentTypes.`application/json`
@@ -199,8 +200,7 @@ trait ApiService {
       ) = requestParams match {
         case HttpRequestParams(request) =>
           def g(token: String) =
-            // persist.Session.findById(token).flatMap {
-            Future.successful(Option.empty[User]).flatMap { // TODO
+            persist.Session.findById(token).flatMap {
               case Some(user) => f(user)(contentType, entity, requestParams)
               case None => Future.successful {
                 unauthorizedError(contentType, "Invalid token")
