@@ -57,4 +57,7 @@ object ResponseConversions {
       username = u.username,
       fullName = u.fullName
     )
+
+  implicit def session2Response(s: Session): SessionResponse =
+    SessionResponse(s.token)
 }

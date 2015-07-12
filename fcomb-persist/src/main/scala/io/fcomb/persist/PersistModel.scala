@@ -14,7 +14,7 @@ trait PersistTypes[T] {
   type ValidationModel = validations.ValidationType[T]
 
   def recordNotFound(columnName: String, id: String): ValidationModel =
-    Map(columnName -> NonEmptyList(s"not found record with id: $id")).failure[T]
+    validations.validationErrorsMap(columnName -> s"not found record with id: $id")
 
   def recordNotFoundAsFuture(field: String, id: String): Future[ValidationModel] =
     Future.successful(recordNotFound(field, id))

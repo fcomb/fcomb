@@ -61,6 +61,9 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     case None => recordNotFoundAsFuture(id)
   }
 
+  def findByEmail(email: String) =
+    db.run(table.filter(_.email === email).take(1).result.headOption)
+
   import Validations._
 
   def validationUserChain(user: models.User)(implicit ec: ExecutionContext) =

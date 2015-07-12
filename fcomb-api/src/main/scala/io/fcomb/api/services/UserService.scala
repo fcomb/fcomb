@@ -31,6 +31,15 @@ object UserService extends ApiService {
       ).map(_.map(toResponse[User, UserResponse]))
     }
 
+  def me(
+    implicit
+    ec:           ExecutionContext,
+    materializer: Materializer
+  ) =
+    authorization { user =>
+      responseAs[User, UserResponse](user)
+    }
+
   def updateProfile(
     implicit
     ec:           ExecutionContext,

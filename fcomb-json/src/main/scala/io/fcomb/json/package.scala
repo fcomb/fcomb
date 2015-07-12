@@ -43,4 +43,8 @@ package object json {
   implicit val userRequestJsonProtocol = jsonFormat3(UserRequest)
 
   implicit val userResponseJsonProtocol = jsonFormat4(UserResponse)
+
+  implicit val sessionRequestJsonProtocol = jsonFormat2(SessionRequest)
+
+  implicit val sessionResponseJsonProtocol = jsonFormat1(SessionResponse)
 }

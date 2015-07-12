@@ -39,6 +39,20 @@ object Session extends PersistTypes[models.Session] {
     }
   }
 
+  private val invalidEmailOrPassword =
+    Future.successful(validations.validationErrorsMap(
+      "email" -> s"invalid",
+      "password" -> "invalid"
+    ))
+
+  def create(req: models.SessionRequest)(implicit ec: ExecutionContext): Future[ValidationModel] =
+    User.findByEmail(req.email).flatMap {
+      case Some(user) if user.isValidPassword(req.password) =>
+        create(user)
+      case _ =>
+        invalidEmailOrPassword
+    }
+
   def findById(sessionId: String)(implicit ec: ExecutionContext) = {
     cache.get(getKey(sessionId)).flatMap {
       case Some(userId) if sessionId.startsWith(userPrefix) =>

@@ -23,7 +23,7 @@ trait ServiceResponse {
     contentType:   ContentType,
     entity:        Source[ByteString, Any],
     requestParams: => RequestParams
-  ): Future[(Any, StatusCode)]
+  ): Future[(ContentType, Any, StatusCode)]
 }
 
 trait ResponseEntity
@@ -47,10 +47,14 @@ object JsonServiceFlow {
     implicit
     ec:           ExecutionContext,
     materializer: Materializer
-  ): Future[String \/ JsonServiceFlow] =
+  ): Future[String \/ (ContentType, JsonServiceFlow)] =
     entity
       .runFold(ByteString.empty)(_ ++ _)
-      .map { data => Try(JsonServiceFlow(data.utf8String.parseJson)) }
+      .map { data =>
+        Try(
+          (contentType, JsonServiceFlow(data.utf8String.parseJson))
+        )
+      }
 }
 
 object ServiceFlow {
@@ -61,7 +65,7 @@ object ServiceFlow {
     implicit
     ec:           ExecutionContext,
     materializer: Materializer
-  ): Future[String \/ ServiceFlow[_]] =
+  ): Future[String \/ (ContentType, ServiceFlow[_])] =
     contentType match {
       case _ => // TODO: add json as default
         JsonServiceFlow(entity)
@@ -76,7 +80,7 @@ object ServiceFlow {
   ) = {
     contentType match {
       case _ =>
-        JsonResponseMarshaller(entity)
+        (JsonServiceFlow.contentType, JsonResponseMarshaller(entity))
     }
   }
 }
@@ -118,12 +122,16 @@ trait ApiService {
         requestParams: => RequestParams
       ) = {
         ServiceFlow(contentType, entity).flatMap {
-          case \/-(JsonServiceFlow(json)) =>
+          case \/-((ct, JsonServiceFlow(json))) =>
             scala.util.Try(json.convertTo[T]) match {
               case scala.util.Success(res) =>
-                f(res, JsonResponseMarshaller)
+                f(res, JsonResponseMarshaller).map {
+                  case (body, statusCode) =>
+                    (ct, body, statusCode)
+                }
               case scala.util.Failure(e) =>
                 Future.successful((
+                  ct,
                   JsonResponseMarshaller(validationErrors("json" -> e.getMessage())),
                   StatusCodes.UnprocessableEntity
                 ))
@@ -176,7 +184,39 @@ trait ApiService {
     implicit
     jw: JsonWriter[T]
   ) =
-    (ServiceFlow.render(contentType, entity), statusCode)
+    ServiceFlow.render(contentType, entity) match {
+      case (ct, body) => (ct, body, statusCode)
+    }
+
+  def response[T <: ApiServiceResponse](
+    res: => T
+  )(
+    implicit
+    ec:           ExecutionContext,
+    materializer: Materializer,
+    tm:           Manifest[T],
+    jw:           JsonWriter[T]
+  ): ServiceResponse =
+    new ServiceResponse {
+      def apply(
+        contentType:   ContentType,
+        entity:        Source[ByteString, Any],
+        requestParams: => RequestParams
+      ) =
+        Future.successful(renderAs(contentType, res, StatusCodes.OK))
+    }
+
+  def responseAs[M, T <: ApiServiceResponse](
+    res: => M
+  )(
+    implicit
+    ec:           ExecutionContext,
+    materializer: Materializer,
+    tm:           Manifest[T],
+    jw:           JsonWriter[T],
+    f:            M => T
+  ): ServiceResponse =
+    response(f(res))
 
   def unauthorizedError(contentType: ContentType, message: String) =
     renderAs(
