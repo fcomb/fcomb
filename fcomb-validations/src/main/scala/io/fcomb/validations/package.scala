@@ -136,6 +136,8 @@ package object validations {
 
   trait PresentValidator[T] extends Validator[T]
 
+  trait UniqueValidator[T] extends Validator[T]
+
   implicit object StringPresentValidator extends PresentValidator[String] {
     def apply(s: String) =
       PlainValidationResult(s.nonEmpty, "is empty")
@@ -153,16 +155,6 @@ package object validations {
       new ValidationWithEffect[String, Effect.Plain] {
         def apply(s: String)(implicit ec: ExecutionContext) =
           PlainValidationResult(emailRegEx.findFirstIn(s).isDefined, "invalid email format")
-      }
-
-    def notEmpty[T](implicit v: PresentValidator[T]) =
-      present[T]
-
-    def futureCheck[T] =
-      new ValidationWithEffect[T, Effect.Future] {
-        def apply(obj: T)(implicit ec: ExecutionContext) = FutureValidationResult(
-          Future.successful(true, "error")
-        )
       }
   }
   object Validations extends ValidationMethods

@@ -2,7 +2,7 @@ package io.fcomb
 
 import io.fcomb.utils.Config
 import io.fcomb.RichPostgresDriver.api.Database
-import scalikejdbc._
+// import scalikejdbc._
 import org.flywaydb.core.Flyway
 import scredis.Redis
 import scala.concurrent.{ Await, ExecutionContext, Future, blocking }
@@ -20,11 +20,11 @@ object Db {
     ds
   }
 
-  ConnectionPool.singleton(new DataSourceConnectionPool(dataSource))
+  // ConnectionPool.singleton(new DataSourceConnectionPool(dataSource))
+
+  // implicit val session = AutoSession
 
   val db = Database.forConfig("", Config.jdbcConfig)
-
-  implicit val session = AutoSession
 
   def migrate()(implicit ec: ExecutionContext) = Future {
     blocking {

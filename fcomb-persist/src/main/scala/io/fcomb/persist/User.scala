@@ -51,18 +51,23 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     email:    String,
     username: String,
     fullName: Option[String]
-  )(implicit ec: ExecutionContext): Future[ValidationModel] = findById(id).flatMap {
-    case Some(user) => update(user.copy(
-      email = email,
-      username = username,
-      fullName = fullName,
-      updatedAt = LocalDateTime.now()
-    ))
-    case None => recordNotFoundAsFuture(id)
+  )(implicit ec: ExecutionContext): Future[ValidationModel] =
+    findById(id).flatMap {
+      case Some(user) => update(user.copy(
+        email = email,
+        username = username,
+        fullName = fullName,
+        updatedAt = LocalDateTime.now()
+      ))
+      case None => recordNotFoundAsFuture(id)
+    }
+
+  private val findByEmailCompiled = Compiled { email: Rep[String] =>
+    table.filter(_.email === email).take(1)
   }
 
   def findByEmail(email: String) =
-    db.run(table.filter(_.email === email).take(1).result.headOption)
+    db.run(findByEmailCompiled(email).result.headOption)
 
   import Validations._
 
@@ -70,7 +75,10 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     user.email.is("email", present && isEmail) ::
       user.username.is("username", present)
 
-  def validationUserWithPassword(user: models.User, password: String)(implicit ec: ExecutionContext) =
+  def validationUserWithPassword(
+    user:     models.User,
+    password: String
+  )(implicit ec: ExecutionContext) =
     validationUserChain(user) :: password.is("password", present)
 
   override def validate(user: models.User)(implicit ec: ExecutionContext) =

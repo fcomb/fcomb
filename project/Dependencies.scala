@@ -7,8 +7,8 @@ object Dependencies {
     val scalaz = "7.1.2"
     val algebra = "0.2.0-SNAPSHOT"
     val cats = "0.1.0-SNAPSHOT"
+    val slick = "3.1.0-M1"
     val scalikeJdbc = "2.2.6"
-    val slick = "3.0.0"
     val kamon = "0.4.0"
   }
 
@@ -33,7 +33,7 @@ object Dependencies {
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
     val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
-    val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.3"
+    val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.4"
     val sprayJson       = "io.spray"                      %%  "spray-json"                   % "1.3.2"
     val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.0.0"
 
@@ -45,12 +45,13 @@ object Dependencies {
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.9.0"
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.2"
+    val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
+    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.9"
+    val relate          = "com.lucidchart"                %% "relate"                        % "1.7.1"
     val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % V.scalikeJdbc
     val scalikeJdbcMacros = "org.scalikejdbc"             %% "scalikejdbc-syntax-support-macro" % V.scalikeJdbc
     val scalikeJdbcAsync = "org.scalikejdbc"              %% "scalikejdbc-async"             % "0.5.+"
     val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.+"
-    val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
-    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.9"
 
     val levelDb         = "org.iq80.leveldb"              % "leveldb"                        % "0.7"
     val levelDbJni      = "org.fusesource.leveldbjni"     % "leveldbjni-all"                 % "1.8"
@@ -130,8 +131,9 @@ object Dependencies {
 
   val persist = common ++ Seq(
     postgresJdbc,
-    scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
     slick, slickPg, slickJdbc,
+    relate,
+    scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
     flywayCore, hikariCp, bcrypt, commonsCodec
   )
 

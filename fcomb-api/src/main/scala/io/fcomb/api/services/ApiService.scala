@@ -12,6 +12,11 @@ import scala.concurrent.{ ExecutionContext, Future }
 import spray.json._
 import scalaz._, Scalaz._
 
+object ServiceTypes {
+  type ServiceResponseTuple = (ContentType, Any, StatusCode)
+}
+import ServiceTypes._
+
 sealed trait RequestParams
 
 case class HttpRequestParams(
@@ -23,7 +28,7 @@ trait ServiceResponse {
     contentType:   ContentType,
     entity:        Source[ByteString, Any],
     requestParams: => RequestParams
-  ): Future[(ContentType, Any, StatusCode)]
+  ): Future[ServiceResponseTuple]
 }
 
 trait ResponseEntity
