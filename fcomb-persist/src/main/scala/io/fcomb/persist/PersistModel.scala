@@ -11,10 +11,10 @@ import scalaz._, syntax.validation._, syntax.applicative._
 import java.util.UUID
 
 trait PersistTypes[T] {
-  type ValidationModel = validations.ValidationType[T]
+  type ValidationModel = validations.ValidationResult[T]
 
   def recordNotFound(columnName: String, id: String): ValidationModel =
-    validations.validationErrorsMap(columnName -> s"not found record with id: $id")
+    validations.validationErrors(columnName -> s"not found record with id: $id")
 
   def recordNotFoundAsFuture(field: String, id: String): Future[ValidationModel] =
     Future.successful(recordNotFound(field, id))
@@ -26,7 +26,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   type ModelDBIO = DBIOAction[T, NoStream, Effect.All]
   type ModelDBIOOption = DBIOAction[Option[T], NoStream, Effect.All]
 
-  val validationsOpt = Option.empty[T => validations.FutureValidationMapResult[_]]
+  val validationsOpt = Option.empty[T => Future[validations.ValidationResult[_]]]
 
   // @inline
   // private def recoverPersistExceptions(
@@ -53,7 +53,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     validateWith(item, validations.validateChainAs(item, chain))(f)
 
   def validate(item: T)(implicit ec: ExecutionContext): Future[ValidationModel] =
-    Future.successful(item.success[validations.ValidationMapResult])
+    Future.successful(item.success[validations.ValidationErrors])
 
   def createDBIO(item: T): ModelDBIO =
     table returning table.map(i => i) += item.asInstanceOf[Q#TableElementType]

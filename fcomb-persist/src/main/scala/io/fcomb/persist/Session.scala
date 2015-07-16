@@ -35,12 +35,12 @@ object Session extends PersistTypes[models.Session] {
   ): Future[ValidationModel] = {
     val sessionId = s"${prefix}_${random.alphanumeric.take(sessionIdLength).mkString}"
     cache.set(getKey(sessionId), id, ttl).map { _ =>
-      models.Session(sessionId).success[validations.ValidationMapResult]
+      models.Session(sessionId).success[validations.ValidationErrors]
     }
   }
 
   private val invalidEmailOrPassword =
-    Future.successful(validations.validationErrorsMap(
+    Future.successful(validations.validationErrors(
       "email" -> s"invalid",
       "password" -> "invalid"
     ))

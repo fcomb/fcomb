@@ -71,15 +71,26 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
 
   import Validations._
 
-  def validationUserChain(user: models.User)(implicit ec: ExecutionContext) =
-    user.email.is("email", present && isEmail) ::
-      user.username.is("username", present)
+  private val unqiueUsernameCompiled = Compiled { username: Rep[String] =>
+    table.filter(_.username === username).exists
+  }
 
-  def validationUserWithPassword(
-    user:     models.User,
-    password: String
-  )(implicit ec: ExecutionContext) =
-    validationUserChain(user) :: password.is("password", present)
+  private val uniqueEmailCompiled = Compiled { email: Rep[String] =>
+    table.filter(_.email === email).exists
+  }
+
+  def userValidation(user: models.User, checkPassword: Boolean)(implicit ec: ExecutionContext) = {
+    (
+      validatePlain(
+        "username" -> List(present(user.username)),
+        "email" -> List(present(user.email), email(user.email))
+      ),
+      validateDBIO(
+        "username" -> List(unique(unqiueUsernameCompiled(user.username))),
+        "email" -> List(unique(uniqueEmailCompiled(user.email)))
+      )
+    )
+  }
 
   override def validate(user: models.User)(implicit ec: ExecutionContext) =
     validateChainAs(user, validationUserChain(user))

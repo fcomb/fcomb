@@ -1,246 +1,112 @@
 package io.fcomb
 
+import slick.driver.PostgresDriver.api._
+import slick.lifted.AppliedCompiledFunction
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.{ implicitConversions, postfixOps, existentials }
+import scala.annotation.tailrec
 import scalaz._, Scalaz._
 
 package object validations {
-  type ValidationResult = (Boolean, String)
+  type DBIOT[T] = DBIOAction[T, NoStream, Effect.Read]
 
-  sealed trait ValidationResultChain {
-    def `&&`(v: => ValidationResultChain)(implicit ec: ExecutionContext): ValidationResultChain
+  type PlainValidationT[T] = Validation[NonEmptyList[String], T]
+  type FutureValidationT[T] = Future[Validation[NonEmptyList[String], T]]
+  type DBIOValidationT[T] = DBIOT[Validation[NonEmptyList[String], T]]
 
-    def `||`(v: => ValidationResultChain)(implicit ec: ExecutionContext): ValidationResultChain
+  type PlainValidation = Validation[NonEmptyList[String], Unit]
+  type FutureValidation = Future[PlainValidation]
+  type DBIOValidation = DBIOT[PlainValidation]
 
-    def unary_!(implicit ec: ExecutionContext): ValidationResultChain
+  type DBIOActionValidator = DBIOAction[Boolean, NoStream, Effect.Read]
 
-    protected def and(fst: ValidationResult, snd: ValidationResult): ValidationResult = {
-      val errorMsg =
-        if (!fst._1) fst._2
-        else if (!snd._1) snd._2
-        else ""
-      (fst._1 && snd._1, errorMsg)
+  def plainValidation(validations: Seq[PlainValidation]) =
+    validations.foldLeft(().successNel[String]) {
+      (acc, v) => (acc |@| v) { (_, _) => () }
     }
 
-    protected def or(fst: ValidationResult, snd: ValidationResult): ValidationResult = {
-      val errorMsg =
-        if (fst._1) ""
-        else if (snd._1) ""
-        else fst._2
-      (fst._1 || snd._1, errorMsg)
-    }
-  }
+  def futureValidation(validations: Seq[FutureValidation])(implicit ec: ExecutionContext) =
+    Future.sequence(validations).map(plainValidation)
 
-  case class FutureValidationResult(f: Future[ValidationResult]) extends ValidationResultChain {
-    def `&&`(v: => ValidationResultChain)(implicit ec: ExecutionContext): ValidationResultChain = {
-      val res = v match {
-        case PlainValidationResult(rv) =>
-          f.map(and(_, rv))
-        case v: FutureValidationResult =>
-          for {
-            rv1 <- f
-            rv2 <- v.f
-          } yield and(rv1, rv2)
-      }
-      FutureValidationResult(res)
-    }
+  def dbioValidation(validations: Seq[DBIOValidation])(implicit ec: ExecutionContext) =
+    DBIO.sequence(validations).map(plainValidation)
 
-    def `||`(v: => ValidationResultChain)(implicit ec: ExecutionContext): ValidationResultChain = {
-      val res = v match {
-        case PlainValidationResult(rv) =>
-          f.map(or(_, rv))
-        case v: FutureValidationResult =>
-          for {
-            rv1 <- f
-            rv2 <- v.f
-          } yield or(rv1, rv2)
-      }
-      FutureValidationResult(res)
-    }
+  type ColumnErrors = (String, NonEmptyList[String])
+  type ColumnValidation = Validation[ColumnErrors, Unit]
+  type ValidationErrors = Map[String, List[String]]
+  type ValidationResult[T] = Validation[ValidationErrors, T]
 
-    def unary_!(implicit ec: ExecutionContext): ValidationResultChain =
-      FutureValidationResult(f.map {
-        case (false, _) =>
-          (true, "")
-        case (true, errorMsg) =>
-          (false, s"not $errorMsg")
-      })
-  }
+  val emptyValidationErrors: ValidationErrors = Map.empty[String, List[String]]
 
-  case class PlainValidationResult(rv: ValidationResult) extends ValidationResultChain {
-    def `&&`(v: => ValidationResultChain)(implicit ec: ExecutionContext): ValidationResultChain = v match {
-      case v: PlainValidationResult =>
-        PlainValidationResult(and(rv, v.rv))
-      case v: FutureValidationResult =>
-        v && this
-    }
-
-    def `||`(v: => ValidationResultChain)(implicit ec: ExecutionContext): ValidationResultChain = v match {
-      case v: PlainValidationResult =>
-        PlainValidationResult(or(rv, v.rv))
-      case v: FutureValidationResult =>
-        v || this
-    }
-
-    def unary_!(implicit ec: ExecutionContext): ValidationResultChain = rv match {
-      case (false, _) =>
-        PlainValidationResult(true, "")
-      case (true, errorMsg) =>
-        PlainValidationResult(false, s"not $errorMsg")
-    }
-  }
-
-  trait Effect
-  object Effect {
-    trait Plain extends Effect
-    trait Future extends Effect
-    trait IO extends Effect
-    trait DBIOAction extends Effect
-    trait All extends Plain with Future with IO with DBIOAction
-  }
-
-  trait ValidationWithEffect[T, E <: Effect] {
-    def apply(obj: T)(implicit ec: ExecutionContext): ValidationResultChain
-
-    def `&&`[E2 <: Effect](v: ValidationWithEffect[T, E2])(implicit ec: ExecutionContext) = {
-      def g(obj: T) = apply(obj)
-
-      new ValidationWithEffect[T, E with E2] {
-        def apply(obj: T)(implicit ec: ExecutionContext) =
-          g(obj) && v(obj)
-      }
-    }
-
-    def `||`[E2 <: Effect](v: ValidationWithEffect[T, E2])(implicit ec: ExecutionContext) = {
-      def g(obj: T)(implicit ec: ExecutionContext) = apply(obj)
-
-      new ValidationWithEffect[T, E with E2] {
-        def apply(obj: T)(implicit ec: ExecutionContext) =
-          g(obj) || v(obj)
-      }
-    }
-
-    def unary_!(implicit ec: ExecutionContext) = {
-      def g(obj: T)(implicit ec: ExecutionContext) = apply(obj)
-
-      new ValidationWithEffect[T, E] {
-        def apply(obj: T)(implicit ec: ExecutionContext) =
-          !g(obj)
-      }
-    }
-  }
-
-  trait Validator[T] {
-    def apply(obj: T): ValidationResultChain
-  }
-
-  trait PresentValidator[T] extends Validator[T]
-
-  trait UniqueValidator[T] extends Validator[T]
-
-  implicit object StringPresentValidator extends PresentValidator[String] {
-    def apply(s: String) =
-      PlainValidationResult(s.nonEmpty, "is empty")
-  }
-
-  val emailRegEx = """\A([a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+)@([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*)\z""".r
-
-  trait ValidationMethods {
-    def present[T](implicit v: PresentValidator[T]) =
-      new ValidationWithEffect[T, Effect.Plain] {
-        def apply(obj: T)(implicit ec: ExecutionContext) = v(obj)
-      }
-
-    def isEmail =
-      new ValidationWithEffect[String, Effect.Plain] {
-        def apply(s: String)(implicit ec: ExecutionContext) =
-          PlainValidationResult(emailRegEx.findFirstIn(s).isDefined, "invalid email format")
-      }
-  }
-  object Validations extends ValidationMethods
-
-  sealed trait ValidationContainerChain[+E <: Effect] {
-    val containers: List[ColumnValidationContainer[_]]
-
-    def `::`[E2 <: Effect](chain: ValidationContainerChain[E2]): ValidationContainerChain[E with E2] = {
-      val chainContainers = chain.containers ::: this.containers
-      new ValidationsContainer[E with E2] {
-        val containers = chainContainers
-      }
-    }
-  }
-
-  sealed trait ValidationsContainer[E <: Effect] extends ValidationContainerChain[E]
-
-  case class ColumnValidationContainer[E <: Effect](column: String, result: ValidationResultChain) extends ValidationContainerChain[E] {
-    val containers = List(this)
-  }
-
-  implicit class StringValidators(val value: String) extends AnyVal {
-    def is[E <: Effect](column: String, validation: ValidationWithEffect[String, E])(implicit ec: ExecutionContext) =
-      ColumnValidationContainer[E](column, validation(value))
-  }
-
-  def validateColumn[T, E <: Effect](
-    column: String,
-    value:  T
-  )(
-    validation: ValidationWithEffect[T, E]
-  )(
-    implicit
-    ec: ExecutionContext
-  ) =
-    ColumnValidationContainer[E](column, validation(value))
-
-  def validatePlainChain[E <: Effect](chain: ValidationContainerChain[E])(
-    implicit
-    ec: ExecutionContext,
-    eq: ValidationContainerChain[E] =:= ValidationContainerChain[Effect.Plain]
-  ): Map[String, List[String]] \/ Unit = {
-    chain.containers.foldLeft(Map.empty[String, List[String]]) { (m, c) =>
-      val container = c.asInstanceOf[ColumnValidationContainer[_]]
-      val result = container.result.asInstanceOf[PlainValidationResult]
-      if (result.rv._1) m
-      else m + ((container.column, List(result.rv._2)))
-    } match {
-      case m if m.isEmpty => ().right
-      case m              => m.left
-    }
-  }
-
-  type ValidationMapResult = Map[String, NonEmptyList[String]]
-  type ValidationType[M] = Validation[validations.ValidationMapResult, M]
-  type FutureValidationMapResult[T] = Future[ValidationType[T]]
-
-  val emptyValidationMapResult = Map.empty[String, NonEmptyList[String]]
-
-  def validateChainAs[T](successValue: T, chain: ValidationContainerChain[_])(
-    implicit
-    ec: ExecutionContext
-  ): FutureValidationMapResult[T] = {
-    val acc = Future.successful(emptyValidationMapResult)
-    chain.containers.foldLeft(acc) { (f, c) =>
-      f.flatMap { m =>
-        val container = c.asInstanceOf[ColumnValidationContainer[_]]
-        container.result match {
-          case PlainValidationResult(rv) => Future.successful {
-            if (rv._1) m
-            else m + ((container.column, NonEmptyList(rv._2)))
-          }
-          case FutureValidationResult(f) => f.map { rv =>
-            if (rv._1) m
-            else m + ((container.column, NonEmptyList(rv._2)))
-          }
-        }
-      }
-    }.map {
-      case m if m.isEmpty => successValue.success[ValidationMapResult]
-      case m              => m.failure[T]
-    }
-  }
-
-  def validationErrorsMap[M](errors: (String, String)*): ValidationType[M] =
+  def validationErrors[M](errors: (String, String)*): ValidationResult[M] =
     errors.map {
-      case (k, v) => (k, NonEmptyList(v))
+      case (k, v) => (k, List(v))
     }.toMap.failure[M]
+
+  def validateColumn(column: String, validation: PlainValidation): ColumnValidation =
+    validation match {
+      case Success(_)      => ().success
+      case Failure(errors) => (column, errors).failure
+    }
+
+  def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResult[Unit] = {
+    val res = validations.foldLeft(List.empty[ColumnErrors]) {
+      (acc, v) =>
+        v match {
+          case Success(_) => acc
+          case Failure(e) => e :: acc
+        }
+    }
+    if (res.isEmpty) ().success
+    else res.foldLeft(Map.empty[String, List[String]]) {
+      case (acc, (c, v)) =>
+        acc + ((c, v.toList ::: acc.getOrElse(c, List.empty)))
+    }.failure
+  }
+
+  def validatePlain(result: (String, List[PlainValidation])*): ValidationResult[Unit] = {
+    val res = result.foldLeft(Map.empty[String, List[String]]) {
+      case (m, (c, v)) => plainValidation(v) match {
+        case Success(_) => m
+        case Failure(r) => m + ((c, r.toList))
+      }
+    }
+    if (res.isEmpty) ().success
+    else res.failure
+  }
+
+  def validateDBIO(result: (String, List[DBIOValidation])*)(implicit ec: ExecutionContext): DBIOT[ValidationResult[Unit]] = {
+    val emptyMap = DBIO
+      .successful(Map.empty[String, List[String]])
+      .asInstanceOf[DBIOT[ValidationErrors]]
+    val res = result.foldLeft(emptyMap) {
+      case (m, (c, v)) => dbioValidation(v).flatMap {
+        case Success(_) => m
+        case Failure(r) => m.map(_ + ((c, r.toList)))
+      }
+    }
+    res.map {
+      case m if m.isEmpty => ().success
+      case m => m.failure
+    }
+  }
+
+  object Validations {
+    def present(value: String): PlainValidation =
+      if (value.isEmpty) "is empty".failureNel
+      else ().successNel
+
+    val emailRegEx = """\A([a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+)@([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*)\z""".r
+
+    def email(value: String): PlainValidation =
+      if (emailRegEx.findFirstIn(value).isDefined) ().successNel
+      else "invalid email format".failureNel
+
+    def unique(action: AppliedCompiledFunction[_, Rep[Boolean], Boolean])(implicit ec: ExecutionContext): DBIOValidation = {
+      action.result.map {
+        case true => ().successNel
+        case false => "not unique".failureNel
+      }
+    }
+  }
 }

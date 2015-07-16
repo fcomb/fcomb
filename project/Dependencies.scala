@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
   object V {
     val akka = "2.4-M2"
-    val akkaExperimental = "1.0-RC4"
+    val akkaExperimental = "1.0"
     val scalaz = "7.1.2"
     val algebra = "0.2.0-SNAPSHOT"
     val cats = "0.1.0-SNAPSHOT"
@@ -50,8 +50,8 @@ object Dependencies {
     val relate          = "com.lucidchart"                %% "relate"                        % "1.7.1"
     val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % V.scalikeJdbc
     val scalikeJdbcMacros = "org.scalikejdbc"             %% "scalikejdbc-syntax-support-macro" % V.scalikeJdbc
-    val scalikeJdbcAsync = "org.scalikejdbc"              %% "scalikejdbc-async"             % "0.5.+"
-    val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.+"
+    val scalikeJdbcAsync = "org.scalikejdbc"              %% "scalikejdbc-async"             % "0.5.5"
+    val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.15"
 
     val levelDb         = "org.iq80.leveldb"              % "leveldb"                        % "0.7"
     val levelDbJni      = "org.fusesource.leveldbjni"     % "leveldbjni-all"                 % "1.8"
@@ -149,5 +149,5 @@ object Dependencies {
 
   val response = common
 
-  val validations = common
+  val validations = common ++ Seq(slick)
 }
