@@ -100,13 +100,13 @@ object JsonResponseMarshaller extends ResponseMarshaller {
 }
 
 trait ApiService {
-  def validationErrors(errors: (String, String)*): ValidationErrors =
-    ValidationErrors(errors.map {
-      case (k, v) => (k, NonEmptyList(v))
+  def validationErrors(errors: (String, String)*) =
+    ValidationErrorsResponse(errors.map {
+      case (k, v) => (k, List(v))
     }.toMap)
 
   import io.fcomb.json._
-  implicitly[JsonWriter[ValidationErrors]]
+  implicitly[JsonWriter[ValidationErrorsResponse]]
 
   def toResponse[T, E <: ApiServiceResponse](value: T)(implicit f: T => E) =
     f(value)
@@ -163,7 +163,7 @@ trait ApiService {
     }
 
   def requestAsWithValidation[T <: ApiServiceRequest, E <: ApiServiceResponse](
-    f: T => validations.FutureValidationMapResult[E]
+    f: T => Future[validations.ValidationResult[E]]
   )(
     implicit
     ec:           ExecutionContext,
@@ -177,7 +177,7 @@ trait ApiService {
         case Success(res) =>
           (marshaller(res), StatusCodes.OK)
         case Failure(e) =>
-          (marshaller(ValidationErrors(e)), StatusCodes.UnprocessableEntity)
+          (marshaller(ValidationErrorsResponse(e)), StatusCodes.UnprocessableEntity)
       }
     }
 

@@ -2,16 +2,17 @@ package io.fcomb.persist
 
 import io.fcomb.models
 import io.fcomb.Db._
-import io.fcomb.validations
+import io.fcomb.validations, validations.{ DBIOT, ValidationResult }
 import slick.jdbc.TransactionIsolation
 import scala.concurrent.{ ExecutionContext, Future, blocking }
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.RichPostgresDriver.IntoInsertActionComposer
-import scalaz._, syntax.validation._, syntax.applicative._
+import scalaz._, Scalaz._
 import java.util.UUID
 
 trait PersistTypes[T] {
   type ValidationModel = validations.ValidationResult[T]
+  type ValidationDBIOResult = DBIOT[ValidationResult[Unit]]
 
   def recordNotFound(columnName: String, id: String): ValidationModel =
     validations.validationErrors(columnName -> s"not found record with id: $id")
@@ -42,18 +43,22 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   )(implicit ec: ExecutionContext): Future[Q] =
     db.run(q.transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted))
 
-  protected def validateWith(item: T, vm: Future[ValidationModel])(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
-    vm.flatMap {
-      case Success(_)     => runInTransaction(f).map(_ => Success(item))
-      case e @ Failure(_) => Future.successful(e)
+  protected def validate(t: (ValidationResult[Unit], ValidationDBIOResult))(implicit ec: ExecutionContext): ValidationDBIOResult =
+    for {
+      plainRes <- DBIO.successful(t._1)
+      dbioRes <- t._2
+    } yield (plainRes |@| dbioRes) { (_, _) => () }
+
+  protected def validate(item: T)(implicit ec: ExecutionContext): ValidationDBIOResult =
+    DBIO.successful(().success)
+
+  protected def validateThenApply(result: ValidationDBIOResult)(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+    val dbio = result.flatMap {
+      case Success(_) => f.map(_.success)
+      case e @ Failure(_) => DBIO.successful(e)
     }
+    runInTransaction(dbio)
   }
-
-  protected def validateWith(item: T, chain: validations.ValidationContainerChain[_])(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] =
-    validateWith(item, validations.validateChainAs(item, chain))(f)
-
-  def validate(item: T)(implicit ec: ExecutionContext): Future[ValidationModel] =
-    Future.successful(item.success[validations.ValidationErrors])
 
   def createDBIO(item: T): ModelDBIO =
     table returning table.map(i => i) += item.asInstanceOf[Q#TableElementType]
@@ -103,7 +108,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
 
   def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val mappedItem = mapModel(item)
-    validateWith(mappedItem, validate(mappedItem))(createDBIO(mappedItem))
+    validateThenApply(validate(mappedItem))(createDBIO(mappedItem))
   }
 
   def findByIdDBIO(id: T#IdType) =
@@ -115,9 +120,10 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
   // TODO: strict update - return error if record dosn't exists
   def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val mappedItem = mapModel(item)
-    validate(mappedItem).map { res =>
-      db.run(findByIdQuery(mappedItem.getId).update(mappedItem))
-      res
+    validateThenApply(validate((mappedItem))) {
+      findByIdQuery(mappedItem.getId)
+        .update(mappedItem)
+        .map(_ => mappedItem)
     }
   }
 

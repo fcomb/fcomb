@@ -27,16 +27,7 @@ package object json {
     }
   }
 
-  implicit object ValidationMapResultFormat extends RootJsonFormat[Map[String, NonEmptyList[String]]] {
-    def write(m: Map[String, NonEmptyList[String]]) = JsObject(m.map {
-      case (k, l) =>
-        k -> JsArray(l.map(JsString(_)).toList)
-    })
-
-    def read(v: JsValue) = throw new Exception("invalid")
-  }
-
-  implicit val validationErrorsJsonProtocol = jsonFormat1(ValidationErrors)
+  implicit val validationErrorsResponseJsonProtocol = jsonFormat1(ValidationErrorsResponse)
 
   implicit val userSignUpRequestJsonProtocol = jsonFormat4(UserSignUpRequest)
 

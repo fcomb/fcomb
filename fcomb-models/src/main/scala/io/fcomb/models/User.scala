@@ -44,8 +44,8 @@ case class UserResponse(
   fullName: Option[String]
 ) extends ApiServiceResponse
 
-case class ValidationErrors(
-  errors: Map[String, NonEmptyList[String]]
+case class ValidationErrorsResponse(
+  errors: Map[String, List[String]]
 ) extends ApiServiceResponse
 
 import scala.language.implicitConversions

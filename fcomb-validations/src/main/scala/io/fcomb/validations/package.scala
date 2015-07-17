@@ -104,8 +104,8 @@ package object validations {
 
     def unique(action: AppliedCompiledFunction[_, Rep[Boolean], Boolean])(implicit ec: ExecutionContext): DBIOValidation = {
       action.result.map {
-        case true => ().successNel
-        case false => "not unique".failureNel
+        case true => "not unique".failureNel
+        case false => ().successNel
       }
     }
   }

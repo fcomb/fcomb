@@ -42,7 +42,7 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
       createdAt = timeAt,
       updatedAt = timeAt
     ))
-    validateWith(user, validationUserWithPassword(user, password)) {
+    validateThenApply(validate(userValidation(user, Some(password)))) {
       createDBIO(user)
     }
   }
@@ -71,27 +71,29 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
 
   import Validations._
 
-  private val unqiueUsernameCompiled = Compiled { username: Rep[String] =>
-    table.filter(_.username === username).exists
+  private val unqiueUsernameCompiled = Compiled {
+    (id: Rep[UUID], username: Rep[String]) =>
+      table.filter { f => f.id =!= id && f.username === username }.exists
   }
 
-  private val uniqueEmailCompiled = Compiled { email: Rep[String] =>
-    table.filter(_.email === email).exists
+  private val uniqueEmailCompiled = Compiled {
+    (id: Rep[UUID], email: Rep[String]) =>
+      table.filter { f => f.id =!= id && f.email === email }.exists
   }
 
-  def userValidation(user: models.User, checkPassword: Boolean)(implicit ec: ExecutionContext) = {
+  def userValidation(user: models.User, password: Option[String])(implicit ec: ExecutionContext) = {
     (
       validatePlain(
         "username" -> List(present(user.username)),
         "email" -> List(present(user.email), email(user.email))
       ),
       validateDBIO(
-        "username" -> List(unique(unqiueUsernameCompiled(user.username))),
-        "email" -> List(unique(uniqueEmailCompiled(user.email)))
+        "username" -> List(unique(unqiueUsernameCompiled(user.id, user.username))),
+        "email" -> List(unique(uniqueEmailCompiled(user.id, user.email)))
       )
     )
   }
 
-  override def validate(user: models.User)(implicit ec: ExecutionContext) =
-    validateChainAs(user, validationUserChain(user))
+  override def validate(user: models.User)(implicit ec: ExecutionContext): ValidationDBIOResult =
+    validate(userValidation(user, None))
 }
