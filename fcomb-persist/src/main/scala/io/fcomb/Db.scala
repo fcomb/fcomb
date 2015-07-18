@@ -24,16 +24,20 @@ object Db {
 
   // implicit val session = AutoSession
 
-  val db = Database.forConfig("", Config.jdbcConfig)
+  lazy val db = Database.forConfig("", Config.jdbcConfig)
 
   def migrate()(implicit ec: ExecutionContext) = Future {
     blocking {
       val flyway = new Flyway()
-      flyway.setDataSource(dataSource)
+      flyway.setDataSource(
+        Config.jdbcConfig.getString("url"),
+        Config.jdbcConfig.getString("user"),
+        Config.jdbcConfig.getString("password")
+      )
       flyway.setLocations("sql.migration")
       flyway.migrate()
     }
   }
 
-  val cache = Redis(Config.scredis)
+  lazy val cache = Redis(Config.scredis)
 }
