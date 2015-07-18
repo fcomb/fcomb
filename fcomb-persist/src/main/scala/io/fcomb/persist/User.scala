@@ -102,17 +102,26 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
       table.filter { f => f.id =!= id && f.email === email }.exists
   }
 
-  def userValidation(user: models.User, password: Option[String])(implicit ec: ExecutionContext) = {
-    (
-      validatePlain(
-        "username" -> List(present(user.username)),
-        "email" -> List(present(user.email), email(user.email))
-      ),
-        validateDBIO(
-          "username" -> List(unique(unqiueUsernameCompiled(user.id, user.username))),
-          "email" -> List(unique(uniqueEmailCompiled(user.id, user.email)))
-        )
+  def validatePassword(password: String) =
+    validatePlain(
+      "password" -> List(lengthRange(password, 6, 50))
     )
+
+  def userValidation(user: models.User, passwordOpt: Option[String])(implicit ec: ExecutionContext) = {
+    val plainValidations = validatePlain(
+      "username" -> List(present(user.username)),
+      "email" -> List(present(user.email), email(user.email))
+    )
+    val dbioValidations = validateDBIO(
+      "username" -> List(unique(unqiueUsernameCompiled(user.id, user.username))),
+      "email" -> List(unique(uniqueEmailCompiled(user.id, user.email)))
+    )
+    passwordOpt match {
+      case Some(password) =>
+        (validatePassword(password) ::: plainValidations, dbioValidations)
+      case None =>
+        (plainValidations, dbioValidations)
+    }
   }
 
   override def validate(user: models.User)(implicit ec: ExecutionContext): ValidationDBIOResult =

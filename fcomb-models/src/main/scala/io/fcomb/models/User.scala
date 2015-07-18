@@ -24,6 +24,8 @@ trait ApiServiceRequest
 // TODO
 trait ApiServiceResponse
 
+case class NoContentResponse() extends ApiServiceResponse
+
 case class UserSignUpRequest(
   email:    String,
   password: String,
@@ -43,6 +45,10 @@ case class UserResponse(
   username: String,
   fullName: Option[String]
 ) extends ApiServiceResponse
+
+case class ResetPasswordRequest(
+  email:    String
+) extends ApiServiceRequest
 
 case class ValidationErrorsResponse(
   errors: Map[String, List[String]]

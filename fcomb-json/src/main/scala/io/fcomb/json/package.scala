@@ -27,6 +27,13 @@ package object json {
     }
   }
 
+  implicit val noContentResponseJsonProtocol =
+    new JsonWriter[NoContentResponse] {
+      def write(n: NoContentResponse) = JsNull
+    }
+
+  implicit val resetPasswordRequestJsonProtocol = jsonFormat1(ResetPasswordRequest)
+
   implicit val validationErrorsResponseJsonProtocol = jsonFormat1(ValidationErrorsResponse)
 
   implicit val userSignUpRequestJsonProtocol = jsonFormat4(UserSignUpRequest)

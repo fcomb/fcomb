@@ -3,9 +3,11 @@ package io.fcomb.api.services
 import io.fcomb.models._
 import io.fcomb.persist
 import io.fcomb.json._
+import io.fcomb.services.user.ResetPassword
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.server.RequestContext
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.actor.ActorSystem
 import akka.stream.Materializer
 import scala.language.implicitConversions
 import scala.concurrent.{ ExecutionContext, Future }
@@ -57,7 +59,19 @@ object UserService extends ApiService {
 
   def changePassword = ???
 
-  def resetPassword = ???
+  def resetPassword(
+    implicit
+    system:       ActorSystem,
+    materializer: Materializer
+  ) = {
+    import system.dispatcher
+
+    requestAsWithValidation[ResetPasswordRequest, NoContentResponse] { req =>
+      ResetPassword
+        .reset(req.email)
+        .map(_.map(_ => NoContentResponse()))
+    }
+  }
 
   def setPassword = ???
 }

@@ -7,7 +7,7 @@ case class ResetPassword(
   date: String,
   token: String
 ) extends HtmlTemplate {
-  val mandrillTemplateName = "user-password-request"
+  val mandrillTemplateName = "user-password-reset-request"
 
   def toHtml: String = html.resetPassword(this).body
 }

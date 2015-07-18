@@ -175,9 +175,17 @@ trait ApiService {
     handleRequest[T] { (req, marshaller) =>
       f(req).map {
         case Success(res) =>
-          (marshaller(res), StatusCodes.OK)
+          res match {
+            case NoContentResponse() =>
+              ("", StatusCodes.NoContent)
+            case _ =>
+              (marshaller(res), StatusCodes.OK)
+          }
         case Failure(e) =>
-          (marshaller(ValidationErrorsResponse(e)), StatusCodes.UnprocessableEntity)
+          (
+            marshaller(ValidationErrorsResponse(e)),
+            StatusCodes.UnprocessableEntity
+          )
       }
     }
 

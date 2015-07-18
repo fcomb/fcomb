@@ -1,5 +1,6 @@
-package io.fcomb.services
+package io.fcomb.services.user
 
+import io.fcomb.services.Mandrill
 import io.fcomb.Db.cache
 import io.fcomb.models
 import io.fcomb.persist
@@ -16,6 +17,7 @@ import java.util.UUID
 object ResetPassword {
   private val ttl = Some(1.hour)
 
+  // TODO: add email validation
   def reset(email: String)(implicit system: ActorSystem, materializer: Materializer) = {
     import system.dispatcher
 
@@ -38,18 +40,22 @@ object ResetPassword {
 
   def setPassword(token: String, password: String)(implicit ec: ExecutionContext, materializer: Materializer) = {
     val key = s"$prefix$token"
-    cache.get(key).flatMap {
-      case Some(id) =>
-        val updateF = persist.User.updatePassword(UUID.fromString(id), password).map {
-          case true  => ().successNel
-          case false => persist.User.validationError("id", "not found")
+    persist.User.validatePassword(password) match {
+      case Success(_) =>
+        cache.get(key).flatMap {
+          case Some(id) =>
+            val updateF = persist.User.updatePassword(UUID.fromString(id), password).map {
+              case true  => ().successNel
+              case false => persist.User.validationError("id", "not found")
+            }
+            for {
+              res <- updateF
+              _ <- cache.del(key)
+            } yield res
+          case _ =>
+            persist.User.validationErrorAsFuture("token", "not found")
         }
-        for {
-          res <- updateF
-          _ <- cache.del(key)
-        } yield res
-      case _ =>
-        persist.User.validationErrorAsFuture("token", "not found")
+      case e @ Failure(_) => Future.successful(e)
     }
   }
 
