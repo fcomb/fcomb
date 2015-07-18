@@ -50,6 +50,16 @@ case class ResetPasswordRequest(
   email:    String
 ) extends ApiServiceRequest
 
+case class ResetPasswordSetRequest(
+  token:    String,
+  password: String
+) extends ApiServiceRequest
+
+case class ChangePasswordRequest(
+  oldPassword: String,
+  newPassword: String
+) extends ApiServiceRequest
+
 case class ValidationErrorsResponse(
   errors: Map[String, List[String]]
 ) extends ApiServiceResponse

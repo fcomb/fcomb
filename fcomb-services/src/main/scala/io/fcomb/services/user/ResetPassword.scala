@@ -5,6 +5,7 @@ import io.fcomb.Db.cache
 import io.fcomb.models
 import io.fcomb.persist
 import io.fcomb.templates
+import io.fcomb.validations.ValidationResultUnit
 import io.fcomb.utils.Random
 import akka.stream.Materializer
 import akka.actor.ActorSystem
@@ -18,7 +19,7 @@ object ResetPassword {
   private val ttl = Some(1.hour)
 
   // TODO: add email validation
-  def reset(email: String)(implicit system: ActorSystem, materializer: Materializer) = {
+  def reset(email: String)(implicit system: ActorSystem, materializer: Materializer): Future[ValidationResultUnit] = {
     import system.dispatcher
 
     persist.User.findByEmail(email).flatMap {
@@ -31,21 +32,21 @@ object ResetPassword {
             template.mandrillTemplateName,
             List(user.email),
             template.toHtml
-          ).map(_ => user.success)
+          ).map(_ => ().success)
         }
       case None =>
         persist.User.validationErrorAsFuture("email", "not found")
     }
   }
 
-  def setPassword(token: String, password: String)(implicit ec: ExecutionContext, materializer: Materializer) = {
+  def set(token: String, password: String)(implicit ec: ExecutionContext, materializer: Materializer): Future[ValidationResultUnit] = {
     val key = s"$prefix$token"
     persist.User.validatePassword(password) match {
       case Success(_) =>
         cache.get(key).flatMap {
           case Some(id) =>
             val updateF = persist.User.updatePassword(UUID.fromString(id), password).map {
-              case true  => ().successNel
+              case true  => ().success
               case false => persist.User.validationError("id", "not found")
             }
             for {

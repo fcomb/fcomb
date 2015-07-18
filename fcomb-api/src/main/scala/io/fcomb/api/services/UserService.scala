@@ -57,7 +57,18 @@ object UserService extends ApiService {
       }
     }
 
-  def changePassword = ???
+  def changePassword(
+    implicit
+    ec:           ExecutionContext,
+    materializer: Materializer
+  ) =
+    authorization { user =>
+      requestAsWithValidation[ChangePasswordRequest, NoContentResponse] { req =>
+        persist.User
+          .changePassword(user, req.oldPassword, req.newPassword)
+          .map(_.map(_ => NoContentResponse()))
+      }
+    }
 
   def resetPassword(
     implicit
@@ -73,5 +84,14 @@ object UserService extends ApiService {
     }
   }
 
-  def setPassword = ???
+  def setPassword(
+    implicit
+    ec:           ExecutionContext,
+    materializer: Materializer
+  ) =
+    requestAsWithValidation[ResetPasswordSetRequest, NoContentResponse] { req =>
+      ResetPassword
+        .set(req.token, req.password)
+        .map(_.map(_ => NoContentResponse()))
+    }
 }

@@ -34,6 +34,10 @@ package object json {
 
   implicit val resetPasswordRequestJsonProtocol = jsonFormat1(ResetPasswordRequest)
 
+  implicit val resetPasswordSetRequestJsonProtocol = jsonFormat2(ResetPasswordSetRequest)
+
+  implicit val changePasswordRequestJsonProtocol = jsonFormat2(ChangePasswordRequest)
+
   implicit val validationErrorsResponseJsonProtocol = jsonFormat1(ValidationErrorsResponse)
 
   implicit val userSignUpRequestJsonProtocol = jsonFormat4(UserSignUpRequest)

@@ -35,6 +35,7 @@ package object validations {
   type ColumnValidation = Validation[ColumnErrors, Unit]
   type ValidationErrors = Map[String, List[String]]
   type ValidationResult[T] = Validation[ValidationErrors, T]
+  type ValidationResultUnit = ValidationResult[Unit]
 
   val emptyValidationErrors: ValidationErrors = Map.empty[String, List[String]]
 

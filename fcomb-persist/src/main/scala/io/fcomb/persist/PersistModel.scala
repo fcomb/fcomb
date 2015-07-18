@@ -14,10 +14,10 @@ trait PersistTypes[T] {
   type ValidationModel = validations.ValidationResult[T]
   type ValidationDBIOResult = DBIOT[ValidationResult[Unit]]
 
-  def validationError(columnName: String, error: String): ValidationModel =
+  def validationError[E](columnName: String, error: String): validations.ValidationResult[E] =
     validations.validationErrors(columnName -> error)
 
-  def validationErrorAsFuture(columnName: String, error: String): Future[ValidationModel] =
+  def validationErrorAsFuture[E](columnName: String, error: String): Future[validations.ValidationResult[E]] =
     Future.successful(validationError(columnName, error))
 
   def recordNotFound(columnName: String, id: String): ValidationModel =

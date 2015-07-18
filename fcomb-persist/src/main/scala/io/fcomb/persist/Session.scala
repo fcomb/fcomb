@@ -23,9 +23,18 @@ object Session extends PersistTypes[models.Session] {
   )(
     implicit
     ec: ExecutionContext
+  ): Future[ValidationModel] =
+    createToken(userPrefix, user.id.toString)
+
+  private def createToken(
+    prefix: String,
+    id:     String
+  )(
+    implicit
+    ec: ExecutionContext
   ): Future[ValidationModel] = {
-    val sessionId = s"$prefix${random.alphanumeric.take(sessionIdLength).mkString}"
-    cache.set(getKey(sessionId), user.id.toString, ttl).map { _ =>
+    val sessionId = s"$userPrefix${random.alphanumeric.take(sessionIdLength).mkString}"
+    cache.set(getKey(sessionId), id, ttl).map { _ =>
       models.Session(sessionId).success[validations.ValidationErrors]
     }
   }
@@ -46,7 +55,7 @@ object Session extends PersistTypes[models.Session] {
 
   def findById(sessionId: String)(implicit ec: ExecutionContext) = {
     cache.get(getKey(sessionId)).flatMap {
-      case Some(userId) =>
+      case Some(userId) if sessionId.startsWith(userPrefix) =>
         User.findById(UUID.fromString(userId))
       case _ =>
         Future.successful(None)
@@ -61,5 +70,5 @@ object Session extends PersistTypes[models.Session] {
   private def getKey(sessionId: String) =
     s"ses:${DigestUtils.sha1Hex(sessionId.take(sessionIdLength))}"
 
-  private val prefix = "usr"
+  private val userPrefix = "usr_"
 }
