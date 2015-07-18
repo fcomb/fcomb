@@ -43,7 +43,6 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
   implicit def serviceResponse2akkaRoute(r: ServiceResponse): Route =
     { ctx: RequestContext =>
       val ct = ctx.request.entity.contentType()
-      println(s"contentType: $ct")
       val res = r(ct, ctx.request.entity.dataBytes, HttpRequestParams(ctx.request)).map {
         case (ct, body, status) =>
           HttpResponse(
@@ -58,18 +57,21 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
   val routes: Route =
     pathPrefix("v1") {
       pathPrefix("users") {
-        /* pathEndOrSingleSlash {
-          post(UserService.create)
-        } ~
-        path("me") {
-          get(UserService.me)
-         }*/
         path("sign_up") {
           post(UserService.signUp)
         } ~
-        path("me") {
-          get(UserService.me) ~
-          put(UserService.updateProfile)
+        pathPrefix("me") {
+          pathEndOrSingleSlash {
+            get(UserService.me) ~
+            put(UserService.updateProfile)
+          } ~
+          path("password") {
+            put(UserService.changePassword)
+          }
+        } ~
+        path("reset_password") {
+          post(UserService.resetPassword) ~
+          put(UserService.setPassword)
         }
       } ~
       pathPrefix("sessions") {

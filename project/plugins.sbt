@@ -21,3 +21,5 @@ addSbtPlugin("com.sksamuel.scapegoat" %% "sbt-scapegoat" % "1.0.0")
 addSbtPlugin("com.gilt.sbt" % "sbt-newrelic" % "0.1.0")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.2")
+
+addSbtPlugin("com.typesafe.sbt" % "sbt-twirl" % "1.1.1")

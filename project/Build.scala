@@ -5,6 +5,7 @@ import com.typesafe.sbt.SbtNativePackager, SbtNativePackager._
 import com.typesafe.sbt.packager.Keys._
 import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
 import com.gilt.sbt.newrelic.NewRelic, NewRelic.autoImport._
+import play.twirl.sbt._, Import._
 
 object Build extends sbt.Build {
   val Organization = "io.fcomb"
@@ -104,7 +105,7 @@ object Build extends sbt.Build {
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.api
      )
-  ).dependsOn(persist, utils, json, request, response, validations)
+  ).dependsOn(persist, utils, json, request, response, validations, services)
 
   lazy val models = Project(
      id = "models",
@@ -169,4 +170,24 @@ object Build extends sbt.Build {
       libraryDependencies ++= Dependencies.validations
     )
   ).dependsOn(models)
+
+  lazy val services = Project(
+    id = "services",
+    base = file("fcomb-services"),
+    settings = defaultSettings ++ Seq(
+      libraryDependencies ++= Dependencies.services
+    )
+  ).dependsOn(persist, utils, templates)
+
+  lazy val templates = Project(
+    id = "templates",
+    base = file("fcomb-templates"),
+    settings = defaultSettings ++
+      SbtTwirl.projectSettings ++
+        Seq(
+          TwirlKeys.templateImports += "io.fcomb.templates._, io.fcomb.utils._"
+        )
+  )
+    .dependsOn(utils)
+    .enablePlugins(SbtTwirl)
 }

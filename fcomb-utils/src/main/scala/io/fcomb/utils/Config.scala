@@ -8,4 +8,6 @@ object Config {
   val jdbcConfig = config.getConfig("jdbc")
 
   val scredis = config.getConfig("scredis")
+
+  val mandrillKey = config.getString("mandrill.key")
 }

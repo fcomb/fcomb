@@ -55,4 +55,9 @@ object UserService extends ApiService {
       }
     }
 
+  def changePassword = ???
+
+  def resetPassword = ???
+
+  def setPassword = ???
 }

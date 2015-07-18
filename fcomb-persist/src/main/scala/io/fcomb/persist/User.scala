@@ -62,6 +62,27 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
       case None => recordNotFoundAsFuture(id)
     }
 
+  def updatePassword(userId: UUID, password: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+    val salt = generateSalt
+    val passwordHash = password.bcrypt(salt)
+    db.run {
+      table
+        .filter(_.id === userId)
+        .map { t => (t.passwordHash, t.updatedAt) }
+        .update((passwordHash, LocalDateTime.now))
+        .map(_ == 1)
+    }
+  }
+
+  def changePassword(user: models.User)(oldPassword: String, newPassword: String)(implicit ec: ExecutionContext): Future[ValidationModel] = {
+    if (oldPassword == newPassword)
+      validationErrorAsFuture("password", "same")
+    else if (user.isValidPassword(oldPassword))
+      updatePassword(user.id, newPassword).map(_ => user.success)
+    else
+      validationErrorAsFuture("password", "doesn't match")
+  }
+
   private val findByEmailCompiled = Compiled { email: Rep[String] =>
     table.filter(_.email === email).take(1)
   }
@@ -87,10 +108,10 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
         "username" -> List(present(user.username)),
         "email" -> List(present(user.email), email(user.email))
       ),
-      validateDBIO(
-        "username" -> List(unique(unqiueUsernameCompiled(user.id, user.username))),
-        "email" -> List(unique(uniqueEmailCompiled(user.id, user.email)))
-      )
+        validateDBIO(
+          "username" -> List(unique(unqiueUsernameCompiled(user.id, user.username))),
+          "email" -> List(unique(uniqueEmailCompiled(user.id, user.email)))
+        )
     )
   }
 

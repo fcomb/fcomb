@@ -150,4 +150,6 @@ object Dependencies {
   val response = common
 
   val validations = common ++ Seq(slick)
+
+  val services = api
 }
