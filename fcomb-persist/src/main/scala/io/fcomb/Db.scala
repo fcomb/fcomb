@@ -24,7 +24,7 @@ object Db {
 
   // implicit val session = AutoSession
 
-  lazy val db = Database.forConfig("", Config.jdbcConfig)
+  val db = Database.forConfig("", Config.jdbcConfig)
 
   def migrate()(implicit ec: ExecutionContext) = Future {
     blocking {
@@ -39,5 +39,5 @@ object Db {
     }
   }
 
-  lazy val cache = Redis(Config.scredis)
+  val cache = Redis(Config.scredis)
 }

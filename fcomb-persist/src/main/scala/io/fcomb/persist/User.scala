@@ -74,7 +74,11 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     }
   }
 
-  def changePassword(user: models.User, oldPassword: String, newPassword: String)(implicit ec: ExecutionContext): Future[ValidationModel] = {
+  def changePassword(
+    user:        models.User,
+    oldPassword: String,
+    newPassword: String
+  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     if (oldPassword == newPassword)
       validationErrorAsFuture("password", "can't be the same")
     else if (user.isValidPassword(oldPassword))
