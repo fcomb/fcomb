@@ -93,10 +93,13 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
   def bind() = {
     // val flow = Route.handlerFlow(handler)
     val flow = Route.handlerFlow(routes)
-    Http().bind(
-      interface = interface,
-      port = port
-    ).to(Sink.foreach(_.handleWith(flow))).run()
+    Http()
+      .bind(
+        interface = interface,
+        port = port
+      )
+      .to(Sink.foreach(_.handleWith(flow)))
+      .run()
   }
 }
 

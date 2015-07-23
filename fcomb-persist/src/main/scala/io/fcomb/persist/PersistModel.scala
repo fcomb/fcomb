@@ -58,13 +58,8 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   protected def validate(item: T)(implicit ec: ExecutionContext): ValidationDBIOResult =
     DBIO.successful(().success)
 
-  protected def validateThenApply(result: ValidationDBIOResult)(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
-    val dbio = result.flatMap {
-      case Success(_)     => f.map(_.success)
-      case e @ Failure(_) => DBIO.successful(e)
-    }
-    runInTransaction(dbio)
-  }
+  protected def validateThenApply(result: ValidationDBIOResult)(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] =
+    validateThenApplyVM(result)(f.map(_.success))
 
   protected def validateThenApplyVM(result: ValidationDBIOResult)(f: => DBIOAction[ValidationModel, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val dbio = result.flatMap {

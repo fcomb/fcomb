@@ -190,4 +190,17 @@ object Build extends sbt.Build {
   )
     .dependsOn(utils)
     .enablePlugins(SbtTwirl)
+
+  lazy val proxy = Project(
+    id = "proxy",
+    base = file("fcomb-proxy"),
+    settings =
+      defaultSettings ++
+        Revolver.settings ++
+        Seq(
+          libraryDependencies ++= Dependencies.proxy,
+          Revolver.reStartArgs                      :=  Seq("io.fcomb.proxy.HttpProxy"),
+          mainClass            in Revolver.reStart  :=  Some("io.fcomb.proxy.HttpProxy")
+        )
+  )
 }

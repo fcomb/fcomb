@@ -10,6 +10,7 @@ object Dependencies {
     val slick = "3.1.0-M1"
     val scalikeJdbc = "2.2.6"
     val kamon = "0.4.0"
+    val phantom = "1.8.4"
   }
 
   object Compile {
@@ -42,8 +43,8 @@ object Dependencies {
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1201-jdbc41" exclude("org.slf4j", "slf4j-simple")
-    val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
-    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.9.0"
+    val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick changing()
+    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0-M1" changing()
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.2"
     val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.9"
@@ -52,6 +53,8 @@ object Dependencies {
     val scalikeJdbcMacros = "org.scalikejdbc"             %% "scalikejdbc-syntax-support-macro" % V.scalikeJdbc
     val scalikeJdbcAsync = "org.scalikejdbc"              %% "scalikejdbc-async"             % "0.5.5"
     val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.15"
+
+    val phantom         = "com.websudos"                  %% "phantom-dsl"                   % V.phantom
 
     val levelDb         = "org.iq80.leveldb"              % "leveldb"                        % "0.7"
     val levelDbJni      = "org.fusesource.leveldbjni"     % "leveldbjni-all"                 % "1.8"
@@ -94,6 +97,7 @@ object Dependencies {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.3" % "test"
     val specs2          = "org.specs2"                    %% "specs2-core"                   % "2.4.17" % "test"
+    val phantomTestkit  = "com.websudos"                  %% "phantom-testkit"               % V.phantom
   }
 
   import Compile._, Test._
@@ -152,4 +156,6 @@ object Dependencies {
   val validations = common ++ Seq(slick)
 
   val services = api
+
+  val proxy = common ++ akka
 }

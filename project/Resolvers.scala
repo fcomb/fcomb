@@ -6,6 +6,9 @@ object Resolvers {
     Resolver.typesafeRepo("releases"),
     Resolver.sonatypeRepo("snapshots"),
     Resolver.sonatypeRepo("releases"),
-    "Kamon Repository" at "http://repo.kamon.io"
+    "Kamon Repository" at "http://repo.kamon.io",
+    "Java.net Maven2 Repository"       at "http://download.java.net/maven/2/",
+    "Twitter Repository"               at "http://maven.twttr.com",
+    "Websudos releases"                at "http://maven.websudos.co.uk/ext-release-local"
   )
 }
