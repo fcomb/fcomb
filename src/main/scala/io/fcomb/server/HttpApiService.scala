@@ -86,21 +86,12 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
     }
   // format: ON
 
-  // val handler = handleRejections(rejectionHandler) {
-  //   handleExceptions(exceptionHandler)(routes)
-  // }
+  val handler = routes /*handleRejections(rejectionHandler) {
+    handleExceptions(exceptionHandler)(routes)
+  }*/
 
-  def bind() = {
-    // val flow = Route.handlerFlow(handler)
-    val flow = Route.handlerFlow(routes)
-    Http()
-      .bind(
-        interface = interface,
-        port = port
-      )
-      .to(Sink.foreach(_.handleWith(flow)))
-      .run()
-  }
+  def bind() =
+    Http().bindAndHandle(handler, interface, port)
 }
 
 object HttpApiService {

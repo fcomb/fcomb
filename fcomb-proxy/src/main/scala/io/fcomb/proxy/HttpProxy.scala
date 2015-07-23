@@ -21,22 +21,18 @@ object HttpProxy extends App {
   val interface = "0.0.0.0"
   val port = 5588
 
-  val routeFlow = Route.handlerFlow {
-    ctx: RequestContext =>
-      val request = ctx.request
-      val proxyHost = "api.hub.dtrussia.com"
-      val proxyRequest = request
-        .withHeaders(Host(proxyHost))
-        .withUri(request.getUri().host(proxyHost))
-      println(s"proxyRequest: $proxyRequest")
-      Source
-        .single(proxyRequest)
-        .via(Http().outgoingConnection(proxyHost, 80))
-        .runWith(Sink.head)
-        .flatMap(ctx.complete(_))
+  val proxyHandler = Route { ctx =>
+    val request = ctx.request
+    val proxyHost = "api"
+    val proxyRequest = request
+      .withHeaders(Host(proxyHost))
+      .withUri(request.getUri().host(proxyHost))
+    println(s"proxyRequest: $proxyRequest")
+    Source
+      .single(proxyRequest)
+      .via(Http().outgoingConnection(proxyHost, 80))
+      .runWith(Sink.head)
+      .flatMap(ctx.complete(_))
   }
-  Http()
-    .bind(interface, port)
-    .to(Sink.foreach(_.handleWith(routeFlow)))
-    .run()
+  Http().bindAndHandle(proxyHandler, interface, port)
 }

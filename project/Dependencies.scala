@@ -16,7 +16,7 @@ object Dependencies {
   object Compile {
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
-    val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
+    // val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence-experimental" % V.akka
@@ -29,7 +29,6 @@ object Dependencies {
     val kamonStatsd     = "io.kamon"                      %% "kamon-statsd"                  % V.kamon
     val kamonJdbc       = "io.kamon"                      %% "kamon-jdbc"                    % V.kamon
 
-    val dispatch        = "net.databinder.dispatch"       %% "dispatch-core"                 % "0.11.2"
     val finagle         = "com.github.finagle"            %% "finch-core"                    % "0.7.1"
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
@@ -113,8 +112,8 @@ object Dependencies {
   val kamon = Seq(kamonScala/*, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
 
   val akka = Seq(
-    akkaSlf4j, akkaActor, akkaStream, akkaHttp,
-    akkaStreamExtensions
+    akkaSlf4j, akkaActor, akkaStream, akkaHttp/*,
+    akkaStreamExtensions*/
   )
 
   val root = common ++ akka ++ Seq(
