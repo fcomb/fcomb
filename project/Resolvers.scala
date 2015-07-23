@@ -6,7 +6,6 @@ object Resolvers {
     Resolver.typesafeRepo("releases"),
     Resolver.sonatypeRepo("snapshots"),
     Resolver.sonatypeRepo("releases"),
-    Resolver.url("dthub", url("https://dl.bintray.com/dthub/maven"))(Resolver.ivyStylePatterns),
     "Kamon Repository" at "http://repo.kamon.io"
   )
 }

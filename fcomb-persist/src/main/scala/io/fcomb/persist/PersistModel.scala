@@ -60,7 +60,15 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 
   protected def validateThenApply(result: ValidationDBIOResult)(f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val dbio = result.flatMap {
-      case Success(_) => f.map(_.success)
+      case Success(_)     => f.map(_.success)
+      case e @ Failure(_) => DBIO.successful(e)
+    }
+    runInTransaction(dbio)
+  }
+
+  protected def validateThenApplyVM(result: ValidationDBIOResult)(f: => DBIOAction[ValidationModel, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+    val dbio = result.flatMap {
+      case Success(_)     => f
       case e @ Failure(_) => DBIO.successful(e)
     }
     runInTransaction(dbio)
@@ -123,20 +131,40 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
   def findById(id: T#IdType): Future[Option[T]] =
     db.run(findByIdDBIO(id))
 
-  // TODO: strict update - return error if record dosn't exists
   def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val mappedItem = mapModel(item)
-    validateThenApply(validate((mappedItem))) {
+    validateThenApplyVM(validate((mappedItem))) {
       findByIdQuery(mappedItem.getId)
         .update(mappedItem)
-        .map(_ => mappedItem)
+        .map {
+          case 1 => mappedItem.success
+          case _ => recordNotFound(item.getId)
+        }
     }
   }
 
-  // TODO: strict update - return error if record dosn't exists
-  def destroy(id: T#IdType)(implicit ec: ExecutionContext) =
-    db
-      .run(findByIdQuery(id).delete)
+  def update(
+    id: T#IdType
+  )(
+    f: T => T
+  )(
+    implicit
+    ec: ExecutionContext,
+    m:  Manifest[T]
+  ): Future[ValidationModel] =
+    findById(id).flatMap {
+      case Some(item) => update(f(item))
+      case None       => recordNotFoundAsFuture(id)
+    }
+
+  def destroy(id: T#IdType)(implicit ec: ExecutionContext) = db.run {
+    findByIdQuery(id)
+      .delete
+      .map {
+        case 1 => ().success
+        case _ => recordNotFound(id)
+      }
+  }
 }
 
 trait PersistModelWithUuid[T <: models.ModelWithUuid, Q <: Table[T] with PersistTableWithUuidPk] extends PersistModelWithPk[UUID, T, Q] {

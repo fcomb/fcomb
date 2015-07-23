@@ -66,7 +66,7 @@ object Dependencies {
 
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
-    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.4"
+    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.5"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
 
     val raptureCore     = "com.propensive"                %% "rapture-core"                  % "1.1.0"

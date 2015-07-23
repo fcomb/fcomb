@@ -1,14 +1,15 @@
 package io.fcomb.persist
 
+import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
+import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models
 import io.fcomb.validations._
-import io.fcomb.RichPostgresDriver.api._
-import scala.concurrent.{ ExecutionContext, Future }
-import java.util.UUID
-import com.github.t3hnar.bcrypt._
 import java.time.LocalDateTime
-import scalaz._, Scalaz._
+import java.util.UUID
+import scala.concurrent.{ ExecutionContext, Future }
+import scalaz._
+import scalaz.Scalaz._
 
 class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistTableWithUuidPk {
   def email = column[String]("email")
@@ -47,28 +48,31 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     }
   }
 
-  def update(id: UUID)(
+  def updateByRequest(id: UUID)(
     email:    String,
     username: String,
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] =
-    findById(id).flatMap {
-      case Some(user) => update(user.copy(
+    update(id) { user =>
+      user.copy(
         email = email,
         username = username,
         fullName = fullName,
         updatedAt = LocalDateTime.now()
-      ))
-      case None => recordNotFoundAsFuture(id)
+      )
     }
+
+  private val updatePasswordCompiled = Compiled { (userId: Rep[UUID]) =>
+    table
+      .filter(_.id === userId)
+      .map { t => (t.passwordHash, t.updatedAt) }
+  }
 
   def updatePassword(userId: UUID, password: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     val salt = generateSalt
     val passwordHash = password.bcrypt(salt)
     db.run {
-      table
-        .filter(_.id === userId)
-        .map { t => (t.passwordHash, t.updatedAt) }
+      updatePasswordCompiled(userId)
         .update((passwordHash, LocalDateTime.now))
         .map(_ == 1)
     }

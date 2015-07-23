@@ -1,22 +1,16 @@
 package io.fcomb.api.services
 
-import io.fcomb.models._
-import io.fcomb.persist
-import io.fcomb.json._
-import io.fcomb.services.user.ResetPassword
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.server.RequestContext
-import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.actor.ActorSystem
+import akka.http.scaladsl.server.RequestContext
 import akka.stream.Materializer
-import scala.language.implicitConversions
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.collection.mutable
-import shapeless._, contrib.scalaz._, syntax.std.function._
-import scalaz._
-import scalaz.syntax.foldable._
+import io.fcomb.json._
+import io.fcomb.models._
+import io.fcomb.models.ResponseConversions._
+import io.fcomb.persist
+import io.fcomb.services.user.ResetPassword
 import java.util.UUID
-import ResponseConversions._
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.language.implicitConversions
 
 object UserService extends ApiService {
   def signUp(
@@ -49,7 +43,7 @@ object UserService extends ApiService {
   ) =
     authorization { user =>
       requestAsWithValidation { req: UserRequest =>
-        persist.User.update(user.id)(
+        persist.User.updateByRequest(user.id)(
           email = req.email,
           username = req.username,
           fullName = req.fullName
