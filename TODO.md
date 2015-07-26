@@ -22,6 +22,14 @@ http://microservices.io/patterns/apigateway.html:
 
 * Reduces the number of requests/roundtrips. For example, the API gateway enables clients to retrieve data from multiple services with a single round-trip. Fewer requests also means less overhead and improves the user experience. An API gateway is essential for mobile applications.
 * Simplifies the client by moving logic for calling multiple services from the client to API gateway
+* Generate forms for data input as a page with completed API - like gumroad, microservice became into standalone page with form for data input (like image uploading) and give results back immediately or after payment. In future versions this can allow biologiest to run complex calculations in just single click. This is wolfram language for anything.
+
+
+## Services to copy
+
+* runscope.com
+
+
 
 ## Pros
 

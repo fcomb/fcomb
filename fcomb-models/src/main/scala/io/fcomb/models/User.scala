@@ -47,7 +47,7 @@ case class UserResponse(
 ) extends ApiServiceResponse
 
 case class ResetPasswordRequest(
-  email:    String
+  email: String
 ) extends ApiServiceRequest
 
 case class ResetPasswordSetRequest(
@@ -64,6 +64,20 @@ case class ValidationErrorsResponse(
   errors: Map[String, List[String]]
 ) extends ApiServiceResponse
 
+case class CombRequest(
+  name: String,
+  slug: Option[String]
+) extends ApiServiceRequest
+
+case class CombResponse(
+  id:        UUID,
+  userId:    UUID,
+  name:      String,
+  slug:      String,
+  createdAt: LocalDateTime,
+  updatedAt: LocalDateTime
+) extends ApiServiceResponse
+
 import scala.language.implicitConversions
 object ResponseConversions {
   implicit def user2Response(u: User): UserResponse =
@@ -76,4 +90,14 @@ object ResponseConversions {
 
   implicit def session2Response(s: Session): SessionResponse =
     SessionResponse(s.token)
+
+  implicit def comb2Response(c: comb.Comb): CombResponse =
+    CombResponse(
+      id = c.id,
+      userId = c.userId,
+      name = c.name,
+      slug = c.slug,
+      createdAt = c.createdAt,
+      updatedAt = c.updatedAt
+    )
 }

@@ -1,11 +1,12 @@
 package io.fcomb
 
+import scala.annotation.tailrec
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.language.{ existentials, implicitConversions, postfixOps }
+import scalaz._
+import scalaz.Scalaz._
 import slick.driver.PostgresDriver.api._
 import slick.lifted.AppliedCompiledFunction
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.language.{ implicitConversions, postfixOps, existentials }
-import scala.annotation.tailrec
-import scalaz._, Scalaz._
 
 package object validations {
   type DBIOT[T] = DBIOAction[T, NoStream, Effect.Read]
@@ -88,7 +89,7 @@ package object validations {
     }
     res.map {
       case m if m.isEmpty => ().success
-      case m => m.failure
+      case m              => m.failure
     }
   }
 
@@ -105,14 +106,19 @@ package object validations {
 
     def unique(action: AppliedCompiledFunction[_, Rep[Boolean], Boolean])(implicit ec: ExecutionContext): DBIOValidation = {
       action.result.map {
-        case true => "not unique".failureNel
+        case true  => "not unique".failureNel
         case false => ().successNel
       }
     }
 
     def lengthRange(value: String, from: Int, to: Int): PlainValidation = {
       if (value.length >= from && value.length <= to) ().successNel
-      else "".failureNel
+      else s"length is less than $from or greater than $to".failureNel
+    }
+
+    def maxLength(value: String, to: Int): PlainValidation = {
+      if (value.length <= to) ().successNel
+      else s"length is greater than $to".failureNel
     }
   }
 
@@ -120,9 +126,9 @@ package object validations {
     def `:::`(result2: ValidationResult[T]): ValidationResult[T] = {
       (result, result2) match {
         case (Failure(e1), Failure(e2)) => Failure(e1 ++ e2)
-        case (e @ Failure(_), _) => e
-        case (_, e @ Failure(_)) => e
-        case _ => result
+        case (e @ Failure(_), _)        => e
+        case (_, e @ Failure(_))        => e
+        case _                          => result
       }
     }
   }

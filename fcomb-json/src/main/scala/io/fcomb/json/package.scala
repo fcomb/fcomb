@@ -49,4 +49,8 @@ package object json {
   implicit val sessionRequestJsonProtocol = jsonFormat2(SessionRequest)
 
   implicit val sessionResponseJsonProtocol = jsonFormat1(SessionResponse)
+
+  implicit val combRequestJsonProtocol = jsonFormat2(CombRequest)
+
+  implicit val combResponseJsonProtocol = jsonFormat6(CombResponse)
 }

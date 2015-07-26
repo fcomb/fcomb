@@ -2,6 +2,7 @@ package io.fcomb.server
 
 import io.fcomb.api.JsonErrors
 import io.fcomb.api.services._
+import io.fcomb.api.services.comb._
 import akka.actor._
 import akka.stream.ActorMaterializer
 import akka.http.scaladsl.Http
@@ -56,6 +57,16 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
   // format: OFF
   val routes: Route =
     pathPrefix("v1") {
+      pathPrefix("combs") {
+        pathEndOrSingleSlash {
+          post(CombService.create)
+        } ~
+        path(JavaUUID) { id =>
+          get(CombService.show(id)) ~
+          put(CombService.update(id)) ~
+          delete(CombService.destroy(id))
+        }
+      } ~
       pathPrefix("users") {
         path("sign_up") {
           post(UserService.signUp)

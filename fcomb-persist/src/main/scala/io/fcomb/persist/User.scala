@@ -117,8 +117,8 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
 
   def userValidation(user: models.User, passwordOpt: Option[String])(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(
-      "username" -> List(present(user.username)),
-      "email" -> List(present(user.email), email(user.email))
+      "username" -> List(lengthRange(user.username, 1, 255)),
+      "email" -> List(maxLength(user.email, 255), email(user.email))
     )
     val dbioValidations = validateDBIO(
       "username" -> List(unique(unqiueUsernameCompiled(user.id, user.username))),

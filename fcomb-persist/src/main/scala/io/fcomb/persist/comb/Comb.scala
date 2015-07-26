@@ -1,9 +1,10 @@
 package io.fcomb.persist.comb
 
-import io.fcomb.persist._
 import io.fcomb.Db._
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models, models.comb
+import io.fcomb.models
+import io.fcomb.models.comb
+import io.fcomb.persist._
 import io.fcomb.validations._
 import java.time.LocalDateTime
 import java.util.UUID
@@ -28,105 +29,75 @@ object Comb extends PersistModelWithUuid[comb.Comb, CombTable] {
 
   def create(
     userId: UUID,
-    name: String,
-    slug: Option[String]
+    name:   String,
+    slug:   Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = LocalDateTime.now()
+    val id = UUID.randomUUID()
     super.create(comb.Comb(
-      id = UUID.randomUUID(),
+      id = id,
       userId = userId,
       name = name,
-      slug = slug.get, // TODO: orElse name to slug
+      slug = makeSlug(id, slug),
       createdAt = timeAt,
       updatedAt = timeAt
     ))
   }
 
-  // def update(id: UUID)(
-  //   email:    String,
-  //   username: String,
-  //   fullName: Option[String]
-  // )(implicit ec: ExecutionContext): Future[ValidationModel] =
-  //   findById(id).flatMap {
-  //     case Some(user) => update(user.copy(
-  //       email = email,
-  //       username = username,
-  //       fullName = fullName,
-  //       updatedAt = LocalDateTime.now()
-  //     ))
-  //     case None => recordNotFoundAsFuture(id)
-  //   }
+  private def makeSlug(id: UUID, slug: Option[String]) =
+    slug match {
+      case Some(s) => s.toLowerCase
+      case None    => id.toString
+    }
 
-  // private val updatePasswordCompiled = Compiled { (userId: Rep[UUID]) =>
-  //   table
-  //     .filter(_.id === userId)
-  //     .map { t => (t.passwordHash, t.updatedAt) }
-  // }
+  def updateByRequest(id: UUID)(
+    name: String,
+    slug: Option[String]
+  )(implicit ec: ExecutionContext): Future[ValidationModel] =
+    update(id) { comb =>
+      comb.copy(
+        name = name,
+        slug = makeSlug(comb.id, slug),
+        updatedAt = LocalDateTime.now()
+      )
+    }
 
-  // def updatePassword(userId: UUID, password: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-  //   val salt = generateSalt
-  //   val passwordHash = password.bcrypt(salt)
-  //   db.run {
-  //     updatePasswordCompiled(userId)
-  //       .update((passwordHash, LocalDateTime.now))
-  //       .map(_ == 1)
-  //   }
-  // }
+  private val findBySlugCompiled = Compiled {
+    (userId: Rep[UUID], slug: Rep[String]) =>
+      table.filter { f =>
+        f.userId === userId && f.slug === slug.toLowerCase
+      }.take(1)
+  }
 
-  // def changePassword(
-  //   user:        models.User,
-  //   oldPassword: String,
-  //   newPassword: String
-  // )(implicit ec: ExecutionContext): Future[ValidationModel] = {
-  //   if (oldPassword == newPassword)
-  //     validationErrorAsFuture("password", "can't be the same")
-  //   else if (user.isValidPassword(oldPassword))
-  //     updatePassword(user.id, newPassword).map(_ => user.success)
-  //   else
-  //     validationErrorAsFuture("password", "doesn't match")
-  // }
+  def findBySlug(userId: UUID, slug: String) = db.run {
+    findBySlugCompiled(userId, slug).result.headOption
+  }
 
-  // private val findByEmailCompiled = Compiled { email: Rep[String] =>
-  //   table.filter(_.email === email).take(1)
-  // }
+  private val unqiueNameCompiled = Compiled {
+    (userId: Rep[UUID], name: Rep[String]) =>
+      table.filter { f =>
+        f.userId === userId && f.name === name
+      }.exists
+  }
 
-  // def findByEmail(email: String) =
-  //   db.run(findByEmailCompiled(email).result.headOption)
+  private val uniqueSlugCompiled = Compiled {
+    (userId: Rep[UUID], slug: Rep[String]) =>
+      table.filter { f =>
+        f.userId === userId && f.slug === slug
+      }.exists
+  }
 
-  // import Validations._
+  import Validations._
 
-  // private val unqiueUsernameCompiled = Compiled {
-  //   (id: Rep[UUID], username: Rep[String]) =>
-  //     table.filter { f => f.id =!= id && f.username === username }.exists
-  // }
-
-  // private val uniqueEmailCompiled = Compiled {
-  //   (id: Rep[UUID], email: Rep[String]) =>
-  //     table.filter { f => f.id =!= id && f.email === email }.exists
-  // }
-
-  // def validatePassword(password: String) =
-  //   validatePlain(
-  //     "password" -> List(lengthRange(password, 6, 50))
-  //   )
-
-  // def userValidation(user: models.User, passwordOpt: Option[String])(implicit ec: ExecutionContext) = {
-  //   val plainValidations = validatePlain(
-  //     "username" -> List(present(user.username)),
-  //     "email" -> List(present(user.email), email(user.email))
-  //   )
-  //   val dbioValidations = validateDBIO(
-  //     "username" -> List(unique(unqiueUsernameCompiled(user.id, user.username))),
-  //     "email" -> List(unique(uniqueEmailCompiled(user.id, user.email)))
-  //   )
-  //   passwordOpt match {
-  //     case Some(password) =>
-  //       (validatePassword(password) ::: plainValidations, dbioValidations)
-  //     case None =>
-  //       (plainValidations, dbioValidations)
-  //   }
-  // }
-
-  // override def validate(user: models.User)(implicit ec: ExecutionContext): ValidationDBIOResult =
-  //   validate(userValidation(user, None))
+  override def validate(c: comb.Comb)(implicit ec: ExecutionContext): ValidationDBIOResult = {
+    val plainValidations = validatePlain(
+      "name" -> List(lengthRange(c.name, 1, 255)),
+      "slug" -> List(lengthRange(c.slug, 1, 42))
+    )
+    val dbioValidations = validateDBIO(
+      "name" -> List(unique(unqiueNameCompiled(c.userId, c.name.toLowerCase))),
+      "slug" -> List(unique(uniqueSlugCompiled(c.userId, c.slug.toLowerCase)))
+    )
+    validate(plainValidations, dbioValidations)
+  }
 }
