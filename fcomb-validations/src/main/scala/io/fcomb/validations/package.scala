@@ -120,6 +120,11 @@ package object validations {
       if (value.length <= to) ().successNel
       else s"length is greater than $to".failureNel
     }
+
+    def minLength(value: String, from: Int): PlainValidation = {
+      if (value.length >= from) ().successNel
+      else s"length is less than $from".failureNel
+    }
   }
 
   implicit class ValidationResultMethods[T](val result: ValidationResult[T]) extends AnyVal {

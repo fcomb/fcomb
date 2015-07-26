@@ -1,14 +1,16 @@
 package io.fcomb.persist
 
-import io.fcomb.models
+import io.fcomb.{ models, validations }
+import io.fcomb.validations.{ DBIOT, ValidationResult }
 import io.fcomb.Db._
-import io.fcomb.validations, validations.{ DBIOT, ValidationResult }
-import slick.jdbc.TransactionIsolation
-import scala.concurrent.{ ExecutionContext, Future, blocking }
-import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.RichPostgresDriver.IntoInsertActionComposer
-import scalaz._, Scalaz._
+import io.fcomb.RichPostgresDriver.api._
 import java.util.UUID
+import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scalaz._
+import scalaz.Scalaz._
+import slick.jdbc.TransactionIsolation
+import slick.lifted.AppliedCompiledFunction
 
 trait PersistTypes[T] {
   type ValidationModel = validations.ValidationResult[T]
@@ -98,11 +100,13 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
   val tableWithId: IntoInsertActionComposer[T, T]
 
   @inline
-  def findByIdQuery(id: T#IdType): Query[Q, T, Seq]
+  def findByIdQuery(id: T#IdType): AppliedCompiledFunction[T#IdType, Query[Q, T, Seq], Seq[Q#TableElementType]]
 
+  @inline
   override def createDBIO(item: T) =
     tableWithId += item
 
+  @inline
   override def createDBIO(items: Seq[T]) =
     tableWithId ++= items
 
@@ -121,7 +125,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
   }
 
   def findByIdDBIO(id: T#IdType) =
-    findByIdQuery(id).take(1).result.headOption
+    findByIdQuery(id).result.headOption
 
   def findById(id: T#IdType): Future[Option[T]] =
     db.run(findByIdDBIO(id))
@@ -165,6 +169,10 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
 trait PersistModelWithUuid[T <: models.ModelWithUuid, Q <: Table[T] with PersistTableWithUuidPk] extends PersistModelWithPk[UUID, T, Q] {
   lazy val tableWithId = table returning table.map(_.id) into ((item, _) => item)
 
-  def findByIdQuery(id: UUID): Query[Q, T, Seq] =
-    table.filter(_.id === id)
+  protected val findByIdCompiled = Compiled { id: Rep[UUID] =>
+    table.filter(_.id === id).take(1)
+  }
+
+  def findByIdQuery(id: UUID) =
+    findByIdCompiled(id)
 }
