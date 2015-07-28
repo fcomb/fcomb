@@ -9,13 +9,13 @@ package object models {
 
     val id: PK
 
-    def getId: ID
+    def idOpt: Option[ID]
   }
 
   trait ModelWithId extends ModelWithPk[Option[Long], Long] {
     val id: Option[Long]
 
-    def getId: Long = id.get
+    def idOpt = id
 
     def withId[T <: ModelWithId](id: Long): T
   }
@@ -23,6 +23,6 @@ package object models {
   trait ModelWithUuid extends ModelWithPk[UUID, UUID] {
     val id: UUID
 
-    def getId: UUID = id
+    def idOpt = Some(id)
   }
 }

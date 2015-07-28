@@ -119,26 +119,32 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
   def recordNotFoundAsFuture(id: T#IdType): Future[ValidationModel] =
     Future.successful(recordNotFound(id))
 
-  def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
-    val mappedItem = mapModel(item)
-    validateThenApply(validate(mappedItem))(createDBIO(mappedItem))
-  }
-
   def findByIdDBIO(id: T#IdType) =
     findByIdQuery(id).result.headOption
 
   def findById(id: T#IdType): Future[Option[T]] =
     db.run(findByIdDBIO(id))
 
-  def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+  def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val mappedItem = mapModel(item)
-    validateThenApplyVM(validate((mappedItem))) {
-      findByIdQuery(mappedItem.getId)
-        .update(mappedItem)
-        .map {
-          case 1 => mappedItem.success
-          case _ => recordNotFound(item.getId)
+    validateThenApply(validate(mappedItem))(createDBIO(mappedItem))
+  }
+
+  val idEmptyError = Future.successful(validations.validationErrors("id" -> "can't be empty"))
+
+  def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+    item.idOpt match {
+      case Some(itemId) =>
+        val mappedItem = mapModel(item)
+        validateThenApplyVM(validate((mappedItem))) {
+          findByIdQuery(itemId)
+            .update(mappedItem)
+            .map {
+              case 1 => mappedItem.success
+              case _ => recordNotFound(itemId)
+            }
         }
+      case None => idEmptyError
     }
   }
 

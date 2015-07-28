@@ -30,6 +30,14 @@ http://microservices.io/patterns/apigateway.html:
 * runscope.com
 
 
+## APIs
+
+* http://hyperschema.org/mediatypes/
+* http://jsonapi.org/
+* http://json-schema.org/
+* http://spacetelescope.github.io/understanding-json-schema/
+* http://apicodex.3scale.net/content/Welcome
+
 
 ## Pros
 
