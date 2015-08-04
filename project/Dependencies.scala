@@ -35,7 +35,7 @@ object Dependencies {
     val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
     val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.4"
     val sprayJson       = "io.spray"                      %%  "spray-json"                   % "1.3.2"
-    val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.0.0"
+    val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.1.0"
 
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
@@ -46,7 +46,7 @@ object Dependencies {
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0-M1" changing()
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.2"
     val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
-    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.3.9"
+    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.0"
     val relate          = "com.lucidchart"                %% "relate"                        % "1.7.1"
     val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % V.scalikeJdbc
     val scalikeJdbcMacros = "org.scalikejdbc"             %% "scalikejdbc-syntax-support-macro" % V.scalikeJdbc

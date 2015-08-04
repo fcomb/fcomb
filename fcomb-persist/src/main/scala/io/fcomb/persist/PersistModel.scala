@@ -166,8 +166,8 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
     findByIdQuery(id)
       .delete
       .map {
-        case 1 => ().success
-        case _ => recordNotFound(id)
+        case 0 => recordNotFound(id)
+        case _ => ().success
       }
   }
 }
@@ -176,7 +176,7 @@ trait PersistModelWithUuid[T <: models.ModelWithUuid, Q <: Table[T] with Persist
   lazy val tableWithId = table returning table.map(_.id) into ((item, _) => item)
 
   protected val findByIdCompiled = Compiled { id: Rep[UUID] =>
-    table.filter(_.id === id).take(1)
+    table.filter(_.id === id)
   }
 
   def findByIdQuery(id: UUID) =
