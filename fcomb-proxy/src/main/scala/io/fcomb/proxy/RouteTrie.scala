@@ -32,15 +32,53 @@ private[proxy] case class RouteNode[T](
     childParameter: Option[RouteNode[T]]            = None
 ) extends Traversable[(String, T)] {
   require(key.nonEmpty, s"Key can't be empty: $this")
-  if (kind == WildcardRoute)
-    require(key.head != '*', s"Wildcard route node must start with prefix symbol '*': $this")
-  if (kind == ParameterRoute)
-    require(key.head != ':', s"Parameter route node must start with prefix symbol ':': $this")
+  if (kind.isInstanceOf[WildcardRoute])
+    require(key.head == '*', s"Wildcard route node must start with prefix symbol '*': $this")
+  if (kind.isInstanceOf[ParameterRoute])
+    require(key.head == ':', s"Parameter route node must start with prefix symbol ':': $this")
   if (kind == StaticRoute)
     require(!key.exists(nonStaticPrefix), s"Static route node must not start with prefix symbol ':' or '*': $this")
 
   def get(k: String) =
-    getTrie(cleanKey(k)).flatMap(_.value)
+    getTrie(cleanKey(k))
+      .flatMap { n => n._1.value.map(v => (v, n._2)) }
+
+  private def getTrie(
+    k:        String,
+    position: Int                         = 0,
+    params:   OpenHashMap[String, String] = OpenHashMap.empty
+  ): Option[(RouteNode[T], OpenHashMap[String, String])] = {
+    val currentK = k.drop(position)
+    val res =
+      if (currentK == key) Some((this, params))
+      else if (kind == StaticRoute && currentK.startsWith(key)) {
+        children.get(currentK(key.length)) match {
+          case Some(n) => n.getTrie(k, position + key.length, params)
+          case _       => None
+        }
+      } else if (kind.isInstanceOf[ParameterRoute]) {
+        children.get(currentK.head) match {
+          case Some(n) => n.getTrie(k, position, params)
+          case _       => None
+        }
+      } else None
+
+    if (res.nonEmpty) res
+    else childParameter match {
+      case Some(n) if currentK.startsWith(key) => n.kind match {
+        case WildcardRoute(name) =>
+          params += ((name, currentK.drop(key.length)))
+          Some((n, params))
+        case ParameterRoute(name) =>
+          val param = currentK.drop(key.length).takeWhile(_ != '/')
+          params += ((name, param))
+          val offset = position + param.length + key.length
+          if (k.length > offset) n.getTrie(k, offset, params)
+          else Some((n, params))
+      }
+      case _ => None
+    }
+  }
 
   @inline
   private def cleanKey(k: String) =
@@ -53,16 +91,6 @@ private[proxy] case class RouteNode[T](
   @inline
   private def nonStaticPrefix(k: String): Boolean =
     nonStaticPrefix(k.head)
-
-  @tailrec
-  private def getTrie(k: String): Option[RouteNode[T]] =
-    if (k == key) Some(this)
-    else if (k.contains(key)) {
-      children.get(k(key.length)) match {
-        case Some(c: RouteNode[T]) => c.getTrie(k.drop(key.length))
-        case _                     => None
-      }
-    } else None
 
   def `+`(kv: (String, T)) = {
     require(kv._1.nonEmpty, s"Key can't be empty: $kv")
@@ -101,26 +129,36 @@ private[proxy] case class RouteNode[T](
 
   private def addToChildParameter(k: String, v: T) = {
     require(nonStaticPrefix(k), s"Key '$k' must start with ':' or '*'")
+    require(kind == StaticRoute, s"$kind cannot contain nested routes: $k")
 
     val keyName = k.takeWhile(_ != '/')
     val keyPostfix = k.drop(keyName.length)
     val route = keyName.head match {
       case ':' => ParameterRoute(keyName.drop(1))
-      case '*' => WildcardRoute(keyName.drop(1))
+      case '*' =>
+        require(keyPostfix.isEmpty || keyPostfix == "/", "Wildcard cannot contain nested routes: $keyPostfix")
+
+        WildcardRoute(keyName.drop(1))
     }
-    val childNode: RouteNode[T] = childParameter match {
+    val cp = childParameter match {
       case Some(n) =>
         if (n.kind == route) n
         else throw new Exception(s"Conflict on ${n.kind} =!= $route")
-      case None => RouteNode(keyName, None, route)
+      case None => RouteNode[T](keyName, None, route)
     }
-    childNode.children += (
-      keyPostfix(0) -> childNode.addToChildren(keyPostfix, v)
-    )
-    this.copy(childParameter = Some(childNode))
+    val cn =
+      if (route.isInstanceOf[WildcardRoute]) Some(cp.copy(value = Some(v)))
+      else {
+        cp.children += (keyPostfix(0) -> cp.addToChildren(keyPostfix, v))
+        Some(cp)
+      }
+
+    this.copy(childParameter = cn)
   }
 
-  private def addToChildren(k: String, v: T): RouteNode[T] =
+  private def addToChildren(k: String, v: T): RouteNode[T] = {
+    require(!kind.isInstanceOf[WildcardRoute], s"Wildcard cannot contain nested routes: $k")
+
     children.get(k(0)) match {
       case Some(n) => n + (k -> v)
       case None =>
@@ -132,6 +170,7 @@ private[proxy] case class RouteNode[T](
             .addToChildParameter(k.drop(keyPrefix.length), v)
         else addToChildParameter(k, v)
     }
+  }
 
   private def longestCommonPart(a: String, b: String) = {
     @tailrec @inline
@@ -192,6 +231,10 @@ object RouteTrie {
 
   def apply[T](kvs: (String, T)*): RouteNode[T] =
     kvs.foldLeft[RouteNode[T]](empty) {
-      case (t, (k, v)) => t + (k, v)
+      case (t, (k, v)) =>
+        require(k.nonEmpty, s"Url can't be empty: $v")
+        require(k.head == '/', s"Url must start with prefix symbol '/': $v")
+
+        t + (k, v)
     }
 }
