@@ -40,7 +40,8 @@ object HttpProxy extends App {
   def time(warmup: Int)(block: => Any) = {
     for (i <- 1 to warmup) block // possibly trigger JIT on freq used methods in block
     var goodSample = false
-    var start = 0L; var stop = 0L;
+    var start = 0L
+    var stop = 0L
     var N = 10
     while (!goodSample) {
       start = System.currentTimeMillis
@@ -56,14 +57,104 @@ object HttpProxy extends App {
   val warmup = 10
 
   {
-    println("scala Map: " + time(warmup) {
+    println("route trie: " + time(warmup) {
       var i = 0
-      while (i < 100000) {
+      while (i < 1000000) {
         m.get("/user/about")
         i = i + 1
-      };
+      }
     })
   }
+
+  // {
+  //   val vals = Map(
+  //     "kek" -> 123,
+  //     "g" -> 123,
+  //     "vvv" -> 333,
+  //     "sdsdsdsd" -> 34343,
+  //     "dawdawdawdawdawdawdawdaw" -> 121212,
+  //     "sdsadwdawdawdawdawdawd" -> 111,
+  //     "sdawdawyei7batw7e t" -> 123,
+  //     "2kek" -> 123,
+  //     "g2" -> 123,
+  //     "vv2v" -> 333,
+  //     "sds2dsdsd" -> 34343,
+  //     "dawdaw2dawdawdawdawdawdaw" -> 121212,
+  //     "sdsa1dw1dawdawdawdawdawd" -> 111,
+  //     "2323sdawd1awyei7batw7e t" -> 123,
+  //     "k1ek" -> 123,
+  //     "g1" -> 123,
+  //     "vv1v" -> 333,
+  //     "sds1dsdsd" -> 34343,
+  //     "dawd1awdawdawdawdawdawdaw" -> 121212,
+  //     "sdsad1wdawdawdawdawdawd" -> 111,
+  //     "s1dawda1wyei7batw7e t" -> 123,
+  //     "12kek" -> 123,
+  //     "g12" -> 123,
+  //     "vv12v" -> 333,
+  //     "sds12dsdsd" -> 34343,
+  //     "dawd1aw2dawdawdawdawdawdaw" -> 121212,
+  //     "sdsa11dw1dawdawdawdawdawd" -> 111,
+  //     "2323sd1awd1awyei7batw7e t" -> 123
+  //   )
+
+  //   println("scala Map: " + time(warmup) {
+  //     val mm = Map(vals.toSeq: _*)
+  //     var i = 0
+  //     while (i < 100000) {
+  //       mm.get("dawd1awdawdawdawdawdawdaw")
+  //       i = i + 1
+  //     }
+  //   })
+
+  //   import scala.collection.{ immutable, mutable }
+
+  //   println("scala immutable HashMap: " + time(warmup) {
+  //     val mm = immutable.HashMap(vals.toSeq: _*)
+  //     var i = 0
+  //     while (i < 100000) {
+  //       mm.get("dawd1awdawdawdawdawdawdaw")
+  //       i = i + 1
+  //     }
+  //   })
+
+  //   println("scala mutable HashMap: " + time(warmup) {
+  //     val mm = mutable.HashMap(vals.toSeq: _*)
+  //     var i = 0
+  //     while (i < 100000) {
+  //       mm.get("dawd1awdawdawdawdawdawdaw")
+  //       i = i + 1
+  //     }
+  //   })
+
+  //   println("scala AnyRefMap: " + time(warmup) {
+  //     val mm = mutable.AnyRefMap(vals.toSeq: _*)
+  //     var i = 0
+  //     while (i < 100000) {
+  //       mm.get("dawd1awdawdawdawdawdawdaw")
+  //       i = i + 1
+  //     }
+  //   })
+
+  //   println("scala OpenHashMap: " + time(warmup) {
+  //     val mm = mutable.OpenHashMap(vals.toSeq: _*)
+  //     var i = 0
+  //     while (i < 100000) {
+  //       mm.get("dawd1awdawdawdawdawdawdaw")
+  //       i = i + 1
+  //     }
+  //   })
+
+  //   println("java HashMap: " + time(warmup) {
+  //     val mm = new java.util.HashMap[String, Int]()
+  //     vals.foreach { case (k, v) => mm.put(k, v) }
+  //     var i = 0
+  //     while (i < 100000) {
+  //       mm.get("dawd1awdawdawdawdawdawdaw")
+  //       i = i + 1
+  //     }
+  //   })
+  // }
 
   // implicit val system = ActorSystem("fcomb-proxy")
   // implicit val materialazer = ActorMaterializer()

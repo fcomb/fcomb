@@ -92,6 +92,7 @@ object Dependencies {
     val ffi             = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
 
     val objectsize      = "com.twitter.common"            %  "objectsize"                    % "0.0.10"
+    val guava           = "com.google.guava"              %  "guava"                         % "18.0"
 
     // val jamm            = "com.github.jbellis"            % "jamm"                           % "0.3.1"
   }
