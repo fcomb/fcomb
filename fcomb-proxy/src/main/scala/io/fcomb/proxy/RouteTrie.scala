@@ -44,36 +44,34 @@ private[proxy] case class RouteNode[T](
       .flatMap { n => n._1.value.map(v => (v, n._2)) }
 
   private def getTrie(
-    k:        String,
-    position: Int                         = 0,
-    params:   OpenHashMap[String, String] = OpenHashMap.empty
+    k:      String,
+    params: OpenHashMap[String, String] = OpenHashMap.empty
   ): Option[(RouteNode[T], OpenHashMap[String, String])] = {
-    val currentK = k.drop(position)
     val res =
-      if (currentK == key) Some((this, params))
-      else if (kind == StaticRoute && currentK.startsWith(key)) {
-        children.get(currentK(key.length)) match {
-          case Some(n) => n.getTrie(k, position + key.length, params)
+      if (k == key) Some((this, params))
+      else if (kind == StaticRoute && k.startsWith(key)) {
+        children.get(k(key.length)) match {
+          case Some(n) => n.getTrie(k.drop(key.length), params)
           case _       => None
         }
       } else if (kind.isInstanceOf[ParameterRoute]) {
-        children.get(currentK.head) match {
-          case Some(n) => n.getTrie(k, position, params)
+        children.get(k.head) match {
+          case Some(n) => n.getTrie(k, params)
           case _       => None
         }
       } else None
 
     if (res.nonEmpty) res
     else childParameter match {
-      case Some(n) if currentK.startsWith(key) => n.kind match {
+      case Some(n) if k.startsWith(key) => n.kind match {
         case WildcardRoute(name) =>
-          params += ((name, currentK.drop(key.length)))
+          params += ((name, k.drop(key.length)))
           Some((n, params))
         case ParameterRoute(name) =>
-          val param = currentK.drop(key.length).takeWhile(_ != '/')
+          val param = k.drop(key.length).takeWhile(_ != '/')
           params += ((name, param))
-          val offset = position + param.length + key.length
-          if (k.length > offset) n.getTrie(k, offset, params)
+          val offset = param.length + key.length
+          if (k.length > offset) n.getTrie(k.drop(offset), params)
           else Some((n, params))
       }
       case _ => None
