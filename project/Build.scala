@@ -40,8 +40,10 @@ object Build extends sbt.Build {
     "-Xmx2048M",
     "-Xss6M",
     "-XX:+CMSClassUnloadingEnabled"
-    // "-agentlib:TakipiAgent"
+      // "-agentlib:TakipiAgent"
   )
+
+  val javaVersion = "1.8"
 
   lazy val defaultSettings =
     buildSettings ++
@@ -57,15 +59,11 @@ object Build extends sbt.Build {
           "-language:higherKinds"
         ) ++ compilerFlags,
         javaOptions               ++= Seq("-Dfile.encoding=UTF-8", "-Dscalac.patmat.analysisBudget=off"),
-        javacOptions              ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation"),
+        javacOptions              ++= Seq("-source", javaVersion, "-target", javaVersion, "-Xlint:unchecked", "-Xlint:deprecation"),
         parallelExecution in Test :=  false,
         fork              in Test :=  true,
         unmanagedResourceDirectories in Compile <+= baseDirectory(_ / "src/main/scala")
       )
-
-  private def getWeaver = update map { report =>
-    report.matching(moduleFilter(organization = "org.aspectj", name = "aspectjweaver")).headOption
-  }
 
   lazy val root = Project(
     "server",
@@ -191,6 +189,10 @@ object Build extends sbt.Build {
     .dependsOn(utils)
     .enablePlugins(SbtTwirl)
 
+  private def getJamm = update map { report =>
+    report.matching(moduleFilter(organization = "com.github.jbellis", name = "jamm")).headOption
+  }
+
   lazy val proxy = Project(
     id = "proxy",
     base = file("fcomb-proxy"),
@@ -198,9 +200,12 @@ object Build extends sbt.Build {
       defaultSettings ++
         Revolver.settings ++
         Seq(
-          libraryDependencies ++= Dependencies.proxy,
-          Revolver.reStartArgs                      :=  Seq("io.fcomb.proxy.HttpProxy"),
-          mainClass            in Revolver.reStart  :=  Some("io.fcomb.proxy.HttpProxy")
+          libraryDependencies             ++= Dependencies.proxy,
+          Revolver.reStartArgs            :=  Seq("io.fcomb.proxy.HttpProxy"),
+          mainClass in Revolver.reStart   :=  Some("io.fcomb.proxy.HttpProxy") /*,
+          javaOptions in Revolver.reStart <+= (getJamm).map {
+            case Some(path) => s"-javaagent:$path"
+          } */
         )
   )
 }

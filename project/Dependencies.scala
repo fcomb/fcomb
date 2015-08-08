@@ -89,7 +89,11 @@ object Dependencies {
 
     val commonsCodec    = "commons-codec"                 %  "commons-codec"                 % "1.10"
 
-    val ffi             = "com.nativelibs4java"           % "bridj"                          % "0.7.0"
+    val ffi             = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
+
+    val objectsize      = "com.twitter.common"            %  "objectsize"                    % "0.0.10"
+
+    // val jamm            = "com.github.jbellis"            % "jamm"                           % "0.3.1"
   }
 
   object Test {
@@ -106,7 +110,9 @@ object Dependencies {
     config, json4sJackson, pickling, upickle,
     sprayJson, sprayJsonShapeless,
     scalazCore, scalazConcurrent,
-    shapeless, shapelessScalaz
+    shapeless, shapelessScalaz /*,
+    jamm */
+    , objectsize
   )
 
   val kamon = Seq(kamonScala/*, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)

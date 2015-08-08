@@ -57,11 +57,12 @@ case class RouteNode[+T](
     } else None
 
   def `+`[T1 >: T](kv: (String, T1)) = {
-    val withParameter = kv._1.head == ':' || kv._1.head == '*'
+    require(kv._1.nonEmpty, s"Key can't be empty: $kv")
+
     val k = cleanKey(kv._1)
     val v = kv._2
 
-    if (withParameter) addToChildParameter(k, v)
+    if (k.head == ':' || k.head == '*') addToChildParameter(k, v)
     else {
       if (k == key) RouteNode(k, Some(v), kind, children, childParameter)
       else if (k.startsWith(key)) {
@@ -163,6 +164,8 @@ case class RouteNode[+T](
     f(a, b, 0, new StringBuffer)
   }
 
+  def compact(): RouteNode[T] = this
+
   def foreach[U](f: ((String, T)) => U): Unit = {
     foreach(f, "")
   }
@@ -204,9 +207,10 @@ object RouteTrie {
   def empty[T]: RouteNode[T] =
     RouteNode("/", None, StaticRoute, Map.empty, None)
 
-  def apply[T](kvs: (String, T)*): RouteNode[T] = {
-    kvs.foldLeft[RouteNode[T]](empty) {
-      case (t, (k, v)) => t + (k, v)
-    }
-  }
+  def apply[T](kvs: (String, T)*): RouteNode[T] =
+    kvs
+      .foldLeft[RouteNode[T]](empty) {
+        case (t, (k, v)) => t + (k, v)
+      }
+      .compact
 }
