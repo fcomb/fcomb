@@ -13,15 +13,25 @@ import scala.concurrent.{ ExecutionContext, Future }
 object HttpProxy extends App {
 
   val m = RouteTrie(
+    "/" -> 0,
     "/user" -> 1,
+    "/userify" -> 12345,
     "/user/about" -> 2,
+    "/user/:id/xxx" -> 9123,
+    "/user/:id" -> 222,
     "/useragent" -> 3,
     "/ua/kek" -> 4,
+    "/user/g/h/n" -> 6666,
+    "/f/*file" -> 11111,
     "/:kek" -> 100
   )
+  println("!" * 25)
   println(m)
+  println(s"m.size: ${m.size}")
 
   println(s"m.get(/user): ${m.get("/user")}")
+  println(s"m.get(/user/12): ${m.get("/user/12")}")
+  println(s"m.get(/user/about): ${m.get("/user/about")}")
   println(s"m.get(/ua/kek): ${m.get("/ua/kek")}")
   println(s"m.get(user): ${m.get("user")}")
 

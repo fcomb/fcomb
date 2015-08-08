@@ -24,7 +24,7 @@ object Db {
 
   // implicit val session = AutoSession
 
-  val db = Database.forConfig("", Config.jdbcConfig)
+  val db = Database.forDataSource(dataSource)
 
   def migrate()(implicit ec: ExecutionContext) = Future {
     blocking {
