@@ -1,6 +1,6 @@
 package io.fcomb
 
-import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.RichPostgresDriver._
 // import scalikejdbc._
 import java.util.UUID
 import java.sql.{ ResultSet, Array => SArray, Timestamp }
@@ -24,6 +24,10 @@ package object persist {
   //     def apply(rs: ResultSet, index: Int) =
   //       UUID.fromString(rs.getString(index))
   //   }
+
+  implicit val methodKindColumnType = createEnumJdbcType("method_kind", models.comb.MethodKind)
+
+  import io.fcomb.RichPostgresDriver.api._
 
   implicit val localDateTimeType =
     MappedColumnType.base[LocalDateTime, Timestamp](Timestamp.valueOf, _.toLocalDateTime)

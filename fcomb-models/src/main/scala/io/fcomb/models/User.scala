@@ -1,5 +1,6 @@
 package io.fcomb.models
 
+import comb._
 import java.time.LocalDateTime
 import com.github.t3hnar.bcrypt._
 import java.util.UUID
@@ -78,6 +79,22 @@ case class CombResponse(
   updatedAt: LocalDateTime
 ) extends ApiServiceResponse
 
+case class CombMethodRequest(
+  kind:     MethodKind.MethodKind,
+  uri:      String,
+  endpoint: String
+) extends ApiServiceRequest
+
+case class CombMethodResponse(
+  id:        UUID,
+  combId:    UUID,
+  kind:      MethodKind.MethodKind,
+  uri:       String,
+  endpoint:  String,
+  createdAt: LocalDateTime,
+  updatedAt: LocalDateTime
+) extends ApiServiceResponse
+
 import scala.language.implicitConversions
 object ResponseConversions {
   implicit def user2Response(u: User): UserResponse =
@@ -99,5 +116,16 @@ object ResponseConversions {
       slug = c.slug,
       createdAt = c.createdAt,
       updatedAt = c.updatedAt
+    )
+
+  implicit def combMethod2Response(m: comb.CombMethod): CombMethodResponse =
+    CombMethodResponse(
+      id = m.id,
+      combId = m.combId,
+      kind = m.kind,
+      uri = m.uri,
+      endpoint = m.endpoint,
+      createdAt = m.createdAt,
+      updatedAt = m.updatedAt
     )
 }

@@ -61,10 +61,17 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
         pathEndOrSingleSlash {
           post(CombService.create)
         } ~
-        path(JavaUUID) { id =>
-          get(CombService.show(id)) ~
-          put(CombService.update(id)) ~
-          delete(CombService.destroy(id))
+        pathPrefix(JavaUUID) { id =>
+          pathEndOrSingleSlash {
+            get(CombService.show(id)) ~
+            put(CombService.update(id)) ~
+            delete(CombService.destroy(id))
+          } ~
+          pathPrefix("methods") {
+            pathEndOrSingleSlash {
+              post(CombMethodService.create(id))
+            }
+          }
         }
       } ~
       pathPrefix("users") {

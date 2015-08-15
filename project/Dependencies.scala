@@ -2,9 +2,9 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4-M2"
+    val akka = "2.4-M3"
     val akkaExperimental = "1.0"
-    val scalaz = "7.1.2"
+    val scalaz = "7.1.3"
     val algebra = "0.2.0-SNAPSHOT"
     val cats = "0.1.0-SNAPSHOT"
     val slick = "3.1.0-M1"
@@ -14,6 +14,9 @@ object Dependencies {
   }
 
   object Compile {
+    val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.3.0"
+    val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.2.2"
+
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
     // val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
@@ -29,11 +32,10 @@ object Dependencies {
     val kamonStatsd     = "io.kamon"                      %% "kamon-statsd"                  % V.kamon
     val kamonJdbc       = "io.kamon"                      %% "kamon-jdbc"                    % V.kamon
 
-    val finagle         = "com.github.finagle"            %% "finch-core"                    % "0.7.1"
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
     val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
-    val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.4"
+    val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
     val sprayJson       = "io.spray"                      %%  "spray-json"                   % "1.3.2"
     val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.1.0"
 
@@ -45,7 +47,6 @@ object Dependencies {
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick changing()
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0-M1" changing()
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.2"
-    val flywayCore      = "org.flywaydb"                  %  "flyway-core"                   % "3.2.1"
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.0"
     val relate          = "com.lucidchart"                %% "relate"                        % "1.7.1"
     val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % V.scalikeJdbc
@@ -124,7 +125,7 @@ object Dependencies {
   )
 
   val root = common ++ akka ++ Seq(
-    postgresJdbc, flywayCore, hikariCp,
+    postgresJdbc, hikariCp,
     commonsCodec,
     scalazCore, scalazConcurrent, shapeless, shapelessScalaz
   )
@@ -141,10 +142,11 @@ object Dependencies {
 
   val persist = common ++ Seq(
     postgresJdbc,
+    dbMigration,
     slick, slickPg, slickJdbc,
     relate,
     scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
-    flywayCore, hikariCp, bcrypt, commonsCodec
+    hikariCp, bcrypt, commonsCodec
   )
 
   val utils = common ++ Seq(
@@ -163,5 +165,5 @@ object Dependencies {
 
   val services = api
 
-  val proxy = common ++ akka
+  val proxy = common ++ akka ++ Seq(routeTrie)
 }

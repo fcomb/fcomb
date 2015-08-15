@@ -1,6 +1,7 @@
 package io.fcomb
 
 import io.fcomb.models._
+import io.fcomb.models.comb._
 import spray.json._, DefaultJsonProtocol._
 import scalaz._, Scalaz._
 import java.time.LocalDateTime
@@ -32,6 +33,19 @@ package object json {
       def write(n: NoContentResponse) = JsNull
     }
 
+  def createEnumerationJsonFormat[T <: Enumeration](obj: T)(implicit m: Manifest[T]) =
+    new RootJsonFormat[T#Value] {
+      def write(obj: T#Value) = JsString(obj.toString)
+
+      def read(v: JsValue) = v match {
+        case JsString(v) => obj.withName(v)
+        case _ =>
+          throw new DeserializationException(s"invalid ${m.getClass.getName.split('.').last}")
+      }
+    }
+
+  implicit val methodKindJsonProtocol = createEnumerationJsonFormat(MethodKind)
+
   implicit val resetPasswordRequestJsonProtocol = jsonFormat1(ResetPasswordRequest)
 
   implicit val resetPasswordSetRequestJsonProtocol = jsonFormat2(ResetPasswordSetRequest)
@@ -53,4 +67,8 @@ package object json {
   implicit val combRequestJsonProtocol = jsonFormat2(CombRequest)
 
   implicit val combResponseJsonProtocol = jsonFormat6(CombResponse)
+
+  implicit val combMethodRequestJsonProtocol = jsonFormat3(CombMethodRequest)
+
+  implicit val combMethodResponseJsonProtocol = jsonFormat7(CombMethodResponse)
 }
