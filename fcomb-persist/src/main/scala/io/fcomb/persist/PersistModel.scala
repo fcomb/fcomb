@@ -99,6 +99,12 @@ trait PersistTableWithAutoIntPk extends PersistTableWithPk[Int] { this: Table[_]
 trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with PersistTableWithPk[Id]] extends PersistModel[T, Q] {
   val tableWithId: IntoInsertActionComposer[T, T]
 
+  def all() =
+    db.run(table.result)
+
+  def allAsStream() =
+    db.stream(table.result)
+
   @inline
   def findByIdQuery(id: T#IdType): AppliedCompiledFunction[T#IdType, Query[Q, T, Seq], Seq[Q#TableElementType]]
 

@@ -94,7 +94,7 @@ object Build extends sbt.Build {
         newrelicAppName                           := "fcomb-server",
         fork in run                               := true
       )
-  ).dependsOn(api)
+  ).dependsOn(api, proxy)
     .enablePlugins(SbtNativePackager)
 
   lazy val api = Project(
@@ -197,15 +197,8 @@ object Build extends sbt.Build {
     id = "proxy",
     base = file("fcomb-proxy"),
     settings =
-      defaultSettings ++
-        Revolver.settings ++
-        Seq(
-          libraryDependencies             ++= Dependencies.proxy,
-          Revolver.reStartArgs            :=  Seq("io.fcomb.proxy.HttpProxy"),
-          mainClass in Revolver.reStart   :=  Some("io.fcomb.proxy.HttpProxy") /*,
-          javaOptions in Revolver.reStart <+= (getJamm).map {
-            case Some(path) => s"-javaagent:$path"
-          } */
-        )
-  )
+      defaultSettings ++ Seq(
+        libraryDependencies             ++= Dependencies.proxy
+      )
+  ).dependsOn(persist)
 }

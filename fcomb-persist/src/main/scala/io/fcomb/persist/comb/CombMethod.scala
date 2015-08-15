@@ -46,6 +46,10 @@ object CombMethod extends PersistModelWithUuid[comb.CombMethod, CombMethodTable]
     ))
   }
 
+  val findAllByCombIdCompiled = Compiled { combId: Rep[UUID] =>
+    table.filter(_.combId === combId)
+  }
+
   // def updateByRequest(id: UUID)(
   //   name: String,
   //   slug: Option[String]

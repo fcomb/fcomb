@@ -3,6 +3,7 @@ package io.fcomb.models.comb
 import io.fcomb.models.ModelWithUuid
 import java.time.LocalDateTime
 import java.util.UUID
+import java.net.URL
 
 object MethodKind extends Enumeration {
   type MethodKind = Value
@@ -24,4 +25,7 @@ case class CombMethod(
   endpoint: String,
   createdAt: LocalDateTime,
   updatedAt: LocalDateTime
-) extends ModelWithUuid
+) extends ModelWithUuid {
+  val endpointUrl = new URL(endpoint)
+  val endpointHost = endpointUrl.getHost
+}

@@ -14,7 +14,7 @@ object Dependencies {
   }
 
   object Compile {
-    val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.3.0"
+    val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.3.0.1"
     val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.2.2"
 
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka

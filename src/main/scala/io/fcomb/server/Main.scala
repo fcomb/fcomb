@@ -2,6 +2,7 @@ package io.fcomb.server
 
 import io.fcomb.Db
 import io.fcomb.utils.Config
+import io.fcomb.proxy.HttpProxy
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 // import kamon.Kamon
@@ -20,6 +21,7 @@ object Main extends App {
     _ <- HttpApiService.start(Config.config)
   } yield ()).onComplete {
     case Success(_) =>
+      HttpProxy.start(Config.config)
     case Failure(e) =>
       println(s"e: $e\n${e.getMessage()}\n${e.getStackTrace().mkString("\n\t")}")
       try {

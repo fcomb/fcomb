@@ -5,6 +5,7 @@ import io.fcomb.RichPostgresDriver._
 import java.util.UUID
 import java.sql.{ ResultSet, Array => SArray, Timestamp }
 import java.time._
+import slick.jdbc.GetResult
 
 package object persist {
   // implicit val dateTimeTypeBinder: TypeBinder[LocalDateTime] =
@@ -31,4 +32,14 @@ package object persist {
 
   implicit val localDateTimeType =
     MappedColumnType.base[LocalDateTime, Timestamp](Timestamp.valueOf, _.toLocalDateTime)
+
+  implicit val uuidResult = GetResult(r => UUID.fromString(r.<<))
+
+  implicit def listResult[T]: GetResult[List[T]] = GetResult(r => {
+    r.rs.getArray(r.skip.currentPos)
+      .getArray
+      .asInstanceOf[Array[T]]
+      .filterNot(_ == null)
+      .toList
+  })
 }

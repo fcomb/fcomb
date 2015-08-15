@@ -10,6 +10,7 @@ import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scalaz._
 import scalaz.Scalaz._
+import slick.jdbc.GetResult
 
 class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistTableWithUuidPk {
   def email = column[String]("email")
@@ -61,6 +62,17 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
         updatedAt = LocalDateTime.now()
       )
     }
+
+  implicit val allWithCombsResult = GetResult(r =>
+    (r.<<[UUID], r.<<[String], r.<<[List[String]]))
+
+  def allWithCombs() = db.run {
+    sql"""
+    select users.id, users.username, array_agg(combs.slug) as comb_slugs from users
+    inner join combs on combs.user_id = users.id
+    group by users.id
+    """.as[(UUID, String, List[String])]
+  }
 
   private val updatePasswordCompiled = Compiled { (userId: Rep[UUID]) =>
     table
@@ -116,7 +128,7 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     )
 
   def userValidation(
-    user: models.User,
+    user:        models.User,
     passwordOpt: Option[String]
   )(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(

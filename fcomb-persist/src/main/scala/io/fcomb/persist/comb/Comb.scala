@@ -62,15 +62,28 @@ object Comb extends PersistModelWithUuid[comb.Comb, CombTable] {
       )
     }
 
-  private val findBySlugCompiled = Compiled {
+  private val findBySlugCompiled = Compiled { slug: Rep[String] =>
+    table.filter(_.slug === slug.toLowerCase).take(1)
+  }
+
+  def findBySlugWithMethods(slug: String)(implicit ec: ExecutionContext) =
+    db.run {
+      for {
+        combOpt <- findBySlugCompiled(slug).result.headOption
+        comb = combOpt.get if combOpt.nonEmpty
+        methods <- CombMethod.findAllByCombIdCompiled(comb.id).result
+      } yield (comb, methods)
+    }
+
+  private val findBySlugWithinUserCompiled = Compiled {
     (userId: Rep[UUID], slug: Rep[String]) =>
       table.filter { f =>
         f.userId === userId && f.slug === slug.toLowerCase
       }.take(1)
   }
 
-  def findBySlug(userId: UUID, slug: String) = db.run {
-    findBySlugCompiled(userId, slug).result.headOption
+  def findBySlugWithinUser(userId: UUID, slug: String) = db.run {
+    findBySlugWithinUserCompiled(userId, slug).result.headOption
   }
 
   private val unqiueNameCompiled = Compiled {
