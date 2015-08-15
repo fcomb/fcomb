@@ -114,18 +114,18 @@ class HttpProxy(
     uri:    String,
     route:  RouteNode[models.comb.CombMethod]
   ) = {
-    val (cm, options) = route.getRaw(method, uri)
-    if (cm != null) {
+    val res = route.getRaw(method, uri)
+    if (res != null) {
+      val (cm, options) = res
       val proxyHost = cm.endpointHost
       val requestUri = ctx.request.getUri().host(proxyHost) // TODO: replace :param
       val proxyRequest = ctx.request
         .withHeaders(Host(proxyHost))
         .withUri(requestUri)
-      val proxyPort = 80
       log.debug(s"proxyRequest: $proxyRequest")
       Source
         .single(proxyRequest)
-        .via(Http().outgoingConnection(proxyHost, proxyPort))
+        .via(Http().outgoingConnection(proxyHost, cm.endpointPort))
         .runWith(Sink.head)
         .flatMap(ctx.complete(_))
     } else ctx.complete(HttpResponse(

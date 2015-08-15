@@ -18,14 +18,21 @@ object MethodKind extends Enumeration {
 }
 
 case class CombMethod(
-  id: UUID,
-  combId: UUID,
-  kind: MethodKind.MethodKind,
-  uri: String,
-  endpoint: String,
-  createdAt: LocalDateTime,
-  updatedAt: LocalDateTime
+    id:        UUID,
+    combId:    UUID,
+    kind:      MethodKind.MethodKind,
+    uri:       String,
+    endpoint:  String,
+    createdAt: LocalDateTime,
+    updatedAt: LocalDateTime
 ) extends ModelWithUuid {
   val endpointUrl = new URL(endpoint)
   val endpointHost = endpointUrl.getHost
+  val endpointPort = {
+    val port = endpointUrl.getPort()
+    if (port == -1) {
+      if (endpointUrl.getProtocol == "https") 443
+      else 80
+    } else port
+  }
 }
