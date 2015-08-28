@@ -9,7 +9,6 @@ import io.fcomb.models._
 import io.fcomb.models.ResponseConversions._
 import io.fcomb.persist
 import io.fcomb.services.user.ResetPassword
-import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
 
@@ -22,7 +21,7 @@ object CombService extends ApiService {
     authorization { user =>
       requestAsWithValidation { req: CombRequest =>
         persist.comb.Comb.create(
-          userId = user.id,
+          userId = user.getId,
           name = req.name,
           slug = req.slug
         ).map(_.map(toResponse[comb.Comb, CombResponse]))
@@ -30,7 +29,7 @@ object CombService extends ApiService {
     }
 
   def update(
-    id: UUID
+    id: Long
   )(
     implicit
     ec:           ExecutionContext,
@@ -46,7 +45,7 @@ object CombService extends ApiService {
     }
 
   def show(
-    id: UUID
+    id: Long
   )(
     implicit
     ec:           ExecutionContext,
@@ -54,7 +53,7 @@ object CombService extends ApiService {
   ) = ???
 
   def destroy(
-    id: UUID
+    id: Long
   )(
     implicit
     ec:           ExecutionContext,

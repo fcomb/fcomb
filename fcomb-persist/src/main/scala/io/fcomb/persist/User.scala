@@ -25,7 +25,7 @@ class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistT
       ((models.User.apply _).tupled, models.User.unapply)
 }
 
-object User extends PersistModelWithUuid[models.User, UserTable] {
+object User extends PersistModelWithUuidPk[models.User, UserTable] {
   val table = TableQuery[UserTable]
 
   def create(
@@ -36,7 +36,7 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = LocalDateTime.now()
     val user = mapModel(models.User(
-      id = UUID.randomUUID(),
+      id = Some(UUID.randomUUID()),
       email = email,
       username = username,
       fullName = fullName,
@@ -54,24 +54,26 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     username: String,
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] =
-    update(id) { user =>
-      user.copy(
-        email = email,
-        username = username,
-        fullName = fullName,
-        updatedAt = LocalDateTime.now()
-      )
-    }
+    update(id)(_.copy(
+      email = email,
+      username = username,
+      fullName = fullName,
+      updatedAt = LocalDateTime.now()
+    ))
 
   implicit val allWithCombsResult = GetResult(r =>
-    (r.<<[UUID], r.<<[String], r.<<[List[String]]))
+    (r.<<[UUID], r.<<[String], r.<<[Map[String, String]]))
 
   def allWithCombs() = db.run {
     sql"""
-    select users.id, users.username, array_agg(combs.slug) as comb_slugs from users
+    select
+      users.id,
+      users.username,
+      hstore(array_agg_custom(array[combs.id::text, combs.slug])) as combs
+    from users
     inner join combs on combs.user_id = users.id
     group by users.id
-    """.as[(UUID, String, List[String])]
+    """.as[(UUID, String, Map[String, String])]
   }
 
   private val updatePasswordCompiled = Compiled { (userId: Rep[UUID]) =>
@@ -80,7 +82,10 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
       .map { t => (t.passwordHash, t.updatedAt) }
   }
 
-  def updatePassword(userId: UUID, password: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def updatePassword(
+    userId: UUID,
+    password: String
+  )(implicit ec: ExecutionContext): Future[Boolean] = {
     val salt = generateSalt
     val passwordHash = password.bcrypt(salt)
     db.run {
@@ -98,7 +103,7 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     if (oldPassword == newPassword)
       validationErrorAsFuture("password", "can't be the same")
     else if (user.isValidPassword(oldPassword))
-      updatePassword(user.id, newPassword).map(_ => user.success)
+      updatePassword(user.getId, newPassword).map(_ => user.success)
     else
       validationErrorAsFuture("password", "doesn't match")
   }
@@ -113,12 +118,12 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
   import Validations._
 
   private val unqiueUsernameCompiled = Compiled {
-    (id: Rep[UUID], username: Rep[String]) =>
+    (id: Rep[Option[UUID]], username: Rep[String]) =>
       table.filter { f => f.id =!= id && f.username === username }.exists
   }
 
   private val uniqueEmailCompiled = Compiled {
-    (id: Rep[UUID], email: Rep[String]) =>
+    (id: Rep[Option[UUID]], email: Rep[String]) =>
       table.filter { f => f.id =!= id && f.email === email }.exists
   }
 
@@ -132,7 +137,7 @@ object User extends PersistModelWithUuid[models.User, UserTable] {
     passwordOpt: Option[String]
   )(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(
-      "username" -> List(lengthRange(user.username, 1, 255)),
+      "username" -> List(lengthRange(user.username, 1, 255), notUuid(user.username)),
       "email" -> List(maxLength(user.email, 255), email(user.email))
     )
     val dbioValidations = validateDBIO(

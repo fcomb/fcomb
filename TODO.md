@@ -17,6 +17,7 @@ Tasks:
 
 * Own page for comb with custom domain (like gumroad or github pages)
 * Event bus with pub/sub - microservice received email then subscriber read it and do trigger another event
+* Set or calculate O-complexity for services (filter comb by size of input data)
 
 http://microservices.io/patterns/apigateway.html:
 

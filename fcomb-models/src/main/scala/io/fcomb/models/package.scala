@@ -3,26 +3,23 @@ package io.fcomb
 import java.util.UUID
 
 package object models {
-  sealed trait ModelWithPk[PK, ID] {
+  sealed trait ModelWithPk[PK] {
     type PkType = PK
-    type IdType = ID
+    type IdType = Option[PK]
 
-    val id: PK
+    val id: IdType
 
-    def idOpt: Option[ID]
+    def getId() =
+      id.getOrElse(throw new IllegalArgumentException("Column 'id' cannot be empty"))
   }
 
-  trait ModelWithId extends ModelWithPk[Option[Long], Long] {
-    val id: Option[Long]
+  trait ModelWithLongPk extends ModelWithPk[Long]
 
-    def idOpt = id
-
-    def withId[T <: ModelWithId](id: Long): T
+  sealed trait ModelWithAutoPk[T] {
+    def withPk(id: T): ModelWithAutoPk[T]
   }
 
-  trait ModelWithUuid extends ModelWithPk[UUID, UUID] {
-    val id: UUID
+  trait ModelWithAutoLongPk extends ModelWithLongPk with ModelWithAutoPk[Long]
 
-    def idOpt = Some(id)
-  }
+  trait ModelWithUuidPk extends ModelWithPk[UUID]
 }

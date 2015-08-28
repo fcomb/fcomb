@@ -6,14 +6,17 @@ import io.fcomb.models
 import io.fcomb.models.comb
 import io.fcomb.persist._
 import io.fcomb.validations._
+import io.fcomb.trie.RouteTrie
 import java.time.LocalDateTime
 import java.util.UUID
+import java.net.URL
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Try, Success, Failure }
 import scalaz._
 import scalaz.Scalaz._
 
-class CombMethodTable(tag: Tag) extends Table[comb.CombMethod](tag, "comb_methods") with PersistTableWithUuidPk {
-  def combId = column[UUID]("comb_id")
+class CombMethodTable(tag: Tag) extends Table[comb.CombMethod](tag, "comb_methods") with PersistTableWithAutoLongPk {
+  def combId = column[Long]("comb_id")
   def kind = column[comb.MethodKind.MethodKind]("kind")
   def uri = column[String]("uri")
   def endpoint = column[String]("endpoint")
@@ -25,18 +28,17 @@ class CombMethodTable(tag: Tag) extends Table[comb.CombMethod](tag, "comb_method
       ((comb.CombMethod.apply _).tupled, comb.CombMethod.unapply)
 }
 
-object CombMethod extends PersistModelWithUuid[comb.CombMethod, CombMethodTable] {
+object CombMethod extends PersistModelWithAutoLongPk[comb.CombMethod, CombMethodTable] {
   val table = TableQuery[CombMethodTable]
 
   def create(
-    combId:   UUID,
+    combId:   Long,
     kind:     comb.MethodKind.MethodKind,
     uri:      String,
     endpoint: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = LocalDateTime.now()
-    super.create(comb.CombMethod(
-      id = UUID.randomUUID(),
+    create(comb.CombMethod(
       combId = combId,
       kind = kind,
       uri = uri,
@@ -46,9 +48,12 @@ object CombMethod extends PersistModelWithUuid[comb.CombMethod, CombMethodTable]
     ))
   }
 
-  val findAllByCombIdCompiled = Compiled { combId: Rep[UUID] =>
+  val findAllByCombIdCompiled = Compiled { combId: Rep[Long] =>
     table.filter(_.combId === combId)
   }
+
+  def findAllByCombId(combId: Long) =
+    db.run(findAllByCombIdCompiled(combId).result)
 
   // def updateByRequest(id: UUID)(
   //   name: String,
@@ -62,8 +67,8 @@ object CombMethod extends PersistModelWithUuid[comb.CombMethod, CombMethodTable]
   //     )
   //   }
 
-  private val unqiueUriCompiled = Compiled {
-    (combId: Rep[UUID], uri: Rep[String]) =>
+  private val uniqueUriCompiled = Compiled {
+    (combId: Rep[Long], uri: Rep[String]) =>
       table.filter { f =>
         f.combId === combId && f.uri === uri
       }.exists
@@ -71,13 +76,40 @@ object CombMethod extends PersistModelWithUuid[comb.CombMethod, CombMethodTable]
 
   import Validations._
 
+  private def validateUri(uri: String): PlainValidation =
+    RouteTrie.validateUri(uri) match {
+      case Right(_) => ().successNel
+      case Left(e)  => e.failureNel
+    }
+
+  private def validateEndpoint(uri: String, endpoint: String): PlainValidation = {
+    Try(new URL(endpoint)) match {
+      case Success(url) => RouteTrie.validateUri(uri) match {
+        case Right(uriParameters) =>
+          val unknownParameters = comb.CombMethodUtils.endpointParams(url)
+            .filterNot(_ == "*")
+            .diff(uriParameters.toList)
+          if (unknownParameters.isEmpty) ().successNel
+          else s"parameters not from URI: ${unknownParameters.mkString(", ")}".failureNel
+        case Left(_) => "invalid uri".failureNel
+      }
+      case Failure(e) => e.getMessage.failureNel
+    }
+  }
+
   override def validate(m: comb.CombMethod)(implicit ec: ExecutionContext): ValidationDBIOResult = {
     val plainValidations = validatePlain(
-      "uri" -> List(lengthRange(m.uri, 1, 2048)), // TODO: validate URI
-      "endpoint" -> List(lengthRange(m.endpoint, 1, 2048)) // TODO: validate URL + passed params
+      "uri" -> List(
+        lengthRange(m.uri, 1, 2048),
+        validateUri(m.uri)
+      ),
+      "endpoint" -> List(
+        lengthRange(m.endpoint, 1, 2048),
+        validateEndpoint(m.uri, m.endpoint)
+      )
     )
     val dbioValidations = validateDBIO(
-      "uri" -> List(unique(unqiueUriCompiled(m.combId, m.uri)))
+      "uri" -> List(unique(uniqueUriCompiled(m.combId, m.uri)))
     )
     validate(plainValidations, dbioValidations)
   }

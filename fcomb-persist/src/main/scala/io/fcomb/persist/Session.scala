@@ -24,7 +24,7 @@ object Session extends PersistTypes[models.Session] {
     implicit
     ec: ExecutionContext
   ): Future[ValidationModel] =
-    createToken(userPrefix, user.id.toString)
+    createToken(userPrefix, user.getId.toString)
 
   private def createToken(
     prefix: String,

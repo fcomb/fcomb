@@ -12,7 +12,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scalaz._
 import scalaz.Scalaz._
 
-class CombTable(tag: Tag) extends Table[comb.Comb](tag, "combs") with PersistTableWithUuidPk {
+class CombTable(tag: Tag) extends Table[comb.Comb](tag, "combs") with PersistTableWithAutoLongPk {
   def userId = column[UUID]("user_id")
   def name = column[String]("name")
   def slug = column[String]("slug")
@@ -24,7 +24,7 @@ class CombTable(tag: Tag) extends Table[comb.Comb](tag, "combs") with PersistTab
       ((comb.Comb.apply _).tupled, comb.Comb.unapply)
 }
 
-object Comb extends PersistModelWithUuid[comb.Comb, CombTable] {
+object Comb extends PersistModelWithAutoLongPk[comb.Comb, CombTable] {
   val table = TableQuery[CombTable]
 
   def create(
@@ -33,31 +33,31 @@ object Comb extends PersistModelWithUuid[comb.Comb, CombTable] {
     slug:   Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = LocalDateTime.now()
-    val id = UUID.randomUUID()
-    super.create(comb.Comb(
-      id = id,
+    create(comb.Comb(
       userId = userId,
       name = name,
-      slug = makeSlug(id, slug),
+      slug = makeSlug(name, slug),
       createdAt = timeAt,
       updatedAt = timeAt
     ))
   }
 
-  private def makeSlug(id: UUID, slug: Option[String]) =
+  // TODO: add validation that slug doesn't have an UUID format
+  // TODO: name to slug with some random digits by default
+  private def makeSlug(name: String, slug: Option[String]) =
     slug match {
       case Some(s) => s.toLowerCase
       case None    => id.toString
     }
 
-  def updateByRequest(id: UUID)(
+  def updateByRequest(id: Long)(
     name: String,
     slug: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] =
     update(id) { comb =>
       comb.copy(
         name = name,
-        slug = makeSlug(comb.id, slug),
+        slug = makeSlug(name, slug),
         updatedAt = LocalDateTime.now()
       )
     }
@@ -65,15 +65,6 @@ object Comb extends PersistModelWithUuid[comb.Comb, CombTable] {
   private val findBySlugCompiled = Compiled { slug: Rep[String] =>
     table.filter(_.slug === slug.toLowerCase).take(1)
   }
-
-  def findBySlugWithMethods(slug: String)(implicit ec: ExecutionContext) =
-    db.run {
-      for {
-        combOpt <- findBySlugCompiled(slug).result.headOption
-        comb = combOpt.get if combOpt.nonEmpty
-        methods <- CombMethod.findAllByCombIdCompiled(comb.id).result
-      } yield (comb, methods)
-    }
 
   private val findBySlugWithinUserCompiled = Compiled {
     (userId: Rep[UUID], slug: Rep[String]) =>

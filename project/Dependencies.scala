@@ -2,19 +2,19 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4-M3"
+    val akka = "2.4.0-RC1"
     val akkaExperimental = "1.0"
     val scalaz = "7.1.3"
     val algebra = "0.2.0-SNAPSHOT"
     val cats = "0.1.0-SNAPSHOT"
-    val slick = "3.1.0-M1"
-    val scalikeJdbc = "2.2.6"
-    val kamon = "0.4.0"
-    val phantom = "1.8.4"
+    val slick = "3.1.0-M2"
+    val scalikeJdbc = "2.2.8"
+    val kamon = "0.5.0"
+    val phantom = "1.10.6"
   }
 
   object Compile {
-    val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.3.0.1"
+    val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.3.1.2"
     val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.2.2"
 
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
@@ -22,20 +22,21 @@ object Dependencies {
     // val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
-    val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence-experimental" % V.akka
+    val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
 
     val akkaTracing     = "com.github.levkhomich"         %% "akka-tracing-core"             % "0.5-SNAPSHOT" changing()
-    val kamonScala      = "io.kamon"                      %% "kamon-scala"                   % V.kamon
-    val kamonAkka       = "io.kamon"                      %% "kamon-akka"                    % V.kamon
-    val kamonAkkaRemote = "io.kamon"                      %% "kamon-akka-remote"             % V.kamon
-    val kamonNewrelic   = "io.kamon"                      %% "kamon-newrelic"                % V.kamon
-    val kamonStatsd     = "io.kamon"                      %% "kamon-statsd"                  % V.kamon
-    val kamonJdbc       = "io.kamon"                      %% "kamon-jdbc"                    % V.kamon
+    // val kamonScala      = "io.kamon"                      %% "kamon-scala"                   % V.kamon
+    // val kamonAkka       = "io.kamon"                      %% "kamon-akka"                    % V.kamon
+    // val kamonAkkaRemote = "io.kamon"                      %% "kamon-akka-remote"             % V.kamon
+    // val kamonNewrelic   = "io.kamon"                      %% "kamon-newrelic"                % V.kamon
+    // val kamonStatsd     = "io.kamon"                      %% "kamon-statsd"                  % V.kamon
+    // val kamonJdbc       = "io.kamon"                      %% "kamon-jdbc"                    % V.kamon
 
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
     val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
-    val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
+    // val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
+    // val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.5"
     val sprayJson       = "io.spray"                      %%  "spray-json"                   % "1.3.2"
     val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.1.0"
 
@@ -43,11 +44,12 @@ object Dependencies {
 
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
 
-    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1201-jdbc41" exclude("org.slf4j", "slf4j-simple")
+    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1202-jdbc42" exclude("org.slf4j", "slf4j-simple")
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick changing()
-    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0-M1" changing()
+    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0-M2" changing()
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.2"
-    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.0"
+    val slickless       = "io.underscore"                 %% "slickless"                     % "0.1.0"
+    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.1"
     val relate          = "com.lucidchart"                %% "relate"                        % "1.7.1"
     val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % V.scalikeJdbc
     val scalikeJdbcMacros = "org.scalikejdbc"             %% "scalikejdbc-syntax-support-macro" % V.scalikeJdbc
@@ -55,9 +57,12 @@ object Dependencies {
     val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.15"
 
     val phantom         = "com.websudos"                  %% "phantom-dsl"                   % V.phantom
+    val phantomUdt      = "com.websudos"                  %% "phantom-udt"                   % V.phantom
 
     val levelDb         = "org.iq80.leveldb"              % "leveldb"                        % "0.7"
     val levelDbJni      = "org.fusesource.leveldbjni"     % "leveldbjni-all"                 % "1.8"
+
+    val akkaPersistenceCassandra = "com.github.krasserm"  %% "akka-persistence-cassandra"    % "0.3.9"
 
     val scredis         = "com.livestream"                %% "scredis"                       % "2.0.7-RC1"
 
@@ -65,7 +70,7 @@ object Dependencies {
     val bcrypt          = "com.github.t3hnar"             %% "scala-bcrypt"                  % "2.4"
     val nacl4s          = "com.github.emstlk"             %% "nacl4s"                        % "1.0.0" 
 
-    val aws             = "com.github.seratch"            %% "awscala"                       % "0.5.0" // TODO: replace by aws-wrap
+    val aws             = "com.github.seratch"            %% "awscala"                       % "0.5.3" // TODO: replace by aws-wrap
 
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
@@ -95,6 +100,8 @@ object Dependencies {
     val objectsize      = "com.twitter.common"            %  "objectsize"                    % "0.0.10"
     val guava           = "com.google.guava"              %  "guava"                         % "18.0"
 
+    val lz4             = "net.jpountz.lz4"               %  "lz4"                           % "1.3.0"
+
     // val jamm            = "com.github.jbellis"            % "jamm"                           % "0.3.1"
   }
 
@@ -109,7 +116,9 @@ object Dependencies {
 
   val common = Seq(
     logbackClassic, scalaLogging,
-    config, json4sJackson, pickling, upickle,
+    config, json4sJackson,
+    // pickling, upickle,
+    // pprint,
     sprayJson, sprayJsonShapeless,
     scalazCore, scalazConcurrent,
     shapeless, shapelessScalaz /*,
@@ -117,11 +126,12 @@ object Dependencies {
     , objectsize
   )
 
-  val kamon = Seq(kamonScala/*, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
+  val kamon = Seq(/*kamonScala, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
 
   val akka = Seq(
-    akkaSlf4j, akkaActor, akkaStream, akkaHttp/*,
-    akkaStreamExtensions*/
+    akkaSlf4j, akkaActor, akkaStream, akkaHttp,
+    akkaPersistence, /*akkaStreamExtensions,*/
+    akkaPersistenceCassandra
   )
 
   val root = common ++ akka ++ Seq(
@@ -143,14 +153,16 @@ object Dependencies {
   val persist = common ++ Seq(
     postgresJdbc,
     dbMigration,
-    slick, slickPg, slickJdbc,
-    relate,
-    scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
-    hikariCp, bcrypt, commonsCodec
+    slick, slickPg, slickJdbc, slickless,
+    // relate,
+    // scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
+    // phantom, phantomUdt,
+    hikariCp, bcrypt, commonsCodec,
+    routeTrie
   )
 
   val utils = common ++ Seq(
-    scredis
+    scredis, lz4
   )
 
   val macros = common

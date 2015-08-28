@@ -43,7 +43,7 @@ object UserService extends ApiService {
   ) =
     authorization { user =>
       requestAsWithValidation { req: UserRequest =>
-        persist.User.updateByRequest(user.id)(
+        persist.User.updateByRequest(user.getId)(
           email = req.email,
           username = req.username,
           fullName = req.fullName

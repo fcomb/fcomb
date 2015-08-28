@@ -104,12 +104,25 @@ package object validations {
       if (emailRegEx.findFirstIn(value).isDefined) ().successNel
       else "invalid email format".failureNel
 
-    def unique(action: AppliedCompiledFunction[_, Rep[Boolean], Boolean])(implicit ec: ExecutionContext): DBIOValidation = {
+    def unique(
+      action: AppliedCompiledFunction[_, Rep[Boolean], Boolean]
+    )(implicit ec: ExecutionContext): DBIOValidation = {
       action.result.map {
         case true  => "not unique".failureNel
         case false => ().successNel
       }
     }
+
+    val uuidRegEx = """(?i)\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z""".r
+
+    def uuid(value: String): PlainValidation =
+      if (uuidRegEx.findFirstIn(value).isDefined) ().successNel
+      else "invalid UUID format".failureNel
+
+    def notUuid(value: String): PlainValidation =
+      if (uuidRegEx.findFirstIn(value).isDefined)
+        "cannot be an UUID format".failureNel
+      else ().successNel
 
     def lengthRange(value: String, from: Int, to: Int): PlainValidation = {
       if (value.length >= from && value.length <= to) ().successNel

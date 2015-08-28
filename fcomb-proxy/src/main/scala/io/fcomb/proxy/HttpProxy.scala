@@ -14,7 +14,9 @@ import _root_.io.fcomb.models
 import models.comb.MethodKind
 import _root_.io.fcomb.trie.{ RouteTrie, RouteNode, RouteMethods }
 import scala.concurrent.Future
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.OpenHashMap
+import java.util.UUID
 
 class HttpProxy(
     config: Config
@@ -35,7 +37,7 @@ class HttpProxy(
   val interface = "0.0.0.0"
   val port = 5588
 
-  val combsMap = OpenHashMap.empty[String, OpenHashMap[String, RouteNode[models.comb.CombMethod]]]
+  val combsMap = OpenHashMap.empty[String, OpenHashMap[String, (Long, RouteNode[models.comb.CombMethod])]]
 
   def loadUsersWithCombs() = {
     persist.User.allWithCombs().map { l =>
@@ -43,7 +45,7 @@ class HttpProxy(
       combsMap ++= l.map {
         case (userId, username, combSlugs) =>
           val combsMap = OpenHashMap[String, RouteNode[models.comb.CombMethod]](
-            combSlugs.map(s => (s, null)): _*
+            combSlugs.map(s => (s, (null))): _*
           )
           (username, combsMap)
       }
@@ -73,14 +75,21 @@ class HttpProxy(
     case _                   => None
   }
 
-  def loadComb(username: String, slug: String) =
-    persist.comb.Comb.findBySlugWithMethods(slug).map {
-      case (comb, methods) =>
-        val route = RouteTrie(methods.map { m =>
-          m.uri -> (convertMethodKind(m.kind), m)
-        }: _*)
-        self ! AddCombRoute(username, comb, route)
-        route
+  val combLoadMap = TrieMap.empty[String, Future[Option[models.comb.Comb]]]
+
+  def loadCombRouteTrie(username: String, combSlug: String) =
+    combLoadMap.get(combSlug) match {
+      case Some(res) => ??? // res.map(_)
+      case _ =>
+        persist.comb.CombMethod.findBySlug(combSlug).map {
+          case Some(comb, methods) =>
+            val route = RouteTrie(methods.map { m =>
+              m.uri -> (convertMethodKind(m.kind), m)
+            }: _*) // TODO: handle errors
+            self ! AddCombRoute(username, comb, route)
+            route
+          case _ =>
+        }
     }
 
   def splitUri(uri: String) = {
@@ -146,8 +155,9 @@ class HttpProxy(
               case Some(combsMap) =>
                 combsMap.get(combSlug) match {
                   case Some(route) =>
-                    if (route == null) loadComb(username, combSlug)
-                      .flatMap(handleCombRequest(ctx, method, combUri, _))
+                    if (route == null)
+                      loadCombRouteTrie(username, combSlug)
+                        .flatMap(handleCombRequest(ctx, method, combUri, _))
                     else handleCombRequest(ctx, method, combUri, route)
                   case None => ctx.complete(HttpResponse(
                     status = StatusCodes.NotFound,

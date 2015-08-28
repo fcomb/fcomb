@@ -7,14 +7,14 @@ import java.util.UUID
 import scalaz._
 
 case class User(
-    id:           UUID,
+    id:           Option[UUID] = None,
     email:        String,
     username:     String,
     fullName:     Option[String],
     passwordHash: String,
     createdAt:    LocalDateTime,
     updatedAt:    LocalDateTime
-) extends ModelWithUuid {
+) extends ModelWithUuidPk {
   def isValidPassword(password: String) =
     password.isBcrypted(passwordHash)
 }
@@ -41,7 +41,7 @@ case class UserRequest(
 ) extends ApiServiceRequest
 
 case class UserResponse(
-  id:       java.util.UUID,
+  id:       Option[UUID],
   email:    String,
   username: String,
   fullName: Option[String]
@@ -71,8 +71,7 @@ case class CombRequest(
 ) extends ApiServiceRequest
 
 case class CombResponse(
-  id:        UUID,
-  userId:    UUID,
+  id:        Option[Long],
   name:      String,
   slug:      String,
   createdAt: LocalDateTime,
@@ -86,8 +85,8 @@ case class CombMethodRequest(
 ) extends ApiServiceRequest
 
 case class CombMethodResponse(
-  id:        UUID,
-  combId:    UUID,
+  id:        Option[Long],
+  combId:    Long,
   kind:      MethodKind.MethodKind,
   uri:       String,
   endpoint:  String,
@@ -111,7 +110,6 @@ object ResponseConversions {
   implicit def comb2Response(c: comb.Comb): CombResponse =
     CombResponse(
       id = c.id,
-      userId = c.userId,
       name = c.name,
       slug = c.slug,
       createdAt = c.createdAt,

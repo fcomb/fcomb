@@ -6,6 +6,7 @@ import spray.json._, DefaultJsonProtocol._
 import scalaz._, Scalaz._
 import java.time.LocalDateTime
 import java.util.UUID
+import scala.collection.mutable.OpenHashMap
 
 package object json {
   implicit object UuidFormat extends RootJsonFormat[UUID] {
@@ -37,10 +38,16 @@ package object json {
     new RootJsonFormat[T#Value] {
       def write(obj: T#Value) = JsString(obj.toString)
 
-      def read(v: JsValue) = v match {
-        case JsString(v) => obj.withName(v)
-        case _ =>
-          throw new DeserializationException(s"invalid ${m.getClass.getName.split('.').last}")
+      private val values = OpenHashMap(
+        obj.values.toSeq.map(v => (v.toString.toLowerCase, v)): _*
+      )
+
+      def read(v: JsValue) = {
+        val value =
+          if (v.isInstanceOf[JsString])
+            values.get(v.asInstanceOf[JsString].value.toLowerCase)
+          else None
+        value.getOrElse(throw new DeserializationException(s"invalid ${m.getClass.getName.split('.').last} value"))
       }
     }
 
@@ -66,7 +73,7 @@ package object json {
 
   implicit val combRequestJsonProtocol = jsonFormat2(CombRequest)
 
-  implicit val combResponseJsonProtocol = jsonFormat6(CombResponse)
+  implicit val combResponseJsonProtocol = jsonFormat5(CombResponse)
 
   implicit val combMethodRequestJsonProtocol = jsonFormat3(CombMethodRequest)
 

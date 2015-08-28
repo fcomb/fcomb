@@ -6,6 +6,7 @@ import java.util.UUID
 import java.sql.{ ResultSet, Array => SArray, Timestamp }
 import java.time._
 import slick.jdbc.GetResult
+import scala.collection.JavaConversions._
 
 package object persist {
   // implicit val dateTimeTypeBinder: TypeBinder[LocalDateTime] =
@@ -41,5 +42,12 @@ package object persist {
       .asInstanceOf[Array[T]]
       .filterNot(_ == null)
       .toList
+  })
+
+  implicit def mapResult: GetResult[Map[String, String]] = GetResult(r => {
+    r.rs.getObject(r.skip.currentPos)
+      .asInstanceOf[java.util.Map[String, String]]
+      .toMap
+      .filterNot(_._1 == null)
   })
 }

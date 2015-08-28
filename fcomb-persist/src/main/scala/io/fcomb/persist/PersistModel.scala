@@ -85,18 +85,18 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 }
 
 trait PersistTableWithPk[T] { this: Table[_] =>
-  def id: Rep[T]
+  def id: Rep[Option[T]]
 }
 
 trait PersistTableWithUuidPk extends PersistTableWithPk[UUID] { this: Table[_] =>
-  def id = column[UUID]("id", O.PrimaryKey)
+  def id = column[Option[UUID]]("id", O.PrimaryKey)
 }
 
-trait PersistTableWithAutoIntPk extends PersistTableWithPk[Int] { this: Table[_] =>
-  def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+trait PersistTableWithAutoLongPk extends PersistTableWithPk[Long] { this: Table[_] =>
+  def id = column[Option[Long]]("id", O.AutoInc, O.PrimaryKey)
 }
 
-trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with PersistTableWithPk[Id]] extends PersistModel[T, Q] {
+trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with PersistTableWithPk[Id]] extends PersistModel[T, Q] {
   val tableWithId: IntoInsertActionComposer[T, T]
 
   def all() =
@@ -106,7 +106,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
     db.stream(table.result)
 
   @inline
-  def findByIdQuery(id: T#IdType): AppliedCompiledFunction[T#IdType, Query[Q, T, Seq], Seq[Q#TableElementType]]
+  def findByIdQuery(id: T#PkType): AppliedCompiledFunction[T#PkType, Query[Q, T, Seq], Seq[Q#TableElementType]]
 
   @inline
   override def createDBIO(item: T) =
@@ -119,16 +119,16 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
   @inline
   def mapModel(item: T): T = item
 
-  def recordNotFound(id: T#IdType): ValidationModel =
+  def recordNotFound(id: T#PkType): ValidationModel =
     recordNotFound("id", id.toString)
 
-  def recordNotFoundAsFuture(id: T#IdType): Future[ValidationModel] =
+  def recordNotFoundAsFuture(id: T#PkType): Future[ValidationModel] =
     Future.successful(recordNotFound(id))
 
-  def findByIdDBIO(id: T#IdType) =
+  def findByIdDBIO(id: T#PkType) =
     findByIdQuery(id).result.headOption
 
-  def findById(id: T#IdType): Future[Option[T]] =
+  def findById(id: T#PkType): Future[Option[T]] =
     db.run(findByIdDBIO(id))
 
   def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
@@ -139,7 +139,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
   val idEmptyError = Future.successful(validations.validationErrors("id" -> "can't be empty"))
 
   def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
-    item.idOpt match {
+    item.id match {
       case Some(itemId) =>
         val mappedItem = mapModel(item)
         validateThenApplyVM(validate((mappedItem))) {
@@ -155,7 +155,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
   }
 
   def update(
-    id: T#IdType
+    id: T#PkType
   )(
     f: T => T
   )(
@@ -168,7 +168,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
       case None       => recordNotFoundAsFuture(id)
     }
 
-  def destroy(id: T#IdType)(implicit ec: ExecutionContext) = db.run {
+  def destroy(id: T#PkType)(implicit ec: ExecutionContext) = db.run {
     findByIdQuery(id)
       .delete
       .map {
@@ -178,13 +178,27 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[_, Id], Q <: Table[T] with 
   }
 }
 
-trait PersistModelWithUuid[T <: models.ModelWithUuid, Q <: Table[T] with PersistTableWithUuidPk] extends PersistModelWithPk[UUID, T, Q] {
-  lazy val tableWithId = table returning table.map(_.id) into ((item, _) => item)
+trait PersistModelWithUuidPk[T <: models.ModelWithUuidPk, Q <: Table[T] with PersistTableWithUuidPk] extends PersistModelWithPk[UUID, T, Q] {
+  lazy val tableWithId = table.returning(table.map(_.id))
+    .into((item, _) => item)
 
   protected val findByIdCompiled = Compiled { id: Rep[UUID] =>
     table.filter(_.id === id)
   }
 
   def findByIdQuery(id: UUID) =
+    findByIdCompiled(id)
+}
+
+trait PersistModelWithAutoLongPk[T <: models.ModelWithAutoLongPk, Q <: Table[T] with PersistTableWithAutoLongPk] extends PersistModelWithPk[Long, T, Q] {
+  lazy val tableWithId =
+    table.returning(table.map(_.id))
+      .into((item, id) => item.withPk(id.get).asInstanceOf[T])
+
+  protected val findByIdCompiled = Compiled { id: Rep[Long] =>
+    table.filter(_.id === id)
+  }
+
+  def findByIdQuery(id: Long) =
     findByIdCompiled(id)
 }

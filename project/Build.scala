@@ -3,9 +3,10 @@ import sbt.Keys._
 import spray.revolver.RevolverPlugin._
 import com.typesafe.sbt.SbtNativePackager, SbtNativePackager._
 import com.typesafe.sbt.packager.Keys._
-import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
+// import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
 import com.gilt.sbt.newrelic.NewRelic, NewRelic.autoImport._
 import play.twirl.sbt._, Import._
+// import io.ino.sbtpillar.Plugin.PillarKeys._
 
 object Build extends sbt.Build {
   val Organization = "io.fcomb"
@@ -71,7 +72,7 @@ object Build extends sbt.Build {
     settings =
       defaultSettings               ++
       SbtNativePackager.packageArchetype.java_application ++
-      SbtAspectj.aspectjSettings ++
+      // SbtAspectj.aspectjSettings ++
       Revolver.settings             ++
       Seq(
         libraryDependencies                       ++= Dependencies.root,
@@ -86,15 +87,15 @@ object Build extends sbt.Build {
         executableScriptName                      := "start",
         javaOptions in Universal                  ++= javaRunOptions.map { o => s"-J$o" },
         packageName in Universal                  := "dist",
-        mappings in Universal <++= (AspectjKeys.weaver in SbtAspectj.Aspectj).map { path =>
-          Seq(path.get -> "aspectj/weaver.jar")
-        },
-        bashScriptExtraDefines                    += """addJava "-javaagent:${app_home}/../aspectj/weaver.jar"""",
+        // mappings in Universal <++= (AspectjKeys.weaver in SbtAspectj.Aspectj).map { path =>
+        //   Seq(path.get -> "aspectj/weaver.jar")
+        // },
+        // bashScriptExtraDefines                    += """addJava "-javaagent:${app_home}/../aspectj/weaver.jar"""",
         scriptClasspath                           ~= (cp => "../config" +: cp),
         newrelicAppName                           := "fcomb-server",
         fork in run                               := true
       )
-  ).dependsOn(api, proxy)
+  ).dependsOn(api/*, proxy*/)
     .enablePlugins(SbtNativePackager)
 
   lazy val api = Project(
@@ -132,8 +133,14 @@ object Build extends sbt.Build {
   lazy val persist = Project(
      id = "persist",
      base = file("fcomb-persist"),
-     settings = defaultSettings ++ Seq(
-       libraryDependencies ++= Dependencies.persist
+     settings = defaultSettings ++ /*pillarSettings ++*/ Seq(
+       libraryDependencies ++= Dependencies.persist // ,
+       // pillarConfigFile := file("conf/application.conf"),
+       // pillarConfigKey := "cassandra.url",
+       // pillarReplicationStrategyConfigKey := "cassandra.replicationStrategy",
+       // pillarReplicationFactorConfigKey := "cassandra.replicationFactor",
+       // pillarDefaultConsistencyLevelConfigKey := "cassandra.defaultConsistencyLevel",
+       // pillarMigrationsDir := file("conf/migrations")
      )
   ).dependsOn(macros, models, utils, validations)
 

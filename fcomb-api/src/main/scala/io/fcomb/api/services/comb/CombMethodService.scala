@@ -14,7 +14,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
 
 object CombMethodService extends ApiService {
-  def create(combId: UUID)(
+  def create(combId: Long)(
     implicit
     ec:           ExecutionContext,
     materializer: Materializer

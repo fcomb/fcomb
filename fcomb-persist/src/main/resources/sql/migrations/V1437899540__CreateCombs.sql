@@ -1,5 +1,5 @@
 CREATE TABLE combs (
-  id UUID NOT NULL,
+  id serial not null,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name varchar(255) NOT NULL,
   slug varchar(42) NOT NULL,

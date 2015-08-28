@@ -7,9 +7,12 @@ object Resolvers {
     Resolver.sonatypeRepo("snapshots"),
     Resolver.sonatypeRepo("releases"),
     Resolver.url("fcomb", url("https://dl.bintray.com/fcomb/maven"))(Resolver.ivyStylePatterns),
-    "Kamon Repository" at "http://repo.kamon.io",
-    "Java.net Maven2 Repository"       at "http://download.java.net/maven/2/",
-    "Twitter Repository"               at "http://maven.twttr.com",
-    "Websudos releases"                at "http://maven.websudos.co.uk/ext-release-local"
+    Resolver.bintrayRepo("websudos", "oss-releases"),
+    Resolver.bintrayRepo("underscoreio", "libraries"),
+    Resolver.bintrayRepo("krasserm", "maven"),
+    // "Kamon Repository" at "http://repo.kamon.io",
+    "Akka Snapshot Repository"   at "http://repo.akka.io/snapshots/",
+    "Java.net Maven2 Repository" at "http://download.java.net/maven/2/",
+    "Twitter Repository"         at "http://maven.twttr.com"
   )
 }
