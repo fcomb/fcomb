@@ -13,50 +13,50 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
 
 object CombService extends ApiService {
-  def create(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    authorization { user =>
-      requestAsWithValidation { req: CombRequest =>
-        persist.comb.Comb.create(
-          userId = user.getId,
-          name = req.name,
-          slug = req.slug
-        ).map(_.map(toResponse[comb.Comb, CombResponse]))
-      }
-    }
+  // def create(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   authorization { user =>
+  //     requestAsWithValidation { req: CombRequest =>
+  //       persist.comb.Comb.create(
+  //         userId = user.getId,
+  //         name = req.name,
+  //         slug = req.slug
+  //       ).map(_.map(toResponse[comb.Comb, CombResponse]))
+  //     }
+  //   }
 
-  def update(
-    id: Long
-  )(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    authorization { user =>
-      requestAsWithValidation { req: CombRequest =>
-        persist.comb.Comb.updateByRequest(id)(
-          name = req.name,
-          slug = req.slug
-        ).map(_.map(toResponse[comb.Comb, CombResponse]))
-      }
-    }
+  // def update(
+  //   id: Long
+  // )(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   authorization { user =>
+  //     requestAsWithValidation { req: CombRequest =>
+  //       persist.comb.Comb.updateByRequest(id)(
+  //         name = req.name,
+  //         slug = req.slug
+  //       ).map(_.map(toResponse[comb.Comb, CombResponse]))
+  //     }
+  //   }
 
-  def show(
-    id: Long
-  )(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) = ???
+  // def show(
+  //   id: Long
+  // )(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) = ???
 
-  def destroy(
-    id: Long
-  )(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) = ???
+  // def destroy(
+  //   id: Long
+  // )(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) = ???
 }

@@ -14,21 +14,21 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
 
 object CombMethodService extends ApiService {
-  def create(combId: Long)(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    authorization { user =>
-      requestAsWithValidation { req: CombMethodRequest =>
-        persist.comb.CombMethod.create(
-          combId = combId,
-          kind = req.kind,
-          uri = req.uri,
-          endpoint = req.endpoint
-        ).map(_.map(toResponse[comb.CombMethod, CombMethodResponse]))
-      }
-    }
+  // def create(combId: Long)(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   authorization { user =>
+  //     requestAsWithValidation { req: CombMethodRequest =>
+  //       persist.comb.CombMethod.create(
+  //         combId = combId,
+  //         kind = req.kind,
+  //         uri = req.uri,
+  //         endpoint = req.endpoint
+  //       ).map(_.map(toResponse[comb.CombMethod, CombMethodResponse]))
+  //     }
+  //   }
 
   // def update(
   //   id: UUID

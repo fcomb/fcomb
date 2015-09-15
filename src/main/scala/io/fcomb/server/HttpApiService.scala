@@ -41,62 +41,67 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
   )
 
   // TODO
-  implicit def serviceResponse2akkaRoute(r: ServiceResponse): Route =
-    { ctx: RequestContext =>
-      val ct = ctx.request.entity.contentType()
-      val res = r(ct, ctx.request.entity.dataBytes, HttpRequestParams(ctx.request)).map {
-        case (ct, body, status) =>
-          HttpResponse(
-            status = status,
-            entity = HttpEntity(ct, body.toString)
-          )
-      }
-      ctx.complete(res)
-    }
+  // implicit def serviceResponse2akkaRoute(r: ServiceResponse): Route =
+  //   { ctx: RequestContext =>
+  //     val ct = ctx.request.entity.contentType()
+  //     val res = r(ct, ctx.request.entity.dataBytes, HttpRequestParams(ctx.request)).map {
+  //       case (ct, body, status) =>
+  //         HttpResponse(
+  //           status = status,
+  //           entity = HttpEntity(ct, body.toString)
+  //         )
+  //     }
+  //     ctx.complete(res)
+  //   }
+
+  import ServiceRoute.Implicits._
 
   // format: OFF
   val routes: Route =
     pathPrefix("v1") {
-      pathPrefix("combs") {
-        pathEndOrSingleSlash {
-          post(CombService.create)
-        } ~
-        pathPrefix(LongNumber) { id: Long =>
-          pathEndOrSingleSlash {
-            get(CombService.show(id)) ~
-            put(CombService.update(id)) ~
-            delete(CombService.destroy(id))
-          } ~
-          pathPrefix("methods") {
-            pathEndOrSingleSlash {
-              post(CombMethodService.create(id))
-            }
-          }
-        }
-      } ~
+      // pathPrefix("combs") {
+      //   pathEndOrSingleSlash {
+      //     post(CombService.create)
+      //   } ~
+      //   pathPrefix(LongNumber) { id: Long =>
+      //     pathEndOrSingleSlash {
+      //       get(CombService.show(id)) ~
+      //       put(CombService.update(id)) ~
+      //       delete(CombService.destroy(id))
+      //     } ~
+      //     pathPrefix("methods") {
+      //       pathEndOrSingleSlash {
+      //         post(CombMethodService.create(id))
+      //       }
+      //     }
+      //   }
+      // } ~
       pathPrefix("users") {
-        path("sign_up") {
-          post(UserService.signUp)
-        } ~
-        pathPrefix("me") {
-          pathEndOrSingleSlash {
-            get(UserService.me) ~
-            put(UserService.updateProfile)
-          } ~
-          path("password") {
-            put(UserService.changePassword)
-          }
-        } ~
-        path("reset_password") {
-          post(UserService.resetPassword) ~
-          put(UserService.setPassword)
+        path("test") {
+          post(UserService.test)
         }
-      } ~
-      pathPrefix("sessions") {
-        pathEndOrSingleSlash {
-          post(SessionService.create) ~
-          delete(SessionService.destroy)
-        }
+      //   path("sign_up") {
+      //     post(UserService.signUp)
+      //   } ~
+      //   pathPrefix("me") {
+      //     pathEndOrSingleSlash {
+      //       get(UserService.me) ~
+      //       put(UserService.updateProfile)
+      //     } ~
+      //     path("password") {
+      //       put(UserService.changePassword)
+      //     }
+      //   } ~
+      //   path("reset_password") {
+      //     post(UserService.resetPassword) ~
+      //     put(UserService.setPassword)
+      //   }
+      // } ~
+      // pathPrefix("sessions") {
+      //   pathEndOrSingleSlash {
+      //     post(SessionService.create) ~
+      //     delete(SessionService.destroy)
+      //   }
       } ~
       path("ping") {
         get(complete(pongJsonResponse))

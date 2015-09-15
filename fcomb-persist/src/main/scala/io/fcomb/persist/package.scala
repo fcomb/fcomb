@@ -36,13 +36,15 @@ package object persist {
 
   implicit val uuidResult = GetResult(r => UUID.fromString(r.<<))
 
-  implicit def listResult[T]: GetResult[List[T]] = GetResult(r => {
-    r.rs.getArray(r.skip.currentPos)
-      .getArray
-      .asInstanceOf[Array[T]]
-      .filterNot(_ == null)
-      .toList
-  })
+  implicit def listResult[T]: GetResult[List[T]] =
+    GetResult { r =>
+      Option(r.rs.getArray(r.skip.currentPos))
+        .map(_.getArray
+          .asInstanceOf[Array[T]]
+          .filterNot(_ == null)
+          .toList)
+        .getOrElse(List.empty)
+    }
 
   implicit def mapResult: GetResult[Map[String, String]] = GetResult(r => {
     r.rs.getObject(r.skip.currentPos)

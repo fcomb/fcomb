@@ -2,13 +2,15 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.0-RC1"
+    val akka = "2.4.0-RC2"
     val akkaExperimental = "1.0"
-    val scalaz = "7.1.3"
     val algebra = "0.2.0-SNAPSHOT"
     val cats = "0.1.0-SNAPSHOT"
-    val slick = "3.1.0-M2"
+    val circle = "0.1.1"
+    val slick = "3.1.0-RC1"
+    val scalaz = "7.1.3"
     val scalikeJdbc = "2.2.8"
+    val monocle = "1.2.0-M1"
     val kamon = "0.5.0"
     val phantom = "1.10.6"
   }
@@ -39,15 +41,18 @@ object Dependencies {
     // val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.5"
     val sprayJson       = "io.spray"                      %%  "spray-json"                   % "1.3.2"
     val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.1.0"
+    val circleCore      = "io.circe"                      %% "circe-core"                    % V.circle
+    val circleGeneric   = "io.circe"                      %% "circe-generic"                 % V.circle
+    val circleJawn      = "io.circe"                      %% "circe-jawn"                    % V.circle
 
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
 
-    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1202-jdbc42" exclude("org.slf4j", "slf4j-simple")
-    val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick changing()
-    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0-M2" changing()
-    val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.2"
+    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1201-jdbc41" exclude("org.slf4j", "slf4j-simple")
+    val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
+    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0-RC1"
+    val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.3"
     val slickless       = "io.underscore"                 %% "slickless"                     % "0.1.0"
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.1"
     val relate          = "com.lucidchart"                %% "relate"                        % "1.7.1"
@@ -70,7 +75,8 @@ object Dependencies {
     val bcrypt          = "com.github.t3hnar"             %% "scala-bcrypt"                  % "2.4"
     val nacl4s          = "com.github.emstlk"             %% "nacl4s"                        % "1.0.0" 
 
-    val aws             = "com.github.seratch"            %% "awscala"                       % "0.5.3" // TODO: replace by aws-wrap
+    val s3              = "com.amazonaws"                 %  "aws-java-sdk-s3"               % "1.10.14"
+    val awsWrap         = "com.github.dwhjames"           %% "aws-wrap"                      % "0.7.2"
 
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
@@ -85,6 +91,11 @@ object Dependencies {
 
     val cats            = "org.spire-math"                %% "cats-core"                     % V.cats
     val catsStd         = "org.spire-math"                %% "cats-std"                      % V.cats
+
+    val monocleCore     = "com.github.julien-truffaut"    %%  "monocle-core"                 % V.monocle
+    val monocleGeneric  = "com.github.julien-truffaut"    %%  "monocle-generic"              % V.monocle
+    val monocleMacro    = "com.github.julien-truffaut"    %%  "monocle-macro"                % V.monocle
+    val monocleState    = "com.github.julien-truffaut"    %%  "monocle-state"                % V.monocle
 
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.3"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
@@ -109,7 +120,8 @@ object Dependencies {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.3" % "test"
     val specs2          = "org.specs2"                    %% "specs2-core"                   % "2.4.17" % "test"
-    val phantomTestkit  = "com.websudos"                  %% "phantom-testkit"               % V.phantom
+    val phantomTestkit  = "com.websudos"                  %% "phantom-testkit"               % V.phantom % "test"
+    val monocleLaw      = "com.github.julien-truffaut"    %% "monocle-law"                   % V.monocle % "test" 
   }
 
   import Compile._, Test._
@@ -120,6 +132,7 @@ object Dependencies {
     // pickling, upickle,
     // pprint,
     sprayJson, sprayJsonShapeless,
+    circleCore, circleGeneric, circleJawn,
     scalazCore, scalazConcurrent,
     shapeless, shapelessScalaz /*,
     jamm */

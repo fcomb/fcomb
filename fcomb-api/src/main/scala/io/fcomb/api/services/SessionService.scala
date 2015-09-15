@@ -15,21 +15,21 @@ import scalaz.syntax.foldable._
 import ResponseConversions._
 
 object SessionService extends ApiService {
-  def create(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    requestAsWithValidation { req: SessionRequest =>
-      persist.Session
-        .create(req)
-        .map(_.map(toResponse[Session, SessionResponse]))
-    }
+  // def create(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   requestAsWithValidation { req: SessionRequest =>
+  //     persist.Session
+  //       .create(req)
+  //       .map(_.map(toResponse[Session, SessionResponse]))
+  //   }
 
-  def destroy(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    ??? // TODO
+  // def destroy(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   ??? // TODO
 }

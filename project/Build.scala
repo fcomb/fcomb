@@ -76,8 +76,8 @@ object Build extends sbt.Build {
       Revolver.settings             ++
       Seq(
         libraryDependencies                       ++= Dependencies.root,
-        Revolver.reStartArgs                      :=  Seq("io.fcomb.server.Main"),
-        mainClass            in Revolver.reStart  :=  Some("io.fcomb.server.Main"),
+        Revolver.reStartArgs                      :=  Seq("io.fcomb.Main"),
+        mainClass            in Revolver.reStart  :=  Some("io.fcomb.Main"),
         autoCompilerPlugins                       :=  true,
         scalacOptions        in (Compile,doc)     :=  Seq(
           "-groups",

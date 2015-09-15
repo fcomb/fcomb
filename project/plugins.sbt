@@ -24,3 +24,5 @@ addSbtPlugin("com.gilt.sbt" % "sbt-newrelic" % "0.1.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-twirl" % "1.1.1")
 
 // addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "1.0.4")
+
+addCompilerPlugin("org.scalamacros" %% "paradise" % "2.0.1" cross CrossVersion.full)

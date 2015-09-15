@@ -12,80 +12,85 @@ import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
 
-object UserService extends ApiService {
-  def signUp(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    requestAsWithValidation { req: UserSignUpRequest =>
-      persist.User.create(
-        email = req.email,
-        username = req.username,
-        fullName = req.fullName,
-        password = req.password
-      ).map(_.map(toResponse[User, UserResponse]))
-    }
-
-  def me(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    authorization { user =>
-      responseAs[User, UserResponse](user)
-    }
-
-  def updateProfile(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    authorization { user =>
-      requestAsWithValidation { req: UserRequest =>
-        persist.User.updateByRequest(user.getId)(
-          email = req.email,
-          username = req.username,
-          fullName = req.fullName
-        ).map(_.map(toResponse[User, UserResponse]))
-      }
-    }
-
-  def changePassword(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    authorization { user =>
-      requestAsWithValidation[ChangePasswordRequest, NoContentResponse] { req =>
-        persist.User
-          .changePassword(user, req.oldPassword, req.newPassword)
-          .map(_.map(_ => NoContentResponse()))
-      }
-    }
-
-  def resetPassword(
-    implicit
-    system:       ActorSystem,
-    materializer: Materializer
-  ) = {
-    import system.dispatcher
-
-    requestAsWithValidation[ResetPasswordRequest, NoContentResponse] { req =>
-      ResetPassword
-        .reset(req.email)
-        .map(_.map(_ => NoContentResponse()))
-    }
+object UserService extends Service {
+  def test(implicit ec: ExecutionContext) = new ServiceMethod {
+    def apply(ctx: ServiceContext) =
+      ctx.complete(Future("kek"))
   }
 
-  def setPassword(
-    implicit
-    ec:           ExecutionContext,
-    materializer: Materializer
-  ) =
-    requestAsWithValidation[ResetPasswordSetRequest, NoContentResponse] { req =>
-      ResetPassword
-        .set(req.token, req.password)
-        .map(_.map(_ => NoContentResponse()))
-    }
+  // def signUp(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   requestAsWithValidation { req: UserSignUpRequest =>
+  //     persist.User.create(
+  //       email = req.email,
+  //       username = req.username,
+  //       fullName = req.fullName,
+  //       password = req.password
+  //     ).map(_.map(toResponse[User, UserResponse]))
+  //   }
+
+  // def me(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   authorization { user =>
+  //     responseAs[User, UserResponse](user)
+  //   }
+
+  // def updateProfile(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   authorization { user =>
+  //     requestAsWithValidation { req: UserRequest =>
+  //       persist.User.updateByRequest(user.getId)(
+  //         email = req.email,
+  //         username = req.username,
+  //         fullName = req.fullName
+  //       ).map(_.map(toResponse[User, UserResponse]))
+  //     }
+  //   }
+
+  // def changePassword(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   authorization { user =>
+  //     requestAsWithValidation[ChangePasswordRequest, NoContentResponse] { req =>
+  //       persist.User
+  //         .changePassword(user, req.oldPassword, req.newPassword)
+  //         .map(_.map(_ => NoContentResponse()))
+  //     }
+  //   }
+
+  // def resetPassword(
+  //   implicit
+  //   system:       ActorSystem,
+  //   materializer: Materializer
+  // ) = {
+  //   import system.dispatcher
+
+  //   requestAsWithValidation[ResetPasswordRequest, NoContentResponse] { req =>
+  //     ResetPassword
+  //       .reset(req.email)
+  //       .map(_.map(_ => NoContentResponse()))
+  //   }
+  // }
+
+  // def setPassword(
+  //   implicit
+  //   ec:           ExecutionContext,
+  //   materializer: Materializer
+  // ) =
+  //   requestAsWithValidation[ResetPasswordSetRequest, NoContentResponse] { req =>
+  //     ResetPassword
+  //       .set(req.token, req.password)
+  //       .map(_.map(_ => NoContentResponse()))
+  //   }
 }
