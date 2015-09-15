@@ -2,6 +2,7 @@ package io.fcomb.api.services
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.RequestContext
+import akka.http.scaladsl.model.StatusCodes
 import akka.stream.Materializer
 import io.fcomb.json._
 import io.fcomb.models._
@@ -9,14 +10,17 @@ import io.fcomb.models.ResponseConversions._
 import io.fcomb.persist
 import io.fcomb.services.user.ResetPassword
 import java.util.UUID
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
 
 object UserService extends Service {
-  def test(implicit ec: ExecutionContext) = new ServiceMethod {
-    def apply(ctx: ServiceContext) =
-      ctx.complete(Future("kek"))
-  }
+  def test(implicit ec: ExecutionContext, mat: Materializer) =
+    action { ctx =>
+      ctx.requestBodyAs[UserSignUpRequest]().map { req =>
+        println(s"req: $req")
+      }
+      ctx.complete("kek", StatusCodes.OK)
+    }
 
   // def signUp(
   //   implicit

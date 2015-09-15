@@ -2,6 +2,7 @@ package io.fcomb.server
 
 import io.fcomb.api.JsonErrors
 import io.fcomb.api.services._
+import io.fcomb.api.services.ServiceRoute.Implicits._
 import io.fcomb.api.services.comb._
 import akka.actor._
 import akka.stream.ActorMaterializer
@@ -39,22 +40,6 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
       """{"pong":true}"""
     )
   )
-
-  // TODO
-  // implicit def serviceResponse2akkaRoute(r: ServiceResponse): Route =
-  //   { ctx: RequestContext =>
-  //     val ct = ctx.request.entity.contentType()
-  //     val res = r(ct, ctx.request.entity.dataBytes, HttpRequestParams(ctx.request)).map {
-  //       case (ct, body, status) =>
-  //         HttpResponse(
-  //           status = status,
-  //           entity = HttpEntity(ct, body.toString)
-  //         )
-  //     }
-  //     ctx.complete(res)
-  //   }
-
-  import ServiceRoute.Implicits._
 
   // format: OFF
   val routes: Route =

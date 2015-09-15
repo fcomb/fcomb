@@ -28,7 +28,7 @@ sealed trait Marshaller {
     implicit
     ec: ExecutionContext,
     mat: Materializer
-  ): Future[String \/ RequestBody[_]]
+  ): Future[Throwable \/ RequestBody[_]]
 }
 
 case object JsonMarshaller extends Marshaller {
@@ -39,12 +39,12 @@ case object JsonMarshaller extends Marshaller {
     implicit
     ec: ExecutionContext,
     mat: Materializer
-  ): Future[String \/ RequestBody[_]] =
+  ): Future[Throwable \/ RequestBody[_]] =
     body
       .runFold(ByteString.empty)(_ ++ _)
       .map { data =>
         if (data.isEmpty) {
-          JsonBody(None).right[String]
+          JsonBody(None).right[Throwable]
         } else {
           tryE(data.utf8String.parseJson)
             .map(res => JsonBody(Some(res)))
@@ -52,25 +52,35 @@ case object JsonMarshaller extends Marshaller {
       }
 }
 
-sealed trait ServiceResult
+sealed trait ServiceResult {
+  val statusCode: StatusCode
+  val contentType: ContentType
+}
 
 object ServiceResult {
-  case class CompleteResult(response: ByteString) extends ServiceResult
-  case class CompleteFutureResult(response: Future[ByteString]) extends ServiceResult
+  case class CompleteResult(
+    response: ByteString,
+    statusCode: StatusCode,
+    contentType: ContentType
+  ) extends ServiceResult
+
+  case class CompleteFutureResult(
+    response: Future[ByteString],
+    statusCode: StatusCode,
+    contentType: ContentType
+  ) extends ServiceResult
+
+  case class CompleteSourceResult(
+    s: Source[ByteString, Any],
+    statusCode: StatusCode,
+    contentType: ContentType
+  ) extends ServiceResult
 }
 import ServiceResult._
 
 trait ServiceContext {
   val requestContentType: ContentType
-
   val requestContext: RequestContext
-
-  def requestBody()(
-    implicit
-    ec: ExecutionContext,
-    mat: Materializer
-  ) =
-    marshaller.deserialize(requestContext.request.entity.dataBytes)
 
   val contentType: ContentType = requestContentType match {
     case _ => `application/json`
@@ -80,11 +90,33 @@ trait ServiceContext {
     case _ => JsonMarshaller // default marshaller
   }
 
-  def complete(res: String): ServiceResult =
-    CompleteResult(ByteString(res))
+  def requestBody()(implicit ec: ExecutionContext, mat: Materializer) =
+    marshaller.deserialize(requestContext.request.entity.dataBytes)
 
-  def complete(f: Future[String])(implicit ec: ExecutionContext): ServiceResult =
-    CompleteFutureResult(f.map(ByteString(_)))
+  def requestBodyAs[T]()(
+    implicit
+    ec: ExecutionContext,
+    mat: Materializer,
+    tm: Manifest[T],
+    jr: JsonReader[T]
+  ): Future[Throwable \/ Option[T]] =
+    requestBody().map(_.flatMap {
+      case JsonBody(Some(json)) =>
+        tryE(jr.read(json)).map(Some(_))
+      case _ => None.right[Throwable]
+    })
+
+  def complete(res: String, statusCode: StatusCode): ServiceResult =
+    CompleteResult(ByteString(res), statusCode, contentType)
+
+  def complete(f: Future[String], statusCode: StatusCode)(
+    implicit
+    ec: ExecutionContext
+  ): ServiceResult =
+    CompleteFutureResult(f.map(ByteString(_)), statusCode, contentType)
+
+  def complete(s: Source[ByteString, Any], statusCode: StatusCode): ServiceResult =
+    CompleteSourceResult(s, statusCode, contentType)
 }
 
 trait ServiceMethod {
@@ -97,8 +129,7 @@ object ServiceRoute {
       method: ServiceMethod
     )(
       implicit
-      ec: ExecutionContext,
-      mat: Materializer
+      ec: ExecutionContext
     ): Route =
       { rCtx: RequestContext =>
         val ctx = new ServiceContext {
@@ -106,20 +137,32 @@ object ServiceRoute {
           val requestContentType = rCtx.request.entity.contentType()
         }
         method(ctx) match {
-          case CompleteResult(res) =>
+          case CompleteResult(res, status, ct) =>
             rCtx.complete(HttpResponse(
-              entity = res
+              status = status,
+              entity = HttpEntity(ct, res)
             ))
-          case CompleteFutureResult(f) =>
+          case CompleteFutureResult(f, status, ct) =>
             rCtx.complete(f.map(res => HttpResponse(
-              entity = res
+              status = status,
+              entity = HttpEntity(ct, res)
             )))
+          case CompleteSourceResult(s, status, ct) =>
+            rCtx.complete(HttpResponse(
+              status = status,
+              entity = HttpEntity.CloseDelimited(ct, s)
+            ))
         }
       }
   }
 }
 
 trait Service {
+  def action(f: ServiceContext => ServiceResult) =
+    new ServiceMethod {
+      def apply(ctx: ServiceContext) = f(ctx)
+    }
+
   def validationErrors(errors: (String, String)*) =
     ValidationErrorsResponse(errors.map {
       case (k, v) => (k, List(v))
@@ -128,8 +171,8 @@ trait Service {
   import io.fcomb.json._
   implicitly[JsonWriter[ValidationErrorsResponse]]
 
-  // def toResponse[T, E <: ApiServiceResponse](value: T)(implicit f: T => E) =
-  //   f(value)
+  def toResponse[T, E <: ApiServiceResponse](value: T)(implicit f: T => E) =
+    f(value)
 
   // def handleRequest[T <: ApiServiceRequest](
   //   f: (T, ResponseMarshaller) => Future[(_, StatusCode)]

@@ -1,11 +1,11 @@
 package io.fcomb
 
-import scalaz._, Scalaz._
+import scalaz._
 
 package object utils {
-  def tryE[T](value: => T): String \/ T =
+  def tryE[T](value: => T): Throwable \/ T =
     try \/-(value)
     catch {
-      case e: Throwable => -\/(e.getMessage)
+      case e: Throwable => -\/(e)
     }
 }

@@ -4,7 +4,6 @@ import spray.revolver.RevolverPlugin._
 import com.typesafe.sbt.SbtNativePackager, SbtNativePackager._
 import com.typesafe.sbt.packager.Keys._
 // import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
-import com.gilt.sbt.newrelic.NewRelic, NewRelic.autoImport._
 import play.twirl.sbt._, Import._
 // import io.ino.sbtpillar.Plugin.PillarKeys._
 
@@ -41,7 +40,6 @@ object Build extends sbt.Build {
     "-Xmx2048M",
     "-Xss6M",
     "-XX:+CMSClassUnloadingEnabled"
-      // "-agentlib:TakipiAgent"
   )
 
   val javaVersion = "1.8"
@@ -92,7 +90,6 @@ object Build extends sbt.Build {
         // },
         // bashScriptExtraDefines                    += """addJava "-javaagent:${app_home}/../aspectj/weaver.jar"""",
         scriptClasspath                           ~= (cp => "../config" +: cp),
-        newrelicAppName                           := "fcomb-server",
         fork in run                               := true
       )
   ).dependsOn(api/*, proxy*/)

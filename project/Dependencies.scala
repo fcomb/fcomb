@@ -49,7 +49,7 @@ object Dependencies {
 
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
 
-    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1201-jdbc41" exclude("org.slf4j", "slf4j-simple")
+    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1202-jdbc42" exclude("org.slf4j", "slf4j-simple")
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0-RC1"
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.3"
@@ -107,6 +107,8 @@ object Dependencies {
     val commonsCodec    = "commons-codec"                 %  "commons-codec"                 % "1.10"
 
     val ffi             = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
+
+    val betterFiles     = "com.github.pathikrit"          %% "better-files"                  % "1.0.0"
 
     val objectsize      = "com.twitter.common"            %  "objectsize"                    % "0.0.10"
     val guava           = "com.google.guava"              %  "guava"                         % "18.0"

@@ -5,7 +5,7 @@ resolvers ++= Seq(
   Classpaths.sbtPluginReleases
 )
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.0.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.0.4")
 
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.7.5")
 
@@ -16,8 +16,6 @@ addSbtPlugin("io.spray" % "sbt-revolver" % "0.7.2")
 // addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.1.0")
 
 addSbtPlugin("com.sksamuel.scapegoat" %% "sbt-scapegoat" % "1.0.0")
-
-addSbtPlugin("com.gilt.sbt" % "sbt-newrelic" % "0.1.0")
 
 // addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.2")
 
