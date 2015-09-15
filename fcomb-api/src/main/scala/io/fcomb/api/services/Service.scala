@@ -92,31 +92,6 @@ trait ServiceContext {
 
   def requestBody()(implicit ec: ExecutionContext, mat: Materializer) =
     marshaller.deserialize(requestContext.request.entity.dataBytes)
-
-  def requestBodyAs[T]()(
-    implicit
-    ec: ExecutionContext,
-    mat: Materializer,
-    tm: Manifest[T],
-    jr: JsonReader[T]
-  ): Future[Throwable \/ Option[T]] =
-    requestBody().map(_.flatMap {
-      case JsonBody(Some(json)) =>
-        tryE(jr.read(json)).map(Some(_))
-      case _ => None.right[Throwable]
-    })
-
-  def complete(res: String, statusCode: StatusCode): ServiceResult =
-    CompleteResult(ByteString(res), statusCode, contentType)
-
-  def complete(f: Future[String], statusCode: StatusCode)(
-    implicit
-    ec: ExecutionContext
-  ): ServiceResult =
-    CompleteFutureResult(f.map(ByteString(_)), statusCode, contentType)
-
-  def complete(s: Source[ByteString, Any], statusCode: StatusCode): ServiceResult =
-    CompleteSourceResult(s, statusCode, contentType)
 }
 
 trait ServiceMethod {
@@ -163,6 +138,44 @@ trait Service {
       def apply(ctx: ServiceContext) = f(ctx)
     }
 
+  def requestBodyAs[T]()(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    mat: Materializer,
+    tm: Manifest[T],
+    jr: JsonReader[T]
+  ): Future[Throwable \/ Option[T]] =
+    ctx.requestBody().map(_.flatMap {
+      case JsonBody(Some(json)) =>
+        tryE(jr.read(json)).map(Some(_))
+      case _ => None.right[Throwable]
+    })
+
+  def complete(
+    res: String,
+    statusCode: StatusCode,
+    contentType: ContentType
+  ): ServiceResult =
+    CompleteResult(ByteString(res), statusCode, contentType)
+
+  def complete(
+    f: Future[String],
+    statusCode: StatusCode,
+    contentType: ContentType
+  )(
+    implicit
+    ec: ExecutionContext
+  ): ServiceResult =
+    CompleteFutureResult(f.map(ByteString(_)), statusCode, contentType)
+
+  def complete(
+    s: Source[ByteString, Any],
+    statusCode: StatusCode,
+    contentType: ContentType
+  ): ServiceResult =
+    CompleteSourceResult(s, statusCode, contentType)
+
   def validationErrors(errors: (String, String)*) =
     ValidationErrorsResponse(errors.map {
       case (k, v) => (k, List(v))
@@ -171,15 +184,15 @@ trait Service {
   import io.fcomb.json._
   implicitly[JsonWriter[ValidationErrorsResponse]]
 
-  def toResponse[T, E <: ApiServiceResponse](value: T)(implicit f: T => E) =
+  def toResponse[T, E <: ModelServiceResponse](value: T)(implicit f: T => E) =
     f(value)
 
-  // def handleRequest[T <: ApiServiceRequest](
+  // def handleRequest[T <: ModelServiceRequest](
   //   f: (T, ResponseMarshaller) => Future[(_, StatusCode)]
   // )(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer,
+  //   mat: Materializer,
   //   tm:           Manifest[T],
   //   jr:           JsonReader[T]
   // ): ServiceResponse =
@@ -211,12 +224,12 @@ trait Service {
   //     }
   //   }
 
-  // def requestAs[T <: ApiServiceRequest, E <: ApiServiceResponse](
+  // def requestAs[T <: ModelServiceRequest, E <: ModelServiceResponse](
   //   f: T => Future[E]
   // )(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer,
+  //   mat: Materializer,
   //   tm:           Manifest[T],
   //   jr:           JsonReader[T],
   //   jw:           JsonWriter[E]
@@ -225,12 +238,12 @@ trait Service {
   //     f(req).map { res => (marshaller(res), StatusCodes.OK) }
   //   }
 
-  // def requestAsWithValidation[T <: ApiServiceRequest, E <: ApiServiceResponse](
+  // def requestAsWithValidation[T <: ModelServiceRequest, E <: ModelServiceResponse](
   //   f: T => Future[validations.ValidationResult[E]]
   // )(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer,
+  //   mat: Materializer,
   //   tm:           Manifest[T],
   //   jr:           JsonReader[T],
   //   jw:           JsonWriter[E]
@@ -252,7 +265,7 @@ trait Service {
   //     }
   //   }
 
-  // def renderAs[T <: ApiServiceResponse](
+  // def renderAs[T <: ModelServiceResponse](
   //   contentType: ContentType,
   //   entity:      T,
   //   statusCode:  StatusCode
@@ -264,12 +277,12 @@ trait Service {
   //     case (ct, body) => (ct, body, statusCode)
   //   }
 
-  // def response[T <: ApiServiceResponse](
+  // def response[T <: ModelServiceResponse](
   //   res: => T
   // )(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer,
+  //   mat: Materializer,
   //   tm:           Manifest[T],
   //   jw:           JsonWriter[T]
   // ): ServiceResponse =
@@ -282,12 +295,12 @@ trait Service {
   //       Future.successful(renderAs(contentType, res, StatusCodes.OK))
   //   }
 
-  // def responseAs[M, T <: ApiServiceResponse](
+  // def responseAs[M, T <: ModelServiceResponse](
   //   res: => M
   // )(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer,
+  //   mat: Materializer,
   //   tm:           Manifest[T],
   //   jw:           JsonWriter[T],
   //   f:            M => T
@@ -306,7 +319,7 @@ trait Service {
   // )(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ): ServiceResponse =
   //   new ServiceResponse {
   //     def apply(

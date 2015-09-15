@@ -45,8 +45,8 @@ object Mandrill {
     templateName: String,
     messageTo: List[String],
     messageHtml: String
-  )(implicit system: ActorSystem, materializer: Materializer) = {
-    import system.dispatcher
+  )(implicit sys: ActorSystem, mat: Materializer) = {
+    import sys.dispatcher
 
     val entity = HttpEntity(
       contentType = ContentTypes.`application/json`,

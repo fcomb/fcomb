@@ -7,8 +7,8 @@ case class Session(
 case class SessionRequest(
   email: String,
   password: String
-) extends ApiServiceRequest
+) extends ModelServiceRequest
 
 case class SessionResponse(
   token: String
-) extends ApiServiceResponse
+) extends ModelServiceResponse

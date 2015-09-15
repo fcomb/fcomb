@@ -19,8 +19,8 @@ object ResetPassword {
   private val ttl = Some(1.hour)
 
   // TODO: add email validation
-  def reset(email: String)(implicit system: ActorSystem, materializer: Materializer): Future[ValidationResultUnit] = {
-    import system.dispatcher
+  def reset(email: String)(implicit sys: ActorSystem, mat: Materializer): Future[ValidationResultUnit] = {
+    import sys.dispatcher
 
     persist.User.findByEmail(email).flatMap {
       case Some(user) =>
@@ -39,7 +39,7 @@ object ResetPassword {
     }
   }
 
-  def set(token: String, password: String)(implicit ec: ExecutionContext, materializer: Materializer): Future[ValidationResultUnit] = {
+  def set(token: String, password: String)(implicit ec: ExecutionContext, mat: Materializer): Future[ValidationResultUnit] = {
     val key = s"$prefix$token"
     persist.User.validatePassword(password) match {
       case Success(_) =>

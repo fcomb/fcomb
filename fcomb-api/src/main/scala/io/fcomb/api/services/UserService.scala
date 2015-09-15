@@ -15,17 +15,21 @@ import scala.language.implicitConversions
 
 object UserService extends Service {
   def test(implicit ec: ExecutionContext, mat: Materializer) =
-    action { ctx =>
-      ctx.requestBodyAs[UserSignUpRequest]().map { req =>
+    action { implicit ctx =>
+      requestBodyAs[UserSignUpRequest]().map { req =>
         println(s"req: $req")
       }
-      ctx.complete("kek", StatusCodes.OK)
+      complete(
+        "kek",
+        StatusCodes.OK,
+        akka.http.scaladsl.model.ContentTypes.`application/json`
+      )
     }
 
   // def signUp(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) =
   //   requestAsWithValidation { req: UserSignUpRequest =>
   //     persist.User.create(
@@ -39,7 +43,7 @@ object UserService extends Service {
   // def me(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) =
   //   authorization { user =>
   //     responseAs[User, UserResponse](user)
@@ -48,7 +52,7 @@ object UserService extends Service {
   // def updateProfile(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) =
   //   authorization { user =>
   //     requestAsWithValidation { req: UserRequest =>
@@ -63,7 +67,7 @@ object UserService extends Service {
   // def changePassword(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) =
   //   authorization { user =>
   //     requestAsWithValidation[ChangePasswordRequest, NoContentResponse] { req =>
@@ -75,10 +79,10 @@ object UserService extends Service {
 
   // def resetPassword(
   //   implicit
-  //   system:       ActorSystem,
-  //   materializer: Materializer
+  //   sys:       ActorSystem,
+  //   mat: Materializer
   // ) = {
-  //   import system.dispatcher
+  //   import sys.dispatcher
 
   //   requestAsWithValidation[ResetPasswordRequest, NoContentResponse] { req =>
   //     ResetPassword
@@ -90,7 +94,7 @@ object UserService extends Service {
   // def setPassword(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) =
   //   requestAsWithValidation[ResetPasswordSetRequest, NoContentResponse] { req =>
   //     ResetPassword

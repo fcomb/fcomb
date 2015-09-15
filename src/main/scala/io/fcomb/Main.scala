@@ -13,9 +13,9 @@ object Main extends App {
 
   // Kamon.start()
 
-  implicit val system = ActorSystem("fcomb-server", Config.config)
-  implicit val materializer = ActorMaterializer()
-  import system.dispatcher
+  implicit val sys = ActorSystem("fcomb-server", Config.config)
+  implicit val mat = ActorMaterializer()
+  import sys.dispatcher
 
   (for {
     _ <- Db.migrate()
@@ -27,7 +27,7 @@ object Main extends App {
       logger.error(s"e: $e\n${e.getMessage()}\n${e.getStackTrace().mkString("\n\t")}")
       try {
         // Kamon.shutdown()
-        system.terminate()
+        sys.terminate()
       } finally {
         System.exit(-1)
       }

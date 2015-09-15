@@ -1,6 +1,6 @@
 package io.fcomb.api.services.comb
 
-import io.fcomb.api.services.ApiService
+import io.fcomb.api.services.Service
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.RequestContext
 import akka.stream.Materializer
@@ -13,11 +13,11 @@ import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
 
-object CombMethodService extends ApiService {
+object CombMethodService extends Service {
   // def create(combId: Long)(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) =
   //   authorization { user =>
   //     requestAsWithValidation { req: CombMethodRequest =>
@@ -35,7 +35,7 @@ object CombMethodService extends ApiService {
   // )(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) =
   //   authorization { user =>
   //     requestAsWithValidation { req: CombRequest =>
@@ -51,7 +51,7 @@ object CombMethodService extends ApiService {
   // )(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) = ???
 
   // def destroy(
@@ -59,6 +59,6 @@ object CombMethodService extends ApiService {
   // )(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) = ???
 }

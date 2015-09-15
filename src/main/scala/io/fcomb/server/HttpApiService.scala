@@ -5,17 +5,17 @@ import io.fcomb.api.services._
 import io.fcomb.api.services.ServiceRoute.Implicits._
 import io.fcomb.api.services.comb._
 import akka.actor._
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model._, ContentTypes.`application/json`
 import akka.stream.scaladsl.Sink
 import com.typesafe.config.Config
-import scala.language.{ postfixOps, implicitConversions }
+import scala.language.{postfixOps, implicitConversions}
 
-class HttpApiService(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer) {
-  implicit val executionContext = system.dispatcher
+class HttpApiService(config: Config)(implicit sys: ActorSystem, mat: Materializer) {
+  implicit val executionContext = sys.dispatcher
 
   val interface = config.getString("rest-api.interface")
   val port = config.getInt("rest-api.port")
@@ -103,6 +103,6 @@ class HttpApiService(config: Config)(implicit system: ActorSystem, materializer:
 }
 
 object HttpApiService {
-  def start(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer) =
+  def start(config: Config)(implicit sys: ActorSystem, mat: Materializer) =
     new HttpApiService(config).bind()
 }

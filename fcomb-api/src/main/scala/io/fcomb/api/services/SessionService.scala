@@ -14,11 +14,11 @@ import scalaz._
 import scalaz.syntax.foldable._
 import ResponseConversions._
 
-object SessionService extends ApiService {
+object SessionService extends Service {
   // def create(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) =
   //   requestAsWithValidation { req: SessionRequest =>
   //     persist.Session
@@ -29,7 +29,7 @@ object SessionService extends ApiService {
   // def destroy(
   //   implicit
   //   ec:           ExecutionContext,
-  //   materializer: Materializer
+  //   mat: Materializer
   // ) =
   //   ??? // TODO
 }

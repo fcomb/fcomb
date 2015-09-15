@@ -20,55 +20,55 @@ case class User(
 }
 
 // TODO
-trait ApiServiceRequest
+trait ModelServiceRequest
 
 // TODO
-trait ApiServiceResponse
+trait ModelServiceResponse
 
-case class NoContentResponse() extends ApiServiceResponse
+case class NoContentResponse() extends ModelServiceResponse
 
 case class UserSignUpRequest(
   email:    String,
   password: String,
   username: String,
   fullName: Option[String]
-) extends ApiServiceRequest
+) extends ModelServiceRequest
 
 case class UserRequest(
   email:    String,
   username: String,
   fullName: Option[String]
-) extends ApiServiceRequest
+) extends ModelServiceRequest
 
 case class UserResponse(
   id:       Option[UUID],
   email:    String,
   username: String,
   fullName: Option[String]
-) extends ApiServiceResponse
+) extends ModelServiceResponse
 
 case class ResetPasswordRequest(
   email: String
-) extends ApiServiceRequest
+) extends ModelServiceRequest
 
 case class ResetPasswordSetRequest(
   token:    String,
   password: String
-) extends ApiServiceRequest
+) extends ModelServiceRequest
 
 case class ChangePasswordRequest(
   oldPassword: String,
   newPassword: String
-) extends ApiServiceRequest
+) extends ModelServiceRequest
 
 case class ValidationErrorsResponse(
   errors: Map[String, List[String]]
-) extends ApiServiceResponse
+) extends ModelServiceResponse
 
 case class CombRequest(
   name: String,
   slug: Option[String]
-) extends ApiServiceRequest
+) extends ModelServiceRequest
 
 case class CombResponse(
   id:        Option[Long],
@@ -76,13 +76,13 @@ case class CombResponse(
   slug:      String,
   createdAt: LocalDateTime,
   updatedAt: LocalDateTime
-) extends ApiServiceResponse
+) extends ModelServiceResponse
 
 case class CombMethodRequest(
   kind:     MethodKind.MethodKind,
   uri:      String,
   endpoint: String
-) extends ApiServiceRequest
+) extends ModelServiceRequest
 
 case class CombMethodResponse(
   id:        Option[Long],
@@ -92,7 +92,7 @@ case class CombMethodResponse(
   endpoint:  String,
   createdAt: LocalDateTime,
   updatedAt: LocalDateTime
-) extends ApiServiceResponse
+) extends ModelServiceResponse
 
 import scala.language.implicitConversions
 object ResponseConversions {

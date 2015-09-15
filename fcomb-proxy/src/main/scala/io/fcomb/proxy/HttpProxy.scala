@@ -22,10 +22,10 @@ class HttpProxy(
     config: Config
 )(
     implicit
-    system:       ActorSystem,
-    materializer: ActorMaterializer
+    sys: ActorSystem,
+    mat: Materializer
 ) extends Actor with ActorLogging {
-  import system.dispatcher
+  import sys.dispatcher
 
   @SerialVersionUID(1L)
   case class AddCombRoute(
@@ -201,6 +201,6 @@ class HttpProxy(
 }
 
 object HttpProxy {
-  def start(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer) =
+  def start(config: Config)(implicit sys: ActorSystem, mat: Materializer) =
     system.actorOf(Props(new HttpProxy(config)), "http-proxy")
 }
