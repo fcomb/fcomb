@@ -1,108 +1,87 @@
 package io.fcomb.server
 
-import io.fcomb.api.JsonErrors
-import io.fcomb.api.services._
-import io.fcomb.api.services.ServiceRoute.Implicits._
-import io.fcomb.api.services.comb._
 import akka.actor._
-import akka.stream.Materializer
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model._, ContentTypes.`application/json`
-import akka.stream.scaladsl.Sink
-import com.typesafe.config.Config
-import scala.language.{postfixOps, implicitConversions}
+import akka.http.scaladsl.unmarshalling.Unmarshaller._
+import akka.stream.Materializer
+import io.fcomb.json.errors._
+import io.fcomb.models.errors._
+import org.slf4j.LoggerFactory
+import spray.json._
 
-class HttpApiService(config: Config)(implicit sys: ActorSystem, mat: Materializer) {
-  implicit val executionContext = sys.dispatcher
+class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer) {
+  private val logger = LoggerFactory.getLogger(this.getClass)
 
-  val interface = config.getString("rest-api.interface")
-  val port = config.getInt("rest-api.port")
+  private def jsonResponse[T <: ErrorResponse](
+    e: T,
+    status: StatusCode
+  )(
+    implicit
+    m: Manifest[T],
+    jw: JsonWriter[T]
+  ) =
+    complete(HttpResponse(
+      status = status,
+      entity = HttpEntity(
+        ContentTypes.`application/json`,
+        e.toJson.compactPrint
+      )
+    ))
 
-  // val exceptionHandler = ExceptionHandler {
-  //   case e => complete(JsonErrors.handleException(e))
-  // }
-  //
-  // val rejectionHandler = RejectionHandler.newBuilder()
-  //   .handle {
-  //     case r => complete(JsonErrors.handleRejection(r))
-  //   }
-  //   .handleNotFound {
-  //     complete(JsonErrors.resourceNotFound)
-  //   }
-  //   .result
-
-  private val pongJsonResponse = HttpResponse(
-    status = StatusCodes.OK,
-    entity = HttpEntity(
-      `application/json`,
-      """{"pong":true}"""
+  private def handleException(e: Throwable) = e match {
+    case _: DeserializationException |
+      _: ParsingException |
+      _: UnsupportedContentTypeException =>
+      jsonResponse(
+        SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
+        StatusCodes.BadRequest
+      )
+    case _ => jsonResponse(
+      SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
+      StatusCodes.InternalServerError
     )
-  )
+  }
 
-  // format: OFF
-  val routes: Route =
-    pathPrefix("v1") {
-      // pathPrefix("combs") {
-      //   pathEndOrSingleSlash {
-      //     post(CombService.create)
-      //   } ~
-      //   pathPrefix(LongNumber) { id: Long =>
-      //     pathEndOrSingleSlash {
-      //       get(CombService.show(id)) ~
-      //       put(CombService.update(id)) ~
-      //       delete(CombService.destroy(id))
-      //     } ~
-      //     pathPrefix("methods") {
-      //       pathEndOrSingleSlash {
-      //         post(CombMethodService.create(id))
-      //       }
-      //     }
-      //   }
-      // } ~
-      pathPrefix("users") {
-        path("test") {
-          post(UserService.test)
-        }
-      //   path("sign_up") {
-      //     post(UserService.signUp)
-      //   } ~
-      //   pathPrefix("me") {
-      //     pathEndOrSingleSlash {
-      //       get(UserService.me) ~
-      //       put(UserService.updateProfile)
-      //     } ~
-      //     path("password") {
-      //       put(UserService.changePassword)
-      //     }
-      //   } ~
-      //   path("reset_password") {
-      //     post(UserService.resetPassword) ~
-      //     put(UserService.setPassword)
-      //   }
-      // } ~
-      // pathPrefix("sessions") {
-      //   pathEndOrSingleSlash {
-      //     post(SessionService.create) ~
-      //     delete(SessionService.destroy)
-      //   }
-      } ~
-      path("ping") {
-        get(complete(pongJsonResponse))
-      }
+  private def handleRejection(r: Rejection) = r match {
+    case _ => jsonResponse(
+      SingleFailureResponse(ErrorStatus.Internal, r.toString),
+      StatusCodes.BadRequest
+    )
+  }
+
+  val handler = {
+    val exceptionHandler = ExceptionHandler {
+      case e =>
+        logger.error(e.getMessage(), e.getCause())
+        handleException(e)
     }
-  // format: ON
+    val rejectionHandler = RejectionHandler.newBuilder()
+      .handle {
+        case r =>
+          logger.error(r.toString, r.toString)
+          handleRejection(r)
+      }
+      .handleNotFound {
+        jsonResponse(resourceNotFound, StatusCodes.NotFound)
+      }
+      .result
 
-  val handler = routes /*handleRejections(rejectionHandler) {
-    handleExceptions(exceptionHandler)(routes)
-  }*/
+    handleRejections(rejectionHandler) {
+      handleExceptions(exceptionHandler)(routes)
+    }
+  }
 
-  def bind() =
+  def bind(port: Int, interface: String) =
     Http().bindAndHandle(handler, interface, port)
 }
 
 object HttpApiService {
-  def start(config: Config)(implicit sys: ActorSystem, mat: Materializer) =
-    new HttpApiService(config).bind()
+  def start(port: Int, interface: String, routes: Route)(
+    implicit
+    sys: ActorSystem, mat: Materializer
+  ) =
+    new HttpApiService(routes).bind(port, interface)
 }

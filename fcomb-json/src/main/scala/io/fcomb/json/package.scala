@@ -1,6 +1,7 @@
 package io.fcomb
 
 import io.fcomb.models._
+import io.fcomb.models.errors._
 import io.fcomb.models.comb._
 import spray.json._, DefaultJsonProtocol._
 import scalaz._, Scalaz._
@@ -78,4 +79,16 @@ package object json {
   implicit val combMethodRequestJsonProtocol = jsonFormat3(CombMethodRequest)
 
   implicit val combMethodResponseJsonProtocol = jsonFormat7(CombMethodResponse)
+
+  object errors {
+    implicit object JsonStatusCodeFormat extends RootJsonFormat[ErrorStatus.ErrorStatus] {
+      def write(status: ErrorStatus.ErrorStatus) = JsString(status.toString)
+
+      def read(v: JsValue) = throw new NotImplementedError
+    }
+
+    implicit val validationFailureResponseFormat = jsonFormat2(MultipleFailureResponse)
+
+    implicit val internalFailureResponseFormat = jsonFormat2(SingleFailureResponse)
+  }
 }

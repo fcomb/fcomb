@@ -153,11 +153,11 @@ trait Service {
     })
 
   def complete(
-    res: String,
+    bs: String,
     statusCode: StatusCode,
     contentType: ContentType
   ): ServiceResult =
-    CompleteResult(ByteString(res), statusCode, contentType)
+    CompleteResult(ByteString(bs), statusCode, contentType)
 
   def complete(
     f: Future[String],

@@ -5,8 +5,6 @@ import akka.http.scaladsl.model._, ContentTypes.`application/json`
 import akka.http.scaladsl.server._
 import spray.json._
 
-case class DeserializationException(msg: String) extends Throwable(msg)
-
 trait JsonErrors { this: JsonHelpers =>
   // object JsonErrorStatus extends Enumeration {
   //   type JsonErrorStatus = Value
