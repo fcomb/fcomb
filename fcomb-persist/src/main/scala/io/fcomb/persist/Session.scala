@@ -2,7 +2,7 @@ package io.fcomb.persist
 
 import io.fcomb.Db.cache
 import io.fcomb.models
-import io.fcomb.models.request.SessionRequest
+import io.fcomb.request.SessionRequest
 import io.fcomb.validations
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._

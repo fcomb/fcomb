@@ -3,8 +3,8 @@ package io.fcomb
 import io.fcomb.models._
 import io.fcomb.models.comb._
 import io.fcomb.models.errors._
-import io.fcomb.models.request._
-import io.fcomb.models.response._
+import io.fcomb.request._
+import io.fcomb.response._
 import java.time.LocalDateTime
 import java.util.UUID
 import scala.collection.mutable.OpenHashMap

@@ -4,8 +4,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.stream.Materializer
 import io.fcomb.json._
-import io.fcomb.models.request._
-import io.fcomb.models.response._
+import io.fcomb.request._
+import io.fcomb.response._
 import io.fcomb.persist
 import io.fcomb.services.user.ResetPassword
 import scala.concurrent.ExecutionContext

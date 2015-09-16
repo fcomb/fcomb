@@ -101,7 +101,7 @@ object Build extends sbt.Build {
      settings = defaultSettings ++ Seq(
        libraryDependencies ++= Dependencies.api
      )
-  ).dependsOn(persist, utils, json, request, response, validations, services)
+  ).dependsOn(persist, utils, json, validations, services)
 
   lazy val models = Project(
      id = "models",
@@ -147,7 +147,7 @@ object Build extends sbt.Build {
     settings = defaultSettings ++ Seq(
       libraryDependencies ++= Dependencies.json
     )
-  ).dependsOn(models)
+  ).dependsOn(models, request, response)
 
   lazy val request = Project(
     id = "request",

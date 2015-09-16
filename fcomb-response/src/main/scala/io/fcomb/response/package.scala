@@ -1,5 +1,6 @@
-package io.fcomb.models
+package io.fcomb
 
+import io.fcomb.models._
 import io.fcomb.models.comb._
 import java.time.LocalDateTime
 import java.util.UUID

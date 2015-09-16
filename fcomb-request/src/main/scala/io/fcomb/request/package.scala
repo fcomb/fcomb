@@ -1,4 +1,4 @@
-package io.fcomb.models
+package io.fcomb
 
 import io.fcomb.models.comb._
 
