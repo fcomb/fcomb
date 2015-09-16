@@ -11,7 +11,7 @@ import akka.util.ByteString
 import akka.http.scaladsl.model._, ContentTypes.`application/json`
 import akka.http.scaladsl.model.headers.Authorization
 import akka.http.scaladsl.unmarshalling.Unmarshaller
-import akka.http.scaladsl.server.{RequestContext, Route}
+import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
 import akka.stream.scaladsl.Source
 import akka.stream.Materializer
 import scala.concurrent.{ExecutionContext, Future}
@@ -99,39 +99,46 @@ trait ServiceMethod {
 }
 
 object ServiceRoute {
+  def serviceResultToRoute(
+    rCtx: RequestContext,
+    res: ServiceResult
+  )(
+    implicit
+    ec: ExecutionContext
+  ): Future[RouteResult] = res match {
+    case CompleteResult(res, status, ct) =>
+      rCtx.complete(HttpResponse(
+        status = status,
+        entity = HttpEntity(ct, res)
+      ))
+    case CompleteSourceResult(s, status, ct) =>
+      rCtx.complete(HttpResponse(
+        status = status,
+        entity = HttpEntity.CloseDelimited(ct, s)
+      ))
+    case CompleteFutureResult(f) =>
+      f.flatMap(serviceResultToRoute(rCtx, _))
+  }
+
+  def serviceMethodToRoute(method: ServiceMethod)(
+    implicit
+    ec: ExecutionContext
+  ): Route = { rCtx: RequestContext =>
+    val ctx = new ServiceContext {
+      val requestContext = rCtx
+      val requestContentType = rCtx.request.entity.contentType()
+    }
+    serviceResultToRoute(rCtx, method(ctx))
+  }
+
   object Implicits {
-    implicit def serviceMethod2Route(
+    implicit def serviceMethod2RouteImplicit(
       method: ServiceMethod
     )(
       implicit
       ec: ExecutionContext
     ): Route =
-      { rCtx: RequestContext =>
-        val ctx = new ServiceContext {
-          val requestContext = rCtx
-          val requestContentType = rCtx.request.entity.contentType()
-        }
-        method(ctx) match {
-          case CompleteResult(res, status, ct) =>
-            rCtx.complete(HttpResponse(
-              status = status,
-              entity = HttpEntity(ct, res)
-            ))
-          case CompleteFutureResult(f) =>
-            rCtx.complete(f.map {
-              case CompleteResult(res, status, ct) => // TODO: DRY
-                HttpResponse(
-                  status = status,
-                  entity = HttpEntity(ct, res)
-                )
-            })
-          case CompleteSourceResult(s, status, ct) =>
-            rCtx.complete(HttpResponse(
-              status = status,
-              entity = HttpEntity.CloseDelimited(ct, s)
-            ))
-        }
-      }
+      serviceMethodToRoute(method)
   }
 }
 
@@ -202,12 +209,11 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     implicit
     ctx: ServiceContext,
     ec: ExecutionContext
-  ): Future[ServiceResult] =
-    f.recover {
-      case e: Throwable =>
-        logger.error(e.getMessage, e.getCause)
-        completeThrowable(e)
-    }
+  ): Future[ServiceResult] = f.recover {
+    case e: Throwable =>
+      logger.error(e.getMessage, e.getCause)
+      completeThrowable(e)
+  }
 
   def requestBodyTryAs[T]()(
     implicit

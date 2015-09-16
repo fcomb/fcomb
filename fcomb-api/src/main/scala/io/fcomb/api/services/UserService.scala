@@ -16,7 +16,11 @@ import scala.language.implicitConversions
 import spray.json._
 
 object UserService extends Service {
-  def test(implicit ec: ExecutionContext, mat: Materializer) =
+  def signUp(
+    implicit
+    ec: ExecutionContext,
+    mat: Materializer
+  ) =
     action { implicit ctx =>
       requestBodyAs[UserSignUpRequest] { req =>
         complete(
@@ -30,20 +34,6 @@ object UserService extends Service {
         )
       }
     }
-
-  // def signUp(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer
-  // ) =
-  //   requestAsWithValidation { req: UserSignUpRequest =>
-  //     persist.User.create(
-  //       email = req.email,
-  //       username = req.username,
-  //       fullName = req.fullName,
-  //       password = req.password
-  //     ).map(_.map(toResponse[User, UserResponse]))
-  //   }
 
   // def me(
   //   implicit

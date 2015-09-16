@@ -39,12 +39,9 @@ object Routes {
       //   }
       // } ~
       pathPrefix("users") {
-        path("test") {
-          post(UserService.test)
-        }
-      //   path("sign_up") {
-      //     post(UserService.signUp)
-      //   } ~
+        path("sign_up") {
+          post(UserService.signUp)
+        } // ~
       //   pathPrefix("me") {
       //     pathEndOrSingleSlash {
       //       get(UserService.me) ~
