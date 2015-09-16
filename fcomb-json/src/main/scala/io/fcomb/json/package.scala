@@ -1,13 +1,15 @@
 package io.fcomb
 
 import io.fcomb.models._
-import io.fcomb.models.errors._
 import io.fcomb.models.comb._
-import spray.json._, DefaultJsonProtocol._
-import scalaz._, Scalaz._
+import io.fcomb.models.errors._
+import io.fcomb.models.request._
+import io.fcomb.models.response._
 import java.time.LocalDateTime
 import java.util.UUID
 import scala.collection.mutable.OpenHashMap
+import spray.json._
+import spray.json.DefaultJsonProtocol._
 
 package object json {
   implicit object UuidFormat extends RootJsonFormat[UUID] {
@@ -60,7 +62,7 @@ package object json {
 
   implicit val changePasswordRequestJsonProtocol = jsonFormat2(ChangePasswordRequest)
 
-  implicit val validationErrorsResponseJsonProtocol = jsonFormat1(ValidationErrorsResponse)
+  implicit val validationErrorsResponseJsonProtocol = jsonFormat1(ValidationErrors)
 
   implicit val userSignUpRequestJsonProtocol = jsonFormat4(UserSignUpRequest)
 

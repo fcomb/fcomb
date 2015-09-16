@@ -6,7 +6,8 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.stream.Materializer
 import io.fcomb.json._
 import io.fcomb.models._
-import io.fcomb.models.ResponseConversions._
+import io.fcomb.models.request._
+import io.fcomb.models.response._
 import io.fcomb.persist
 import io.fcomb.services.user.ResetPassword
 import java.util.UUID
@@ -17,8 +18,15 @@ import spray.json._
 object UserService extends Service {
   def test(implicit ec: ExecutionContext, mat: Materializer) =
     action { implicit ctx =>
-      requestBodyAs[UserSignUpRequest]().map { req =>
-        println(s"req: $req")
+      requestBodyTryAs[UserSignUpRequest]().map {
+        case scalaz.\/-(Some(req)) =>
+          println(s"req: $req")
+          persist.User.create(
+            email = req.email,
+            username = req.username,
+            fullName = req.fullName,
+            password = req.password
+          ).map(_.map(_.toResponse[UserResponse]))
       }
       throw new Exception("wow")
     }

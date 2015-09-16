@@ -195,7 +195,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
         }
     }
 
-  def requestBodyAs[T]()(
+  def requestBodyTryAs[T]()(
     implicit
     ctx: ServiceContext,
     ec: ExecutionContext,
@@ -210,12 +210,9 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     })
 
   def validationErrors(errors: (String, String)*) =
-    ValidationErrorsResponse(errors.map {
+    ValidationErrors(errors.map {
       case (k, v) => (k, List(v))
     }.toMap)
-
-  def toResponse[T, E <: ModelServiceResponse](value: T)(implicit f: T => E) =
-    f(value)
 
   def complete[T](res: T, statusCode: StatusCode)(
     implicit

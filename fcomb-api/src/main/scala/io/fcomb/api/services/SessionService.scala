@@ -12,7 +12,6 @@ import scala.concurrent.{ ExecutionContext, Future }
 import shapeless._, contrib.scalaz._, syntax.std.function._
 import scalaz._
 import scalaz.syntax.foldable._
-import ResponseConversions._
 
 object SessionService extends Service {
   // def create(

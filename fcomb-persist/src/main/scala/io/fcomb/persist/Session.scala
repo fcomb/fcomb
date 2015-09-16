@@ -2,8 +2,9 @@ package io.fcomb.persist
 
 import io.fcomb.Db.cache
 import io.fcomb.models
+import io.fcomb.models.request.SessionRequest
 import io.fcomb.validations
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
 import scredis._
@@ -28,7 +29,7 @@ object Session extends PersistTypes[models.Session] {
 
   private def createToken(
     prefix: String,
-    id:     String
+    id: String
   )(
     implicit
     ec: ExecutionContext
@@ -45,7 +46,7 @@ object Session extends PersistTypes[models.Session] {
       "password" -> "invalid"
     ))
 
-  def create(req: models.SessionRequest)(implicit ec: ExecutionContext): Future[ValidationModel] =
+  def create(req: SessionRequest)(implicit ec: ExecutionContext): Future[ValidationModel] =
     User.findByEmail(req.email).flatMap {
       case Some(user) if user.isValidPassword(req.password) =>
         create(user)

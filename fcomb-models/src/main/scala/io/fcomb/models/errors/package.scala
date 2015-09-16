@@ -23,6 +23,10 @@ package object errors {
     error: String
   ) extends ErrorResponse
 
+  case class ValidationErrors(
+    errors: Map[String, List[String]]
+  )
+
   def notFound(status: ErrorStatus.ErrorStatus, name: String) =
     SingleFailureResponse(status, s"$name not found")
 

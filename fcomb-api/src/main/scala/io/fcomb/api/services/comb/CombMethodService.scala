@@ -6,7 +6,6 @@ import akka.http.scaladsl.server.RequestContext
 import akka.stream.Materializer
 import io.fcomb.json._
 import io.fcomb.models._
-import io.fcomb.models.ResponseConversions._
 import io.fcomb.persist
 import io.fcomb.services.user.ResetPassword
 import java.util.UUID
