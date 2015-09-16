@@ -60,6 +60,11 @@ case object JsonMarshaller extends Marshaller {
 sealed trait ServiceResult
 
 object ServiceResult {
+  case class CompleteWithoutResult(
+    statusCode: StatusCode,
+    contentType: ContentType
+  ) extends ServiceResult
+
   case class CompleteResult(
     response: ByteString,
     statusCode: StatusCode,
@@ -115,6 +120,11 @@ object ServiceRoute {
       rCtx.complete(HttpResponse(
         status = status,
         entity = HttpEntity.CloseDelimited(ct, s)
+      ))
+    case CompleteWithoutResult(status, ct) =>
+      rCtx.complete(HttpResponse(
+        status = status,
+        entity = HttpEntity.empty(ct)
       ))
     case CompleteFutureResult(f) =>
       f.flatMap(serviceResultToRoute(rCtx, _))
@@ -280,7 +290,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(ctx.marshaller.serialize(res), statusCode, ctx.contentType)
 
-  def complete[T](res: Validation[ValidationErrors, T], statusCode: StatusCode)(
+  def completeValidation[T](res: Validation[ValidationErrors, T], statusCode: StatusCode)(
     implicit
     ctx: ServiceContext,
     m: Manifest[T],
@@ -296,14 +306,50 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(ValidationErrorsMap(e), StatusCodes.UnprocessableEntity)
 
-  def complete[T](f: Future[Validation[ValidationErrors, T]], statusCode: StatusCode)(
+  def completeValidation[T](f: Future[Validation[ValidationErrors, T]], statusCode: StatusCode)(
     implicit
     ctx: ServiceContext,
     ec: ExecutionContext,
     m: Manifest[T],
     jw: JsonWriter[T]
   ): ServiceResult =
-    complete(f.map(complete(_, statusCode)))
+    complete(f.map(completeValidation(_, statusCode)))
+
+  def completeWithoutContent(statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext
+  ): ServiceResult =
+    CompleteWithoutResult(statusCode, ctx.contentType)
+
+  def completeWithoutContent(f: Future[_], statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext
+  ): ServiceResult =
+    complete(f.map(_ => completeWithoutContent(statusCode)))
+
+  def completeValidationWithoutContent(
+    res: Validation[ValidationErrors, _],
+    statusCode: StatusCode
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext
+  ): ServiceResult = res match {
+    case Success(s) => completeWithoutContent(statusCode)
+    case Failure(e) => complete(e)
+  }
+
+  def completeValidationWithoutContent(
+    f: Future[Validation[ValidationErrors, _]],
+    statusCode: StatusCode
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext
+  ): ServiceResult =
+    complete(f.map(completeValidationWithoutContent(_, statusCode)))
 
   def getAuthToken()(implicit ctx: ServiceContext): Option[String] = {
     val r = ctx.requestContext.request

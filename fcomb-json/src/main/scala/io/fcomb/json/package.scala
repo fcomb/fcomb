@@ -32,11 +32,6 @@ package object json {
     }
   }
 
-  implicit val noContentResponseJsonProtocol =
-    new JsonWriter[NoContentResponse] {
-      def write(n: NoContentResponse) = JsNull
-    }
-
   def createEnumerationJsonFormat[T <: Enumeration](obj: T)(implicit m: Manifest[T]) =
     new RootJsonFormat[T#Value] {
       def write(obj: T#Value) = JsString(obj.toString)
@@ -68,7 +63,7 @@ package object json {
 
   implicit val userRequestJsonProtocol = jsonFormat3(UserRequest)
 
-  implicit val userResponseJsonProtocol = jsonFormat4(UserResponse)
+  implicit val userProfileResponseJsonProtocol = jsonFormat4(UserProfileResponse)
 
   implicit val sessionRequestJsonProtocol = jsonFormat2(SessionRequest)
 

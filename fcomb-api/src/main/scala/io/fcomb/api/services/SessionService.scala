@@ -1,34 +1,42 @@
 package io.fcomb.api.services
 
-import io.fcomb.models._
-import io.fcomb.persist
-import io.fcomb.json._
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.server.RequestContext
-import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.model.StatusCodes
 import akka.stream.Materializer
-import scala.language.implicitConversions
-import scala.concurrent.{ ExecutionContext, Future }
-import shapeless._, contrib.scalaz._, syntax.std.function._
-import scalaz._
-import scalaz.syntax.foldable._
+import io.fcomb.json._
+import io.fcomb.models.request._
+import io.fcomb.models.response._
+import io.fcomb.persist
+import scala.concurrent.{ExecutionContext, Future}
 
 object SessionService extends Service {
-  // def create(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer
-  // ) =
-  //   requestAsWithValidation { req: SessionRequest =>
-  //     persist.Session
-  //       .create(req)
-  //       .map(_.map(toResponse[Session, SessionResponse]))
-  //   }
+  def create(
+    implicit
+    ec: ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx =>
+    requestBodyAs[SessionRequest] { req =>
+      completeValidation(
+        persist.Session
+          .create(req)
+          .map(_.map(_.toResponse[SessionResponse])),
+        StatusCodes.OK
+      )
+    }
+  }
 
-  // def destroy(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer
-  // ) =
-  //   ??? // TODO
+  def destroy(
+    implicit
+    ec: ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx =>
+    authorizeUser { _ =>
+      completeWithoutContent(
+        getAuthToken() match {
+          case Some(token) => persist.Session.destroy(token)
+          case None => Future.successful(())
+        },
+        StatusCodes.NoContent
+      )
+    }
+  }
 }

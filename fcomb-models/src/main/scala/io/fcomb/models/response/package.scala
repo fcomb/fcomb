@@ -13,9 +13,7 @@ package object response {
       f(m)
   }
 
-  case class NoContentResponse() extends ModelServiceResponse
-
-  case class UserResponse(
+  case class UserProfileResponse(
     id: Option[UUID],
     email: String,
     username: String,
@@ -44,8 +42,8 @@ package object response {
     token: String
   ) extends ModelServiceResponse
 
-  implicit def user2Response(u: User): UserResponse =
-    UserResponse(
+  implicit def user2ProfileResponse(u: User): UserProfileResponse =
+    UserProfileResponse(
       id = u.id,
       email = u.email,
       username = u.username,

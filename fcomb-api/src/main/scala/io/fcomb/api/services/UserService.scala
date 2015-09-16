@@ -1,104 +1,106 @@
 package io.fcomb.api.services
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.server.RequestContext
 import akka.http.scaladsl.model.StatusCodes
 import akka.stream.Materializer
 import io.fcomb.json._
-import io.fcomb.models._
 import io.fcomb.models.request._
 import io.fcomb.models.response._
 import io.fcomb.persist
 import io.fcomb.services.user.ResetPassword
-import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future}
-import scala.language.implicitConversions
-import spray.json._
+import scala.concurrent.ExecutionContext
 
 object UserService extends Service {
   def signUp(
     implicit
     ec: ExecutionContext,
     mat: Materializer
-  ) =
-    action { implicit ctx =>
-      requestBodyAs[UserSignUpRequest] { req =>
-        complete(
-          persist.User.create(
-            email = req.email,
-            username = req.username,
-            fullName = req.fullName,
-            password = req.password
-          ).map(_.map(_.toResponse[UserResponse])),
-          StatusCodes.Created
-        )
-      }
+  ) = action { implicit ctx =>
+    requestBodyAs[UserSignUpRequest] { req =>
+      completeValidation(
+        persist.User.create(
+          email = req.email,
+          username = req.username,
+          fullName = req.fullName,
+          password = req.password
+        ).map(_.map(_.toResponse[UserProfileResponse])),
+        StatusCodes.Created
+      )
     }
+  }
 
   def me(
     implicit
     ec: ExecutionContext,
     mat: Materializer
-  ) =
-    action { implicit ctx =>
-      authorizeUser { user =>
-        complete(
-          user.toResponse[UserResponse],
+  ) = action { implicit ctx =>
+    authorizeUser { user =>
+      complete(
+        user.toResponse[UserProfileResponse],
+        StatusCodes.OK
+      )
+    }
+  }
+
+  def updateProfile(
+    implicit
+    ec: ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx =>
+    authorizeUser { user =>
+      requestBodyAs[UserRequest] { req =>
+        completeValidation(
+          persist.User.updateByRequest(user.getId)(
+            email = req.email,
+            username = req.username,
+            fullName = req.fullName
+          ).map(_.map(_.toResponse[UserProfileResponse])),
           StatusCodes.OK
         )
       }
     }
+  }
 
-  // def updateProfile(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer
-  // ) =
-  //   authorization { user =>
-  //     requestAsWithValidation { req: UserRequest =>
-  //       persist.User.updateByRequest(user.getId)(
-  //         email = req.email,
-  //         username = req.username,
-  //         fullName = req.fullName
-  //       ).map(_.map(toResponse[User, UserResponse]))
-  //     }
-  //   }
+  def changePassword(
+    implicit
+    ec: ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx =>
+    authorizeUser { user =>
+      requestBodyAs[ChangePasswordRequest] { req =>
+        completeWithoutContent(
+          persist.User
+            .changePassword(user, req.oldPassword, req.newPassword),
+          StatusCodes.NoContent
+        )
+      }
+    }
+  }
 
-  // def changePassword(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer
-  // ) =
-  //   authorization { user =>
-  //     requestAsWithValidation[ChangePasswordRequest, NoContentResponse] { req =>
-  //       persist.User
-  //         .changePassword(user, req.oldPassword, req.newPassword)
-  //         .map(_.map(_ => NoContentResponse()))
-  //     }
-  //   }
+  def resetPassword(
+    implicit
+    sys: ActorSystem,
+    mat: Materializer
+  ) = action { implicit ctx =>
+    import sys.dispatcher
+    requestBodyAs[ResetPasswordRequest] { req =>
+      completeWithoutContent(
+        ResetPassword.reset(req.email),
+        StatusCodes.NoContent
+      )
+    }
+  }
 
-  // def resetPassword(
-  //   implicit
-  //   sys:       ActorSystem,
-  //   mat: Materializer
-  // ) = {
-  //   import sys.dispatcher
-
-  //   requestAsWithValidation[ResetPasswordRequest, NoContentResponse] { req =>
-  //     ResetPassword
-  //       .reset(req.email)
-  //       .map(_.map(_ => NoContentResponse()))
-  //   }
-  // }
-
-  // def setPassword(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer
-  // ) =
-  //   requestAsWithValidation[ResetPasswordSetRequest, NoContentResponse] { req =>
-  //     ResetPassword
-  //       .set(req.token, req.password)
-  //       .map(_.map(_ => NoContentResponse()))
-  //   }
+  def setPassword(
+    implicit
+    ec: ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx =>
+    requestBodyAs[ResetPasswordSetRequest] { req =>
+      completeWithoutContent(
+        ResetPassword.set(req.token, req.password),
+        StatusCodes.NoContent
+      )
+    }
+  }
 }
