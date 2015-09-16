@@ -35,14 +35,19 @@ object UserService extends Service {
       }
     }
 
-  // def me(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer
-  // ) =
-  //   authorization { user =>
-  //     responseAs[User, UserResponse](user)
-  //   }
+  def me(
+    implicit
+    ec: ExecutionContext,
+    mat: Materializer
+  ) =
+    action { implicit ctx =>
+      authorizeUser { user =>
+        complete(
+          user.toResponse[UserResponse],
+          StatusCodes.OK
+        )
+      }
+    }
 
   // def updateProfile(
   //   implicit

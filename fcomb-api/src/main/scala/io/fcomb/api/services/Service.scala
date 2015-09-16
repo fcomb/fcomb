@@ -229,18 +229,20 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       case _ => None.right[Throwable]
     })
 
+  def flatResult(res: ServiceResult)(
+    implicit
+    ec: ExecutionContext
+  ): Future[ServiceResult] = res match {
+    case CompleteFutureResult(f) => f.flatMap(flatResult)
+    case res => Future.successful(res)
+  }
+
   def complete(f: Future[ServiceResult])(
     implicit
     ctx: ServiceContext,
     ec: ExecutionContext
   ): ServiceResult =
-    CompleteFutureResult(recoverThrowable(f.flatMap {
-      case CompleteFutureResult(f) => f
-      case res: CompleteResult =>
-        Future.successful(res)
-      case s: CompleteSourceResult =>
-        Future.successful(s)
-    }))
+    CompleteFutureResult(recoverThrowable(f.flatMap(flatResult)))
 
   def requestBodyAs[T](f: T => ServiceResult)(
     implicit
@@ -303,53 +305,39 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(f.map(complete(_, statusCode)))
 
-  // def unauthorizedError(contentType: ContentType, message: String) =
-  //   renderAs(
-  //     contentType,
-  //     validationErrors("auth" -> message),
-  //     StatusCodes.Unauthorized
-  //   )
+  def getAuthToken()(implicit ctx: ServiceContext): Option[String] = {
+    val r = ctx.requestContext.request
+    val authHeader = r.headers.collectFirst {
+      case a: Authorization ⇒ a
+    }
+    val authParameter = r.uri.query.get("auth_token")
+    (authHeader, authParameter) match {
+      case (Some(token), _) =>
+        val s = token.value.split(' ')
+        if (s.head.toLowerCase == "token") Some(s.last)
+        else None
+      case (_, token @ Some(_)) => token
+      case _ => None
+    }
+  }
 
-  // def authorization(
-  //   f: User => ServiceResponse
-  // )(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer
-  // ): ServiceResponse =
-  //   new ServiceResponse {
-  //     def apply(
-  //       contentType:   ContentType,
-  //       entity:        Source[ByteString, Any],
-  //       requestParams: => RequestParams
-  //     ) = requestParams match {
-  //       case HttpRequestParams(request) =>
-  //         def g(token: String) =
-  //           persist.Session.findById(token).flatMap {
-  //             case Some(user) => f(user)(contentType, entity, requestParams)
-  //             case None => Future.successful {
-  //               unauthorizedError(contentType, "Invalid token")
-  //             }
-  //           }
+  def authorizeUser(
+    f: User => ServiceResult
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext
+  ): ServiceResult = {
+    def e(message: String) =
+      Future.successful(completeErrors("auth" -> message)(StatusCodes.Unauthorized))
 
-  //         val authHeader = request.headers.collectFirst {
-  //           case a: Authorization ⇒ a
-  //         }
-
-  //         val authParameter = request.uri.query.get("auth_token")
-  //         (authHeader, authParameter) match {
-  //           case (Some(token), _) =>
-  //             token.value.split(' ') match {
-  //               case Array("Token" | "token", token) => g(token)
-  //               case _ => Future.successful {
-  //                 unauthorizedError(contentType, "Expected format 'Token <token>'")
-  //               }
-  //             }
-  //           case (_, Some(token)) => g(token)
-  //           case _ => Future.successful {
-  //             unauthorizedError(contentType, "Expected 'Authorization' header with token or GET 'auth_token' parameter")
-  //           }
-  //         }
-  //     }
-  //   }
+    complete(getAuthToken() match {
+      case Some(token) =>
+        persist.Session.findById(token).flatMap {
+          case Some(item) => flatResult(f(item))
+          case None => e("invalid token")
+        }
+      case _ => e("expected 'Authorization' header with token or GET 'auth_token' parameter")
+    })
+  }
 }
