@@ -23,7 +23,7 @@ package object errors {
     error: String
   ) extends ErrorResponse
 
-  case class ValidationErrors(
+  case class ValidationErrorsMap(
     errors: Map[String, List[String]]
   )
 

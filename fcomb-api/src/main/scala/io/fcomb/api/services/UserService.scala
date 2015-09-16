@@ -19,14 +19,15 @@ object UserService extends Service {
   def test(implicit ec: ExecutionContext, mat: Materializer) =
     action { implicit ctx =>
       requestBodyAs[UserSignUpRequest] { req =>
-        println(s"req: $req")
-        persist.User.create(
-          email = req.email,
-          username = req.username,
-          fullName = req.fullName,
-          password = req.password
-        ).map(_.map(_.toResponse[UserResponse]))
-        ???
+        complete(
+          persist.User.create(
+            email = req.email,
+            username = req.username,
+            fullName = req.fullName,
+            password = req.password
+          ).map(_.map(_.toResponse[UserResponse])),
+          StatusCodes.Created
+        )
       }
     }
 

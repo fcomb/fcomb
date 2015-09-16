@@ -3,7 +3,7 @@ package io.fcomb.api.services
 import io.fcomb.models._
 import io.fcomb.models.errors._
 import io.fcomb.persist
-import io.fcomb.validations
+import io.fcomb.validations.ValidationErrors
 import io.fcomb.utils._
 import io.fcomb.json._
 import io.fcomb.json.errors._
@@ -165,8 +165,6 @@ trait ServiceLogging {
 }
 
 trait ServiceExceptionMethods {
-  // TODO: handleErrors and recover for Future/Source
-
   def mapThrowable(e: Throwable) = e match {
     case _: DeserializationException |
       _: ParsingException |
@@ -230,7 +228,13 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     ec: ExecutionContext
   ): ServiceResult =
-    CompleteFutureResult(recoverThrowable(f))
+    CompleteFutureResult(recoverThrowable(f.flatMap {
+      case CompleteFutureResult(f) => f
+      case res: CompleteResult =>
+        Future.successful(res)
+      case s: CompleteSourceResult =>
+        Future.successful(s)
+    }))
 
   def requestBodyAs[T](f: T => ServiceResult)(
     implicit
@@ -243,11 +247,20 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     complete(requestBodyTryAs[T]().map {
       case \/-(o) => o match {
         case Some(res) => f(res)
+        case _ =>
+          completeErrors("body" -> "can't be empty")(StatusCodes.BadRequest)
       }
+      case -\/(e) => completeThrowable(e)
     })
 
+  def completeErrors(errors: (String, String)*)(statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext
+  ) =
+    complete(validationErrors(errors: _*), statusCode)
+
   def validationErrors(errors: (String, String)*) =
-    ValidationErrors(errors.map {
+    ValidationErrorsMap(errors.map {
       case (k, v) => (k, List(v))
     }.toMap)
 
@@ -259,74 +272,30 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(ctx.marshaller.serialize(res), statusCode, ctx.contentType)
 
-  // def requestAsWithValidation[T <: ModelServiceRequest, E <: ModelServiceResponse](
-  //   f: T => Future[validations.ValidationResult[E]]
-  // )(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer,
-  //   tm:           Manifest[T],
-  //   jr:           JsonReader[T],
-  //   jw:           JsonWriter[E]
-  // ): ServiceResponse =
-  //   handleRequest[T] { (req, marshaller) =>
-  //     f(req).map {
-  //       case Success(res) =>
-  //         res match {
-  //           case NoContentResponse() =>
-  //             ("", StatusCodes.NoContent)
-  //           case _ =>
-  //             (marshaller(res), StatusCodes.OK)
-  //         }
-  //       case Failure(e) =>
-  //         (
-  //           marshaller(ValidationErrorsResponse(e)),
-  //           StatusCodes.UnprocessableEntity
-  //         )
-  //     }
-  //   }
+  def complete[T](res: Validation[ValidationErrors, T], statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext,
+    m: Manifest[T],
+    jw: JsonWriter[T]
+  ): ServiceResult = res match {
+    case Success(s) => complete(s, statusCode)
+    case Failure(e) => complete(e)
+  }
 
-  // def renderAs[T <: ModelServiceResponse](
-  //   contentType: ContentType,
-  //   entity:      T,
-  //   statusCode:  StatusCode
-  // )(
-  //   implicit
-  //   jw: JsonWriter[T]
-  // ) =
-  //   ServiceFlow.render(contentType, entity) match {
-  //     case (ct, body) => (ct, body, statusCode)
-  //   }
+  def complete(e: ValidationErrors)(
+    implicit
+    ctx: ServiceContext
+  ): ServiceResult =
+    complete(ValidationErrorsMap(e), StatusCodes.UnprocessableEntity)
 
-  // def response[T <: ModelServiceResponse](
-  //   res: => T
-  // )(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer,
-  //   tm:           Manifest[T],
-  //   jw:           JsonWriter[T]
-  // ): ServiceResponse =
-  //   new ServiceResponse {
-  //     def apply(
-  //       contentType:   ContentType,
-  //       entity:        Source[ByteString, Any],
-  //       requestParams: => RequestParams
-  //     ) =
-  //       Future.successful(renderAs(contentType, res, StatusCodes.OK))
-  //   }
-
-  // def responseAs[M, T <: ModelServiceResponse](
-  //   res: => M
-  // )(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer,
-  //   tm:           Manifest[T],
-  //   jw:           JsonWriter[T],
-  //   f:            M => T
-  // ): ServiceResponse =
-  //   response(f(res))
+  def complete[T](f: Future[Validation[ValidationErrors, T]], statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    m: Manifest[T],
+    jw: JsonWriter[T]
+  ): ServiceResult =
+    complete(f.map(complete(_, statusCode)))
 
   // def unauthorizedError(contentType: ContentType, message: String) =
   //   renderAs(
