@@ -12,6 +12,7 @@ import io.fcomb.services.user.ResetPassword
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
+import spray.json._
 
 object UserService extends Service {
   def test(implicit ec: ExecutionContext, mat: Materializer) =
@@ -19,11 +20,7 @@ object UserService extends Service {
       requestBodyAs[UserSignUpRequest]().map { req =>
         println(s"req: $req")
       }
-      complete(
-        "kek",
-        StatusCodes.OK,
-        akka.http.scaladsl.model.ContentTypes.`application/json`
-      )
+      throw new Exception("wow")
     }
 
   // def signUp(

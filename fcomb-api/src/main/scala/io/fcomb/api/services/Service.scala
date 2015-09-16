@@ -1,12 +1,16 @@
 package io.fcomb.api.services
 
 import io.fcomb.models._
+import io.fcomb.models.errors._
 import io.fcomb.persist
 import io.fcomb.validations
 import io.fcomb.utils._
+import io.fcomb.json._
+import io.fcomb.json.errors._
 import akka.util.ByteString
 import akka.http.scaladsl.model._, ContentTypes.`application/json`
 import akka.http.scaladsl.model.headers.Authorization
+import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.http.scaladsl.server.{RequestContext, Route}
 import akka.stream.scaladsl.Source
 import akka.stream.Materializer
@@ -14,6 +18,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
 import spray.json._
 import scalaz._, Scalaz._
+import org.slf4j.LoggerFactory
 
 sealed trait RequestBody[R] {
   val body: Option[R]
@@ -22,7 +27,7 @@ sealed trait RequestBody[R] {
 case class JsonBody(body: Option[JsValue]) extends RequestBody[JsValue]
 
 sealed trait Marshaller {
-  def serialize[T](res: T): ByteString
+  def serialize[T](res: T)(implicit m: Manifest[T], jw: JsonWriter[T]): ByteString
 
   def deserialize(body: Source[ByteString, Any])(
     implicit
@@ -32,8 +37,8 @@ sealed trait Marshaller {
 }
 
 case object JsonMarshaller extends Marshaller {
-  def serialize[T](res: T) =
-    ByteString("test")
+  def serialize[T](res: T)(implicit m: Manifest[T], jw: JsonWriter[T]) =
+    ByteString(res.toJson.compactPrint)
 
   def deserialize(body: Source[ByteString, Any])(
     implicit
@@ -132,10 +137,62 @@ object ServiceRoute {
   }
 }
 
-trait Service {
+trait CompleteResultMethods {
+  def complete(
+    bs: ByteString,
+    statusCode: StatusCode,
+    contentType: ContentType
+  ): ServiceResult =
+    CompleteResult(bs, statusCode, contentType)
+
+  def complete(
+    f: Future[ByteString],
+    statusCode: StatusCode,
+    contentType: ContentType
+  ): ServiceResult =
+    CompleteFutureResult(f, statusCode, contentType)
+
+  def complete(
+    s: Source[ByteString, Any],
+    statusCode: StatusCode,
+    contentType: ContentType
+  ): ServiceResult =
+    CompleteSourceResult(s, statusCode, contentType)
+}
+
+trait ServiceLogging {
+  lazy val logger = LoggerFactory.getLogger(getClass)
+}
+
+trait ServiceExceptionMethods {
+  // TODO: handleErrors and recover for Future/Source
+
+  def mapThrowable(e: Throwable) = e match {
+    case _: DeserializationException |
+      _: ParsingException |
+      _: Unmarshaller.UnsupportedContentTypeException =>
+      (
+        SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
+        StatusCodes.BadRequest
+      )
+    case _ => (
+      SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
+      StatusCodes.InternalServerError
+    )
+  }
+}
+
+trait Service extends CompleteResultMethods with ServiceExceptionMethods with ServiceLogging {
   def action(f: ServiceContext => ServiceResult) =
     new ServiceMethod {
-      def apply(ctx: ServiceContext) = f(ctx)
+      def apply(ctx: ServiceContext) =
+        try {
+          f(ctx)
+        } catch {
+          case e: Throwable =>
+            logger.error(e.getMessage, e.getCause)
+            completeThrowable(e)(ctx)
+        }
     }
 
   def requestBodyAs[T]()(
@@ -152,40 +209,26 @@ trait Service {
       case _ => None.right[Throwable]
     })
 
-  def complete(
-    bs: String,
-    statusCode: StatusCode,
-    contentType: ContentType
-  ): ServiceResult =
-    CompleteResult(ByteString(bs), statusCode, contentType)
-
-  def complete(
-    f: Future[String],
-    statusCode: StatusCode,
-    contentType: ContentType
-  )(
-    implicit
-    ec: ExecutionContext
-  ): ServiceResult =
-    CompleteFutureResult(f.map(ByteString(_)), statusCode, contentType)
-
-  def complete(
-    s: Source[ByteString, Any],
-    statusCode: StatusCode,
-    contentType: ContentType
-  ): ServiceResult =
-    CompleteSourceResult(s, statusCode, contentType)
-
   def validationErrors(errors: (String, String)*) =
     ValidationErrorsResponse(errors.map {
       case (k, v) => (k, List(v))
     }.toMap)
 
-  import io.fcomb.json._
-  implicitly[JsonWriter[ValidationErrorsResponse]]
-
   def toResponse[T, E <: ModelServiceResponse](value: T)(implicit f: T => E) =
     f(value)
+
+  def complete[T](res: T, statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext,
+    m: Manifest[T],
+    jw: JsonWriter[T]
+  ): ServiceResult =
+    complete(ctx.marshaller.serialize(res), statusCode, ctx.contentType)
+
+  def completeThrowable(e: Throwable)(implicit ctx: ServiceContext) =
+    mapThrowable(e) match {
+      case (e, status) => complete(e, status)
+    }
 
   // def handleRequest[T <: ModelServiceRequest](
   //   f: (T, ResponseMarshaller) => Future[(_, StatusCode)]

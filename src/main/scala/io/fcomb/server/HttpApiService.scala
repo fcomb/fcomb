@@ -5,14 +5,15 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.unmarshalling.Unmarshaller._
+import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
+import io.fcomb.api.services.ServiceExceptionMethods
 import io.fcomb.json.errors._
 import io.fcomb.models.errors._
 import org.slf4j.LoggerFactory
 import spray.json._
 
-class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer) {
+class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer) extends ServiceExceptionMethods {
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   private def jsonResponse[T <: ErrorResponse](
@@ -31,19 +32,10 @@ class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer
       )
     ))
 
-  private def handleException(e: Throwable) = e match {
-    case _: DeserializationException |
-      _: ParsingException |
-      _: UnsupportedContentTypeException =>
-      jsonResponse(
-        SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
-        StatusCodes.BadRequest
-      )
-    case _ => jsonResponse(
-      SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
-      StatusCodes.InternalServerError
-    )
-  }
+  private def handleException(e: Throwable) =
+    mapThrowable(e) match {
+      case (e, status) => jsonResponse(e, status)
+    }
 
   private def handleRejection(r: Rejection) = r match {
     case _ => jsonResponse(
