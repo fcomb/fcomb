@@ -1,24 +1,26 @@
 package io.fcomb.api.services
 
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.ContentTypes.`application/json`
+import akka.http.scaladsl.model.headers.Authorization
+import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
+import akka.http.scaladsl.unmarshalling.Unmarshaller
+import akka.stream.Materializer
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
+import io.fcomb.json._
+import io.fcomb.json.errors._
 import io.fcomb.models._
 import io.fcomb.models.errors._
 import io.fcomb.persist
-import io.fcomb.validations.ValidationErrors
 import io.fcomb.utils._
-import io.fcomb.json._
-import io.fcomb.json.errors._
-import akka.util.ByteString
-import akka.http.scaladsl.model._, ContentTypes.`application/json`
-import akka.http.scaladsl.model.headers.Authorization
-import akka.http.scaladsl.unmarshalling.Unmarshaller
-import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
-import akka.stream.scaladsl.Source
-import akka.stream.Materializer
+import io.fcomb.validations.ValidationErrors
+import org.slf4j.LoggerFactory
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
+import scalaz._
+import scalaz.Scalaz._
 import spray.json._
-import scalaz._, Scalaz._
-import org.slf4j.LoggerFactory
 
 sealed trait RequestBody[R] {
   val body: Option[R]
@@ -317,8 +319,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
 
   def completeWithoutContent(statusCode: StatusCode)(
     implicit
-    ctx: ServiceContext,
-    ec: ExecutionContext
+    ctx: ServiceContext
   ): ServiceResult =
     CompleteWithoutResult(statusCode, ctx.contentType)
 
@@ -334,8 +335,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     statusCode: StatusCode
   )(
     implicit
-    ctx: ServiceContext,
-    ec: ExecutionContext
+    ctx: ServiceContext
   ): ServiceResult = res match {
     case Success(s) => completeWithoutContent(statusCode)
     case Failure(e) => complete(e)
