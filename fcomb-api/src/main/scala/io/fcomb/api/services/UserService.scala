@@ -18,17 +18,16 @@ import spray.json._
 object UserService extends Service {
   def test(implicit ec: ExecutionContext, mat: Materializer) =
     action { implicit ctx =>
-      requestBodyTryAs[UserSignUpRequest]().map {
-        case scalaz.\/-(Some(req)) =>
-          println(s"req: $req")
-          persist.User.create(
-            email = req.email,
-            username = req.username,
-            fullName = req.fullName,
-            password = req.password
-          ).map(_.map(_.toResponse[UserResponse]))
+      requestBodyAs[UserSignUpRequest] { req =>
+        println(s"req: $req")
+        persist.User.create(
+          email = req.email,
+          username = req.username,
+          fullName = req.fullName,
+          password = req.password
+        ).map(_.map(_.toResponse[UserResponse]))
+        ???
       }
-      throw new Exception("wow")
     }
 
   // def signUp(

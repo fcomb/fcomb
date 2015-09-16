@@ -57,10 +57,7 @@ case object JsonMarshaller extends Marshaller {
       }
 }
 
-sealed trait ServiceResult {
-  val statusCode: StatusCode
-  val contentType: ContentType
-}
+sealed trait ServiceResult
 
 object ServiceResult {
   case class CompleteResult(
@@ -70,9 +67,7 @@ object ServiceResult {
   ) extends ServiceResult
 
   case class CompleteFutureResult(
-    response: Future[ByteString],
-    statusCode: StatusCode,
-    contentType: ContentType
+    f: Future[ServiceResult]
   ) extends ServiceResult
 
   case class CompleteSourceResult(
@@ -92,7 +87,7 @@ trait ServiceContext {
   }
 
   val marshaller: Marshaller = contentType match {
-    case _ => JsonMarshaller // default marshaller
+    case _ => JsonMarshaller
   }
 
   def requestBody()(implicit ec: ExecutionContext, mat: Materializer) =
@@ -122,11 +117,14 @@ object ServiceRoute {
               status = status,
               entity = HttpEntity(ct, res)
             ))
-          case CompleteFutureResult(f, status, ct) =>
-            rCtx.complete(f.map(res => HttpResponse(
-              status = status,
-              entity = HttpEntity(ct, res)
-            )))
+          case CompleteFutureResult(f) =>
+            rCtx.complete(f.map {
+              case CompleteResult(res, status, ct) => // TODO: DRY
+                HttpResponse(
+                  status = status,
+                  entity = HttpEntity(ct, res)
+                )
+            })
           case CompleteSourceResult(s, status, ct) =>
             rCtx.complete(HttpResponse(
               status = status,
@@ -149,8 +147,10 @@ trait CompleteResultMethods {
     f: Future[ByteString],
     statusCode: StatusCode,
     contentType: ContentType
-  ): ServiceResult =
-    CompleteFutureResult(f, statusCode, contentType)
+  )(implicit ec: ExecutionContext): ServiceResult =
+    CompleteFutureResult(f.map { bs =>
+      CompleteResult(bs, statusCode, contentType)
+    })
 
   def complete(
     s: Source[ByteString, Any],
@@ -173,7 +173,7 @@ trait ServiceExceptionMethods {
       _: Unmarshaller.UnsupportedContentTypeException =>
       (
         SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
-        StatusCodes.BadRequest
+        StatusCodes.UnprocessableEntity
       )
     case _ => (
       SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
@@ -195,6 +195,22 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
         }
     }
 
+  def completeThrowable(e: Throwable)(implicit ctx: ServiceContext) =
+    mapThrowable(e) match {
+      case (e, status) => complete(e, status)
+    }
+
+  def recoverThrowable(f: Future[ServiceResult])(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext
+  ): Future[ServiceResult] =
+    f.recover {
+      case e: Throwable =>
+        logger.error(e.getMessage, e.getCause)
+        completeThrowable(e)
+    }
+
   def requestBodyTryAs[T]()(
     implicit
     ctx: ServiceContext,
@@ -209,6 +225,27 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       case _ => None.right[Throwable]
     })
 
+  def complete(f: Future[ServiceResult])(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext
+  ): ServiceResult =
+    CompleteFutureResult(recoverThrowable(f))
+
+  def requestBodyAs[T](f: T => ServiceResult)(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    mat: Materializer,
+    tm: Manifest[T],
+    jr: JsonReader[T]
+  ): ServiceResult =
+    complete(requestBodyTryAs[T]().map {
+      case \/-(o) => o match {
+        case Some(res) => f(res)
+      }
+    })
+
   def validationErrors(errors: (String, String)*) =
     ValidationErrors(errors.map {
       case (k, v) => (k, List(v))
@@ -221,62 +258,6 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     jw: JsonWriter[T]
   ): ServiceResult =
     complete(ctx.marshaller.serialize(res), statusCode, ctx.contentType)
-
-  def completeThrowable(e: Throwable)(implicit ctx: ServiceContext) =
-    mapThrowable(e) match {
-      case (e, status) => complete(e, status)
-    }
-
-  // def handleRequest[T <: ModelServiceRequest](
-  //   f: (T, ResponseMarshaller) => Future[(_, StatusCode)]
-  // )(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer,
-  //   tm:           Manifest[T],
-  //   jr:           JsonReader[T]
-  // ): ServiceResponse =
-  //   new ServiceResponse {
-  //     def apply(
-  //       contentType:   ContentType,
-  //       entity:        Source[ByteString, Any],
-  //       requestParams: => RequestParams
-  //     ) = {
-  //       ServiceFlow(contentType, entity).flatMap {
-  //         case \/-((ct, JsonServiceFlow(json))) =>
-  //           scala.util.Try(json.convertTo[T]) match {
-  //             case scala.util.Success(res) =>
-  //               f(res, JsonResponseMarshaller).map {
-  //                 case (body, statusCode) =>
-  //                   (ct, body, statusCode)
-  //               }
-  //             case scala.util.Failure(e) =>
-  //               Future.successful((
-  //                 ct,
-  //                 JsonResponseMarshaller(validationErrors("json" -> e.getMessage())),
-  //                 StatusCodes.UnprocessableEntity
-  //               ))
-  //           }
-  //         case -\/(e) =>
-  //           println(s"e: $e")
-  //           throw new Exception(e.toString) // TODO: handle exceptions within content type
-  //       }
-  //     }
-  //   }
-
-  // def requestAs[T <: ModelServiceRequest, E <: ModelServiceResponse](
-  //   f: T => Future[E]
-  // )(
-  //   implicit
-  //   ec:           ExecutionContext,
-  //   mat: Materializer,
-  //   tm:           Manifest[T],
-  //   jr:           JsonReader[T],
-  //   jw:           JsonWriter[E]
-  // ): ServiceResponse =
-  //   handleRequest[T] { (req, marshaller) =>
-  //     f(req).map { res => (marshaller(res), StatusCodes.OK) }
-  //   }
 
   // def requestAsWithValidation[T <: ModelServiceRequest, E <: ModelServiceResponse](
   //   f: T => Future[validations.ValidationResult[E]]
