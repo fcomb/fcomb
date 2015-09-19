@@ -13,7 +13,11 @@ import io.fcomb.models.errors._
 import org.slf4j.LoggerFactory
 import spray.json._
 
-class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer) extends ServiceExceptionMethods {
+class HttpApiService(routes: Route)(
+  implicit
+  sys: ActorSystem,
+  mat: Materializer
+) extends ServiceExceptionMethods {
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   private def jsonResponse[T <: ErrorResponse](

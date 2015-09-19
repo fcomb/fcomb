@@ -374,8 +374,9 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     ec: ExecutionContext
   ): ServiceResult = {
-    def e(message: String) =
-      Future.successful(completeErrors("auth" -> message)(StatusCodes.Unauthorized))
+    def e(message: String) = Future.successful(
+      completeErrors("auth" -> message)(StatusCodes.Unauthorized)
+    )
 
     complete(getAuthToken() match {
       case Some(token) =>

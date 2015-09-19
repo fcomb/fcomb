@@ -16,10 +16,10 @@ object Routes {
     )
   )
 
-  // format: OFF
   def apply()(implicit sys: ActorSystem, mat: Materializer): Route = {
     import sys.dispatcher
 
+    // format: OFF
     pathPrefix("v1") {
       pathPrefix("combs") {
         pathEndOrSingleSlash {
@@ -66,6 +66,6 @@ object Routes {
         get(complete(pongJsonResponse))
       }
     }
+    // format: ON
   }
-  // format: ON
 }
