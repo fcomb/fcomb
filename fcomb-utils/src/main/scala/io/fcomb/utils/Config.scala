@@ -7,7 +7,7 @@ object Config {
 
   val jdbcConfig = config.getConfig("jdbc")
 
-  val scredis = config.getConfig("scredis")
+  val redis = config.getConfig("redis")
 
   val mandrillKey = config.getString("mandrill.key")
 }

@@ -141,13 +141,12 @@ package object validations {
   }
 
   implicit class ValidationResultMethods[T](val result: ValidationResult[T]) extends AnyVal {
-    def `:::`(result2: ValidationResult[T]): ValidationResult[T] = {
+    def `:::`(result2: ValidationResult[T]): ValidationResult[T] =
       (result, result2) match {
         case (Failure(e1), Failure(e2)) => Failure(e1 ++ e2)
         case (e @ Failure(_), _)        => e
         case (_, e @ Failure(_))        => e
         case _                          => result
       }
-    }
   }
 }

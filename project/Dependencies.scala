@@ -16,7 +16,7 @@ object Dependencies {
   }
 
   object Compile {
-    val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.3.1.2"
+    val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.3.2"
     val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.2.2"
 
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
@@ -26,7 +26,7 @@ object Dependencies {
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
 
-    val akkaTracing     = "com.github.levkhomich"         %% "akka-tracing-core"             % "0.5-SNAPSHOT" changing()
+    // val akkaTracing     = "com.github.levkhomich"         %% "akka-tracing-core"             % "0.5-SNAPSHOT" changing()
     // val kamonScala      = "io.kamon"                      %% "kamon-scala"                   % V.kamon
     // val kamonAkka       = "io.kamon"                      %% "kamon-akka"                    % V.kamon
     // val kamonAkkaRemote = "io.kamon"                      %% "kamon-akka-remote"             % V.kamon
@@ -35,6 +35,8 @@ object Dependencies {
     // val kamonJdbc       = "io.kamon"                      %% "kamon-jdbc"                    % V.kamon
 
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
+
+    // "com.github.romix.akka" %% "akka-kryo-serialization" % "0.3.3"
 
     val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
     // val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
@@ -48,6 +50,7 @@ object Dependencies {
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
+    val configs         = "com.github.kxbmap"             %% "configs"                       % "0.2.5"
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1203-jdbc42" exclude("org.slf4j", "slf4j-simple")
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
@@ -69,7 +72,7 @@ object Dependencies {
 
     val akkaPersistenceCassandra = "com.github.krasserm"  %% "akka-persistence-cassandra"    % "0.3.9"
 
-    val scredis         = "com.livestream"                %% "scredis"                       % "2.0.7-RC1"
+    val redis           = "com.etaty.rediscala"           %% "rediscala"                     % "1.5.0"
 
     val oauth           = "com.nulab-inc"                 %% "scala-oauth2-core"             % "0.13.1"
     val bcrypt          = "com.github.t3hnar"             %% "scala-bcrypt"                  % "2.4"
@@ -130,7 +133,7 @@ object Dependencies {
 
   val common = Seq(
     logbackClassic, scalaLogging,
-    config, json4sJackson,
+    config, configs,
     // pickling, upickle,
     // pprint,
     sprayJson, sprayJsonShapeless,
@@ -177,7 +180,8 @@ object Dependencies {
   )
 
   val utils = common ++ Seq(
-    scredis, lz4
+    akkaActor, akkaStream,
+    redis, lz4
   )
 
   val macros = common

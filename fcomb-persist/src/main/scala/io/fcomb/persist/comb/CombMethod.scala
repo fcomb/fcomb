@@ -5,17 +5,17 @@ import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models
 import io.fcomb.models.comb
 import io.fcomb.persist._
-import io.fcomb.validations._
 import io.fcomb.trie.RouteTrie
-import java.time.LocalDateTime
-import java.util.UUID
+import io.fcomb.validations._
 import java.net.URL
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Try, Success, Failure }
+import java.time.LocalDateTime
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 import scalaz._
 import scalaz.Scalaz._
 
-class CombMethodTable(tag: Tag) extends Table[comb.CombMethod](tag, "comb_methods") with PersistTableWithAutoLongPk {
+class CombMethodTable(tag: Tag) extends Table[comb.CombMethod](tag, "comb_methods")
+  with PersistTableWithAutoLongPk {
   def combId = column[Long]("comb_id")
   def kind = column[comb.MethodKind.MethodKind]("kind")
   def uri = column[String]("uri")
@@ -32,9 +32,9 @@ object CombMethod extends PersistModelWithAutoLongPk[comb.CombMethod, CombMethod
   val table = TableQuery[CombMethodTable]
 
   def create(
-    combId:   Long,
-    kind:     comb.MethodKind.MethodKind,
-    uri:      String,
+    combId: Long,
+    kind: comb.MethodKind.MethodKind,
+    uri: String,
     endpoint: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = LocalDateTime.now()
@@ -79,7 +79,7 @@ object CombMethod extends PersistModelWithAutoLongPk[comb.CombMethod, CombMethod
   private def validateUri(uri: String): PlainValidation =
     RouteTrie.validateUri(uri) match {
       case Right(_) => ().successNel
-      case Left(e)  => e.failureNel
+      case Left(e) => e.failureNel
     }
 
   private def validateEndpoint(uri: String, endpoint: String): PlainValidation = {

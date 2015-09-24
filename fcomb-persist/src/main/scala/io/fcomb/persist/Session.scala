@@ -1,13 +1,13 @@
 package io.fcomb.persist
 
-import io.fcomb.Db.cache
+import io.fcomb.Db.redis
 import io.fcomb.models
 import io.fcomb.request.SessionRequest
 import io.fcomb.validations
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
-import scredis._
+import redis._
 import shapeless._, contrib.scalaz._, syntax.std.function._
 import scalaz._, scalaz.syntax.validation._
 import org.apache.commons.codec.digest.DigestUtils
@@ -17,7 +17,7 @@ import java.util.UUID
 object Session extends PersistTypes[models.Session] {
   val sessionIdLength = 42
   val random = new Random(new SecureRandom())
-  val ttl = Some(30.days) // TODO: move into config
+  val ttl = Some(30.days.toSeconds) // TODO: move into config
 
   def create(
     user: models.User
@@ -35,7 +35,7 @@ object Session extends PersistTypes[models.Session] {
     ec: ExecutionContext
   ): Future[ValidationModel] = {
     val sessionId = s"$userPrefix${random.alphanumeric.take(sessionIdLength).mkString}"
-    cache.set(getKey(sessionId), id, ttl).map { _ =>
+    redis.set(getKey(sessionId), id, ttl).map { _ =>
       models.Session(sessionId).success[validations.ValidationErrors]
     }
   }
@@ -46,7 +46,10 @@ object Session extends PersistTypes[models.Session] {
       "password" -> "invalid"
     ))
 
-  def create(req: SessionRequest)(implicit ec: ExecutionContext): Future[ValidationModel] =
+  def create(req: SessionRequest)(
+    implicit
+    ec: ExecutionContext
+  ): Future[ValidationModel] =
     User.findByEmail(req.email).flatMap {
       case Some(user) if user.isValidPassword(req.password) =>
         create(user)
@@ -54,18 +57,23 @@ object Session extends PersistTypes[models.Session] {
         invalidEmailOrPassword
     }
 
-  def findById(sessionId: String)(implicit ec: ExecutionContext) = {
-    cache.get(getKey(sessionId)).flatMap {
+  def findById(sessionId: String)(
+    implicit
+    ec: ExecutionContext
+  ) = {
+    redis.get(getKey(sessionId)).flatMap {
       case Some(userId) if sessionId.startsWith(userPrefix) =>
-        User.findById(UUID.fromString(userId))
+        User.findById(UUID.fromString(userId.utf8String))
       case _ =>
         Future.successful(None)
     }
   }
 
-  def destroy(sessionId: String) = cache.del(getKey(sessionId))
+  def destroy(sessionId: String) =
+    redis.del(getKey(sessionId))
 
-  def isValid(sessionId: String) = sessionId.length == sessionIdLength
+  def isValid(sessionId: String) =
+    sessionId.length == sessionIdLength
 
   @inline
   private def getKey(sessionId: String) =
