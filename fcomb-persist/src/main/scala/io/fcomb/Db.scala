@@ -8,7 +8,7 @@ import redis.RedisClient
 import scala.concurrent.{ Await, ExecutionContext, Future, blocking }
 import com.zaxxer.hikari.HikariDataSource
 import javax.sql.DataSource
-import com.github.kxbmap.configs._
+import com.github.kxbmap.configs.syntax._
 
 object Db {
   private val dbUrl = Config.jdbcConfig.getString("url")

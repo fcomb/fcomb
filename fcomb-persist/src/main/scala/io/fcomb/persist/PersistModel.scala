@@ -1,12 +1,12 @@
 package io.fcomb.persist
 
-import io.fcomb.{ models, validations }
-import io.fcomb.validations.{ DBIOT, ValidationResult }
+import io.fcomb.{models, validations}
+import io.fcomb.validations.{DBIOT, ValidationResult}
 import io.fcomb.Db._
 import io.fcomb.RichPostgresDriver.IntoInsertActionComposer
 import io.fcomb.RichPostgresDriver.api._
 import java.util.UUID
-import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scala.concurrent.{ExecutionContext, Future, blocking}
 import scalaz._
 import scalaz.Scalaz._
 import slick.jdbc.TransactionIsolation
@@ -15,6 +15,9 @@ import slick.lifted.AppliedCompiledFunction
 trait PersistTypes[T] {
   type ValidationModel = validations.ValidationResult[T]
   type ValidationDBIOResult = DBIOT[ValidationResult[Unit]]
+
+  def successResult(res: T): validations.ValidationResult[T] =
+    res.success[validations.ValidationErrors]
 
   def validationError[E](columnName: String, error: String): validations.ValidationResult[E] =
     validations.validationErrors(columnName -> error)
@@ -65,7 +68,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 
   protected def validateThenApplyVM(result: ValidationDBIOResult)(f: => DBIOAction[ValidationModel, NoStream, Effect.All])(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val dbio = result.flatMap {
-      case Success(_)     => f
+      case Success(_) => f
       case e @ Failure(_) => DBIO.successful(e)
     }
     runInTransaction(dbio)
@@ -80,7 +83,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   def createDBIO(itemOpt: Option[T])(implicit ec: ExecutionContext): ModelDBIOOption =
     itemOpt match {
       case Some(item) => createDBIO(item).map(Some(_))
-      case None       => DBIO.successful(Option.empty[T])
+      case None => DBIO.successful(Option.empty[T])
     }
 }
 
@@ -161,11 +164,11 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
   )(
     implicit
     ec: ExecutionContext,
-    m:  Manifest[T]
+    m: Manifest[T]
   ): Future[ValidationModel] =
     findById(id).flatMap {
       case Some(item) => update(f(item))
-      case None       => recordNotFoundAsFuture(id)
+      case None => recordNotFoundAsFuture(id)
     }
 
   def destroy(id: T#PkType)(implicit ec: ExecutionContext) = db.run {

@@ -4,6 +4,7 @@ import io.fcomb.models.ModelWithAutoLongPk
 import java.time.LocalDateTime
 import java.util.UUID
 import java.net.URL
+import io.fcomb.trie.RouteMethods
 
 object MethodKind extends Enumeration {
   type MethodKind = Value
@@ -29,14 +30,15 @@ object CombMethodUtils {
       .map(_.drop(1).dropRight(1))
 }
 
+@SerialVersionUID(1L)
 case class CombMethod(
-    id:        Option[Long]          = None,
-    combId:    Long,
-    kind:      MethodKind.MethodKind,
-    uri:       String,
-    endpoint:  String,
-    createdAt: LocalDateTime,
-    updatedAt: LocalDateTime
+  id: Option[Long] = None,
+  combId: Long,
+  kind: MethodKind.MethodKind,
+  uri: String,
+  endpoint: String,
+  createdAt: LocalDateTime,
+  updatedAt: LocalDateTime
 ) extends ModelWithAutoLongPk {
   def endpointUrl() = new URL(endpoint)
 
@@ -54,4 +56,14 @@ case class CombMethod(
     CombMethodUtils.endpointParams(endpointUrl)
 
   def withPk(id: Long) = this.copy(id = Some(id))
+
+  def routeKind() = this.kind match {
+    case MethodKind.GET => RouteMethods.GET
+    case MethodKind.POST => RouteMethods.POST
+    case MethodKind.PUT => RouteMethods.PUT
+    case MethodKind.DELETE => RouteMethods.DELETE
+    case MethodKind.PATCH => RouteMethods.PATCH
+    case MethodKind.OPTIONS => RouteMethods.OPTIONS
+    case MethodKind.HEAD => RouteMethods.HEAD
+  }
 }

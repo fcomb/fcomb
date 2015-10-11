@@ -2,7 +2,6 @@ package io.fcomb.utils
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.typesafe.config.ConfigFactory
 
 object Implicits {
   object global {

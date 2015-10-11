@@ -2,12 +2,12 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.0-RC3"
+    val akka = "2.4.0"
     val akkaExperimental = "1.0"
     val algebra = "0.2.0-SNAPSHOT"
     val cats = "0.1.0-SNAPSHOT"
     val circle = "0.1.1"
-    val slick = "3.1.0-RC1"
+    val slick = "3.1.0"
     val scalaz = "7.1.4"
     val scalikeJdbc = "2.2.8"
     val monocle = "1.2.0-M1"
@@ -16,7 +16,7 @@ object Dependencies {
   }
 
   object Compile {
-    val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.3.2"
+    val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.4.0"
     val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.2.2"
 
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
@@ -25,6 +25,9 @@ object Dependencies {
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
+    val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "1.2.0"
+    // val akkaPersistenceCassandra = "com.github.krasserm"  %% "akka-persistence-cassandra"    % "0.5-SNAPSHOT" changing()
+    // val akkaKryo        = "com.github.romix.akka"         %% "akka-kryo-serialization"       % "0.3.3"
 
     // val akkaTracing     = "com.github.levkhomich"         %% "akka-tracing-core"             % "0.5-SNAPSHOT" changing()
     // val kamonScala      = "io.kamon"                      %% "kamon-scala"                   % V.kamon
@@ -50,13 +53,14 @@ object Dependencies {
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
-    val configs         = "com.github.kxbmap"             %% "configs"                       % "0.2.5"
+    val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
 
-    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1203-jdbc42" exclude("org.slf4j", "slf4j-simple")
+    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1204-jdbc42" exclude("org.slf4j", "slf4j-simple")
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
-    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0-RC1"
-    val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.4"
-    val slickless       = "io.underscore"                 %% "slickless"                     % "0.1.1"
+    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0"
+    val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % "0.10.0"
+    val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.7"
+    // val slickless       = "io.underscore"                 %% "slickless"                     % "0.1.1"
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.1"
     // val relate          = "com.lucidchart"                %% "relate"                        % "1.7.1"
     // val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % V.scalikeJdbc
@@ -69,8 +73,6 @@ object Dependencies {
 
     val levelDb         = "org.iq80.leveldb"              % "leveldb"                        % "0.7"
     val levelDbJni      = "org.fusesource.leveldbjni"     % "leveldbjni-all"                 % "1.8"
-
-    val akkaPersistenceCassandra = "com.github.krasserm"  %% "akka-persistence-cassandra"    % "0.3.9"
 
     val redis           = "com.etaty.rediscala"           %% "rediscala"                     % "1.5.0"
 
@@ -148,8 +150,7 @@ object Dependencies {
 
   val akka = Seq(
     akkaSlf4j, akkaActor, akkaStream, akkaHttp,
-    akkaPersistence, /*akkaStreamExtensions,*/
-    akkaPersistenceCassandra
+    akkaPersistence, akkaPersistenceJdbc /*akkaStreamExtensions, akkaPersistenceCassandra*/
   )
 
   val root = common ++ akka ++ Seq(
@@ -165,13 +166,13 @@ object Dependencies {
   val data = common ++ Seq(xml, scalazCore, shapeless, shapelessScalaz)
 
   val models = common ++ Seq(
-    bcrypt
+    bcrypt, routeTrie
   )
 
   val persist = common ++ Seq(
     postgresJdbc,
     dbMigration,
-    slick, slickPg, slickJdbc, slickless,
+    slick, slickPg, slickPgSprayJson, slickJdbc, // slickless,
     // relate,
     // scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
     // phantom, phantomUdt,

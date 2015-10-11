@@ -16,6 +16,7 @@ object Resolvers {
     // "Kamon Repository" at "http://repo.kamon.io",
     "Akka Snapshot Repository"   at "http://repo.akka.io/snapshots/",
     "Java.net Maven2 Repository" at "http://download.java.net/maven/2/",
-    "Twitter Repository"         at "http://maven.twttr.com"
+    "Twitter Repository"         at "http://maven.twttr.com",
+    "OJO Snapshots" at "https://oss.jfrog.org/oss-snapshot-local"
   )
 }
