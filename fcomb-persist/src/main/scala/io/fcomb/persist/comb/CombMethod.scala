@@ -55,6 +55,9 @@ object CombMethod extends PersistModelWithAutoLongPk[comb.CombMethod, CombMethod
   def findAllByCombId(combId: Long) =
     db.run(findAllByCombIdCompiled(combId).result)
 
+  def destroyByCombId(combId: Long) =
+    db.run(table.filter(_.combId === combId).delete)
+
   // def updateByRequest(id: UUID)(
   //   name: String,
   //   slug: Option[String]

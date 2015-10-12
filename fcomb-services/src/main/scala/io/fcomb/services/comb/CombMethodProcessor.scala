@@ -135,21 +135,28 @@ class CombMethodProcessor(timeout: Duration) extends PersistentActor
 
   def idle: Receive = {
     case AddMethod(m) =>
-      tryRoute(_ + (m.uri, m.routeKind, m)) { s =>
+      tryRoute(_ + (m.uri, m.routeKind, m)) { replyTo =>
         state.trie.getMethodValue(m.routeKind, m.uri) match {
           case Some(v) =>
-            if (v.copy(id = None) == m) s ! PCombMethod.successResult(v)
-            else s ! PCombMethod.validationError("id", "already exists")
+            if (v.copy(id = None) == m) replyTo ! validations.successResult(v)
+            else replyTo ! PCombMethod.validationError("id", "already exists")
           case _ =>
             context.become(busy, true)
-            handleFutureValidation(PCombMethod.create(m), s) { res =>
+            handleFutureValidation(PCombMethod.create(m), replyTo) { res =>
               snapshotState(_ + (res.uri, res.routeKind, res))
             }
         }
       }
     case DestroyAll =>
-      context.become(terminate, true)
-      deleteSnapshots(new SnapshotSelectionCriteria)
+      val replyTo = sender
+      context.become(terminate(replyTo), true)
+      PCombMethod.destroyByCombId(combId).onComplete {
+        case Success(_) =>
+          deleteSnapshots(new SnapshotSelectionCriteria)
+        case Failure(e) =>
+          replyTo ! PCombMethod.validationError("_", e.getMessage)
+          context.become(idle)
+      }
     case ReceiveTimeout ⇒
       context.parent ! Passivate(stopMessage = PoisonPill)
     case GetRouteTrie =>
@@ -163,11 +170,13 @@ class CombMethodProcessor(timeout: Duration) extends PersistentActor
       sender ! state.trie
   }
 
-  def terminate: Receive = {
-    case DeleteSnapshotsSuccess =>
+  def terminate(replyTo: ActorRef): Receive = {
+    case _: DeleteSnapshotsSuccess =>
+      replyTo ! validations.successResult(())
       context.parent ! Passivate(stopMessage = PoisonPill)
-    case DeleteSnapshotsFailure =>
+    case _: DeleteSnapshotsFailure =>
       deleteSnapshots(new SnapshotSelectionCriteria)
+    case _ =>
   }
 
   def backToWork() = {

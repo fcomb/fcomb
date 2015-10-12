@@ -16,9 +16,6 @@ trait PersistTypes[T] {
   type ValidationModel = validations.ValidationResult[T]
   type ValidationDBIOResult = DBIOT[ValidationResult[Unit]]
 
-  def successResult(res: T): validations.ValidationResult[T] =
-    res.success[validations.ValidationErrors]
-
   def validationError[E](columnName: String, error: String): validations.ValidationResult[E] =
     validations.validationErrors(columnName -> error)
 

@@ -42,7 +42,7 @@ object Main extends App {
   val req = CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.AddMethod(null))
   (combMethodProcessorRegion.ref ? req).onComplete(println)
   (combMethodProcessorRegion.ref ? CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.GetRouteTrie)).onComplete(println)
-  combMethodProcessorRegion.ref ! CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.DestroyAll)
+  (combMethodProcessorRegion.ref ? CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.DestroyAll)).onComplete(println)
 
   (for {
     _ <- Db.migrate()

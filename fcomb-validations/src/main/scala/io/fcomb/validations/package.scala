@@ -40,6 +40,9 @@ package object validations {
 
   val emptyValidationErrors: ValidationErrors = Map.empty[String, List[String]]
 
+  def successResult[E](res: E): validations.ValidationResult[E] =
+    res.success[validations.ValidationErrors]
+
   def validationErrors[M](errors: (String, String)*): ValidationResult[M] =
     errors.map {
       case (k, v) => (k, List(v))
