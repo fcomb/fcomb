@@ -18,7 +18,7 @@ object CombMethodProcessor {
     case EntityEnvelope(combId, payload) ⇒ (combId.toString, payload)
   }
 
-  val numberOfShards = 1
+  val numberOfShards = 1 // TODO: move into config
 
   val extractShardId: ShardRegion.ExtractShardId = {
     case EntityEnvelope(combId, _) ⇒ (combId % numberOfShards).toString
@@ -148,6 +148,9 @@ class CombMethodProcessor(timeout: Duration) extends PersistentActor with AtLeas
             }
         }
       }
+    case DestroyAll =>
+      deleteSnapshots(new SnapshotSelectionCriteria)
+      context.stop(self)
     case ReceiveTimeout ⇒
       context.parent ! Passivate(stopMessage = PoisonPill)
     case GetRouteTrie =>
