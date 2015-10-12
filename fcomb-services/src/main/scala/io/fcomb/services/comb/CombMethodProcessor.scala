@@ -15,7 +15,7 @@ import scala.util.{Try, Success, Failure}
 
 object CombMethodProcessor {
   val extractEntityId: ShardRegion.ExtractEntityId = {
-    case EntityEnvelope(combId, msg) ⇒ (combId.toString, msg)
+    case EntityEnvelope(combId, payload) ⇒ (combId.toString, payload)
   }
 
   val numberOfShards = 1
@@ -62,7 +62,7 @@ object CombMethodProcessor {
   @SerialVersionUID(1L)
   case object GetRouteTrie
 
-  case class EntityEnvelope(combId: Long, msg: CombMethodCommand)
+  case class EntityEnvelope(combId: Long, payload: Any)
 }
 
 class CombMethodProcessor(timeout: Duration) extends PersistentActor with AtLeastOnceDelivery with ActorLogging {
@@ -90,17 +90,6 @@ class CombMethodProcessor(timeout: Duration) extends PersistentActor with AtLeas
     saveSnapshot(updateState(f))
 
   val messages = new ListBuffer[(ActorRef, CombMethodCommand)]
-
-  def busy: Receive = {
-    case msg: CombMethodCommand =>
-      messages += ((sender, msg)) // TODO: limit
-  }
-
-  def backToWork() = {
-    context.become(idle, true)
-    messages.map { case (s, m) => self.tell(m, s) }
-    messages.clear()
-  }
 
   def handleValidation[T](
     v: validations.ValidationResult[T],
@@ -161,6 +150,21 @@ class CombMethodProcessor(timeout: Duration) extends PersistentActor with AtLeas
       }
     case ReceiveTimeout ⇒
       context.parent ! Passivate(stopMessage = PoisonPill)
+    case GetRouteTrie =>
+      sender ! state.trie
+  }
+
+  def busy: Receive = {
+    case msg: CombMethodCommand =>
+      messages += ((sender, msg)) // TODO: limit
+    case GetRouteTrie =>
+      sender ! state.trie
+  }
+
+  def backToWork() = {
+    context.become(idle, true)
+    messages.map { case (s, m) => self.tell(m, s) }
+    messages.clear()
   }
 
   def receiveCommand = idle

@@ -40,6 +40,7 @@ object Main extends App {
   val combMethodProcessorRegion = CombMethodProcessor.startRegion(regionTimeout)
   val req = CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.AddMethod(null))
   (combMethodProcessorRegion.ref ? req).onComplete(println)
+  (combMethodProcessorRegion.ref ? CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.GetRouteTrie)).onComplete(println)
 
   (for {
     _ <- Db.migrate()
