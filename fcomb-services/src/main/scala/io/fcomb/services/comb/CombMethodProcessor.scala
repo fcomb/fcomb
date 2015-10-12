@@ -35,15 +35,13 @@ object CombMethodProcessor {
     sys.dispatchers.lookup(shardName)
 
   def startRegion(timeout: Duration)(implicit sys: ActorSystem) =
-    CombMethodProcessorRegion(
-      ClusterSharding(sys).start(
-        typeName = shardName,
-        entityProps = props(timeout),
-        settings = ClusterShardingSettings(sys),
-        extractEntityId = extractEntityId,
-        extractShardId = extractShardId
-      )
-    )
+    CombMethodProcessorRegion(ClusterSharding(sys).start(
+      typeName = shardName,
+      entityProps = props(timeout),
+      settings = ClusterShardingSettings(sys),
+      extractEntityId = extractEntityId,
+      extractShardId = extractShardId
+    ))
 
   sealed trait CombMethodCommand
 
@@ -65,7 +63,8 @@ object CombMethodProcessor {
   case class EntityEnvelope(combId: Long, payload: Any)
 }
 
-class CombMethodProcessor(timeout: Duration) extends PersistentActor with AtLeastOnceDelivery with ActorLogging {
+class CombMethodProcessor(timeout: Duration) extends PersistentActor
+  with AtLeastOnceDelivery with ActorLogging {
   import context.dispatcher
   import CombMethodProcessor._
   import ShardRegion.Passivate
@@ -93,31 +92,31 @@ class CombMethodProcessor(timeout: Duration) extends PersistentActor with AtLeas
 
   def handleValidation[T](
     v: validations.ValidationResult[T],
-    s: ActorRef
+    replyTo: ActorRef
   )(
     f: T => Unit
   ) = {
     v match {
       case r @ scalaz.Success(res) =>
         f(res)
-        s ! r
+        replyTo ! r
       case e @ scalaz.Failure(_) =>
-        s ! e
+        replyTo ! e
     }
     backToWork()
   }
 
   def handleFutureValidation[T](
     fv: Future[validations.ValidationResult[T]],
-    s: ActorRef
+    replyTo: ActorRef
   )(
     f: T => Unit
   ) =
     fv.onComplete {
       case Success(res) =>
-        handleValidation(res, s)(f)
+        handleValidation(res, replyTo)(f)
       case Failure(e) =>
-        s ! PCombMethod.validationError("_", e.getMessage)
+        replyTo ! PCombMethod.validationError("_", e.getMessage)
         backToWork()
     }
 
@@ -149,8 +148,8 @@ class CombMethodProcessor(timeout: Duration) extends PersistentActor with AtLeas
         }
       }
     case DestroyAll =>
+      context.become(terminate, true)
       deleteSnapshots(new SnapshotSelectionCriteria)
-      context.stop(self)
     case ReceiveTimeout ⇒
       context.parent ! Passivate(stopMessage = PoisonPill)
     case GetRouteTrie =>
@@ -162,6 +161,13 @@ class CombMethodProcessor(timeout: Duration) extends PersistentActor with AtLeas
       messages += ((sender, msg)) // TODO: limit
     case GetRouteTrie =>
       sender ! state.trie
+  }
+
+  def terminate: Receive = {
+    case DeleteSnapshotsSuccess =>
+      context.parent ! Passivate(stopMessage = PoisonPill)
+    case DeleteSnapshotsFailure =>
+      deleteSnapshots(new SnapshotSelectionCriteria)
   }
 
   def backToWork() = {

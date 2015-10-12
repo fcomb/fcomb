@@ -7,6 +7,7 @@ import io.fcomb.api.services.Routes
 import io.fcomb.services.CombMethodProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
+import scala.concurrent.Await
 import scala.util.{Failure, Success}
 import java.net.InetAddress
 
@@ -58,4 +59,6 @@ object Main extends App {
         System.exit(-1)
       }
   }
+
+  Await.result(sys.whenTerminated, Duration.Inf)
 }
