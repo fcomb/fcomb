@@ -1,11 +1,14 @@
 package io.fcomb
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Address}
+import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.api.services.Routes
+import io.fcomb.services.CombMethodProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.util.{Failure, Success}
+import java.net.InetAddress
 
 object Main extends App {
   private val logger = LoggerFactory.getLogger(this.getClass)
@@ -13,14 +16,30 @@ object Main extends App {
 
   val config = Config.config
 
-  implicit val sys = ActorSystem("fcomb-server", config)
+  implicit val sys = ActorSystem(Config.actorSystemName, config)
   implicit val mat = ActorMaterializer()
   import sys.dispatcher
+
+  val cluster = Cluster(sys)
+
+  if (config.getList("akka.cluster.seed-nodes").isEmpty) {
+    logger.info("Going to a single-node cluster mode")
+    cluster.join(cluster.selfAddress)
+  }
 
   Implicits.global(sys, mat)
 
   val interface = config.getString("rest-api.interface")
   val port = config.getInt("rest-api.port")
+
+  import akka.pattern.ask
+  import akka.util.Timeout
+  import scala.concurrent.duration._
+  val regionTimeout = 2.minutes
+  implicit val timeout = Timeout(5.seconds)
+  val combMethodProcessorRegion = CombMethodProcessor.startRegion(regionTimeout)
+  val req = CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.AddMethod(null))
+  (combMethodProcessorRegion.ref ? req).onComplete(println)
 
   (for {
     _ <- Db.migrate()

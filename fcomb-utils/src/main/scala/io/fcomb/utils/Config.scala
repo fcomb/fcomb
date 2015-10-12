@@ -5,6 +5,8 @@ import com.typesafe.config.ConfigFactory
 object Config {
   val config = ConfigFactory.load().getConfig("fcomb-server")
 
+  val actorSystemName = config.getString("actor-system-name")
+
   val jdbcConfig = config.getConfig("jdbc")
 
   val redis = config.getConfig("redis")

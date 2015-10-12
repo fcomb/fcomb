@@ -20,6 +20,9 @@ object Dependencies {
     val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.2.2"
 
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
+    val akkaClusterSharding = "com.typesafe.akka"         %% "akka-cluster-sharding"         % V.akka
+    val akkaDistributedData = "com.typesafe.akka"         %% "akka-distributed-data-experimental" % V.akka
+    val akkaContrib     = "com.typesafe.akka"             %% "akka-contrib"                  % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
     // val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
@@ -149,7 +152,10 @@ object Dependencies {
   val kamon = Seq(/*kamonScala, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
 
   val akka = Seq(
-    akkaSlf4j, akkaActor, akkaStream, akkaHttp,
+    akkaActor, akkaClusterSharding, akkaContrib,
+    akkaDistributedData,
+    akkaStream, akkaHttp,
+    akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc /*akkaStreamExtensions, akkaPersistenceCassandra*/
   )
 

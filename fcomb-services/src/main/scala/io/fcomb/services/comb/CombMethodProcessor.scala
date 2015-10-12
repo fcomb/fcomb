@@ -2,6 +2,7 @@ package io.fcomb.services
 
 import akka.actor._
 import akka.persistence._
+import akka.cluster.sharding._
 import io.fcomb.trie._
 import io.fcomb.models.comb._
 import io.fcomb.persist.comb.{CombMethod => PCombMethod}
@@ -9,11 +10,40 @@ import io.fcomb.validations
 import scala.concurrent.Future
 import scala.language.implicitConversions
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.Duration
 import scala.util.{Try, Success, Failure}
 
 object CombMethodProcessor {
-  def props(combId: Long) =
-    Props(new CombMethodProcessor(combId))
+  val extractEntityId: ShardRegion.ExtractEntityId = {
+    case EntityEnvelope(combId, msg) ⇒ (combId.toString, msg)
+  }
+
+  val numberOfShards = 1
+
+  val extractShardId: ShardRegion.ExtractShardId = {
+    case EntityEnvelope(combId, _) ⇒ (combId % numberOfShards).toString
+  }
+
+  def props(timeout: Duration) =
+    Props(classOf[CombMethodProcessor], timeout)
+
+  case class CombMethodProcessorRegion(ref: ActorRef)
+
+  val shardName = "CombMethodShard"
+
+  def lookup()(implicit sys: ActorSystem) =
+    sys.dispatchers.lookup(shardName)
+
+  def startRegion(timeout: Duration)(implicit sys: ActorSystem) =
+    CombMethodProcessorRegion(
+      ClusterSharding(sys).start(
+        typeName = shardName,
+        entityProps = props(timeout),
+        settings = ClusterShardingSettings(sys),
+        extractEntityId = extractEntityId,
+        extractShardId = extractShardId
+      )
+    )
 
   sealed trait CombMethodCommand
 
@@ -31,11 +61,18 @@ object CombMethodProcessor {
 
   @SerialVersionUID(1L)
   case object GetRouteTrie
+
+  case class EntityEnvelope(combId: Long, msg: CombMethodCommand)
 }
 
-class CombMethodProcessor(combId: Long) extends PersistentActor with ActorLogging {
+class CombMethodProcessor(timeout: Duration) extends PersistentActor with AtLeastOnceDelivery with ActorLogging {
   import context.dispatcher
   import CombMethodProcessor._
+  import ShardRegion.Passivate
+
+  context.setReceiveTimeout(timeout)
+
+  val combId = self.path.name.toLong
 
   override def persistenceId = s"comb-method-processor-$combId"
 
@@ -56,7 +93,7 @@ class CombMethodProcessor(combId: Long) extends PersistentActor with ActorLoggin
 
   def busy: Receive = {
     case msg: CombMethodCommand =>
-      messages += ((sender, msg))
+      messages += ((sender, msg)) // TODO: limit
   }
 
   def backToWork() = {
@@ -122,9 +159,15 @@ class CombMethodProcessor(combId: Long) extends PersistentActor with ActorLoggin
             }
         }
       }
+    case ReceiveTimeout ⇒
+      context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   def receiveCommand = idle
 
-  def receiveRecover = ???
+  def receiveRecover = {
+    case RecoveryCompleted =>
+    case SnapshotOffer(_, snapshot: State) =>
+      state = snapshot
+  }
 }
