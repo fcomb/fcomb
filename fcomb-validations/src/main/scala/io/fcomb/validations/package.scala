@@ -1,8 +1,8 @@
 package io.fcomb
 
 import scala.annotation.tailrec
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.language.{ existentials, implicitConversions, postfixOps }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.language.{existentials, implicitConversions, postfixOps}
 import scalaz._
 import scalaz.Scalaz._
 import slick.driver.PostgresDriver.api._
@@ -50,7 +50,7 @@ package object validations {
 
   def validateColumn(column: String, validation: PlainValidation): ColumnValidation =
     validation match {
-      case Success(_)      => ().success
+      case Success(_) => ().success
       case Failure(errors) => (column, errors).failure
     }
 
@@ -92,7 +92,7 @@ package object validations {
     }
     res.map {
       case m if m.isEmpty => ().success
-      case m              => m.failure
+      case m => m.failure
     }
   }
 
@@ -111,7 +111,7 @@ package object validations {
       action: AppliedCompiledFunction[_, Rep[Boolean], Boolean]
     )(implicit ec: ExecutionContext): DBIOValidation = {
       action.result.map {
-        case true  => "not unique".failureNel
+        case true => "not unique".failureNel
         case false => ().successNel
       }
     }
@@ -147,9 +147,9 @@ package object validations {
     def `:::`(result2: ValidationResult[T]): ValidationResult[T] =
       (result, result2) match {
         case (Failure(e1), Failure(e2)) => Failure(e1 ++ e2)
-        case (e @ Failure(_), _)        => e
-        case (_, e @ Failure(_))        => e
-        case _                          => result
+        case (e @ Failure(_), _) => e
+        case (_, e @ Failure(_)) => e
+        case _ => result
       }
   }
 }

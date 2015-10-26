@@ -28,9 +28,11 @@ object Dependencies {
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
-    val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "1.2.0"
+    val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "1.2.2"
     // val akkaPersistenceCassandra = "com.github.krasserm"  %% "akka-persistence-cassandra"    % "0.5-SNAPSHOT" changing()
     // val akkaKryo        = "com.github.romix.akka"         %% "akka-kryo-serialization"       % "0.3.3"
+
+    val dns4s           = "com.github.mkroli"             %% "dns4s-akka"                    % "0.8"
 
     // val akkaTracing     = "com.github.levkhomich"         %% "akka-tracing-core"             % "0.5-SNAPSHOT" changing()
     // val kamonScala      = "io.kamon"                      %% "kamon-scala"                   % V.kamon
@@ -40,14 +42,15 @@ object Dependencies {
     // val kamonStatsd     = "io.kamon"                      %% "kamon-statsd"                  % V.kamon
     // val kamonJdbc       = "io.kamon"                      %% "kamon-jdbc"                    % V.kamon
 
+    val javaCompat      = "org.scala-lang.modules"        %% "scala-java8-compat"            % "0.7.0"
+
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
     // "com.github.romix.akka" %% "akka-kryo-serialization" % "0.3.3"
 
-    val json4sJackson   = "org.json4s"                    %% "json4s-jackson"                % "3.2.11"
     // val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
     // val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.5"
-    val sprayJson       = "io.spray"                      %%  "spray-json"                   % "1.3.2"
+    val sprayJson       = "io.spray"                      %% "spray-json"                   % "1.3.2"
     val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.1.0"
     // val circleCore      = "io.circe"                      %% "circe-core"                    % V.circle
     // val circleGeneric   = "io.circe"                      %% "circe-generic"                 % V.circle
@@ -137,6 +140,7 @@ object Dependencies {
   import Compile._, Test._
 
   val common = Seq(
+    javaCompat,
     logbackClassic, scalaLogging,
     config, configs,
     // pickling, upickle,
@@ -157,12 +161,6 @@ object Dependencies {
     akkaStream, akkaHttp,
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc /*akkaStreamExtensions, akkaPersistenceCassandra*/
-  )
-
-  val root = common ++ akka ++ Seq(
-    postgresJdbc, hikariCp,
-    commonsCodec,
-    scalazCore, scalazConcurrent, shapeless, shapelessScalaz
   )
 
   val api = common ++ akka ++ Seq(oauth)

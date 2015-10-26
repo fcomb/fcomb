@@ -17,10 +17,9 @@ object Db {
 
   private val dataSource: DataSource = {
     val ds = new HikariDataSource()
-    ds.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource")
-    ds.addDataSourceProperty("url", dbUrl)
-    ds.addDataSourceProperty("user", dbUser)
-    ds.addDataSourceProperty("password", dbPassword)
+    ds.setJdbcUrl(dbUrl)
+    ds.setUsername(dbUser)
+    ds.setPassword(dbPassword)
     ds.setMaximumPoolSize(Config.jdbcConfig.getInt("max-pool-size"))
     ds
   }

@@ -8,6 +8,7 @@ import io.fcomb.services.CombMethodProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 import java.net.InetAddress
 
@@ -33,16 +34,9 @@ object Main extends App {
   val interface = config.getString("rest-api.interface")
   val port = config.getInt("rest-api.port")
 
-  import akka.pattern.ask
-  import akka.util.Timeout
-  import scala.concurrent.duration._
-  val regionTimeout = 2.minutes
-  implicit val timeout = Timeout(5.seconds)
-  val combMethodProcessorRegion = CombMethodProcessor.startRegion(regionTimeout)
-  val req = CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.AddMethod(null))
-  (combMethodProcessorRegion.ref ? req).onComplete(println)
-  (combMethodProcessorRegion.ref ? CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.GetRouteTrie)).onComplete(println)
-  (combMethodProcessorRegion.ref ? CombMethodProcessor.EntityEnvelope(112, CombMethodProcessor.DestroyAll)).onComplete(println)
+  import io.fcomb.services.docker.DockerClient
+  val dc = new DockerClient("coreos", 2375)
+  dc.getInfo()
 
   (for {
     _ <- Db.migrate()

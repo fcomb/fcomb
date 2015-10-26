@@ -60,8 +60,7 @@ object Build extends sbt.Build {
         javaOptions               ++= Seq("-Dfile.encoding=UTF-8", "-Dscalac.patmat.analysisBudget=off"),
         javacOptions              ++= Seq("-source", javaVersion, "-target", javaVersion, "-Xlint:unchecked", "-Xlint:deprecation"),
         parallelExecution in Test :=  false,
-        fork              in Test :=  true,
-        unmanagedResourceDirectories in Compile <+= baseDirectory(_ / "src/main/scala")
+        fork              in Test :=  true
       )
 
   lazy val root = Project(
@@ -73,7 +72,6 @@ object Build extends sbt.Build {
       // SbtAspectj.aspectjSettings ++
       Revolver.settings             ++
       Seq(
-        libraryDependencies                       ++= Dependencies.root,
         Revolver.reStartArgs                      :=  Seq("io.fcomb.Main"),
         mainClass            in Revolver.reStart  :=  Some("io.fcomb.Main"),
         autoCompilerPlugins                       :=  true,
