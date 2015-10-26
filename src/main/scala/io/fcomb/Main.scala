@@ -37,6 +37,7 @@ object Main extends App {
   import io.fcomb.services.docker.DockerClient
   val dc = new DockerClient("coreos", 2375)
   dc.getInfo()
+  dc.getContainers()
 
   (for {
     _ <- Db.migrate()

@@ -9,34 +9,6 @@ import akka.http.scaladsl.Http
 import akka.util.ByteString
 import spray.json._
 
-object DockerApiMessages {
-  sealed trait DockerApiMessage
-
-  case class Info(
-    id: String,
-    continers: Int,
-    images: Int,
-    driver: String,
-    driverStatus: List[List[String]],
-    memoryLimit: Boolean,
-    swapLimit: Boolean,
-    cpuCfsPeriod: Boolean,
-    cpuCfsQuota: Boolean,
-    ipv4Forwarding: Boolean,
-    kernelVersion: String,
-    operatingSystem: String,
-    memTotal: Long,
-    name: String
-  ) extends DockerApiMessage
-
-  object JsonProtocols extends DefaultJsonProtocol {
-    implicit val infoFormat = jsonFormat(Info, "ID", "Containers", "Images",
-      "Driver", "DriverStatus", "MemoryLimit", "SwapLimit", "CpuCfsPeriod",
-      "CpuCfsQuota", "IPv4Forwarding", "KernelVersion", "OperatingSystem",
-      "MemTotal", "Name")
-  }
-}
-
 class DockerClient(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializer) {
   import sys.dispatcher
   import DockerApiMessages._
@@ -45,17 +17,33 @@ class DockerClient(host: String, port: Int)(implicit sys: ActorSystem, mat: Mate
   lazy val connectionFlow =
     Http().outgoingConnection(host, port) // TODO: add TLS
 
-  def getInfo() = {
+  private def apiRequest(uri: Uri) =
     Source
-      .single(HttpRequest(uri = "/info"))
+      .single(HttpRequest(uri = uri))
       .via(connectionFlow)
       .runWith(Sink.head)
-      .onComplete {
-        case scala.util.Success(res) =>
-          res.entity.dataBytes.runFold(ByteString.empty)(_ ++ _).map { data =>
-            val json = data.utf8String.parseJson
-            println(s"data: ${json.convertTo[Info]}")
-          }
-      }
+      .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _))
+      .map(_.utf8String.parseJson)
+
+  def getInfo() = {
+    apiRequest("/info").map { json =>
+      println(s"DockerApiInfo: ${json.convertTo[DockerApiInfo]}")
+    }
+  }
+
+  def getContainers(
+    all: Boolean = true,
+    size: Option[Int] = None,
+    before: Option[String] = None
+  ) = {
+    val params = Map(
+      "all" -> all.toString,
+      "size" -> size.getOrElse("").toString,
+      "before" -> before.getOrElse("")
+    ).filter(_._2.nonEmpty)
+    val uri = Uri("/containers/json").withQuery(params)
+    apiRequest(uri).map { json =>
+      println(s"containers: ${json.convertTo[List[DockerApiContainerItem]]}")
+    }
   }
 }
