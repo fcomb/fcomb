@@ -34,10 +34,11 @@ object Main extends App {
   val interface = config.getString("rest-api.interface")
   val port = config.getInt("rest-api.port")
 
-  import io.fcomb.services.docker.DockerClient
-  val dc = new DockerClient("coreos", 2375)
-  dc.getInfo()
-  dc.getContainers()
+  import io.fcomb.services.docker.DockerApiClient
+  val dc = new DockerApiClient("coreos", 2375)
+  // dc.getInfo()
+  // dc.getContainers()
+  dc.createContainer("ubuntu")
 
   (for {
     _ <- Db.migrate()

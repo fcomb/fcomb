@@ -5,7 +5,7 @@ object Dependencies {
     val akka = "2.4.0"
     val akkaExperimental = "1.0"
     val algebra = "0.2.0-SNAPSHOT"
-    val cats = "0.1.0-SNAPSHOT"
+    val cats = "0.2.0"
     val circle = "0.1.1"
     val slick = "3.1.0"
     val scalaz = "7.1.4"
@@ -100,8 +100,8 @@ object Dependencies {
     // val algebra         = "org.spire-math"                %% "algebra"                       % V.algebra
     // val algebraStd      = "org.spire-math"                %% "algebra-std"                   % V.algebra
     //
-    // val cats            = "org.spire-math"                %% "cats-core"                     % V.cats
-    // val catsStd         = "org.spire-math"                %% "cats-std"                      % V.cats
+    val cats            = "org.spire-math"                %% "cats-core"                     % V.cats
+    val catsState       = "org.spire-math"                %% "cats-state"                    % V.cats
     //
     // val monocleCore     = "com.github.julien-truffaut"    %%  "monocle-core"                 % V.monocle
     // val monocleGeneric  = "com.github.julien-truffaut"    %%  "monocle-generic"              % V.monocle
@@ -147,7 +147,7 @@ object Dependencies {
     // pprint,
     sprayJson, sprayJsonShapeless,
     // circleCore, circleGeneric, circleJawn,
-    scalazCore, scalazConcurrent,
+    scalazCore, scalazConcurrent, cats, catsState,
     shapeless, shapelessScalaz /*,
     jamm */
     , objectsize

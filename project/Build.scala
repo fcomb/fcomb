@@ -9,7 +9,7 @@ import play.twirl.sbt._, Import._
 
 object Build extends sbt.Build {
   val Organization = "io.fcomb"
-  val Version = "0.1-SNAPSHOT"
+  val Version = "0.2.0-SNAPSHOT"
   val ScalaVersion = "2.11.7"
 
   lazy val buildSettings =
