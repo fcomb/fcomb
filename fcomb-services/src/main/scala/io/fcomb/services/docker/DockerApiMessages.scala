@@ -12,6 +12,18 @@ object DockerApiMessages {
 
   sealed trait DockerApiRequest extends DockerApiMessage
 
+  case class IndexInfo(
+    name: String,
+    mirrors: List[String],
+    isSecure: Boolean,
+    isOfficial: Boolean
+  )
+
+  case class ServiceConfig(
+    insecureRegistryCidrs: List[String],
+    indexConfigs: Map[String, IndexInfo]
+  )
+
   case class Info(
     id: String,
     continers: Int,
@@ -36,16 +48,16 @@ object DockerApiMessages {
     kernelVersion: String,
     operatingSystem: String,
     indexServerAddress: String,
-    // registryConfig     interface{}
+    registryConfig: Option[ServiceConfig],
     initSha1: String,
     initPath: String,
     cpus: Int,
     memory: Long,
     dockerRootDir: String,
-    httpProxy: String,
-    httpsProxy: String,
-    noProxy: String,
-    name: String,
+    httpProxy: Option[String],
+    httpsProxy: Option[String],
+    noProxy: Option[String],
+    name: Option[String],
     labels: List[String],
     isExperimentalBuild: Boolean
   ) extends DockerApiResponse
@@ -261,7 +273,12 @@ object DockerApiMessages {
   )
 
   object JsonProtocols {
-    implicit def listFormat[T: JsonFormat] = new RootJsonFormat[List[T]] {
+    private def optString(v: Option[String]) = v match {
+      case res @ Some(s) if s.nonEmpty => res
+      case _ => None
+    }
+
+    private implicit def listFormat[T: JsonFormat] = new RootJsonFormat[List[T]] {
       def write(list: List[T]) = list match {
         case Nil => JsNull
         case xs => JsArray(xs.map(_.toJson).toVector)
@@ -273,6 +290,12 @@ object DockerApiMessages {
         case x => deserializationError(s"Expected List as JsArray, but got $x")
       }
     }
+
+    implicit val indexInfoFormat =
+      jsonFormat(IndexInfo, "Name", "Mirrors", "Secure", "Official")
+
+    implicit val serviceConfigFormat =
+      jsonFormat(ServiceConfig, "InsecureRegistryCIDRs", "IndexConfigs")
 
     implicit object InfoFormat extends RootJsonReader[Info] {
       def read(v: JsValue) = v match {
@@ -299,17 +322,17 @@ object DockerApiMessages {
           eventsListeners = obj.get[Int]("NEventsListener"),
           kernelVersion = obj.get[String]("KernelVersion"),
           operatingSystem = obj.get[String]("OperatingSystem"),
+          registryConfig = obj.getOpt[ServiceConfig]("RegistryConfig"),
           indexServerAddress = obj.get[String]("IndexServerAddress"),
-          // registryConfig     interface{}
           initSha1 = obj.get[String]("InitSha1"),
           initPath = obj.get[String]("InitPath"),
           cpus = obj.get[Int]("NCPU"),
           memory = obj.get[Long]("MemTotal"),
           dockerRootDir = obj.get[String]("DockerRootDir"),
-          httpProxy = obj.get[String]("HttpProxy"),
-          httpsProxy = obj.get[String]("HttpsProxy"),
-          noProxy = obj.get[String]("NoProxy"),
-          name = obj.get[String]("Name"),
+          httpProxy = optString(obj.getOpt[String]("HttpProxy")),
+          httpsProxy = optString(obj.getOpt[String]("HttpsProxy")),
+          noProxy = optString(obj.getOpt[String]("NoProxy")),
+          name = optString(obj.getOpt[String]("Name")),
           labels = obj.get[List[String]]("Labels"),
           isExperimentalBuild = obj.getOrElse[Boolean]("ExperimentalBuild", false)
         )
