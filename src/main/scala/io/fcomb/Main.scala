@@ -36,9 +36,11 @@ object Main extends App {
 
   import io.fcomb.services.docker.DockerApiClient
   val dc = new DockerApiClient("coreos", 2375)
-  // dc.getInfo()
-  // dc.getContainers()
-  dc.createContainer("ubuntu")
+  dc.getInfo().map { res =>
+    println(s"res: $res")
+  }.recover {
+    case e: Throwable => println(s"e: $e")
+  }
 
   (for {
     _ <- Db.migrate()

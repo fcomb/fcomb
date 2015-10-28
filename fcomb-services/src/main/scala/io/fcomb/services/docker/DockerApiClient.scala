@@ -46,11 +46,11 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       }
   }
 
-  def getInfo() = {
-    apiRequest(HttpMethods.GET, "/info").map { json =>
-      println(s"DockerApiInfo: ${json.convertTo[Info]}")
-    }
-  }
+  def getInfo() =
+    apiRequest(HttpMethods.GET, "/info").map(_.convertTo[Info])
+
+  def getVersion() =
+    apiRequest(HttpMethods.GET, "/version").map(_.convertTo[Version])
 
   def getContainers(
     all: Boolean = true,
@@ -126,15 +126,11 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       hostConfig = hostConfig
     )
     println(s"req: $req")
-    apiRequest(HttpMethods.POST, "/containers/create", Some(req)).onComplete {
-      case util.Success(json) =>
-        println(s"create response: $json")
-      case util.Failure(e) =>
-        println(s"e: $e")
+    apiRequest(HttpMethods.POST, "/containers/create", Some(req)).map { json =>
+      println(s"resp: ${json.convertTo[ContainerCreateResponse]}")
     }
   }
 
   def getContainer() = {
-
   }
 }

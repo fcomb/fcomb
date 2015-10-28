@@ -12,6 +12,23 @@ import spray.json._
 import spray.json.DefaultJsonProtocol._
 
 package object json {
+  implicit class JsObjectMethods(val obj: JsObject) extends AnyVal {
+    def get[T](fieldName: String)(implicit jr: JsonReader[T]): T =
+      obj.fields(fieldName).convertTo[T]
+
+    def getOrElse[T](fieldName: String, v: T)(implicit jr: JsonReader[T]): T =
+      obj.fields.get(fieldName).map(_.convertTo[T]).getOrElse(v)
+
+    def getOpt[T](fieldName: String)(implicit jr: JsonReader[Option[T]]): Option[T] =
+      obj.fields.get(fieldName).flatMap(_.convertTo[Option[T]])
+
+    def getList[T](fieldName: String)(implicit jr: JsonReader[T]): List[T] =
+      obj.fields.get(fieldName) match {
+        case Some(JsArray(l)) => l.map(_.convertTo[T]).toList
+        case _ => List.empty
+      }
+  }
+
   implicit object UuidFormat extends RootJsonFormat[UUID] {
     def write(u: UUID) = JsString(u.toString)
 
