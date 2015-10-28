@@ -53,14 +53,18 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
     apiRequest(HttpMethods.GET, "/version").map(_.convertTo[Version])
 
   def getContainers(
-    all: Boolean = true,
-    size: Option[Int] = None,
-    before: Option[String] = None
+    showAll: Boolean = true,
+    showSize: Boolean = false,
+    limit: Option[Int] = None,
+    beforeId: Option[String] = None,
+    sinceId: Option[String] = None
   ) = {
     val params = Map(
-      "all" -> all.toString,
-      "size" -> size.getOrElse("").toString,
-      "before" -> before.getOrElse("")
+      "all" -> showAll.toString,
+      "size" -> showSize.toString,
+      "limit" -> limit.getOrElse("").toString,
+      "before" -> beforeId.getOrElse(""),
+      "since" -> sinceId.getOrElse("")
     ).filter(_._2.nonEmpty)
     val uri = Uri("/containers/json").withQuery(params)
     apiRequest(HttpMethods.GET, uri).map { json =>
@@ -131,6 +135,13 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
     }
   }
 
-  def getContainer() = {
+  def getContainer(id: String) = {
+    apiRequest(HttpMethods.GET, s"/containers/$id/json").map { json =>
+      try {
+        println(s"resp: ${json.convertTo[ContainerBase]}")
+      } catch {
+        case e: Throwable => println(s"e: $e")
+      }
+    }
   }
 }

@@ -3,7 +3,7 @@ package io.fcomb.services.docker
 import spray.json._
 import spray.json.DefaultJsonProtocol.{listFormat => _, _}
 import io.fcomb.json._
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, ZonedDateTime}
 
 object DockerApiMessages {
   sealed trait DockerApiMessage
@@ -61,6 +61,24 @@ object DockerApiMessages {
     labels: List[String],
     isExperimentalBuild: Boolean
   ) extends DockerApiResponse
+
+  case class ExecStartCheck(
+    isDetach: Boolean,
+    isTty: Boolean
+  )
+
+  case class ContainerState(
+    isRunning: Boolean,
+    isPaused: Boolean,
+    isRestarting: Boolean,
+    isOomKilled: Boolean,
+    isDead: Boolean,
+    pid: Int,
+    exitCode: Int,
+    error: Option[String],
+    startedAt: Option[ZonedDateTime],
+    finishedAt: Option[ZonedDateTime]
+  )
 
   object PortKind extends Enumeration {
     type PortKind = Value
@@ -199,6 +217,57 @@ object DockerApiMessages {
     hostConfig: HostConfig
   ) extends DockerApiRequest
 
+  case class Address(
+    address: String,
+    prefixLength: Int
+  )
+
+  case class NetworkSettings(
+    bridge: String,
+    endpointId: String,
+    gateway: String,
+    globalIpv6Address: String,
+    globalIpv6PrefixLength: Int,
+    hairpinMode: Boolean,
+    ipAddress: String,
+    ipPrefixLength: Int,
+    ipv6Gateway: String,
+    linkLocalIpv6Address: String,
+    linkLocalIpv6PrefixLength: Int,
+    macAddress: String,
+    networkId: String,
+    ports: Map[String, List[PortBinding]],
+    sandboxKey: String,
+    secondaryIpAddresses: List[Address],
+    secondaryIpv6Addresses: List[Address]
+  )
+
+  case class ContainerBase(
+    id: String,
+    createdAt: ZonedDateTime,
+    path: String,
+    args: List[String],
+    state: ContainerState,
+    image: String,
+    networkSettings: NetworkSettings,
+    resolvConfPath: String,
+    hostnamePath: String,
+    hostsPath: String,
+    logPath: String,
+    name: String,
+    restartCount: Int,
+    driver: String,
+    execDriver: String,
+    mountLabel: String,
+    processLabel: String,
+    volumes: Map[String, String],
+    volumesRw: Map[String, Boolean],
+    appArmorProfile: String,
+    execIds: List[String]
+  // HostConfig      *runconfig.HostConfig
+  // GraphDriver     GraphDriverData
+  ) extends DockerApiResponse
+
   case class ContainerCreateResponse(
     id: String,
     warnings: List[String]
@@ -276,6 +345,11 @@ object DockerApiMessages {
     private def optString(v: Option[String]) = v match {
       case res @ Some(s) if s.nonEmpty => res
       case _ => None
+    }
+
+    private def optDateTime(v: Option[ZonedDateTime]) = v match {
+      case Some(d) if d.getYear() == 1 => None
+      case res => res
     }
 
     private implicit def listFormat[T: JsonFormat] = new RootJsonFormat[List[T]] {
@@ -404,5 +478,63 @@ object DockerApiMessages {
     implicit val versionFormat =
       jsonFormat(Version, "Version", "ApiVersion", "GitCommit", "GoVersion", "Os",
         "Arch", "KernelVersion", "Experimental", "BuildTime")
+
+    implicit object ContainerStateFormat extends RootJsonReader[ContainerState] {
+      def read(v: JsValue) = v match {
+        case obj: JsObject => ContainerState(
+          isRunning = obj.get[Boolean]("Running"),
+          isPaused = obj.get[Boolean]("Paused"),
+          isRestarting = obj.get[Boolean]("Restarting"),
+          isOomKilled = obj.get[Boolean]("OOMKilled"),
+          isDead = obj.get[Boolean]("Dead"),
+          pid = obj.get[Int]("Pid"),
+          exitCode = obj.get[Int]("ExitCode"),
+          error = optString(obj.getOpt[String]("Error")),
+          startedAt = obj.getOpt[ZonedDateTime]("StartedAt"),
+          finishedAt = optDateTime(obj.getOpt[ZonedDateTime]("FinishedAt"))
+        )
+        case x => deserializationError(s"Expected JsObject, but got $x")
+      }
+    }
+
+    implicit val addressFormat =
+      jsonFormat(Address, "Addr", "PrefixLen")
+
+    implicit val networkSettingsFormat =
+      jsonFormat(NetworkSettings, "Bridge", "EndpointID", "Gateway", "GlobalIPv6Address",
+        "GlobalIPv6PrefixLen", "HairpinMode", "IPAddress", "IPPrefixLen", "IPv6Gateway",
+        "LinkLocalIPv6Address", "LinkLocalIPv6PrefixLen", "MacAddress", "NetworkID", "Ports",
+        "SandboxKey", "SecondaryIPAddresses", "SecondaryIPv6Addresses")
+
+    implicit object ContainerBaseFormat extends RootJsonReader[ContainerBase] {
+      def read(v: JsValue) = v match {
+        case obj: JsObject => ContainerBase(
+          id = obj.get[String]("Id"),
+          createdAt = obj.get[ZonedDateTime]("Created"),
+          path = obj.get[String]("Path"),
+          args = obj.get[List[String]]("Args"),
+          state = obj.get[ContainerState]("State"),
+          image = obj.get[String]("Image"),
+          networkSettings = obj.get[NetworkSettings]("NetworkSettings"),
+          resolvConfPath = obj.get[String]("ResolvConfPath"),
+          hostnamePath = obj.get[String]("HostnamePath"),
+          hostsPath = obj.get[String]("HostsPath"),
+          logPath = obj.get[String]("LogPath"),
+          name = obj.get[String]("Name"),
+          restartCount = obj.get[Int]("RestartCount"),
+          driver = obj.get[String]("Driver"),
+          execDriver = obj.get[String]("ExecDriver"),
+          mountLabel = obj.get[String]("MountLabel"),
+          processLabel = obj.get[String]("ProcessLabel"),
+          volumes = obj.get[Map[String, String]]("Volumes"),
+          volumesRw = obj.get[Map[String, Boolean]]("VolumesRW"),
+          appArmorProfile = obj.get[String]("AppArmorProfile"),
+          execIds = obj.get[List[String]]("ExecIDs")
+        // HostConfig      *runconfig.HostConfig
+        // GraphDriver     GraphDriverData
+        )
+        case x => deserializationError(s"Expected JsObject, but got $x")
+      }
+    }
   }
 }
