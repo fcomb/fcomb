@@ -4,15 +4,12 @@ object Dependencies {
   object V {
     val akka = "2.4.0"
     val akkaExperimental = "1.0"
-    val algebra = "0.2.0-SNAPSHOT"
     val cats = "0.2.0"
     val circle = "0.1.1"
     val slick = "3.1.0"
     val scalaz = "7.1.4"
     val scalikeJdbc = "2.2.8"
-    val monocle = "1.2.0-M1"
-    val kamon = "0.5.0"
-    val phantom = "1.10.6"
+    // val kamon = "0.5.0"
   }
 
   object Compile {
@@ -134,8 +131,6 @@ object Dependencies {
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.3" % "test"
     val specs2          = "org.specs2"                    %% "specs2-core"                   % "2.4.17" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.4" % "test"
-    val phantomTestkit  = "com.websudos"                  %% "phantom-testkit"               % V.phantom % "test"
-    val monocleLaw      = "com.github.julien-truffaut"    %% "monocle-law"                   % V.monocle % "test" 
   }
 
   import Compile._, Test._
@@ -154,7 +149,7 @@ object Dependencies {
     , objectsize
   )
 
-  val kamon = Seq(/*kamonScala, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
+  // val kamon = Seq(/*kamonScala, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
 
   val akka = Seq(
     akkaActor, akkaClusterSharding, akkaContrib,

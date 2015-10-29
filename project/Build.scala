@@ -59,8 +59,8 @@ object Build extends sbt.Build {
         ) ++ compilerFlags,
         javaOptions               ++= Seq("-Dfile.encoding=UTF-8", "-Dscalac.patmat.analysisBudget=off"),
         javacOptions              ++= Seq("-source", javaVersion, "-target", javaVersion, "-Xlint:unchecked", "-Xlint:deprecation"),
-        parallelExecution in Test :=  false,
-        fork              in Test :=  true
+        parallelExecution in Test := false,
+        fork              in Test := true
       )
 
   lazy val root = Project(
