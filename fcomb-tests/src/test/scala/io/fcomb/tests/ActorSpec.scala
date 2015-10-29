@@ -40,4 +40,9 @@ abstract class ActorSpec extends TestKit(ActorSystem("fcomb-tests"))
         }
       }
     }
+
+  override def afterAll(): Unit = {
+    await(system.terminate())
+    super.afterAll()
+  }
 }
