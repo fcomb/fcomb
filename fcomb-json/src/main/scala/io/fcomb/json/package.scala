@@ -5,7 +5,7 @@ import io.fcomb.models.comb._
 import io.fcomb.models.errors._
 import io.fcomb.request._
 import io.fcomb.response._
-import java.time.{LocalDateTime, ZonedDateTime}
+import java.time._
 import java.util.UUID
 import scala.collection.mutable.OpenHashMap
 import spray.json._
@@ -44,6 +44,10 @@ package object json {
 
     def read(v: JsValue) = v match {
       case JsString(v) => LocalDateTime.parse(v)
+      case JsNumber(n) =>
+        Instant.ofEpochSecond(n.toLong)
+          .atZone(ZoneId.systemDefault())
+          .toLocalDateTime()
       case _ =>
         throw new DeserializationException("invalid LocalDateTime")
     }
@@ -54,6 +58,10 @@ package object json {
 
     def read(v: JsValue) = v match {
       case JsString(v) => ZonedDateTime.parse(v)
+      case JsNumber(n) =>
+        Instant.ofEpochSecond(n.toLong)
+          .atZone(ZoneId.systemDefault())
+          .withFixedOffsetZone()
       case _ =>
         throw new DeserializationException("invalid ZonedDateTime")
     }

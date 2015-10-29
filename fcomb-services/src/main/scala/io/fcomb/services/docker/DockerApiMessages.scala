@@ -99,7 +99,7 @@ object DockerApiMessages {
     names: List[String],
     image: String,
     command: String,
-    created: Long,
+    createdAt: ZonedDateTime,
     status: String,
     ports: List[Port],
     sizeRw: Option[Long],

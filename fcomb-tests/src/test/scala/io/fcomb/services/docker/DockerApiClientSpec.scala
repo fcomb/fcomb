@@ -89,5 +89,52 @@ class DockerApiClientSpec extends ActorSpec {
         }
       }
     }
+
+    "get containers" in {
+      val handler = pathPrefix("containers" / "json") {
+        get(complete(getFixture("docker/v1.19/containers.json")))
+      }
+      startFakeHttpServer(handler) { port =>
+        val dc = new DockerApiClient("localhost", port)
+        dc.getContainers().map { res =>
+          val containers = List(
+            ContainerItem(
+              id = "c7c8678a5a0e0b503afed4c5f7c88332097b2d271a41722c4cc56fb98fbb5616",
+              names = List("/ubuntu1404"),
+              image = "ubuntu:14.04",
+              command = "/bin/bash",
+              createdAt = ZonedDateTime.parse("2015-10-28T18:01:27+03:00"),
+              status = "Up 29 hours",
+              ports = List(Port(
+                privatePort = 2375,
+                publicPort = None,
+                kind = PortKind.Tcp,
+                ip = None
+              )),
+              sizeRw = Some(109626507633L),
+              sizeRootFs = Some(109789320076L)
+            ),
+            ContainerItem(
+              id = "d2014860647461e6924c1fd39b9806ed322378938d4342ebd5498d9d21d9abaa",
+              names = List("/docker"),
+              image = "docker:rc",
+              command = "docker-entrypoint.sh /bin/sh",
+              createdAt = ZonedDateTime.parse("2015-10-27T10:26:17+03:00"),
+              status = "Up 30 hours",
+              ports = List(Port(
+                privatePort = 2375,
+                publicPort = None,
+                kind = PortKind.Tcp,
+                ip = None
+              )),
+              sizeRw = Some(109533280374L),
+              sizeRootFs = Some(109569328002L)
+            )
+          )
+          assert(res === containers)
+        }
+      }
+    }
+
   }
 }

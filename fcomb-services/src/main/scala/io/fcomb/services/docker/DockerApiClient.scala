@@ -67,9 +67,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       "since" -> sinceId.getOrElse("")
     ).filter(_._2.nonEmpty)
     val uri = Uri("/containers/json").withQuery(params)
-    apiRequest(HttpMethods.GET, uri).map { json =>
-      println(s"containers: ${json.convertTo[List[ContainerItem]]}")
-    }
+    apiRequest(HttpMethods.GET, uri).map(_.convertTo[List[ContainerItem]])
   }
 
   def createContainer(image: String) = {
