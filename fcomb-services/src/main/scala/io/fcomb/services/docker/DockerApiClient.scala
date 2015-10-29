@@ -46,8 +46,8 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       }
   }
 
-  def getInfo() =
-    apiRequest(HttpMethods.GET, "/info").map(_.convertTo[Info])
+  def getInformation() =
+    apiRequest(HttpMethods.GET, "/info").map(_.convertTo[Information])
 
   def getVersion() =
     apiRequest(HttpMethods.GET, "/version").map(_.convertTo[Version])

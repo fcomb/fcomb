@@ -24,7 +24,7 @@ object DockerApiMessages {
     indexConfigs: Map[String, IndexInfo]
   )
 
-  case class Info(
+  case class Information(
     id: String,
     continers: Int,
     images: Int,
@@ -41,7 +41,7 @@ object DockerApiMessages {
     fileDescriptors: Int,
     isOomKillDisable: Boolean,
     goroutines: Int,
-    systemTime: String,
+    systemTime: ZonedDateTime,
     executionDriver: String,
     loggingDriver: Option[String],
     eventsListeners: Int,
@@ -365,15 +365,15 @@ object DockerApiMessages {
       }
     }
 
-    implicit val indexInfoFormat =
+    implicit val indexInformationFormat =
       jsonFormat(IndexInfo, "Name", "Mirrors", "Secure", "Official")
 
     implicit val serviceConfigFormat =
       jsonFormat(ServiceConfig, "InsecureRegistryCIDRs", "IndexConfigs")
 
-    implicit object InfoFormat extends RootJsonReader[Info] {
+    implicit object InformationFormat extends RootJsonReader[Information] {
       def read(v: JsValue) = v match {
-        case obj: JsObject => Info(
+        case obj: JsObject => Information(
           id = obj.get[String]("ID"),
           continers = obj.get[Int]("Containers"),
           images = obj.get[Int]("Images"),
@@ -390,7 +390,7 @@ object DockerApiMessages {
           fileDescriptors = obj.get[Int]("NFd"),
           isOomKillDisable = obj.getOrElse[Boolean]("OomKillDisable", true),
           goroutines = obj.get[Int]("NGoroutines"),
-          systemTime = obj.get[String]("SystemTime"),
+          systemTime = obj.get[ZonedDateTime]("SystemTime"),
           executionDriver = obj.get[String]("ExecutionDriver"),
           loggingDriver = obj.getOpt[String]("LoggingDriver"),
           eventsListeners = obj.get[Int]("NEventsListener"),
