@@ -92,6 +92,7 @@ object Build extends sbt.Build {
       )
   ).dependsOn(api/*, proxy*/)
     .enablePlugins(SbtNativePackager)
+    .aggregate(tests)
 
   lazy val api = Project(
      id = "api",
@@ -200,7 +201,16 @@ object Build extends sbt.Build {
     base = file("fcomb-proxy"),
     settings =
       defaultSettings ++ Seq(
-        libraryDependencies             ++= Dependencies.proxy
+        libraryDependencies ++= Dependencies.proxy
       )
   ).dependsOn(persist)
+
+  lazy val tests = Project(
+    id = "tests",
+    base = file("fcomb-tests"),
+    settings =
+      defaultSettings ++ Seq(
+        libraryDependencies ++= Dependencies.tests
+      )
+  ).dependsOn(api)
 }

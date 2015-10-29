@@ -133,6 +133,7 @@ object Dependencies {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.3" % "test"
     val specs2          = "org.specs2"                    %% "specs2-core"                   % "2.4.17" % "test"
+    val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.4" % "test"
     val phantomTestkit  = "com.websudos"                  %% "phantom-testkit"               % V.phantom % "test"
     val monocleLaw      = "com.github.julien-truffaut"    %% "monocle-law"                   % V.monocle % "test" 
   }
@@ -165,7 +166,7 @@ object Dependencies {
 
   val api = common ++ akka ++ Seq(oauth)
 
-  val tests = common ++ Seq(akkaTestkit, scalacheck, specs2)
+  val tests = common ++ Seq(akkaTestkit, scalacheck, specs2, scalatest)
 
   val data = common ++ Seq(xml, scalazCore, shapeless, shapelessScalaz)
 
