@@ -18,13 +18,25 @@ trait SpecHelpers {
   }
 }
 
-abstract class ActorSpec extends TestKit(ActorSystem("fcomb-tests"))
-  with ImplicitSender with WordSpecLike with Matchers
-  with BeforeAndAfterAll with SpecHelpers {
+private object ActorSystemSpec {
+  implicit lazy val system = ActorSystem("fcomb-tests")
 
   implicit lazy val mat = ActorMaterializer()
 
-  implicit val ec = system.dispatcher
+  implicit lazy val ec = system.dispatcher
+}
+
+sealed trait ActorSystemSpec {
+  implicit val system: ActorSystem
+
+  implicit lazy val mat = ActorSystemSpec.mat
+
+  implicit lazy val ec = system.dispatcher
+}
+
+abstract class ActorSpec extends TestKit(ActorSystemSpec.system)
+  with ImplicitSender with WordSpecLike with Matchers
+  with BeforeAndAfterAll with ActorSystemSpec with SpecHelpers {
 
   implicit val timeout = 1.second // TODO: move into config
 
@@ -40,9 +52,4 @@ abstract class ActorSpec extends TestKit(ActorSystem("fcomb-tests"))
         }
       }
     }
-
-  override def afterAll(): Unit = {
-    await(system.terminate())
-    super.afterAll()
-  }
 }
