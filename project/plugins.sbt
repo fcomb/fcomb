@@ -34,3 +34,5 @@ addSbtPlugin("org.brianmckenna" % "sbt-wartremover" % "0.14")
 // addSbtPlugin("com.typesafe" % "sbt-abide" % "0.1-SNAPSHOT")
 
 addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")
+
+addSbtPlugin("com.trueaccord.scalapb" % "sbt-scalapb" % "0.4.19")

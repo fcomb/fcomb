@@ -106,10 +106,19 @@ object DockerApiMessages {
     sizeRootFs: Option[Long]
   ) extends DockerApiResponse
 
+  object MountMode extends Enumeration {
+    type MountMode = Value
+
+    val ro = Value("ro")
+    val rw = Value("rw")
+    val z = Value("z")
+    val Z = Value("Z")
+  }
+
   case class MountPoint(
     source: String,
     destination: String,
-    mode: String, // TODO
+    mode: Set[MountMode.MountMode],
     isReadAndWrite: Boolean
   )
 
@@ -423,6 +432,16 @@ object DockerApiMessages {
     implicit val containerItemFormat =
       jsonFormat(ContainerItem, "Id", "Names", "Image", "Command", "Created",
         "Status", "Ports", "SizeRw", "SizeRootFs")
+
+    implicit object MountModeFormat extends RootJsonFormat[Set[MountMode.MountMode]] {
+      def write(s: Set[MountMode.MountMode]) =
+        JsString(s.mkString(","))
+
+      def read(v: JsValue) = v match {
+        case JsString(s) => s.split(',').map(MountMode.withName).toSet
+        case x => deserializationError(s"Expected mode as JsString, but got $x")
+      }
+    }
 
     implicit val mountPointFormat =
       jsonFormat(MountPoint, "Source", "Destination", "Mode", "RW")

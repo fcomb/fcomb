@@ -7,6 +7,7 @@ object Dependencies {
     val cats = "0.2.0"
     val circle = "0.1.1"
     val slick = "3.1.0"
+    val slickPg = "0.10.1"
     val scalaz = "7.1.4"
     val scalikeJdbc = "2.2.8"
     // val kamon = "0.5.0"
@@ -60,8 +61,8 @@ object Dependencies {
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1204-jdbc42" exclude("org.slf4j", "slf4j-simple")
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
-    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % "0.10.0"
-    val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % "0.10.0"
+    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg
+    val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % V.slickPg
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.7"
     // val slickless       = "io.underscore"                 %% "slickless"                     % "0.1.1"
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.1"
@@ -128,9 +129,9 @@ object Dependencies {
 
   object Test {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
-    val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.3" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "2.4.17" % "test"
-    val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.4" % "test"
+    val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.5" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.6.5" % "test"
+    val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.5" % "test"
   }
 
   import Compile._, Test._
