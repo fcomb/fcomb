@@ -25,7 +25,8 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
   private def apiRequest[T <: DockerApiRequest](
     method: HttpMethod,
     uri: Uri,
-    body: Option[T] = None
+    body: Option[T] = None,
+    queryParams: Map[String, String] = Map.empty
   )(implicit jw: JsonWriter[T]) = {
     val entity = body match {
       case Some(b) =>
@@ -35,7 +36,11 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       case _ => HttpEntity.Empty
     }
     Source
-      .single(HttpRequest(uri = uri, method = method, entity = entity))
+      .single(HttpRequest(
+        uri = uri.withQuery(queryParams.filter(_._2.nonEmpty)),
+        method = method,
+        entity = entity
+      ))
       .via(connectionFlow)
       .runWith(Sink.head)
       .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _))
@@ -66,77 +71,25 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       "before" -> beforeId.getOrElse(""),
       "since" -> sinceId.getOrElse("")
     ).filter(_._2.nonEmpty)
-    val uri = Uri("/containers/json").withQuery(params)
-    apiRequest(HttpMethods.GET, uri).map(_.convertTo[List[ContainerItem]])
+    apiRequest(HttpMethods.GET, "/containers/json", queryParams = params)
+      .map(_.convertTo[List[ContainerItem]])
   }
 
-  def createContainer(image: String) = {
-    val restartPolicy = RestartPolicy(
-      name = None,
-      maximumRetryCount = 0
+  def createContainer(
+    config: ContainerCreate,
+    name: Option[String] = None
+  ) = {
+    val params = Map(
+      "name" -> name.getOrElse("")
     )
-    val hostConfig = HostConfig(
-      binds = List.empty,
-      links = List.empty,
-      lxcConf = Map.empty,
-      memory = 0,
-      memorySwap = 0,
-      cpuShares = 512,
-      cpuPeriod = 100000,
-      cpusetCpus = "0,1",
-      cpusetMems = "0,1",
-      blockIoWeight = 300,
-      memorySwappiness = 60,
-      isOomKillDisable = false,
-      portBindings = Map.empty,
-      isPublishAllPorts = false,
-      isPrivileged = false,
-      isReadonlyRootfs = false,
-      dns = List.empty,
-      dnsSearch = List.empty,
-      extraHosts = None,
-      volumesFrom = List.empty,
-      capacityAdd = List.empty,
-      capacityDrop = List.empty,
-      restartPolicy = restartPolicy,
-      networkMode = "bridge",
-      devices = List.empty,
-      // Ulimits,
-      // LogConfig,
-      // SecurityOpt,
-      cgroupParent = Option.empty
-    )
-    val req = ContainerCreate(
-      hostname = None,
-      domainName = None,
-      user = None,
-      isAttachStdin = false,
-      isAttachStdout = false,
-      isAttachStderr = false,
-      isTty = false,
-      isOpenStdin = false,
-      isStdinOnce = false,
-      env = List.empty,
-      command = List.empty,
-      entrypoint = None,
-      image = image,
-      labels = Map.empty,
-      mounts = List.empty,
-      isNetworkDisabled = false,
-      workingDirectory = None,
-      macAddress = None,
-      hostConfig = hostConfig
-    )
-    println(s"req: $req")
-    apiRequest(HttpMethods.POST, "/containers/create", Some(req)).map { json =>
-      println(s"resp: ${json.convertTo[ContainerCreateResponse]}")
-    }
+    apiRequest(HttpMethods.POST, "/containers/create", Some(config), params)
+      .map(_.convertTo[ContainerCreateResponse])
   }
 
   def getContainer(id: String) = {
     apiRequest(HttpMethods.GET, s"/containers/$id/json").map { json =>
       try {
-        println(s"resp: ${json.convertTo[ContainerBase]}")
+        json.convertTo[ContainerBase]
       } catch {
         case e: Throwable => println(s"e: $e")
       }

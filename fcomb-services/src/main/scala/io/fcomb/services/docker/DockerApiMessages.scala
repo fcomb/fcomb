@@ -12,6 +12,10 @@ object DockerApiMessages {
 
   sealed trait DockerApiRequest extends DockerApiMessage
 
+  sealed trait MapToString {
+    def mapToString(): String
+  }
+
   case class IndexInfo(
     name: String,
     mirrors: List[String],
@@ -127,10 +131,30 @@ object DockerApiMessages {
     ip: Option[String]
   )
 
-  case class RestartPolicy(
-    name: Option[String],
-    maximumRetryCount: Int
-  )
+  sealed trait RestartPolicy {
+    val maximumRetryCount: Int
+    val name: String
+  }
+
+  object RestartPolicy {
+    case object No extends RestartPolicy {
+      val maximumRetryCount = 0
+      val name = "no"
+    }
+
+    case object Always extends RestartPolicy {
+      val maximumRetryCount = 0
+      val name = "always"
+    }
+
+    case class OnFailure(maximumRetryCount: Int) extends RestartPolicy {
+      val name = OnFailure.name
+    }
+
+    private[docker] case object OnFailure {
+      val name = "on-failure"
+    }
+  }
 
   case class HostConfigNetworkMode(
     networkMode: String
@@ -171,59 +195,271 @@ object DockerApiMessages {
     buildTime: Option[String]
   )
 
-  case class HostConfig(
-    binds: List[String],
-    links: List[String],
-    lxcConf: Map[String, String],
-    memory: Long,
-    memorySwap: Long,
-    cpuShares: Int,
-    cpuPeriod: Long,
-    cpusetCpus: String,
-    cpusetMems: String,
-    blockIoWeight: Int,
-    memorySwappiness: Int,
-    isOomKillDisable: Boolean,
-    portBindings: Map[String, List[PortBinding]],
-    isPublishAllPorts: Boolean,
-    isPrivileged: Boolean,
-    isReadonlyRootfs: Boolean,
-    dns: List[String],
-    dnsSearch: List[String],
-    extraHosts: Option[String],
-    volumesFrom: List[String],
-    capacityAdd: List[String],
-    capacityDrop: List[String],
-    restartPolicy: RestartPolicy,
-    networkMode: String, // TODO: make it as enum
-    devices: List[String],
-    // Ulimits,
-    // LogConfig,
-    // SecurityOpt,
-    cgroupParent: Option[String]
+  sealed trait VolumeBindPath extends MapToString
+
+  object VolumeBindPath {
+    case class VolumePath(path: String) extends VolumeBindPath {
+      def mapToString() = path
+    }
+
+    case class VolumeHostPath(
+      hostPath: String,
+      path: String,
+      mode: MountMode.MountMode
+    ) extends VolumeBindPath {
+      def mapToString() = s"$hostPath:$path:$mode"
+    }
+  }
+
+  case class ContainerLink(
+    name: String,
+    alias: String
+  ) extends MapToString {
+    def mapToString() = s"$name:$alias"
+  }
+
+  case class VolumeFrom(
+    name: String,
+    mode: MountMode.MountMode
+  ) extends MapToString {
+    def mapToString() = s"$name:$mode"
+  }
+
+  case class ExtraHost(
+    hostname: String,
+    ip: String
+  ) extends MapToString {
+    def mapToString() = s"$hostname:$ip"
+  }
+
+  object Capacity extends Enumeration {
+    type Capacity = Value
+
+    val SetPcap = "SETPCAP"
+    val SysModule = "SYS_MODULE"
+    val SysRawIo = "SYS_RAWIO"
+    val SysPacct = "SYS_PACCT"
+    val SysAdmib = "SYS_ADMIN"
+    val SysNice = "SYS_NICE"
+    val SysResource = "SYS_RESOURCE"
+    val SysTime = "SYS_TIME"
+    val SysTtyConfig = "SYS_TTY_CONFIG"
+    val Mknod = "MKNOD"
+    val AuditWrite = "AUDIT_WRITE"
+    val AuditControl = "AUDIT_CONTROL"
+    val MacOverride = "MAC_OVERRIDE"
+    val MacAdmin = "MAC_ADMIN"
+    val NetAdmin = "NET_ADMIN"
+    val Syslog = "SYSLOG"
+    val Chown = "CHOWN"
+    val NetRaw = "NET_RAW"
+    val DacOverride = "DAC_OVERRIDE"
+    val Fowner = "FOWNER"
+    val DacReadSearch = "DAC_READ_SEARCH"
+    val Fsetid = "FSETID"
+    val Kill = "KILL"
+    val Setgid = "SETGID"
+    val Setuid = "SETUID"
+    val LinuxImmutable = "LINUX_IMMUTABLE"
+    val NetBindService = "NET_BIND_SERVICE"
+    val NetBroadcast = "NET_BROADCAST"
+    val IpcLock = "IPC_LOCK"
+    val IpcOwner = "IPC_OWNER"
+    val SysChroot = "SYS_CHROOT"
+    val SysPtrace = "SYS_PTRACE"
+    val SysBoot = "SYS_BOOT"
+    val Lease = "LEASE"
+    val Setfcap = "SETFCAP"
+    val WakeAlarm = "WAKE_ALARM"
+    val BlockSuspend = "BLOCK_SUSPEND"
+    val AuditRead = "AUDIT_READ"
+  }
+
+  sealed trait NetworkMode extends MapToString
+
+  object NetworkMode {
+    case object Bridge extends NetworkMode {
+      def mapToString() = "bridge"
+    }
+
+    case object Host extends NetworkMode {
+      def mapToString() = "host"
+    }
+
+    case class ContainerHost(name: String) extends NetworkMode {
+      def mapToString() = s"container:$name"
+    }
+
+    case object None extends NetworkMode {
+      def mapToString() = "none"
+    }
+
+    case object Default extends NetworkMode {
+      def mapToString() = "default"
+    }
+
+    def parse(s: String) = s.split(':').toList match {
+      case "bridge" :: Nil => Bridge
+      case "host" :: Nil => Host
+      case "container" :: name :: Nil => ContainerHost(name)
+      case "none" :: Nil => None
+      case "default" :: Nil => Default
+      case m => deserializationError(s"Unknown mode: $m")
+    }
+  }
+
+  sealed trait IpcMode extends MapToString
+
+  object IpcMode {
+    case object Host extends IpcMode {
+      def mapToString() = "host"
+    }
+
+    case class ContainerHost(name: String) extends IpcMode {
+      def mapToString() = s"container:$name"
+    }
+
+    def parse(s: String) = s.split(':').toList match {
+      case "host" :: Nil => Host
+      case "container" :: name :: Nil => ContainerHost(name)
+      case m => deserializationError(s"Unknown mode: $m")
+    }
+  }
+
+  sealed trait UtsMode extends MapToString
+
+  object UtsMode {
+    case object Host extends UtsMode {
+      def mapToString() = "host"
+    }
+
+    def parse(s: String) = s.split(':').toList match {
+      case "host" :: Nil => Host
+      case m => deserializationError(s"Unknown mode: $m")
+    }
+  }
+
+  sealed trait PidMode extends MapToString
+
+  object PidMode {
+    case object Host extends PidMode {
+      def mapToString() = "host"
+    }
+
+    def parse(s: String) = s.split(':').toList match {
+      case "host" :: Nil => Host
+      case m => deserializationError(s"Unknown mode: $m")
+    }
+  }
+
+  case class DeviceMapping(
+    pathOnHost: String,
+    pathInContainer: String,
+    cgroupPermissions: String
   )
 
+  case class Ulimit(
+    name: String,
+    soft: Int,
+    hard: Int
+  )
+
+  object LogDriver extends Enumeration {
+    type LogDriver = Value
+
+    val JsonFile = Value("json-file")
+    val Syslog = Value("syslog")
+    val Journald = Value("journald")
+    val Gelf = Value("gelf")
+    val None = Value("none")
+  }
+
+  case class LogConfig(
+    kind: LogDriver.LogDriver,
+    config: Map[String, String] = Map.empty
+  )
+
+  case class HostConfig(
+    binds: List[VolumeBindPath] = List.empty,
+    links: List[ContainerLink] = List.empty,
+    lxcConf: Map[String, String] = Map.empty,
+    memory: Option[Long] = None,
+    memorySwap: Option[Long] = None,
+    cpuShares: Option[Int] = None,
+    cpuPeriod: Option[Long] = None,
+    cpusetCpus: Option[String] = None,
+    cpusetMems: Option[String] = None,
+    blockIoWeight: Option[Int] = None,
+    memorySwappiness: Option[Int] = None,
+    isOomKillDisable: Boolean = false,
+    portBindings: Map[ExposePort, List[PortBinding]] = Map.empty,
+    isPublishAllPorts: Boolean = false,
+    isPrivileged: Boolean = false,
+    isReadonlyRootfs: Boolean = false,
+    dns: List[String] = List.empty,
+    dnsSearch: List[String] = List.empty,
+    extraHosts: List[ExtraHost] = List.empty,
+    volumesFrom: List[VolumeFrom] = List.empty,
+    ipcMode: Option[IpcMode] = None,
+    pidMode: Option[PidMode] = None,
+    utsMode: Option[UtsMode] = None,
+    capacityAdd: List[Capacity.Capacity] = List.empty,
+    capacityDrop: List[Capacity.Capacity] = List.empty,
+    restartPolicy: RestartPolicy = RestartPolicy.No,
+    networkMode: NetworkMode = NetworkMode.Bridge,
+    devices: List[DeviceMapping] = List.empty,
+    ulimits: List[Ulimit] = List.empty,
+    logConfig: Option[LogConfig] = None,
+    securityOpt: List[String] = List.empty,
+    cgroupParent: Option[String] = None
+  )
+
+  sealed trait ExposePort extends MapToString {
+    val port: Int
+    val kind: String
+
+    def mapToString() = s"$port/$kind"
+  }
+
+  object ExposePort {
+    case class Tcp(port: Int) extends ExposePort {
+      val kind = "tcp"
+    }
+
+    case class Udp(port: Int) extends ExposePort {
+      val kind = "udp"
+    }
+
+    def parse(s: String) = s.split('/').toList match {
+      case p :: "tcp" :: Nil => Tcp(p.toInt)
+      case p :: "udp" :: Nil => Udp(p.toInt)
+      case _ => deserializationError(s"Unknown port and protocol: $s")
+    }
+  }
+
+  type ExposedPorts = Set[ExposePort]
+
   case class ContainerCreate(
-    hostname: Option[String],
-    domainName: Option[String],
-    user: Option[String],
-    isAttachStdin: Boolean,
-    isAttachStdout: Boolean,
-    isAttachStderr: Boolean,
-    isTty: Boolean,
-    isOpenStdin: Boolean,
-    isStdinOnce: Boolean,
-    env: List[String],
-    command: List[String],
-    entrypoint: Option[String],
     image: String,
-    labels: Map[String, String],
-    mounts: List[MountPoint],
-    isNetworkDisabled: Boolean,
-    workingDirectory: Option[String],
-    macAddress: Option[String],
-    // exposedPorts: Map[String],
-    hostConfig: HostConfig
+    hostname: Option[String] = None,
+    domainName: Option[String] = None,
+    user: Option[String] = None,
+    isAttachStdin: Boolean = false,
+    isAttachStdout: Boolean = false,
+    isAttachStderr: Boolean = false,
+    isTty: Boolean = false,
+    isOpenStdin: Boolean = false,
+    isStdinOnce: Boolean = false,
+    env: List[String] = List.empty,
+    command: List[String] = List.empty,
+    entrypoint: Option[String] = None,
+    labels: Map[String, String] = Map.empty,
+    mounts: List[MountPoint] = List.empty,
+    isNetworkDisabled: Boolean = false,
+    workingDirectory: Option[String] = None,
+    macAddress: Option[String] = None,
+    exposedPorts: ExposedPorts = Set.empty,
+    hostConfig: HostConfig = HostConfig()
   ) extends DockerApiRequest
 
   case class Address(
@@ -449,8 +685,87 @@ object DockerApiMessages {
     implicit val portBindingFormat =
       jsonFormat(PortBinding, "HostPort", "HostIp")
 
-    implicit val restartPolicyFormat =
-      jsonFormat(RestartPolicy, "Name", "MaximumRetryCount")
+    implicit object RestartPolicyFormat extends RootJsonFormat[RestartPolicy] {
+      def write(p: RestartPolicy) = JsObject(
+        "Name" -> JsString(p.name),
+        "MaximumRetryCount" -> JsNumber(p.maximumRetryCount)
+      )
+
+      def read(v: JsValue) = v match {
+        case obj: JsObject =>
+          obj.getFields("Name", "MaximumRetryCount") match {
+            case Seq(JsString(RestartPolicy.No.name), _) =>
+              RestartPolicy.No
+            case Seq(JsString(RestartPolicy.Always.name), _) =>
+              RestartPolicy.Always
+            case Seq(JsString(RestartPolicy.OnFailure.name), JsNumber(n)) =>
+              RestartPolicy.OnFailure(n.toInt)
+            case _ => deserializationError(s"Unknown policy: $obj")
+          }
+        case x => deserializationError(s"Expected policy as JsObject, but got $x")
+      }
+    }
+
+    object OptLongCFormat extends RootJsonFormat[Option[Long]] {
+      def write(opt: Option[Long]) = opt match {
+        case Some(n) if n >= 0 => JsNumber(n)
+        case None => JsNumber(-1)
+      }
+
+      def read(v: JsValue) = v match {
+        case JsNumber(jn) => jn.toLong match {
+          case -1 => None
+          case n => Some(n)
+        }
+        case x => deserializationError(s"Expected value as JsNumber, but got $x")
+      }
+    }
+
+    implicit object VolumeBindPathFormat extends RootJsonFormat[VolumeBindPath] {
+      def write(p: VolumeBindPath) = JsString(p.mapToString())
+
+      def read(v: JsValue) = ???
+    }
+
+    implicit object ContainerLinkFormat extends RootJsonFormat[ContainerLink] {
+      def write(l: ContainerLink) = JsString(l.mapToString())
+
+      def read(v: JsValue) = ???
+    }
+
+    implicit object ExtraHostFormat extends RootJsonFormat[ExtraHost] {
+      def write(h: ExtraHost) = JsString(h.mapToString())
+
+      def read(v: JsValue) = ???
+    }
+
+    implicit object VolumeFromFormat extends RootJsonFormat[VolumeFrom] {
+      def write(v: VolumeFrom) = JsString(v.mapToString())
+
+      def read(v: JsValue) = ???
+    }
+
+    implicit val capacityFormat = createEnumerationJsonFormat(Capacity)
+
+    implicit object NetworkModeFormat extends RootJsonFormat[NetworkMode] {
+      def write(m: NetworkMode) = JsString(m.mapToString())
+
+      def read(v: JsValue) = v match {
+        case JsString(s) => NetworkMode.parse(s)
+        case x => deserializationError(s"Expected mode as JsString, but got $x")
+      }
+    }
+
+    implicit val deviceMappingFormat =
+      jsonFormat(DeviceMapping, "PathOnHost", "PathInContainer", "CgroupPermissions")
+
+    implicit val ulimitFormat =
+      jsonFormat(Ulimit, "Name", "Soft", "Hard")
+
+    implicit val logDriverFormat = createEnumerationJsonFormat(LogDriver)
+
+    implicit val logConfigFormat =
+      jsonFormat(LogConfig, "Type", "Config")
 
     implicit object HostConfigFormat extends RootJsonFormat[HostConfig] {
       def write(c: HostConfig) = JsObject(
@@ -458,7 +773,7 @@ object DockerApiMessages {
         "Links" -> c.links.toJson,
         "LxcConf" -> c.lxcConf.toJson,
         "Memory" -> c.memory.toJson,
-        "MemorySwap" -> c.memorySwap.toJson,
+        "MemorySwap" -> OptLongCFormat.write(c.memorySwap),
         "CpuShares" -> c.cpuShares.toJson,
         "CpuPeriod" -> c.cpuPeriod.toJson,
         "CpusetCpus" -> c.cpusetCpus.toJson,
@@ -466,7 +781,9 @@ object DockerApiMessages {
         "blckWeight" -> c.blockIoWeight.toJson,
         "MemorySwappiness" -> c.memorySwappiness.toJson,
         "OomKillDisable" -> c.isOomKillDisable.toJson,
-        "PortBindings" -> c.portBindings.toJson,
+        "PortBindings" -> c.portBindings.map {
+          case (k, v) => (k.mapToString(), v)
+        }.toJson,
         "PublishAllPorts" -> c.isPublishAllPorts.toJson,
         "Privileged" -> c.isPrivileged.toJson,
         "ReadonlyRootfs" -> c.isReadonlyRootfs.toJson,
@@ -479,17 +796,31 @@ object DockerApiMessages {
         "RestartPolicy" -> c.restartPolicy.toJson,
         "NetworkMode" -> c.networkMode.toJson,
         "Devices" -> c.devices.toJson,
+        "Ulimits" -> c.ulimits.toJson,
+        "LogConfig" -> c.logConfig.toJson,
+        "SecurityOpt" -> c.securityOpt.toJson,
         "CgroupParent" -> c.cgroupParent.toJson
       )
 
       def read(v: JsValue) = deserializationError("Not implemented")
     }
 
+    implicit object ExposedPortsFormat extends RootJsonFormat[ExposedPorts] {
+      def write(ep: ExposedPorts) = JsObject(ep.map { p =>
+        p.mapToString -> JsObject()
+      }.toMap)
+
+      def read(v: JsValue) = v match {
+        case JsObject(m) => m.keys.map(ExposePort.parse).toSet
+        case x => deserializationError(s"Expected JsObject, but got $x")
+      }
+    }
+
     implicit val containerCreateFormat =
-      jsonFormat(ContainerCreate, "Hostname", "Domainname", "User", "AttachStdin",
-        "AttachStdout", "AttachStderr", "Tty", "OpenStdin", "StdinOnce", "Env", "Cmd",
-        "Entrypoint", "Image", "Labels", "Mounts", "NetworkDisabled", "WorkingDir",
-        "MacAddress", /*"ExposedPorts",*/ "HostConfig")
+      jsonFormat(ContainerCreate.apply, "Image", "Hostname", "Domainname",
+        "User", "AttachStdin", "AttachStdout", "AttachStderr", "Tty", "OpenStdin",
+        "StdinOnce", "Env", "Cmd", "Entrypoint", "Labels", "Mounts",
+        "NetworkDisabled", "WorkingDir", "MacAddress", "ExposedPorts", "HostConfig")
 
     implicit val containerCreateResponseFormat =
       jsonFormat(ContainerCreateResponse, "Id", "Warnings")
