@@ -144,7 +144,7 @@ class DockerApiClientSpec extends ActorSpec {
       val config = ContainerCreate(
         image = "nginx"
       )
-      Await.result(dc.createContainer(config, name = Some("yeah")).map {
+      Await.result(dc.createContainer(config).map {
         case res: ContainerCreateResponse =>
           assert(res.id.nonEmpty)
           assert(res.warnings.isEmpty)

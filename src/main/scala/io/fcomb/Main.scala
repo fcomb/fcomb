@@ -41,7 +41,12 @@ object Main extends App {
   // }.recover {
   //   case e: Throwable => println(s"e: $e")
   // }
-  dc.getContainer("54abc4daf41c363dbff405126faccb5aa46d12b998346b1b2dc307458161f4e9")
+  dc.getContainer("54abc4daf41c363dbff405126faccb5aa46d12b998346b1b2dc307458161f4e9").onComplete {
+    case Success(res) => println(res)
+    case Failure(e) =>
+      e.printStackTrace()
+      println(e)
+  }
 
   (for {
     _ <- Db.migrate()

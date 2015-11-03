@@ -86,13 +86,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       .map(_.convertTo[ContainerCreateResponse])
   }
 
-  def getContainer(id: String) = {
-    apiRequest(HttpMethods.GET, s"/containers/$id/json").map { json =>
-      try {
-        json.convertTo[ContainerBase]
-      } catch {
-        case e: Throwable => println(s"e: $e")
-      }
-    }
-  }
+  def getContainer(id: String) =
+    apiRequest(HttpMethods.GET, s"/containers/$id/json")
+      .map(_.convertTo[ContainerBase])
 }

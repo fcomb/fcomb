@@ -341,7 +341,7 @@ object DockerApiMessages {
       case "container" :: name :: Nil => ContainerHost(name)
       case "none" :: Nil => None
       case "default" :: Nil => Default
-      case m => deserializationError(s"Unknown mode: $m")
+      case m => deserializationError(s"Unknown network mode: $m")
     }
   }
 
@@ -357,9 +357,9 @@ object DockerApiMessages {
     }
 
     def parse(s: String) = s.split(':').toList match {
-      case "host" :: Nil => Host
+      case "" :: Nil | "host" :: Nil => Host
       case "container" :: name :: Nil => ContainerHost(name)
-      case m => deserializationError(s"Unknown mode: $m")
+      case m => deserializationError(s"Unknown IPC mode: $m")
     }
   }
 
@@ -371,8 +371,8 @@ object DockerApiMessages {
     }
 
     def parse(s: String) = s.split(':').toList match {
-      case "host" :: Nil => Host
-      case m => deserializationError(s"Unknown mode: $m")
+      case "" :: Nil | "host" :: Nil => Host
+      case m => deserializationError(s"Unknown UTS mode: $m")
     }
   }
 
@@ -384,8 +384,8 @@ object DockerApiMessages {
     }
 
     def parse(s: String) = s.split(':').toList match {
-      case "host" :: Nil => Host
-      case m => deserializationError(s"Unknown mode: $m")
+      case "" :: Nil | "host" :: Nil => Host
+      case m => deserializationError(s"Unknown PID mode: $m")
     }
   }
 
@@ -416,6 +416,8 @@ object DockerApiMessages {
     config: Map[String, String] = Map.empty
   )
 
+  type PortBindings = Map[ExposePort, List[PortBinding]]
+
   case class HostConfig(
     binds: List[VolumeBindPath] = List.empty,
     links: List[ContainerLink] = List.empty,
@@ -429,7 +431,7 @@ object DockerApiMessages {
     blockIoWeight: Option[Int] = None,
     memorySwappiness: Option[Int] = None,
     isOomKillDisable: Boolean = false,
-    portBindings: Map[ExposePort, List[PortBinding]] = Map.empty,
+    portBindings: PortBindings = Map.empty,
     isPublishAllPorts: Boolean = false,
     isPrivileged: Boolean = false,
     isReadonlyRootfs: Boolean = false,
@@ -505,21 +507,21 @@ object DockerApiMessages {
   )
 
   case class NetworkSettings(
-    bridge: String,
-    endpointId: String,
-    gateway: String,
-    globalIpv6Address: String,
+    bridge: Option[String],
+    endpointId: Option[String],
+    gateway: Option[String],
+    globalIpv6Address: Option[String],
     globalIpv6PrefixLength: Int,
     hairpinMode: Boolean,
-    ipAddress: String,
+    ipAddress: Option[String],
     ipPrefixLength: Int,
-    ipv6Gateway: String,
-    linkLocalIpv6Address: String,
+    ipv6Gateway: Option[String],
+    linkLocalIpv6Address: Option[String],
     linkLocalIpv6PrefixLength: Int,
-    macAddress: String,
-    networkId: String,
+    macAddress: Option[String],
+    networkId: Option[String],
     ports: Map[String, List[PortBinding]],
-    sandboxKey: String,
+    sandboxKey: Option[String],
     secondaryIpAddresses: List[Address],
     secondaryIpv6Addresses: List[Address]
   )
@@ -532,19 +534,19 @@ object DockerApiMessages {
     state: ContainerState,
     image: String,
     networkSettings: NetworkSettings,
-    resolvConfPath: String,
-    hostnamePath: String,
-    hostsPath: String,
-    logPath: String,
+    resolvConfPath: Option[String],
+    hostnamePath: Option[String],
+    hostsPath: Option[String],
+    logPath: Option[String],
     name: String,
     restartCount: Int,
     driver: String,
     execDriver: String,
-    mountLabel: String,
-    processLabel: String,
+    mountLabel: Option[String],
+    processLabel: Option[String],
     volumes: Map[String, String],
     volumesRw: Map[String, Boolean],
-    appArmorProfile: String,
+    appArmorProfile: Option[String],
     execIds: List[String],
     hostConfig: HostConfig
   // GraphDriver     GraphDriverData
@@ -624,14 +626,35 @@ object DockerApiMessages {
   )
 
   object JsonProtocols {
-    private def optString(v: Option[String]) = v match {
-      case res @ Some(s) if s.nonEmpty => res
-      case _ => None
+    private implicit object OptStringFormat extends RootJsonFormat[Option[String]] {
+      def write(o: Option[String]) = o match {
+        case Some(s) => JsString(s)
+        case None => JsNull
+      }
+
+      def read(v: JsValue) = v match {
+        case JsString(s) =>
+          if (s.isEmpty) None
+          else Some(s)
+        case JsNull => None
+        case x => deserializationError(s"Expected value as JsString, but got $x")
+      }
     }
 
-    private def optDateTime(v: Option[ZonedDateTime]) = v match {
-      case Some(d) if d.getYear() == 1 => None
-      case res => res
+    private implicit object OptZonedDateTimeFormat extends RootJsonFormat[Option[ZonedDateTime]] {
+      def write(o: Option[ZonedDateTime]) = o match {
+        case Some(d) => JsString(d.toString)
+        case None => JsNull
+      }
+
+      def read(v: JsValue) = v match {
+        case JsString(s) =>
+          val date = ZonedDateTime.parse(s)
+          if (date.getYear() == 1) None
+          else Some(date)
+        case JsNull => None
+        case x => deserializationError(s"Expected date as JsString, but got $x")
+      }
     }
 
     private implicit def listFormat[T: JsonFormat] =
@@ -681,7 +704,7 @@ object DockerApiMessages {
           continers = obj.get[Int]("Containers"),
           images = obj.get[Int]("Images"),
           driver = obj.get[String]("Driver"),
-          driverStatus = obj.get[List[List[String]]]("DriverStatus"),
+          driverStatus = obj.getList[List[String]]("DriverStatus"),
           isMemoryLimit = obj.get[Boolean]("MemoryLimit"),
           isSwapLimit = obj.get[Boolean]("SwapLimit"),
           isCpuCfsPeriod = obj.getOrElse[Boolean]("CpuCfsPeriod", false),
@@ -706,11 +729,11 @@ object DockerApiMessages {
           cpus = obj.get[Int]("NCPU"),
           memory = obj.get[Long]("MemTotal"),
           dockerRootDir = obj.get[String]("DockerRootDir"),
-          httpProxy = optString(obj.getOpt[String]("HttpProxy")),
-          httpsProxy = optString(obj.getOpt[String]("HttpsProxy")),
-          noProxy = optString(obj.getOpt[String]("NoProxy")),
-          name = optString(obj.getOpt[String]("Name")),
-          labels = obj.get[List[String]]("Labels"),
+          httpProxy = obj.getOpt[String]("HttpProxy"),
+          httpsProxy = obj.getOpt[String]("HttpsProxy"),
+          noProxy = obj.getOpt[String]("NoProxy"),
+          name = obj.getOpt[String]("Name"),
+          labels = obj.getList[String]("Labels"),
           isExperimentalBuild = obj.getOrElse[Boolean]("ExperimentalBuild", false)
         )
         case x => deserializationError(s"Expected JsObject, but got $x")
@@ -826,6 +849,33 @@ object DockerApiMessages {
       }
     }
 
+    implicit object IpcModeFormat extends RootJsonFormat[IpcMode] {
+      def write(m: IpcMode) = JsString(m.mapToString())
+
+      def read(v: JsValue) = v match {
+        case JsString(s) => IpcMode.parse(s)
+        case x => deserializationError(s"Expected mode as JsString, but got $x")
+      }
+    }
+
+    implicit object PidModeFormat extends RootJsonFormat[PidMode] {
+      def write(m: PidMode) = JsString(m.mapToString())
+
+      def read(v: JsValue) = v match {
+        case JsString(s) => PidMode.parse(s)
+        case x => deserializationError(s"Expected mode as JsString, but got $x")
+      }
+    }
+
+    implicit object UtsModeFormat extends RootJsonFormat[UtsMode] {
+      def write(m: UtsMode) = JsString(m.mapToString())
+
+      def read(v: JsValue) = v match {
+        case JsString(s) => UtsMode.parse(s)
+        case x => deserializationError(s"Expected mode as JsString, but got $x")
+      }
+    }
+
     implicit val deviceMappingFormat =
       jsonFormat(DeviceMapping, "PathOnHost", "PathInContainer", "CgroupPermissions")
 
@@ -836,6 +886,19 @@ object DockerApiMessages {
 
     implicit val logConfigFormat =
       jsonFormat(LogConfig, "Type", "Config")
+
+    implicit object PortBindingsFormat extends RootJsonFormat[PortBindings] {
+      def write(pb: PortBindings) = pb.map {
+        case (k, v) => (k.mapToString(), v)
+      }.toJson
+
+      def read(v: JsValue) = v match {
+        case JsObject(m) => m.map {
+          case (k, v) => (ExposePort.parse(k), v.convertTo[List[PortBinding]])
+        }
+        case x => deserializationError(s"Expected bindings as JsObject, but got $x")
+      }
+    }
 
     implicit object HostConfigFormat extends RootJsonFormat[HostConfig] {
       def write(c: HostConfig) = JsObject(
@@ -848,12 +911,10 @@ object DockerApiMessages {
         "CpuPeriod" -> c.cpuPeriod.toJson,
         "CpusetCpus" -> c.cpusetCpus.toJson,
         "CpusetMems" -> c.cpusetMems.toJson,
-        "blckWeight" -> c.blockIoWeight.toJson,
+        "BlckWeight" -> c.blockIoWeight.toJson,
         "MemorySwappiness" -> c.memorySwappiness.toJson,
         "OomKillDisable" -> c.isOomKillDisable.toJson,
-        "PortBindings" -> c.portBindings.map {
-          case (k, v) => (k.mapToString(), v)
-        }.toJson,
+        "PortBindings" -> c.portBindings.toJson,
         "PublishAllPorts" -> c.isPublishAllPorts.toJson,
         "Privileged" -> c.isPrivileged.toJson,
         "ReadonlyRootfs" -> c.isReadonlyRootfs.toJson,
@@ -861,6 +922,9 @@ object DockerApiMessages {
         "DnsSearch" -> c.dnsSearch.toJson,
         "ExtraHosts" -> c.extraHosts.toJson,
         "VolumesFrom" -> c.volumesFrom.toJson,
+        "IpcMode" -> c.ipcMode.toJson,
+        "PidMode" -> c.pidMode.toJson,
+        "UTSMode" -> c.utsMode.toJson,
         "CapAdd" -> c.capacityAdd.toJson,
         "CapDrop" -> c.capacityDrop.toJson,
         "RestartPolicy" -> c.restartPolicy.toJson,
@@ -872,7 +936,43 @@ object DockerApiMessages {
         "CgroupParent" -> c.cgroupParent.toJson
       )
 
-      def read(v: JsValue) = deserializationError("Not implemented")
+      def read(v: JsValue) = v match {
+        case obj: JsObject => HostConfig(
+          binds = obj.getList[VolumeBindPath]("Binds"),
+          links = obj.getList[ContainerLink]("Links"),
+          lxcConf = obj.get[Map[String, String]]("LxcConf"),
+          memory = obj.getOpt[Long]("Memory"),
+          memorySwap = obj.getOpt[Long]("MemorySwap"),
+          cpuShares = obj.getOpt[Int]("CpuShares"),
+          cpuPeriod = obj.getOpt[Long]("CpuPeriod"),
+          cpusetCpus = obj.getOpt[String]("CpusetCpus"),
+          cpusetMems = obj.getOpt[String]("CpusetMems"),
+          blockIoWeight = obj.getOpt[Int]("BlckWeight"),
+          memorySwappiness = obj.getOpt[Int]("MemorySwappiness"),
+          isOomKillDisable = obj.getOrElse("OomKillDisable", false),
+          portBindings = obj.get[Map[ExposePort, List[PortBinding]]]("PortBindings"),
+          isPublishAllPorts = obj.getOrElse[Boolean]("PublishAllPorts", false),
+          isPrivileged = obj.getOrElse[Boolean]("Privileged", false),
+          isReadonlyRootfs = obj.getOrElse[Boolean]("ReadonlyRootfs", false),
+          dns = obj.getList[String]("Dns"),
+          dnsSearch = obj.getList[String]("DnsSearch"),
+          extraHosts = obj.getList[ExtraHost]("ExtraHosts"),
+          volumesFrom = obj.getList[VolumeFrom]("VolumesFrom"),
+          ipcMode = obj.getOpt[IpcMode]("IpcMode"),
+          pidMode = obj.getOpt[PidMode]("PidMode"),
+          utsMode = obj.getOpt[UtsMode]("UTSMode"),
+          capacityAdd = obj.getList[Capacity.Capacity]("CapAdd"),
+          capacityDrop = obj.getList[Capacity.Capacity]("CapDrop"),
+          restartPolicy = obj.get[RestartPolicy]("RestartPolicy"),
+          networkMode = obj.get[NetworkMode]("NetworkMode"),
+          devices = obj.getList[DeviceMapping]("Devices"),
+          ulimits = obj.getList[Ulimit]("Ulimits"),
+          logConfig = obj.getOpt[LogConfig]("LogConfig"),
+          securityOpt = obj.getList[String]("SecurityOpt"),
+          cgroupParent = obj.getOpt[String]("CgroupParent")
+        )
+        case x => deserializationError(s"Expected JsObject, but got $x")
+      }
     }
 
     implicit object ExposedPortsFormat extends RootJsonFormat[ExposedPorts] {
@@ -909,9 +1009,9 @@ object DockerApiMessages {
           isDead = obj.get[Boolean]("Dead"),
           pid = obj.get[Int]("Pid"),
           exitCode = obj.get[Int]("ExitCode"),
-          error = optString(obj.getOpt[String]("Error")),
+          error = obj.getOpt[String]("Error"),
           startedAt = obj.getOpt[ZonedDateTime]("StartedAt"),
-          finishedAt = optDateTime(obj.getOpt[ZonedDateTime]("FinishedAt"))
+          finishedAt = obj.getOpt[ZonedDateTime]("FinishedAt")
         )
         case x => deserializationError(s"Expected JsObject, but got $x")
       }
@@ -932,24 +1032,24 @@ object DockerApiMessages {
           id = obj.get[String]("Id"),
           createdAt = obj.get[ZonedDateTime]("Created"),
           path = obj.get[String]("Path"),
-          args = obj.get[List[String]]("Args"),
+          args = obj.getList[String]("Args"),
           state = obj.get[ContainerState]("State"),
           image = obj.get[String]("Image"),
           networkSettings = obj.get[NetworkSettings]("NetworkSettings"),
-          resolvConfPath = obj.get[String]("ResolvConfPath"),
-          hostnamePath = obj.get[String]("HostnamePath"),
-          hostsPath = obj.get[String]("HostsPath"),
-          logPath = obj.get[String]("LogPath"),
+          resolvConfPath = obj.getOpt[String]("ResolvConfPath"),
+          hostnamePath = obj.getOpt[String]("HostnamePath"),
+          hostsPath = obj.getOpt[String]("HostsPath"),
+          logPath = obj.getOpt[String]("LogPath"),
           name = obj.get[String]("Name"),
           restartCount = obj.get[Int]("RestartCount"),
           driver = obj.get[String]("Driver"),
           execDriver = obj.get[String]("ExecDriver"),
-          mountLabel = obj.get[String]("MountLabel"),
-          processLabel = obj.get[String]("ProcessLabel"),
+          mountLabel = obj.getOpt[String]("MountLabel"),
+          processLabel = obj.getOpt[String]("ProcessLabel"),
           volumes = obj.get[Map[String, String]]("Volumes"),
           volumesRw = obj.get[Map[String, Boolean]]("VolumesRW"),
-          appArmorProfile = obj.get[String]("AppArmorProfile"),
-          execIds = obj.get[List[String]]("ExecIDs"),
+          appArmorProfile = obj.getOpt[String]("AppArmorProfile"),
+          execIds = obj.getList[String]("ExecIDs"),
           hostConfig = obj.get[HostConfig]("HostConfig")
         // GraphDriver     GraphDriverData
         )
