@@ -209,6 +209,17 @@ object DockerApiMessages {
     ) extends VolumeBindPath {
       def mapToString() = s"$hostPath:$path:$mode"
     }
+
+    def parse(s: String) = s.split(':').toList match {
+      case path :: Nil => VolumePath(path)
+      case hostPath :: path :: xs =>
+        val mode = xs.headOption match {
+          case Some("ro") => MountMode.ro
+          case _ => MountMode.rw
+        }
+        VolumeHostPath(hostPath, path, mode)
+      case _ => deserializationError(s"Unknown bind format: $s")
+    }
   }
 
   case class ContainerLink(
@@ -218,6 +229,13 @@ object DockerApiMessages {
     def mapToString() = s"$name:$alias"
   }
 
+  object ContainerLink {
+    def parse(s: String) = s.split(':').toList match {
+      case name :: alias :: Nil => ContainerLink(name, alias)
+      case _ => deserializationError(s"Unknown link format: $s")
+    }
+  }
+
   case class VolumeFrom(
     name: String,
     mode: MountMode.MountMode
@@ -225,11 +243,30 @@ object DockerApiMessages {
     def mapToString() = s"$name:$mode"
   }
 
+  object VolumeFrom {
+    def parse(s: String) = s.split(':').toList match {
+      case name :: xs =>
+        val mode = xs.headOption match {
+          case Some("ro") => MountMode.ro
+          case _ => MountMode.rw
+        }
+        VolumeFrom(name, mode)
+      case _ => deserializationError(s"Unknown volume format: $s")
+    }
+  }
+
   case class ExtraHost(
     hostname: String,
     ip: String
   ) extends MapToString {
     def mapToString() = s"$hostname:$ip"
+  }
+
+  object ExtraHost {
+    def parse(s: String) = s.split(':').toList match {
+      case hostname :: ip :: Nil => ExtraHost(hostname, ip)
+      case _ => deserializationError(s"Unknown host format: $s")
+    }
   }
 
   object Capacity extends Enumeration {
@@ -508,8 +545,8 @@ object DockerApiMessages {
     volumes: Map[String, String],
     volumesRw: Map[String, Boolean],
     appArmorProfile: String,
-    execIds: List[String]
-  // HostConfig      *runconfig.HostConfig
+    execIds: List[String],
+    hostConfig: HostConfig
   // GraphDriver     GraphDriverData
   ) extends DockerApiResponse
 
@@ -597,18 +634,39 @@ object DockerApiMessages {
       case res => res
     }
 
-    private implicit def listFormat[T: JsonFormat] = new RootJsonFormat[List[T]] {
-      def write(list: List[T]) = list match {
-        case Nil => JsNull
-        case xs => JsArray(xs.map(_.toJson).toVector)
+    private implicit def listFormat[T: JsonFormat] =
+      new RootJsonFormat[List[T]] {
+        def write(list: List[T]) = list match {
+          case Nil => JsNull
+          case xs => JsArray(xs.map(_.toJson).toVector)
+        }
+
+        def read(value: JsValue): List[T] = value match {
+          case JsArray(xs) => xs.map(_.convertTo[T])(collection.breakOut)
+          case JsNull => List.empty
+          case x => deserializationError(s"Expected List as JsArray, but got $x")
+        }
       }
 
-      def read(value: JsValue): List[T] = value match {
-        case JsArray(xs) => xs.map(_.convertTo[T])(collection.breakOut)
-        case JsNull => List.empty
-        case x => deserializationError(s"Expected List as JsArray, but got $x")
+    private implicit def mapFormat[K: JsonFormat, V: JsonFormat] =
+      new RootJsonFormat[Map[K, V]] {
+        def write(m: Map[K, V]) = JsObject {
+          m.map { field =>
+            field._1.toJson match {
+              case JsString(x) => x -> field._2.toJson
+              case x => throw new SerializationException(s"Map key must be formatted as JsString, not '$x'")
+            }
+          }
+        }
+
+        def read(value: JsValue) = value match {
+          case x: JsObject => x.fields.map { field =>
+            (JsString(field._1).convertTo[K], field._2.convertTo[V])
+          }(collection.breakOut)
+          case JsNull => Map.empty
+          case x => deserializationError(s"Expected Map as JsObject, but got $x")
+        }
       }
-    }
 
     implicit val indexInformationFormat =
       jsonFormat(IndexInfo, "Name", "Mirrors", "Secure", "Official")
@@ -724,25 +782,37 @@ object DockerApiMessages {
     implicit object VolumeBindPathFormat extends RootJsonFormat[VolumeBindPath] {
       def write(p: VolumeBindPath) = JsString(p.mapToString())
 
-      def read(v: JsValue) = ???
+      def read(v: JsValue) = v match {
+        case JsString(s) => VolumeBindPath.parse(s)
+        case x => deserializationError(s"Expected volume as JsString, but got $x")
+      }
     }
 
     implicit object ContainerLinkFormat extends RootJsonFormat[ContainerLink] {
       def write(l: ContainerLink) = JsString(l.mapToString())
 
-      def read(v: JsValue) = ???
+      def read(v: JsValue) = v match {
+        case JsString(s) => ContainerLink.parse(s)
+        case x => deserializationError(s"Expected link as JsString, but got $x")
+      }
     }
 
     implicit object ExtraHostFormat extends RootJsonFormat[ExtraHost] {
       def write(h: ExtraHost) = JsString(h.mapToString())
 
-      def read(v: JsValue) = ???
+      def read(v: JsValue) = v match {
+        case JsString(s) => ExtraHost.parse(s)
+        case x => deserializationError(s"Expected host as JsString, but got $x")
+      }
     }
 
     implicit object VolumeFromFormat extends RootJsonFormat[VolumeFrom] {
       def write(v: VolumeFrom) = JsString(v.mapToString())
 
-      def read(v: JsValue) = ???
+      def read(v: JsValue) = v match {
+        case JsString(s) => VolumeFrom.parse(s)
+        case x => deserializationError(s"Expected volume as JsString, but got $x")
+      }
     }
 
     implicit val capacityFormat = createEnumerationJsonFormat(Capacity)
@@ -879,8 +949,8 @@ object DockerApiMessages {
           volumes = obj.get[Map[String, String]]("Volumes"),
           volumesRw = obj.get[Map[String, Boolean]]("VolumesRW"),
           appArmorProfile = obj.get[String]("AppArmorProfile"),
-          execIds = obj.get[List[String]]("ExecIDs")
-        // HostConfig      *runconfig.HostConfig
+          execIds = obj.get[List[String]]("ExecIDs"),
+          hostConfig = obj.get[HostConfig]("HostConfig")
         // GraphDriver     GraphDriverData
         )
         case x => deserializationError(s"Expected JsObject, but got $x")
