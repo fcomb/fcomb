@@ -43,11 +43,22 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       ))
       .via(connectionFlow)
       .runWith(Sink.head)
-      .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _))
-      .map { res =>
-        val s = res.utf8String
-        logger.debug(s"Docker API response: $s")
-        s.parseJson
+      .flatMap { res =>
+        res.entity.dataBytes.runFold(ByteString.empty)(_ ++ _)
+          .map((res.status, _))
+      }
+      .map {
+        case (status, res) =>
+          val s = res.utf8String
+          logger.debug(s"Docker API response: $s")
+          if (status.isSuccess()) s.parseJson
+          else status.intValue() match {
+            case 400 => throw new BadParameterException(s)
+            case 404 => throw new NoSuchContainerException(s)
+            case 406 => throw new ImpossibleToAttachException(s)
+            case 500 => throw new ServerErrorException(s)
+            case _ => throw new UnknownException(s)
+          }
       }
   }
 

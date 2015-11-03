@@ -12,6 +12,20 @@ object DockerApiMessages {
 
   sealed trait DockerApiRequest extends DockerApiMessage
 
+  sealed trait DockerApiException extends Throwable {
+    val msg: String
+  }
+
+  case class BadParameterException(msg: String) extends DockerApiException
+
+  case class ServerErrorException(msg: String) extends DockerApiException
+
+  case class NoSuchContainerException(msg: String) extends DockerApiException
+
+  case class ImpossibleToAttachException(msg: String) extends DockerApiException
+
+  case class UnknownException(msg: String) extends DockerApiException
+
   sealed trait MapToString {
     def mapToString(): String
   }
