@@ -787,10 +787,10 @@ object DockerApiMessages {
       }
     }
 
-    object OptLongCFormat extends RootJsonFormat[Option[Long]] {
+    object MemorySwapFormat extends RootJsonFormat[Option[Long]] {
       def write(opt: Option[Long]) = opt match {
         case Some(n) if n >= 0 => JsNumber(n)
-        case None => JsNumber(-1)
+        case _ => JsNumber(-1)
       }
 
       def read(v: JsValue) = v match {
@@ -798,6 +798,39 @@ object DockerApiMessages {
           case -1 => None
           case n => Some(n)
         }
+        case JsNull => None
+        case x => deserializationError(s"Expected value as JsNumber, but got $x")
+      }
+    }
+
+    object ZeroOptLongFormat extends RootJsonFormat[Option[Long]] {
+      def write(opt: Option[Long]) = opt match {
+        case Some(n) if n > 0L => JsNumber(n)
+        case _ => JsNumber(0)
+      }
+
+      def read(v: JsValue) = v match {
+        case JsNumber(jn) => jn.toLong match {
+          case 0L => None
+          case n => Some(n)
+        }
+        case JsNull => None
+        case x => deserializationError(s"Expected value as JsNumber, but got $x")
+      }
+    }
+
+    object ZeroOptIntFormat extends RootJsonFormat[Option[Int]] {
+      def write(opt: Option[Int]) = opt match {
+        case Some(n) if n > 0 => JsNumber(n)
+        case _ => JsNumber(0)
+      }
+
+      def read(v: JsValue) = v match {
+        case JsNumber(jn) => jn.toInt match {
+          case 0 => None
+          case n => Some(n)
+        }
+        case JsNull => None
         case x => deserializationError(s"Expected value as JsNumber, but got $x")
       }
     }
@@ -906,7 +939,7 @@ object DockerApiMessages {
         "Links" -> c.links.toJson,
         "LxcConf" -> c.lxcConf.toJson,
         "Memory" -> c.memory.toJson,
-        "MemorySwap" -> OptLongCFormat.write(c.memorySwap),
+        "MemorySwap" -> MemorySwapFormat.write(c.memorySwap),
         "CpuShares" -> c.cpuShares.toJson,
         "CpuPeriod" -> c.cpuPeriod.toJson,
         "CpusetCpus" -> c.cpusetCpus.toJson,
@@ -941,13 +974,13 @@ object DockerApiMessages {
           binds = obj.getList[VolumeBindPath]("Binds"),
           links = obj.getList[ContainerLink]("Links"),
           lxcConf = obj.get[Map[String, String]]("LxcConf"),
-          memory = obj.getOpt[Long]("Memory"),
-          memorySwap = obj.getOpt[Long]("MemorySwap"),
-          cpuShares = obj.getOpt[Int]("CpuShares"),
-          cpuPeriod = obj.getOpt[Long]("CpuPeriod"),
+          memory = obj.getOpt[Long]("Memory")(ZeroOptLongFormat),
+          memorySwap = obj.getOpt[Long]("MemorySwap")(MemorySwapFormat),
+          cpuShares = obj.getOpt[Int]("CpuShares")(ZeroOptIntFormat),
+          cpuPeriod = obj.getOpt[Long]("CpuPeriod")(ZeroOptLongFormat),
           cpusetCpus = obj.getOpt[String]("CpusetCpus"),
           cpusetMems = obj.getOpt[String]("CpusetMems"),
-          blockIoWeight = obj.getOpt[Int]("BlckWeight"),
+          blockIoWeight = obj.getOpt[Int]("BlckWeight")(ZeroOptIntFormat),
           memorySwappiness = obj.getOpt[Int]("MemorySwappiness"),
           isOomKillDisable = obj.getOrElse("OomKillDisable", false),
           portBindings = obj.get[Map[ExposePort, List[PortBinding]]]("PortBindings"),
