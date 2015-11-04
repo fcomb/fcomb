@@ -492,6 +492,31 @@ object DockerApiMessages {
 
   type ExposedPorts = Set[ExposePort]
 
+  case class RunConfig(
+    hostname: Option[String] = None,
+    domainName: Option[String] = None,
+    user: Option[String] = None,
+    isAttachStdin: Boolean = false,
+    isAttachStdout: Boolean = false,
+    isAttachStderr: Boolean = false,
+    exposedPorts: ExposedPorts = Set.empty,
+    publishService: Option[String] = None,
+    isTty: Boolean = false,
+    isOpenStdin: Boolean = false,
+    isStdinOnce: Boolean = false,
+    env: List[String] = List.empty,
+    command: List[String] = List.empty,
+    image: String,
+    volumes: Map[String, Unit] = Map.empty,
+    volumeDriver: Option[String] = None,
+    workingDirectory: Option[String] = None,
+    entrypoint: Option[String] = None,
+    isNetworkDisabled: Boolean = false,
+    macAddress: Option[String] = None,
+    labels: Map[String, String] = Map.empty,
+    onBuild: List[String] = List.empty
+  )
+
   case class ContainerCreate(
     image: String,
     hostname: Option[String] = None,
@@ -562,8 +587,9 @@ object DockerApiMessages {
     volumesRw: Map[String, Boolean],
     appArmorProfile: Option[String],
     execIds: List[String],
-    hostConfig: HostConfig
-  // GraphDriver     GraphDriverData
+    hostConfig: HostConfig,
+    // GraphDriver     GraphDriverData
+    config: RunConfig
   ) extends DockerApiResponse
 
   case class ContainerCreateResponse(
@@ -1073,6 +1099,36 @@ object DockerApiMessages {
         "LinkLocalIPv6Address", "LinkLocalIPv6PrefixLen", "MacAddress", "NetworkID", "Ports",
         "SandboxKey", "SecondaryIPAddresses", "SecondaryIPv6Addresses")
 
+    implicit object RunConfigFormat extends RootJsonReader[RunConfig] {
+      def read(v: JsValue) = v match {
+        case obj: JsObject => RunConfig(
+          hostname = obj.getOpt[String]("Hostname"),
+          domainName = obj.getOpt[String]("Domainname"),
+          user = obj.getOpt[String]("User"),
+          isAttachStdin = obj.getOrElse[Boolean]("AttachStdin", false),
+          isAttachStdout = obj.getOrElse[Boolean]("AttachStdout", false),
+          isAttachStderr = obj.getOrElse[Boolean]("AttachStderr", false),
+          exposedPorts = obj.get[ExposedPorts]("ExposedPorts"),
+          publishService = obj.getOpt[String]("PublishService"),
+          isTty = obj.getOrElse[Boolean]("Tty", false),
+          isOpenStdin = obj.getOrElse[Boolean]("OpenStdin", false),
+          isStdinOnce = obj.getOrElse[Boolean]("StdinOnce", false),
+          env = obj.getList[String]("Env"),
+          command = obj.getList[String]("Cmd"),
+          image = obj.get[String]("Image"),
+          volumes = obj.get[Map[String, Unit]]("Volumes"),
+          volumeDriver = obj.getOpt[String]("VolumeDriver"),
+          workingDirectory = obj.getOpt[String]("WorkingDir"),
+          entrypoint = obj.getOpt[String]("Entrypoint"),
+          isNetworkDisabled = obj.getOrElse[Boolean]("NetworkDisabled", false),
+          macAddress = obj.getOpt[String]("MacAddress"),
+          labels = obj.get[Map[String, String]]("OnBuild"),
+          onBuild = obj.getList[String]("Labels")
+        )
+        case x => deserializationError(s"Expected JsObject, but got $x")
+      }
+    }
+
     implicit object ContainerBaseFormat extends RootJsonReader[ContainerBase] {
       def read(v: JsValue) = v match {
         case obj: JsObject => ContainerBase(
@@ -1097,8 +1153,9 @@ object DockerApiMessages {
           volumesRw = obj.get[Map[String, Boolean]]("VolumesRW"),
           appArmorProfile = obj.getOpt[String]("AppArmorProfile"),
           execIds = obj.getList[String]("ExecIDs"),
-          hostConfig = obj.get[HostConfig]("HostConfig")
-        // GraphDriver     GraphDriverData
+          hostConfig = obj.get[HostConfig]("HostConfig"),
+          // GraphDriver     GraphDriverData
+          config = obj.get[RunConfig]("Config")
         )
         case x => deserializationError(s"Expected JsObject, but got $x")
       }
