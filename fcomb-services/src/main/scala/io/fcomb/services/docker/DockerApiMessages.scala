@@ -444,10 +444,12 @@ object DockerApiMessages {
     height: Int
   )
 
+  type LxcConf = Map[String, String]
+
   case class HostConfig(
     binds: List[VolumeBindPath] = List.empty,
     links: List[ContainerLink] = List.empty,
-    lxcConf: Map[String, String] = Map.empty,
+    lxcConf: LxcConf = Map.empty,
     memory: Option[Long] = None,
     memorySwap: Option[Long] = None,
     kernelMemory: Option[Long] = None,
@@ -1033,11 +1035,22 @@ object DockerApiMessages {
 
     implicit val isolationLevelFormat = createEnumerationJsonFormat(IsolationLevel)
 
+    object LxcConfFormat extends RootJsonFormat[LxcConf] {
+      def write(c: LxcConf) = c.toJson
+
+      def read(v: JsValue) = v match {
+        case JsArray(xs: Vector[JsObject]) => xs.map { item =>
+          (item.get[String]("Key"), item.get[String]("Value"))
+        }.toMap
+        case x => deserializationError(s"Expected conf as JsArray, but got $x")
+      }
+    }
+
     implicit object HostConfigFormat extends RootJsonFormat[HostConfig] {
       def write(c: HostConfig) = JsObject(
         "Binds" -> c.binds.toJson,
         "Links" -> c.links.toJson,
-        "LxcConf" -> c.lxcConf.toJson,
+        "LxcConf" -> LxcConfFormat.write(c.lxcConf),
         "Memory" -> c.memory.toJson,
         "MemorySwap" -> MemorySwapFormat.write(c.memorySwap),
         "KernelMemory" -> c.kernelMemory.toJson,
@@ -1080,7 +1093,7 @@ object DockerApiMessages {
         case obj: JsObject => HostConfig(
           binds = obj.getList[VolumeBindPath]("Binds"),
           links = obj.getList[ContainerLink]("Links"),
-          lxcConf = obj.get[Map[String, String]]("LxcConf"),
+          lxcConf = obj.get[Map[String, String]]("LxcConf")(LxcConfFormat),
           memory = obj.getOpt[Long]("Memory")(ZeroOptLongFormat),
           memorySwap = obj.getOpt[Long]("MemorySwap")(MemorySwapFormat),
           kernelMemory = obj.getOpt[Long]("KernelMemory")(ZeroOptLongFormat),
