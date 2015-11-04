@@ -97,7 +97,21 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       .map(_.convertTo[ContainerCreateResponse])
   }
 
-  def getContainer(id: String) =
-    apiRequest(HttpMethods.GET, s"/containers/$id/json")
+  def getContainer(
+    id: String,
+    showSize: Boolean = false
+  ) = {
+    val params = Map("size" -> showSize.toString).filter(_._2.nonEmpty)
+    apiRequest(HttpMethods.GET, s"/containers/$id/json", queryParams = params)
       .map(_.convertTo[ContainerBase])
+  }
+
+  def getContainerProcesses(
+    id: String,
+    psArgs: Option[String] = None
+  ) = {
+    val params = Map("ps_args" -> psArgs.getOrElse("")).filter(_._2.nonEmpty)
+    apiRequest(HttpMethods.GET, s"/containers/$id/top", queryParams = params)
+      .map(_.convertTo[ContainerProcessList])
+  }
 }

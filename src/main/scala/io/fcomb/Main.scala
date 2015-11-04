@@ -41,7 +41,7 @@ object Main extends App {
   // }.recover {
   //   case e: Throwable => println(s"e: $e")
   // }
-  dc.getContainer("4af1853434661a6bd01f7bbbb3197cdefac6a88e8c8b043fed35756c02bd7d3a").onComplete {
+  dc.getContainerProcesses("4af1853434661a6bd01f7bbbb3197cdefac6a88e8c8b043fed35756c02bd7d3a").onComplete {
     case Success(res) => println(res)
     case Failure(e) =>
       e.printStackTrace()

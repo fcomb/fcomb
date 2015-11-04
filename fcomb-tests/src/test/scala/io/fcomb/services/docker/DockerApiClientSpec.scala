@@ -10,6 +10,8 @@ import java.time.ZonedDateTime
 
 class DockerApiClientSpec extends ActorSpec {
   "API client" must {
+    val containerId = "52e3163a6ac79040dd3af67525e3ee8bcc7b4de6650781304dc4982e95ca20ee"
+
     "get version" in {
       val handler = pathPrefix("version") {
         get(complete(getFixture("docker/v1.19/version.json")))
@@ -83,7 +85,7 @@ class DockerApiClientSpec extends ActorSpec {
             httpsProxy = None,
             noProxy = None,
             name = Some("coreos"),
-            labels = List.empty,
+            labels = Map.empty,
             isExperimentalBuild = false
           )
           assert(res === information)
@@ -214,6 +216,158 @@ class DockerApiClientSpec extends ActorSpec {
           case res: ContainerCreateResponse =>
             assert(res.id.nonEmpty)
             assert(res.warnings.isEmpty)
+        }
+      }
+    }
+
+    "get container" in {
+      val handler = pathPrefix("containers" / Segment / "json") { containerIdPart =>
+        assert(containerIdPart == containerId)
+        get(complete(getFixture("docker/v1.19/container.json")))
+      }
+      startFakeHttpServer(handler) { port =>
+        val dc = new DockerApiClient("localhost", port)
+        dc.getContainer(containerId).map {
+          case res: ContainerBase =>
+            val config = RunConfig(
+              hostname = Some("hostname"),
+              domainName = Some("domainname"),
+              user = Some("user"),
+              isAttachStdin = true,
+              isAttachStdout = true,
+              isAttachStderr = true,
+              exposedPorts = Set(ExposePort.Tcp(80)),
+              publishService = None,
+              isTty = true,
+              isOpenStdin = true,
+              isStdinOnce = true,
+              env = List("TEST=test:ttest"),
+              command = List("ls"),
+              image = "ubuntu",
+              volumes = Map.empty,
+              volumeDriver = None,
+              workingDirectory = Some("/tmp"),
+              entrypoint = List("ls"),
+              isNetworkDisabled = true,
+              macAddress = Some("bb:cc:ff:22:11:11"),
+              labels = Map("label1" -> "value"),
+              onBuild = List.empty
+            )
+            val hostConfig = HostConfig(
+              binds = List(VolumeBindPath.VolumeHostPath("/tmp", "/tmp", MountMode.rw)),
+              links = List(ContainerLink("/nginx", "/test_container/nginx")),
+              memory = Some(5.MB),
+              memorySwap = Some(5.MB),
+              cpuShares = Some(100),
+              cpuPeriod = Some(100000),
+              cpusetCpus = Some("0,1"),
+              cpusetMems = Some("0,1"),
+              cpuQuota = Some(10000),
+              blockIoWeight = Some(300),
+              memorySwappiness = None,
+              isOomKillDisable = true,
+              portBindings = Map(
+                ExposePort.Tcp(80) -> List(PortBinding(80, Some("0.0.0.0")))
+              ),
+              isPublishAllPorts = true,
+              isPrivileged = true,
+              isReadonlyRootfs = true,
+              dns = List("8.8.8.8"),
+              dnsSearch = List("8.8.8.8"),
+              extraHosts = List(ExtraHost("test.io", "1.2.3.4")),
+              volumesFrom = List(VolumeFrom("nginx", MountMode.ro)),
+              ipcMode = Some(IpcMode.Host),
+              pidMode = Some(PidMode.Host),
+              utsMode = Some(UtsMode.Host),
+              capacityAdd = List(Capacity.Mknod),
+              capacityDrop = List(Capacity.SetPcap),
+              restartPolicy = RestartPolicy.Always,
+              networkMode = NetworkMode.Bridge,
+              devices = List(DeviceMapping("/dev/tty9", "/dev/tty9", "mrw")),
+              ulimits = List(Ulimit("nofile", 1024, 2048)),
+              logConfig = Some(LogConfig(LogDriver.Syslog)),
+              securityOpt = List("label:type:test"),
+              cgroupParent = Some("/docker_test_cgroup")
+            )
+            val containerBase = ContainerBase(
+              id = containerId,
+              createdAt = ZonedDateTime.parse("2015-11-04T18:14:18.619944537Z"),
+              path = "ls",
+              args = List("ls"),
+              state = ContainerState(
+                isRunning = false,
+                isPaused = false,
+                isRestarting = false,
+                isOomKilled = false,
+                isDead = false,
+                pid = None,
+                exitCode = 0,
+                error = None,
+                startedAt = None,
+                finishedAt = None
+              ),
+              image = "a5a467fddcb8848a80942d0191134c925fa16ffa9655c540acd34284f4f6375d",
+              networkSettings = NetworkSettings(
+                bridge = None,
+                endpointId = None,
+                gateway = None,
+                globalIpv6Address = None,
+                globalIpv6PrefixLength = 0,
+                hairpinMode = false,
+                ipAddress = None,
+                ipPrefixLength = 0,
+                ipv6Gateway = None,
+                linkLocalIpv6Address = None,
+                linkLocalIpv6PrefixLength = 0,
+                macAddress = None,
+                networkId = None,
+                ports = Map.empty,
+                sandboxKey = None,
+                secondaryIpAddresses = List.empty,
+                secondaryIpv6Addresses = List.empty
+              ),
+              resolvConfPath = None,
+              hostnamePath = None,
+              hostsPath = None,
+              logPath = None,
+              name = "/test_container",
+              restartCount = 0,
+              driver = "overlay",
+              execDriver = "native-0.2",
+              mountLabel = None,
+              processLabel = None,
+              volumes = Map(
+                "/tmp" -> "/tmp",
+                "/var/cache/nginx" -> "/var/lib/docker/volumes/e8b234d862623ab56c04f36639a4c5dbb19169d9dbdf13bff3f3a010480fd404/_data"
+              ),
+              volumesRw = Map(
+                "/tmp" -> true,
+                "/var/cache/nginx" -> false
+              ),
+              appArmorProfile = None,
+              execIds = List.empty,
+              hostConfig = hostConfig,
+              config = config
+            )
+            assert(res == containerBase)
+        }
+      }
+    }
+
+    "get container processes" in {
+      val handler = pathPrefix("containers" / Segment / "top") { containerIdPart =>
+        assert(containerIdPart == containerId)
+        get(complete(getFixture("docker/v1.19/container_processes.json")))
+      }
+      startFakeHttpServer(handler) { port =>
+        val dc = new DockerApiClient("localhost", port)
+        dc.getContainerProcesses(containerId).map {
+          case res: ContainerProcessList =>
+            assert(res.processes == List(
+              List("root", "1022", "742", "0", "16:33", "?", "00:00:00", "nginx: master process nginx -g daemon off;"),
+              List("104", "1027", "1022", "0", "16:33", "?", "00:00:00", "nginx: worker process")
+            ))
+            assert(res.titles == List("UID", "PID", "PPID", "C", "STIME", "TTY", "TIME", "CMD"))
         }
       }
     }

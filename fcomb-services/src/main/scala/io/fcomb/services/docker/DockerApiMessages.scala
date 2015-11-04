@@ -76,7 +76,7 @@ object DockerApiMessages {
     httpsProxy: Option[String],
     noProxy: Option[String],
     name: Option[String],
-    labels: List[String],
+    labels: Map[String, String],
     isExperimentalBuild: Boolean
   ) extends DockerApiResponse
 
@@ -91,7 +91,7 @@ object DockerApiMessages {
     isRestarting: Boolean,
     isOomKilled: Boolean,
     isDead: Boolean,
-    pid: Int,
+    pid: Option[Int],
     exitCode: Int,
     error: Option[String],
     startedAt: Option[ZonedDateTime],
@@ -531,7 +531,7 @@ object DockerApiMessages {
     volumes: Map[String, Unit] = Map.empty,
     volumeDriver: Option[String] = None,
     workingDirectory: Option[String] = None,
-    entrypoint: Option[String] = None,
+    entrypoint: List[String] = List.empty,
     isNetworkDisabled: Boolean = false,
     macAddress: Option[String] = None,
     labels: Map[String, String] = Map.empty,
@@ -794,7 +794,7 @@ object DockerApiMessages {
           httpsProxy = obj.getOpt[String]("HttpsProxy"),
           noProxy = obj.getOpt[String]("NoProxy"),
           name = obj.getOpt[String]("Name"),
-          labels = obj.getList[String]("Labels"),
+          labels = obj.get[Map[String, String]]("Labels"),
           isExperimentalBuild = obj.getOrElse[Boolean]("ExperimentalBuild", false)
         )
         case x => deserializationError(s"Expected JsObject, but got $x")
@@ -1042,6 +1042,7 @@ object DockerApiMessages {
         case JsArray(xs: Vector[JsObject]) => xs.map { item =>
           (item.get[String]("Key"), item.get[String]("Value"))
         }.toMap
+        case JsNull => Map.empty
         case x => deserializationError(s"Expected conf as JsArray, but got $x")
       }
     }
@@ -1135,6 +1136,9 @@ object DockerApiMessages {
       }
     }
 
+    implicit val containerProcessListFormat =
+      jsonFormat(ContainerProcessList, "Processes", "Titles")
+
     implicit object ExposedPortsFormat extends RootJsonFormat[ExposedPorts] {
       def write(ep: ExposedPorts) = JsObject(ep.map { p =>
         p.mapToString -> JsObject()
@@ -1180,7 +1184,7 @@ object DockerApiMessages {
           isRestarting = obj.get[Boolean]("Restarting"),
           isOomKilled = obj.get[Boolean]("OOMKilled"),
           isDead = obj.get[Boolean]("Dead"),
-          pid = obj.get[Int]("Pid"),
+          pid = obj.getOpt[Int]("Pid")(ZeroOptIntFormat),
           exitCode = obj.get[Int]("ExitCode"),
           error = obj.getOpt[String]("Error"),
           startedAt = obj.getOpt[ZonedDateTime]("StartedAt"),
@@ -1219,11 +1223,11 @@ object DockerApiMessages {
           volumes = obj.get[Map[String, Unit]]("Volumes"),
           volumeDriver = obj.getOpt[String]("VolumeDriver"),
           workingDirectory = obj.getOpt[String]("WorkingDir"),
-          entrypoint = obj.getOpt[String]("Entrypoint"),
+          entrypoint = obj.getList[String]("Entrypoint"),
           isNetworkDisabled = obj.getOrElse[Boolean]("NetworkDisabled", false),
           macAddress = obj.getOpt[String]("MacAddress"),
-          labels = obj.get[Map[String, String]]("OnBuild"),
-          onBuild = obj.getList[String]("Labels")
+          labels = obj.get[Map[String, String]]("Labels"),
+          onBuild = obj.getList[String]("OnBuild")
         )
         case x => deserializationError(s"Expected JsObject, but got $x")
       }
