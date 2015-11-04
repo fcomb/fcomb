@@ -432,16 +432,30 @@ object DockerApiMessages {
 
   type PortBindings = Map[ExposePort, List[PortBinding]]
 
+  object IsolationLevel extends Enumeration {
+    type IsolationLevel = Value
+
+    val Default = Value("default")
+    val HyperV = Value("hyperv")
+  }
+
+  case class ConsoleSize(
+    width: Int,
+    height: Int
+  )
+
   case class HostConfig(
     binds: List[VolumeBindPath] = List.empty,
     links: List[ContainerLink] = List.empty,
     lxcConf: Map[String, String] = Map.empty,
     memory: Option[Long] = None,
     memorySwap: Option[Long] = None,
+    kernelMemory: Option[Long] = None,
     cpuShares: Option[Int] = None,
     cpuPeriod: Option[Long] = None,
     cpusetCpus: Option[String] = None,
     cpusetMems: Option[String] = None,
+    cpuQuota: Option[Long] = None,
     blockIoWeight: Option[Int] = None,
     memorySwappiness: Option[Int] = None,
     isOomKillDisable: Boolean = false,
@@ -450,6 +464,7 @@ object DockerApiMessages {
     isPrivileged: Boolean = false,
     isReadonlyRootfs: Boolean = false,
     dns: List[String] = List.empty,
+    dnsOptions: List[String] = List.empty,
     dnsSearch: List[String] = List.empty,
     extraHosts: List[ExtraHost] = List.empty,
     volumesFrom: List[VolumeFrom] = List.empty,
@@ -458,13 +473,17 @@ object DockerApiMessages {
     utsMode: Option[UtsMode] = None,
     capacityAdd: List[Capacity.Capacity] = List.empty,
     capacityDrop: List[Capacity.Capacity] = List.empty,
+    groupAdd: List[String] = List.empty,
     restartPolicy: RestartPolicy = RestartPolicy.No,
     networkMode: NetworkMode = NetworkMode.Bridge,
     devices: List[DeviceMapping] = List.empty,
     ulimits: List[Ulimit] = List.empty,
     logConfig: Option[LogConfig] = None,
     securityOpt: List[String] = List.empty,
-    cgroupParent: Option[String] = None
+    cgroupParent: Option[String] = None,
+    consoleSize: Option[ConsoleSize] = None,
+    volumeDriver: Option[String] = None,
+    isolation: Option[IsolationLevel.IsolationLevel] = None
   )
 
   sealed trait ExposePort extends MapToString {
@@ -783,8 +802,24 @@ object DockerApiMessages {
     implicit val portKindFormat =
       createEnumerationJsonFormat(PortKind)
 
-    implicit val portFormat =
-      jsonFormat(Port, "PrivatePort", "PublicPort", "Type", "IP")
+    implicit object PortFormat extends RootJsonFormat[Port] {
+      def write(p: Port) = JsObject(
+        "PrivatePort" -> p.privatePort.toJson,
+        "PublicPort" -> p.publicPort.toJson,
+        "Type" -> p.kind.toJson,
+        "IP" -> p.ip.toJson
+      )
+
+      def read(v: JsValue) = v match {
+        case obj: JsObject => Port(
+          privatePort = obj.get[Int]("PrivatePort").toInt,
+          publicPort = obj.getOpt[Int]("PublicPort"),
+          kind = obj.get[PortKind.PortKind]("Type"),
+          ip = obj.getOpt[String]("IP")
+        )
+        case x => deserializationError(s"Expected port as JsObject, but got $x")
+      }
+    }
 
     implicit val containerItemFormat =
       jsonFormat(ContainerItem, "Id", "Names", "Image", "Command", "Created",
@@ -985,6 +1020,19 @@ object DockerApiMessages {
       }
     }
 
+    implicit object ConsoleSizeFormat extends RootJsonFormat[ConsoleSize] {
+      def write(s: ConsoleSize) =
+        JsArray(List(JsNumber(s.width), JsNumber(s.height)))
+
+      def read(v: JsValue) = v match {
+        case JsArray(Vector(JsNumber(w), JsNumber(h))) =>
+          ConsoleSize(w.toInt, h.toInt)
+        case x => deserializationError(s"Expected size as JsArray, but got $x")
+      }
+    }
+
+    implicit val isolationLevelFormat = createEnumerationJsonFormat(IsolationLevel)
+
     implicit object HostConfigFormat extends RootJsonFormat[HostConfig] {
       def write(c: HostConfig) = JsObject(
         "Binds" -> c.binds.toJson,
@@ -992,11 +1040,13 @@ object DockerApiMessages {
         "LxcConf" -> c.lxcConf.toJson,
         "Memory" -> c.memory.toJson,
         "MemorySwap" -> MemorySwapFormat.write(c.memorySwap),
+        "KernelMemory" -> c.kernelMemory.toJson,
         "CpuShares" -> c.cpuShares.toJson,
         "CpuPeriod" -> c.cpuPeriod.toJson,
         "CpusetCpus" -> c.cpusetCpus.toJson,
         "CpusetMems" -> c.cpusetMems.toJson,
-        "BlckWeight" -> c.blockIoWeight.toJson,
+        "CpuQuota" -> c.cpuQuota.toJson,
+        "BlkioWeight" -> c.blockIoWeight.toJson,
         "MemorySwappiness" -> c.memorySwappiness.toJson,
         "OomKillDisable" -> c.isOomKillDisable.toJson,
         "PortBindings" -> c.portBindings.toJson,
@@ -1004,6 +1054,7 @@ object DockerApiMessages {
         "Privileged" -> c.isPrivileged.toJson,
         "ReadonlyRootfs" -> c.isReadonlyRootfs.toJson,
         "Dns" -> c.dns.toJson,
+        "DnsOptions" -> c.dnsOptions.toJson,
         "DnsSearch" -> c.dnsSearch.toJson,
         "ExtraHosts" -> c.extraHosts.toJson,
         "VolumesFrom" -> c.volumesFrom.toJson,
@@ -1012,13 +1063,17 @@ object DockerApiMessages {
         "UTSMode" -> c.utsMode.toJson,
         "CapAdd" -> c.capacityAdd.toJson,
         "CapDrop" -> c.capacityDrop.toJson,
+        "GroupAdd" -> c.groupAdd.toJson,
         "RestartPolicy" -> c.restartPolicy.toJson,
         "NetworkMode" -> c.networkMode.toJson,
         "Devices" -> c.devices.toJson,
         "Ulimits" -> c.ulimits.toJson,
         "LogConfig" -> c.logConfig.toJson,
         "SecurityOpt" -> c.securityOpt.toJson,
-        "CgroupParent" -> c.cgroupParent.toJson
+        "CgroupParent" -> c.cgroupParent.toJson,
+        "ConsoleSize" -> c.consoleSize.toJson,
+        "VolumeDriver" -> c.volumeDriver.toJson,
+        "Isolation" -> c.isolation.toJson
       )
 
       def read(v: JsValue) = v match {
@@ -1028,11 +1083,13 @@ object DockerApiMessages {
           lxcConf = obj.get[Map[String, String]]("LxcConf"),
           memory = obj.getOpt[Long]("Memory")(ZeroOptLongFormat),
           memorySwap = obj.getOpt[Long]("MemorySwap")(MemorySwapFormat),
+          kernelMemory = obj.getOpt[Long]("KernelMemory")(ZeroOptLongFormat),
           cpuShares = obj.getOpt[Int]("CpuShares")(ZeroOptIntFormat),
           cpuPeriod = obj.getOpt[Long]("CpuPeriod")(ZeroOptLongFormat),
           cpusetCpus = obj.getOpt[String]("CpusetCpus"),
           cpusetMems = obj.getOpt[String]("CpusetMems"),
-          blockIoWeight = obj.getOpt[Int]("BlckWeight")(ZeroOptIntFormat),
+          cpuQuota = obj.getOpt[Long]("CpuQuota")(ZeroOptLongFormat),
+          blockIoWeight = obj.getOpt[Int]("BlkioWeight")(ZeroOptIntFormat),
           memorySwappiness = obj.getOpt[Int]("MemorySwappiness"),
           isOomKillDisable = obj.getOrElse("OomKillDisable", false),
           portBindings = obj.get[Map[ExposePort, List[PortBinding]]]("PortBindings"),
@@ -1040,6 +1097,7 @@ object DockerApiMessages {
           isPrivileged = obj.getOrElse[Boolean]("Privileged", false),
           isReadonlyRootfs = obj.getOrElse[Boolean]("ReadonlyRootfs", false),
           dns = obj.getList[String]("Dns"),
+          dnsOptions = obj.getList[String]("DnsOptions"),
           dnsSearch = obj.getList[String]("DnsSearch"),
           extraHosts = obj.getList[ExtraHost]("ExtraHosts"),
           volumesFrom = obj.getList[VolumeFrom]("VolumesFrom"),
@@ -1048,13 +1106,17 @@ object DockerApiMessages {
           utsMode = obj.getOpt[UtsMode]("UTSMode"),
           capacityAdd = obj.getList[Capacity.Capacity]("CapAdd"),
           capacityDrop = obj.getList[Capacity.Capacity]("CapDrop"),
+          groupAdd = obj.getList[String]("GroupAdd"),
           restartPolicy = obj.get[RestartPolicy]("RestartPolicy"),
           networkMode = obj.get[NetworkMode]("NetworkMode"),
           devices = obj.getList[DeviceMapping]("Devices"),
           ulimits = obj.getList[Ulimit]("Ulimits"),
           logConfig = obj.getOpt[LogConfig]("LogConfig"),
           securityOpt = obj.getList[String]("SecurityOpt"),
-          cgroupParent = obj.getOpt[String]("CgroupParent")
+          cgroupParent = obj.getOpt[String]("CgroupParent"),
+          consoleSize = obj.getOpt[ConsoleSize]("ConsoleSize"),
+          volumeDriver = obj.getOpt[String]("VolumeDriver"),
+          isolation = obj.getOpt[IsolationLevel.IsolationLevel]("Isolation")
         )
         case x => deserializationError(s"Expected JsObject, but got $x")
       }
@@ -1080,9 +1142,22 @@ object DockerApiMessages {
     implicit val containerCreateResponseFormat =
       jsonFormat(ContainerCreateResponse, "Id", "Warnings")
 
-    implicit val versionFormat =
-      jsonFormat(Version, "Version", "ApiVersion", "GitCommit", "GoVersion", "Os",
-        "Arch", "KernelVersion", "Experimental", "BuildTime")
+    implicit object VersionFormat extends RootJsonReader[Version] {
+      def read(v: JsValue) = v match {
+        case obj: JsObject => Version(
+          version = obj.get[String]("Version"),
+          apiVersion = obj.get[String]("ApiVersion"),
+          gitCommit = obj.get[String]("GitCommit"),
+          goVersion = obj.get[String]("GoVersion"),
+          os = obj.get[String]("Os"),
+          arch = obj.get[String]("Arch"),
+          kernelVersion = obj.getOpt[String]("KernelVersion"),
+          experimental = obj.getOpt[Boolean]("Experimental"),
+          buildTime = obj.getOpt[String]("BuildTime")
+        )
+        case x => deserializationError(s"Expected JsObject, but got $x")
+      }
+    }
 
     implicit object ContainerStateFormat extends RootJsonReader[ContainerState] {
       def read(v: JsValue) = v match {
