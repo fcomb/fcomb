@@ -60,8 +60,8 @@ object Dependencies {
     val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1204-jdbc42" exclude("org.slf4j", "slf4j-simple")
-    val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
-    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg
+    val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick exclude("com.zaxxer", "HikariCP-java6")
+    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg exclude("org.postgresql", "postgresql")
     val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % V.slickPg
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.7"
     // val slickless       = "io.underscore"                 %% "slickless"                     % "0.1.1"

@@ -2,6 +2,7 @@ package io.fcomb.services.docker
 
 import io.fcomb.services.docker.DockerApiMessages._
 import io.fcomb.tests._
+import io.fcomb.utils.Units._
 import akka.http.scaladsl.server.Directives._
 import java.time.ZonedDateTime
 
@@ -141,8 +142,60 @@ class DockerApiClientSpec extends ActorSpec {
       // startFakeHttpServer(handler) { port =>
       val dc = new DockerApiClient("coreos", 2375)
       import scala.concurrent._
+      val hostConfig = HostConfig(
+        binds = List(VolumeBindPath.VolumeHostPath("/tmp", "/tmp", MountMode.rw)),
+        links = List(ContainerLink("nginx", "nginx")),
+        memory = Some(5.MB),
+        memorySwap = Some(5.MB),
+        cpuShares = Some(100),
+        cpuPeriod = Some(100000),
+        cpusetCpus = Some("0,1"),
+        cpusetMems = Some("0,1"),
+        blockIoWeight = Some(300),
+        memorySwappiness = Some(50),
+        isOomKillDisable = true,
+        portBindings = Map(ExposePort.Tcp(80) -> List(PortBinding(80, Some("0.0.0.0")))),
+        isPublishAllPorts = true,
+        isPrivileged = true,
+        isReadonlyRootfs = true,
+        dns = List("8.8.8.8"),
+        dnsSearch = List("8.8.8.8"),
+        extraHosts = List(ExtraHost("test.io", "1.2.3.4")),
+        volumesFrom = List(VolumeFrom("nginx", MountMode.ro)),
+        ipcMode = Some(IpcMode.Host),
+        pidMode = Some(PidMode.Host),
+        utsMode = Some(UtsMode.Host),
+        capacityAdd = List(Capacity.Mknod),
+        capacityDrop = List(Capacity.SetPcap),
+        restartPolicy = RestartPolicy.Always,
+        networkMode = NetworkMode.Bridge,
+        devices = List(DeviceMapping("/dev/tty9", "/dev/tty9", "mrw")),
+        ulimits = List(Ulimit("nofile", 1024, 2048)),
+        logConfig = Some(LogConfig(LogDriver.Syslog)),
+        securityOpt = List("label:type:test"),
+        cgroupParent = Some("/docker_test_cgroup")
+      )
       val config = ContainerCreate(
-        image = "nginx"
+        image = "ubuntu",
+        hostname = Some("hostname"),
+        domainName = Some("domainname"),
+        user = Some("user"),
+        isAttachStdin = true,
+        isAttachStdout = true,
+        isAttachStderr = true,
+        isTty = true,
+        isOpenStdin = true,
+        isStdinOnce = true,
+        env = List("TEST=test:ttest"),
+        command = List("ls"),
+        entrypoint = Some("ls"),
+        labels = Map("label1" -> "value"),
+        mounts = List(MountPoint("/etc", "/etc", Set(MountMode.ro), false)),
+        isNetworkDisabled = true,
+        workingDirectory = Some("/tmp"),
+        macAddress = Some("bb:cc:ff:22:11:11"),
+        exposedPorts = Set(ExposePort.Tcp(80)),
+        hostConfig = hostConfig
       )
       Await.result(dc.createContainer(config).map {
         case res: ContainerCreateResponse =>

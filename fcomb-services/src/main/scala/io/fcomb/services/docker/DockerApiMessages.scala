@@ -286,44 +286,44 @@ object DockerApiMessages {
   object Capacity extends Enumeration {
     type Capacity = Value
 
-    val SetPcap = "SETPCAP"
-    val SysModule = "SYS_MODULE"
-    val SysRawIo = "SYS_RAWIO"
-    val SysPacct = "SYS_PACCT"
-    val SysAdmib = "SYS_ADMIN"
-    val SysNice = "SYS_NICE"
-    val SysResource = "SYS_RESOURCE"
-    val SysTime = "SYS_TIME"
-    val SysTtyConfig = "SYS_TTY_CONFIG"
-    val Mknod = "MKNOD"
-    val AuditWrite = "AUDIT_WRITE"
-    val AuditControl = "AUDIT_CONTROL"
-    val MacOverride = "MAC_OVERRIDE"
-    val MacAdmin = "MAC_ADMIN"
-    val NetAdmin = "NET_ADMIN"
-    val Syslog = "SYSLOG"
-    val Chown = "CHOWN"
-    val NetRaw = "NET_RAW"
-    val DacOverride = "DAC_OVERRIDE"
-    val Fowner = "FOWNER"
-    val DacReadSearch = "DAC_READ_SEARCH"
-    val Fsetid = "FSETID"
-    val Kill = "KILL"
-    val Setgid = "SETGID"
-    val Setuid = "SETUID"
-    val LinuxImmutable = "LINUX_IMMUTABLE"
-    val NetBindService = "NET_BIND_SERVICE"
-    val NetBroadcast = "NET_BROADCAST"
-    val IpcLock = "IPC_LOCK"
-    val IpcOwner = "IPC_OWNER"
-    val SysChroot = "SYS_CHROOT"
-    val SysPtrace = "SYS_PTRACE"
-    val SysBoot = "SYS_BOOT"
-    val Lease = "LEASE"
-    val Setfcap = "SETFCAP"
-    val WakeAlarm = "WAKE_ALARM"
-    val BlockSuspend = "BLOCK_SUSPEND"
-    val AuditRead = "AUDIT_READ"
+    val SetPcap = Value("SETPCAP")
+    val SysModule = Value("SYS_MODULE")
+    val SysRawIo = Value("SYS_RAWIO")
+    val SysPacct = Value("SYS_PACCT")
+    val SysAdmib = Value("SYS_ADMIN")
+    val SysNice = Value("SYS_NICE")
+    val SysResource = Value("SYS_RESOURCE")
+    val SysTime = Value("SYS_TIME")
+    val SysTtyConfig = Value("SYS_TTY_CONFIG")
+    val Mknod = Value("MKNOD")
+    val AuditWrite = Value("AUDIT_WRITE")
+    val AuditControl = Value("AUDIT_CONTROL")
+    val MacOverride = Value("MAC_OVERRIDE")
+    val MacAdmin = Value("MAC_ADMIN")
+    val NetAdmin = Value("NET_ADMIN")
+    val Syslog = Value("SYSLOG")
+    val Chown = Value("CHOWN")
+    val NetRaw = Value("NET_RAW")
+    val DacOverride = Value("DAC_OVERRIDE")
+    val Fowner = Value("FOWNER")
+    val DacReadSearch = Value("DAC_READ_SEARCH")
+    val Fsetid = Value("FSETID")
+    val Kill = Value("KILL")
+    val Setgid = Value("SETGID")
+    val Setuid = Value("SETUID")
+    val LinuxImmutable = Value("LINUX_IMMUTABLE")
+    val NetBindService = Value("NET_BIND_SERVICE")
+    val NetBroadcast = Value("NET_BROADCAST")
+    val IpcLock = Value("IPC_LOCK")
+    val IpcOwner = Value("IPC_OWNER")
+    val SysChroot = Value("SYS_CHROOT")
+    val SysPtrace = Value("SYS_PTRACE")
+    val SysBoot = Value("SYS_BOOT")
+    val Lease = Value("LEASE")
+    val Setfcap = Value("SETFCAP")
+    val WakeAlarm = Value("WAKE_ALARM")
+    val BlockSuspend = Value("BLOCK_SUSPEND")
+    val AuditRead = Value("AUDIT_READ")
   }
 
   sealed trait NetworkMode extends MapToString
@@ -803,8 +803,20 @@ object DockerApiMessages {
     implicit val mountPointFormat =
       jsonFormat(MountPoint, "Source", "Destination", "Mode", "RW")
 
-    implicit val portBindingFormat =
-      jsonFormat(PortBinding, "HostPort", "HostIp")
+    implicit object PortBindingFormat extends RootJsonFormat[PortBinding] {
+      def write(pb: PortBinding) = JsObject(
+        "HostPort" -> JsString(pb.port.toString),
+        "HostIp" -> pb.ip.toJson
+      )
+
+      def read(v: JsValue) = v match {
+        case obj: JsObject => PortBinding(
+          port = obj.get[String]("HostPort").toInt,
+          ip = obj.getOpt[String]("HostIp")
+        )
+        case x => deserializationError(s"Expected port binding as JsObject, but got $x")
+      }
+    }
 
     implicit object RestartPolicyFormat extends RootJsonFormat[RestartPolicy] {
       def write(p: RestartPolicy) = JsObject(
