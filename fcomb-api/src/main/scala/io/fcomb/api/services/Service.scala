@@ -356,7 +356,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     val authHeader = r.headers.collectFirst {
       case a: Authorization ⇒ a
     }
-    val authParameter = r.uri.query.get("auth_token")
+    val authParameter = r.uri.query().get("auth_token")
     (authHeader, authParameter) match {
       case (Some(token), _) =>
         val s = token.value.split(' ')

@@ -3,12 +3,12 @@ import sbt._
 object Dependencies {
   object V {
     val akka = "2.4.0"
-    val akkaExperimental = "1.0"
+    val akkaExperimental = "2.0-M1"
     val cats = "0.2.0"
     val circle = "0.1.1"
     val slick = "3.1.0"
     val slickPg = "0.10.1"
-    val scalaz = "7.1.4"
+    val scalaz = "7.1.5"
     val scalikeJdbc = "2.2.8"
     // val kamon = "0.5.0"
   }
@@ -56,11 +56,15 @@ object Dependencies {
 
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
+    val googleLru       = "com.googlecode.concurrentlinkedhashmap" % "concurrentlinkedhashmap-lru" % "1.4.2"
+    val caffeine        = "com.github.ben-manes.caffeine" % "caffeine"                       % "1.3.3"
+
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
     val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1204-jdbc42" exclude("org.slf4j", "slf4j-simple")
-    val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick exclude("com.zaxxer", "HikariCP-java6")
+    val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
+    val slickHikariCp   = "com.typesafe.slick"            %% "slick-hikaricp"                % V.slick exclude("com.zaxxer", "HikariCP-java6")
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg exclude("org.postgresql", "postgresql")
     val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % V.slickPg
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.7"
@@ -173,7 +177,7 @@ object Dependencies {
   val persist = common ++ Seq(
     postgresJdbc,
     dbMigration,
-    slick, slickPg, slickPgSprayJson, slickJdbc, // slickless,
+    slick, slickHikariCp, slickPg, slickPgSprayJson, slickJdbc, // slickless,
     // relate,
     // scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
     // phantom, phantomUdt,
@@ -183,7 +187,8 @@ object Dependencies {
 
   val utils = common ++ Seq(
     akkaActor, akkaStream,
-    redis, lz4
+    redis, lz4,
+    googleLru, caffeine
   )
 
   val macros = common

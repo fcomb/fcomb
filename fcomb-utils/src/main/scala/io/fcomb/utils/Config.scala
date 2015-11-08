@@ -9,6 +9,8 @@ object Config {
 
   val jdbcConfig = config.getConfig("jdbc")
 
+  val jdbcConfigSlick = config.getConfig("jdbc-slick")
+
   val redis = config.getConfig("redis")
 
   val mandrillKey = config.getString("mandrill.key")

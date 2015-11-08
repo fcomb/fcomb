@@ -6,7 +6,6 @@ import io.fcomb.utils.{Config, Implicits}
 import io.fcomb.RichPostgresDriver.api.Database
 import redis.RedisClient
 import scala.concurrent.{ Await, ExecutionContext, Future, blocking }
-import com.zaxxer.hikari.HikariDataSource
 import javax.sql.DataSource
 import com.github.kxbmap.configs.syntax._
 
@@ -15,16 +14,7 @@ object Db {
   private val dbUser = Config.jdbcConfig.getString("user")
   private val dbPassword = Config.jdbcConfig.getString("password")
 
-  private val dataSource: DataSource = {
-    val ds = new HikariDataSource()
-    ds.setJdbcUrl(dbUrl)
-    ds.setUsername(dbUser)
-    ds.setPassword(dbPassword)
-    ds.setMaximumPoolSize(Config.jdbcConfig.getInt("max-pool-size"))
-    ds
-  }
-
-  val db = Database.forDataSource(dataSource)
+  val db = Database.forConfig("", Config.jdbcConfigSlick)
 
   def migrate()(implicit ec: ExecutionContext) =
     Migration.run(dbUrl, dbUser, dbPassword)

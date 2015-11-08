@@ -35,13 +35,30 @@ object Main extends App {
   val port = config.getInt("rest-api.port")
 
   import io.fcomb.services.docker.DockerApiClient
+  import io.fcomb.services.docker.DockerApiClient._
   val dc = new DockerApiClient("coreos", 2375)
   // dc.getInfo().map { res =>
   //   println(s"res: $res")
   // }.recover {
   //   case e: Throwable => println(s"e: $e")
   // }
-  dc.getContainerProcesses("4af1853434661a6bd01f7bbbb3197cdefac6a88e8c8b043fed35756c02bd7d3a").onComplete {
+  // dc.getContainerProcesses("mongo").onComplete {
+  //   case Success(res) => println(res)
+  //   case Failure(e) =>
+  //     e.printStackTrace()
+  //     println(e)
+  // }
+  import akka.stream.scaladsl._
+  import akka.util.ByteString
+  import scala.concurrent.duration._
+
+  dc.getContainerLogsAsStream(
+    "mongo",
+    Set(Stdout),
+    idleTimeout = Duration.Inf
+  ).map {
+    _.runWith(Sink.foreach(res => println(res.utf8String)))
+  }.onComplete {
     case Success(res) => println(res)
     case Failure(e) =>
       e.printStackTrace()

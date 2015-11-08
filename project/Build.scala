@@ -36,10 +36,19 @@ object Build extends sbt.Build {
 
   val javaRunOptions = Seq(
     "-server",
-    "-Xms2048M",
-    "-Xmx2048M",
-    "-Xss6M",
-    "-XX:+CMSClassUnloadingEnabled"
+    "-Xms4g",
+    "-Xmx4g",
+    "-Xss6m",
+    "-XX:NewSize=512m",
+    "-XX:+UseNUMA",
+    "-XX:+TieredCompilation",
+    "-XX:+UseG1GC",
+    "-XX:+AlwaysPreTouch",
+    "-XX:MaxGCPauseMillis=200",
+    "-XX:ParallelGCThreads=20",
+    "-XX:ConcGCThreads=5",
+    "-XX:InitiatingHeapOccupancyPercent=70",
+    "-XX:-UseBiasedLocking"
   )
 
   val javaVersion = "1.8"
