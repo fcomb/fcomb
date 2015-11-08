@@ -186,8 +186,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
     streams: Set[StdStream],
     since: Option[ZonedDateTime] = None,
     showTimestamps: Boolean = false,
-    tail: Option[Int] = None,
-    idleTimeout: Duration
+    tail: Option[Int] = None
   ) = getContainerLogsAsSource(
     id = id,
     streams = streams,
@@ -201,10 +200,10 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
   def getContainerLogsAsStream(
     id: String,
     streams: Set[StdStream],
+    idleTimeout: Duration,
     since: Option[ZonedDateTime] = None,
     showTimestamps: Boolean = false,
-    tail: Option[Int] = None,
-    idleTimeout: Duration
+    tail: Option[Int] = None
   ) = getContainerLogsAsSource(
     id = id,
     streams = streams,

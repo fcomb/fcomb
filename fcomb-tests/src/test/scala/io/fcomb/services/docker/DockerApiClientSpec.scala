@@ -1,5 +1,6 @@
 package io.fcomb.services.docker
 
+import io.fcomb.services.docker.DockerApiClient._
 import io.fcomb.services.docker.DockerApiMessages._
 import io.fcomb.tests._
 import io.fcomb.utils.Units._
@@ -142,8 +143,8 @@ class DockerApiClientSpec extends ActorSpec {
     "create container" in {
       val handler = pathPrefix("containers" / "create") {
         post { ctx =>
-          val name = ctx.request.getUri().parameter("name").get
-          assert(name == "test_container")
+          val name = ctx.request.uri.query().get("name")
+          assert(name.contains("test_container"))
           ctx.request.entity.dataBytes.runFold(ByteString.empty)(_ ++ _)
             .flatMap { bs =>
               val req = getFixture("docker/v1.19/create_container_request.json").parseJson
@@ -368,6 +369,36 @@ class DockerApiClientSpec extends ActorSpec {
               List("104", "1027", "1022", "0", "16:33", "?", "00:00:00", "nginx: worker process")
             ))
             assert(res.titles == List("UID", "PID", "PPID", "C", "STIME", "TTY", "TIME", "CMD"))
+        }
+      }
+    }
+
+    "get container logs" in {
+      val handler = pathPrefix("containers" / Segment / "logs") { containerIdPart =>
+        assert(containerIdPart == containerId)
+        get(complete(getFixture("docker/v1.19/logs")))
+      }
+      startFakeHttpServer(handler) { port =>
+        val dc = new DockerApiClient("localhost", port)
+        dc.getContainerLogs(containerId, Set(Stdout)).flatMap { s =>
+          source2String(s).map { logs =>
+            assert(logs == "Log line 1\nLog line 2\n")
+          }
+        }
+      }
+    }
+
+    "get container logs as stream" in {
+      val handler = pathPrefix("containers" / Segment / "logs") { containerIdPart =>
+        assert(containerIdPart == containerId)
+        get(complete(getFixture("docker/v1.19/logs")))
+      }
+      startFakeHttpServer(handler) { port =>
+        val dc = new DockerApiClient("localhost", port)
+        dc.getContainerLogsAsStream(containerId, Set(Stdout), timeout).flatMap { s =>
+          source2String(s).map { logs =>
+            assert(logs == "Log line 1\nLog line 2\n")
+          }
         }
       }
     }

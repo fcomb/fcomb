@@ -3,18 +3,20 @@ package io.fcomb.tests
 import io.fcomb.utils.Random
 import akka.actor._
 import akka.testkit._
-import akka.stream.ActorMaterializer
+import akka.stream._
+import akka.stream.scaladsl._
 import akka.http.scaladsl._
 import akka.http.scaladsl.server._
+import akka.util.ByteString
 import org.scalatest._
-import scala.io.Source
+import scala.io.{Source => ISource}
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 trait SpecHelpers {
   def getFixture(path: String) = {
     val is = getClass.getClassLoader.getResourceAsStream(s"fixtures/$path")
-    Source.fromInputStream(is).mkString
+    ISource.fromInputStream(is).mkString
   }
 }
 
@@ -52,4 +54,10 @@ abstract class ActorSpec extends TestKit(ActorSystemSpec.system)
         }
       }
     }
+
+  def source2ByteString(s: Source[ByteString, Any]): Future[ByteString] =
+    s.runWith(Sink.fold(ByteString.empty)(_ ++ _))
+
+  def source2String(s: Source[ByteString, Any]): Future[String] =
+    source2ByteString(s).map(_.utf8String)
 }
