@@ -214,4 +214,9 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
     idleTimeout = Some(idleTimeout)
   )
 
+  def getContainerChanges(id: String) =
+    apiJsonRequest(HttpMethods.GET, s"/containers/$id/changes")
+      .map(_.convertTo[ContainerChanges])
+
+
 }

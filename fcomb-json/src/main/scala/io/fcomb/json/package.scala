@@ -8,6 +8,7 @@ import io.fcomb.response._
 import java.time._
 import java.util.UUID
 import scala.collection.mutable.OpenHashMap
+import scala.collection.immutable.IntMap
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -67,7 +68,7 @@ package object json {
     }
   }
 
-  def createEnumerationJsonFormat[T <: Enumeration](obj: T)(implicit m: Manifest[T]) =
+  def createStringEnumJsonFormat[T <: Enumeration](obj: T) =
     new RootJsonFormat[T#Value] {
       def write(obj: T#Value) = JsString(obj.toString)
 
@@ -75,16 +76,39 @@ package object json {
         obj.values.toSeq.map(v => (v.toString.toLowerCase, v)): _*
       )
 
+      private val klassName =
+        obj.getClass.getName.split('.').last.dropRight(1).replaceAll("\\$", "#")
+
       def read(v: JsValue) = {
         val value =
           if (v.isInstanceOf[JsString])
             values.get(v.asInstanceOf[JsString].value.toLowerCase)
           else None
-        value.getOrElse(throw new DeserializationException(s"invalid ${m.getClass.getName.split('.').last} value"))
+        value.getOrElse(throw new DeserializationException(s"invalid $klassName value"))
       }
     }
 
-  implicit val methodKindJsonProtocol = createEnumerationJsonFormat(MethodKind)
+  def createIntEnumJsonFormat[T <: Enumeration](obj: T) =
+    new RootJsonFormat[T#Value] {
+      def write(obj: T#Value) = JsNumber(obj.id)
+
+      private val values = IntMap(
+        obj.values.toSeq.map(v => (v.id, v)): _*
+      )
+
+      private val klassName =
+        obj.getClass.getName.split('.').last.dropRight(1).replaceAll("\\$", "#")
+
+      def read(v: JsValue) = {
+        val value =
+          if (v.isInstanceOf[JsNumber])
+            values.get(v.asInstanceOf[JsNumber].value.toInt)
+          else None
+        value.getOrElse(throw new DeserializationException(s"invalid $klassName value"))
+      }
+    }
+
+  implicit val methodKindJsonProtocol = createStringEnumJsonFormat(MethodKind)
 
   implicit val resetPasswordRequestJsonProtocol = jsonFormat1(ResetPasswordRequest)
 

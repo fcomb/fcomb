@@ -52,13 +52,9 @@ object Main extends App {
   import akka.util.ByteString
   import scala.concurrent.duration._
 
-  dc.getContainerLogsAsStream(
-    "mongo",
-    Set(Stdout),
-    idleTimeout = Duration.Inf
-  ).map {
-    _.runWith(Sink.foreach(res => println(res.utf8String)))
-  }.onComplete {
+  dc.getContainerChanges(
+    "mongo"
+  ).onComplete {
     case Success(res) => println(res)
     case Failure(e) =>
       e.printStackTrace()

@@ -686,6 +686,23 @@ object DockerApiMessages {
     graphDriver: GraphDriverData
   )
 
+  object FileChangeKind extends Enumeration {
+    type FileChangeKind = Value
+
+    val Modified = Value(0)
+    val Added = Value(1)
+    val Deleted = Value(2)
+  }
+
+  case class FileChange(
+    path: String,
+    kind: FileChangeKind.FileChangeKind
+  )
+
+  case class ContainerChanges(
+    changes: List[FileChange]
+  ) extends DockerApiResponse
+
   object JsonProtocols {
     private implicit object OptStringFormat extends RootJsonFormat[Option[String]] {
       def write(o: Option[String]) = o match {
@@ -802,7 +819,7 @@ object DockerApiMessages {
     }
 
     implicit val portKindFormat =
-      createEnumerationJsonFormat(PortKind)
+      createStringEnumJsonFormat(PortKind)
 
     implicit object PortFormat extends RootJsonFormat[Port] {
       def write(p: Port) = JsObject(
@@ -960,7 +977,7 @@ object DockerApiMessages {
       }
     }
 
-    implicit val capacityFormat = createEnumerationJsonFormat(Capacity)
+    implicit val capacityFormat = createStringEnumJsonFormat(Capacity)
 
     implicit object NetworkModeFormat extends RootJsonFormat[NetworkMode] {
       def write(m: NetworkMode) = JsString(m.mapToString())
@@ -1004,7 +1021,7 @@ object DockerApiMessages {
     implicit val ulimitFormat =
       jsonFormat(Ulimit, "Name", "Soft", "Hard")
 
-    implicit val logDriverFormat = createEnumerationJsonFormat(LogDriver)
+    implicit val logDriverFormat = createStringEnumJsonFormat(LogDriver)
 
     implicit val logConfigFormat =
       jsonFormat(LogConfig, "Type", "Config")
@@ -1033,7 +1050,7 @@ object DockerApiMessages {
       }
     }
 
-    implicit val isolationLevelFormat = createEnumerationJsonFormat(IsolationLevel)
+    implicit val isolationLevelFormat = createStringEnumJsonFormat(IsolationLevel)
 
     object LxcConfFormat extends RootJsonFormat[LxcConf] {
       def write(c: LxcConf) = c.toJson
@@ -1263,6 +1280,16 @@ object DockerApiMessages {
         )
         case x => deserializationError(s"Expected JsObject, but got $x")
       }
+    }
+
+    implicit val fileChangeKindFormat =
+      createIntEnumJsonFormat(FileChangeKind)
+
+    implicit val fileChangeFormat =
+      jsonFormat(FileChange, "Path", "Kind")
+
+    implicit object ContainerChangesFormat extends RootJsonReader[ContainerChanges] {
+      def read(v: JsValue) = ContainerChanges(v.convertTo[List[FileChange]])
     }
   }
 }

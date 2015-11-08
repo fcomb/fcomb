@@ -403,5 +403,26 @@ class DockerApiClientSpec extends ActorSpec {
       }
     }
 
+    "get container changes" in {
+      val handler = pathPrefix("containers" / Segment / "changes") { containerIdPart =>
+        assert(containerIdPart == containerId)
+        get(complete(getFixture("docker/v1.19/changes.json")))
+      }
+      startFakeHttpServer(handler) { port =>
+        val dc = new DockerApiClient("localhost", port)
+        dc.getContainerChanges(containerId).map {
+          case changes: ContainerChanges =>
+            val fileChanges = ContainerChanges(List(
+              FileChange("/root", FileChangeKind.Modified),
+              FileChange("/root/.dbshell", FileChangeKind.Added),
+              FileChange("/root/.mongorc.js", FileChangeKind.Added),
+              FileChange("/tmp", FileChangeKind.Modified),
+              FileChange("/tmp/mongodb-27017.sock", FileChangeKind.Added)
+            ))
+            assert(changes == fileChanges)
+        }
+      }
+    }
+
   }
 }
