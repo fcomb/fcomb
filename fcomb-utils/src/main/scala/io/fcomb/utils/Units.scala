@@ -1,7 +1,7 @@
 package io.fcomb.utils
 
 object Units {
-  private val size = 1024L
+  private val size = 1000L
 
   implicit class UnitsHelper(val v: Long) extends AnyVal {
     @inline
