@@ -36,6 +36,10 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
   def connectionFlow(duration: Option[Duration] = None) = {
     val settings = duration.foldLeft(ClientConnectionSettings(sys)) {
       (s, d) => s.copy(idleTimeout = d)
+    } match { // TODO: https://github.com/akka/akka/issues/16468
+      case s => s.copy(parserSettings = s.parserSettings.copy(
+        maxContentLength = Long.MaxValue
+      ))
     }
     Http().outgoingConnection(host, port, settings = settings)
       .buffer(10, OverflowStrategy.backpressure)
@@ -47,7 +51,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
   private def apiRequest(
     method: HttpMethod,
     uri: Uri,
-    queryParams: Map[String, String],
+    queryParams: Map[String, String] = Map.empty,
     entity: RequestEntity = HttpEntity.Empty,
     idleTimeout: Option[Duration] = None
   ) = {
@@ -100,15 +104,15 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       }
   }
 
-  def getInformation() =
+  def information() =
     apiJsonRequest(HttpMethods.GET, "/info")
       .map(_.convertTo[Information])
 
-  def getVersion() =
+  def version() =
     apiJsonRequest(HttpMethods.GET, "/version")
       .map(_.convertTo[Version])
 
-  def getContainers(
+  def containers(
     showAll: Boolean = true,
     showSize: Boolean = false,
     limit: Option[Int] = None,
@@ -126,7 +130,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       .map(_.convertTo[List[ContainerItem]])
   }
 
-  def createContainer(
+  def containerCreate(
     config: ContainerCreate,
     name: Option[String] = None
   ) = {
@@ -137,7 +141,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       .map(_.convertTo[ContainerCreateResponse])
   }
 
-  def getContainer(
+  def containerInspect(
     id: String,
     showSize: Boolean = false
   ) = {
@@ -146,7 +150,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       .map(_.convertTo[ContainerBase])
   }
 
-  def getContainerProcesses(
+  def containerProcesses(
     id: String,
     psArgs: Option[String] = None
   ) = {
@@ -155,7 +159,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       .map(_.convertTo[ContainerProcessList])
   }
 
-  private def getContainerLogsAsSource(
+  private def containerLogsAsSource(
     id: String,
     streams: Set[StdStream],
     stream: Boolean,
@@ -181,13 +185,13 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
     ).map(_.dataBytes)
   }
 
-  def getContainerLogs(
+  def containerLogs(
     id: String,
     streams: Set[StdStream],
     since: Option[ZonedDateTime] = None,
     showTimestamps: Boolean = false,
     tail: Option[Int] = None
-  ) = getContainerLogsAsSource(
+  ) = containerLogsAsSource(
     id = id,
     streams = streams,
     stream = false,
@@ -197,14 +201,14 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
     idleTimeout = None
   )
 
-  def getContainerLogsAsStream(
+  def containerLogsAsStream(
     id: String,
     streams: Set[StdStream],
     idleTimeout: Duration,
     since: Option[ZonedDateTime] = None,
     showTimestamps: Boolean = false,
     tail: Option[Int] = None
-  ) = getContainerLogsAsSource(
+  ) = containerLogsAsSource(
     id = id,
     streams = streams,
     stream = true,
@@ -214,9 +218,12 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
     idleTimeout = Some(idleTimeout)
   )
 
-  def getContainerChanges(id: String) =
+  def containerChanges(id: String) =
     apiJsonRequest(HttpMethods.GET, s"/containers/$id/changes")
       .map(_.convertTo[ContainerChanges])
 
+  def containerExport(id: String) =
+    apiRequest(HttpMethods.GET, s"/containers/$id/export")
+      .map(_.dataBytes)
 
 }

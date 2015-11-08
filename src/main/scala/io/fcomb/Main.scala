@@ -52,10 +52,11 @@ object Main extends App {
   import akka.util.ByteString
   import scala.concurrent.duration._
 
-  dc.getContainerChanges(
-    "mongo"
-  ).onComplete {
-    case Success(res) => println(res)
+  dc.containerExport("mongo").onComplete {
+    case Success(res) =>
+      val s = akka.stream.io.SynchronousFileSink(new java.io.File("/tmp/export_test.tar"))
+      s.runWith(res)
+      println(res)
     case Failure(e) =>
       e.printStackTrace()
       println(e)

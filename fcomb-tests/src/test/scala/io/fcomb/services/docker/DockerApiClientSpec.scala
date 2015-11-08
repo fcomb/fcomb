@@ -19,7 +19,7 @@ class DockerApiClientSpec extends ActorSpec {
       }
       startFakeHttpServer(handler) { port =>
         val dc = new DockerApiClient("localhost", port)
-        dc.getVersion().map { res =>
+        dc.version().map { res =>
           val version = Version(
             version = "1.7.1",
             apiVersion = "1.19",
@@ -42,7 +42,7 @@ class DockerApiClientSpec extends ActorSpec {
       }
       startFakeHttpServer(handler) { port =>
         val dc = new DockerApiClient("localhost", port)
-        dc.getInformation().map { res =>
+        dc.information().map { res =>
           val serviceConfig = ServiceConfig(
             insecureRegistryCidrs = List("127.0.0.0/8"),
             indexConfigs = Map("docker.io" -> IndexInfo(
@@ -100,7 +100,7 @@ class DockerApiClientSpec extends ActorSpec {
       }
       startFakeHttpServer(handler) { port =>
         val dc = new DockerApiClient("localhost", port)
-        dc.getContainers().map { res =>
+        dc.containers().map { res =>
           val containers = List(
             ContainerItem(
               id = "c7c8678a5a0e0b503afed4c5f7c88332097b2d271a41722c4cc56fb98fbb5616",
@@ -213,7 +213,7 @@ class DockerApiClientSpec extends ActorSpec {
           exposedPorts = Set(ExposePort.Tcp(80)),
           hostConfig = hostConfig
         )
-        dc.createContainer(config, name = Some("test_container")).map {
+        dc.containerCreate(config, name = Some("test_container")).map {
           case res: ContainerCreateResponse =>
             assert(res.id.nonEmpty)
             assert(res.warnings.isEmpty)
@@ -221,14 +221,14 @@ class DockerApiClientSpec extends ActorSpec {
       }
     }
 
-    "get container" in {
+    "inspect container" in {
       val handler = pathPrefix("containers" / Segment / "json") { containerIdPart =>
         assert(containerIdPart == containerId)
         get(complete(getFixture("docker/v1.19/container.json")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new DockerApiClient("localhost", port)
-        dc.getContainer(containerId).map {
+        dc.containerInspect(containerId).map {
           case res: ContainerBase =>
             val config = RunConfig(
               hostname = Some("hostname"),
@@ -362,7 +362,7 @@ class DockerApiClientSpec extends ActorSpec {
       }
       startFakeHttpServer(handler) { port =>
         val dc = new DockerApiClient("localhost", port)
-        dc.getContainerProcesses(containerId).map {
+        dc.containerProcesses(containerId).map {
           case res: ContainerProcessList =>
             assert(res.processes == List(
               List("root", "1022", "742", "0", "16:33", "?", "00:00:00", "nginx: master process nginx -g daemon off;"),
@@ -380,7 +380,7 @@ class DockerApiClientSpec extends ActorSpec {
       }
       startFakeHttpServer(handler) { port =>
         val dc = new DockerApiClient("localhost", port)
-        dc.getContainerLogs(containerId, Set(Stdout)).flatMap { s =>
+        dc.containerLogs(containerId, Set(Stdout)).flatMap { s =>
           source2String(s).map { logs =>
             assert(logs == "Log line 1\nLog line 2\n")
           }
@@ -395,7 +395,7 @@ class DockerApiClientSpec extends ActorSpec {
       }
       startFakeHttpServer(handler) { port =>
         val dc = new DockerApiClient("localhost", port)
-        dc.getContainerLogsAsStream(containerId, Set(Stdout), timeout).flatMap { s =>
+        dc.containerLogsAsStream(containerId, Set(Stdout), timeout).flatMap { s =>
           source2String(s).map { logs =>
             assert(logs == "Log line 1\nLog line 2\n")
           }
@@ -410,7 +410,7 @@ class DockerApiClientSpec extends ActorSpec {
       }
       startFakeHttpServer(handler) { port =>
         val dc = new DockerApiClient("localhost", port)
-        dc.getContainerChanges(containerId).map {
+        dc.containerChanges(containerId).map {
           case changes: ContainerChanges =>
             val fileChanges = ContainerChanges(List(
               FileChange("/root", FileChangeKind.Modified),
@@ -420,6 +420,21 @@ class DockerApiClientSpec extends ActorSpec {
               FileChange("/tmp/mongodb-27017.sock", FileChangeKind.Added)
             ))
             assert(changes == fileChanges)
+        }
+      }
+    }
+
+    "container export" in {
+      val handler = pathPrefix("containers" / Segment / "export") { containerIdPart =>
+        assert(containerIdPart == containerId)
+        get(complete(getFixture("docker/v1.19/export")))
+      }
+      startFakeHttpServer(handler) { port =>
+        val dc = new DockerApiClient("localhost", port)
+        dc.containerExport(containerId).flatMap { s =>
+          source2ByteString(s).map { bs =>
+            assert(bs == ByteString("some data"))
+          }
         }
       }
     }
