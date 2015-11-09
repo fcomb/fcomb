@@ -36,31 +36,16 @@ object Main extends App {
 
   import io.fcomb.services.docker.DockerApiClient
   import io.fcomb.services.docker.DockerApiClient._
-  val dc = new DockerApiClient("coreos", 2375)
-  // dc.getInfo().map { res =>
-  //   println(s"res: $res")
-  // }.recover {
-  //   case e: Throwable => println(s"e: $e")
-  // }
-  // dc.getContainerProcesses("mongo").onComplete {
-  //   case Success(res) => println(res)
-  //   case Failure(e) =>
-  //     e.printStackTrace()
-  //     println(e)
-  // }
   import akka.stream.scaladsl._
-  import akka.util.ByteString
-  import scala.concurrent.duration._
-
-  dc.containerExport("mongo").onComplete {
-    case Success(res) =>
-      val s = akka.stream.io.SynchronousFileSink(new java.io.File("/tmp/export_test.tar"))
-      s.runWith(res)
-      println(res)
-    case Failure(e) =>
-      e.printStackTrace()
-      println(e)
-  }
+  val dc = new DockerApiClient("coreos", 2375)
+  dc.containerStatsAsStream("mongo")
+    .map(_.runWith(Sink.foreach(println)))
+    .onComplete {
+      case Success(res) => println(res)
+      case Failure(e) =>
+        e.printStackTrace()
+        println(e)
+    }
 
   (for {
     _ <- Db.migrate()

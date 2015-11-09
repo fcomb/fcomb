@@ -703,6 +703,72 @@ object DockerApiMessages {
     changes: List[FileChange]
   ) extends DockerApiResponse
 
+  case class NetworkStats(
+    rxBytes: Long,
+    rxPackets: Long,
+    rxErrors: Long,
+    rxDropped: Long,
+    txBytes: Long,
+    txPackets: Long,
+    txErrors: Long,
+    txDropped: Long
+  )
+
+  case class ThrottlingData(
+    periods: Long,
+    throttledPeriods: Long,
+    throttledTime: Long
+  )
+
+  case class CpuUsage(
+    total: Long,
+    perCpu: List[Long],
+    inKernelMode: Long,
+    inUserMode: Long
+  )
+
+  case class CpuStats(
+    cpu: CpuUsage,
+    system: Long,
+    throttling: ThrottlingData
+  )
+
+  case class MemoryStats(
+    usage: Long,
+    maxUsage: Long,
+    stats: Map[String, Long],
+    failcnt: Long,
+    limit: Long
+  )
+
+  case class BlockIoStatEntry(
+    major: Long,
+    minor: Long,
+    op: Option[String],
+    value: Long
+  )
+
+  case class BlockIoStats(
+    ioServiceBytes: List[BlockIoStatEntry],
+    ioServiced: List[BlockIoStatEntry],
+    ioQueued: List[BlockIoStatEntry],
+    ioServiceTime: List[BlockIoStatEntry],
+    ioWaitTime: List[BlockIoStatEntry],
+    ioMerged: List[BlockIoStatEntry],
+    ioTime: List[BlockIoStatEntry],
+    sectors: List[BlockIoStatEntry]
+  )
+
+  case class ContainerStats(
+    readedAt: ZonedDateTime,
+    preCpu: CpuStats,
+    cpu: CpuStats,
+    memory: MemoryStats,
+    blockIo: BlockIoStats,
+    networks: Option[Map[String, NetworkStats]],
+    network: Option[NetworkStats]
+  ) extends DockerApiResponse
+
   object JsonProtocols {
     private implicit object OptStringFormat extends RootJsonFormat[Option[String]] {
       def write(o: Option[String]) = o match {
@@ -1291,5 +1357,31 @@ object DockerApiMessages {
     implicit object ContainerChangesFormat extends RootJsonReader[ContainerChanges] {
       def read(v: JsValue) = ContainerChanges(v.convertTo[List[FileChange]])
     }
+
+    implicit val networkStatsFormat = jsonFormat(NetworkStats, "rx_bytes", "rx_packets",
+      "rx_errors", "rx_dropped", "tx_bytes", "tx_packets", "tx_errors", "tx_dropped")
+
+    implicit val cpuUsageFormat = jsonFormat(CpuUsage, "total_usage", "percpu_usage",
+      "usage_in_kernelmode", "usage_in_usermode")
+
+    implicit val throttlingDataFormat =
+      jsonFormat(ThrottlingData, "periods", "throttled_periods", "throttled_time")
+
+    implicit val cpuStatsFormat =
+      jsonFormat(CpuStats, "cpu_usage", "system_cpu_usage", "throttling_data")
+
+    implicit val memoryStatsFormat =
+      jsonFormat(MemoryStats, "usage", "max_usage", "stats", "failcnt", "limit")
+
+    implicit val blockIoStatEntryFormat =
+      jsonFormat(BlockIoStatEntry, "major", "minor", "op", "value")
+
+    implicit val blockIoStatsFormat =
+      jsonFormat(BlockIoStats, "io_service_bytes_recursive", "io_serviced_recursive",
+        "io_queue_recursive", "io_service_time_recursive", "io_wait_time_recursive",
+        "io_merged_recursive", "io_time_recursive", "sectors_recursive")
+
+    implicit val containerStatsFormat = jsonFormat(ContainerStats, "read", "precpu_stats",
+      "cpu_stats", "memory_stats", "blkio_stats", "networks", "network")
   }
 }

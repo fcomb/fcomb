@@ -4,7 +4,7 @@ object Dependencies {
   object V {
     val akka = "2.4.0"
     val akkaExperimental = "2.0-M1"
-    val cats = "0.2.0"
+    val cats = "0.3.0"
     val circle = "0.1.1"
     val slick = "3.1.0"
     val slickPg = "0.10.1"

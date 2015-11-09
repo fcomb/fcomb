@@ -6,6 +6,7 @@ import io.fcomb.tests._
 import io.fcomb.utils.Units._
 import akka.http.scaladsl.server.Directives._
 import akka.util.ByteString
+import akka.stream.scaladsl.Sink
 import spray.json._
 import java.time.ZonedDateTime
 
@@ -436,6 +437,33 @@ class DockerApiClientSpec extends ActorSpec {
             assert(bs == ByteString("some data"))
           }
         }
+      }
+    }
+
+    "container stats" in {
+      val handler = pathPrefix("containers" / Segment / "stats") { containerIdPart =>
+        assert(containerIdPart == containerId)
+        get(complete(getFixture("docker/v1.19/stats.json")))
+      }
+      startFakeHttpServer(handler) { port =>
+        val dc = new DockerApiClient("localhost", port)
+        dc.containerStats(containerId).map {
+          case stats: ContainerStats =>
+            assert(stats.readedAt == ZonedDateTime.parse("2015-11-09T17:13:24.902264505Z"))
+        }
+      }
+    }
+
+    "container stats as stream" in {
+      val handler = pathPrefix("containers" / Segment / "stats") { containerIdPart =>
+        assert(containerIdPart == containerId)
+        get(complete(getFixture("docker/v1.19/stats.json")))
+      }
+      startFakeHttpServer(handler) { port =>
+        val dc = new DockerApiClient("localhost", port)
+        dc.containerStatsAsStream(containerId).flatMap(_.map { stats =>
+          assert(stats.readedAt == ZonedDateTime.parse("2015-11-09T17:13:24.902264505Z"))
+        }.runWith(Sink.head))
       }
     }
 

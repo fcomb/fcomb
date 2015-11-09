@@ -48,7 +48,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
   private def uriWithQuery(uri: Uri, queryParams: Map[String, String]) =
     uri.withQuery(Uri.Query(queryParams.filter(_._2.nonEmpty)))
 
-  private def apiRequest(
+  private def apiRequestAsSource(
     method: HttpMethod,
     uri: Uri,
     queryParams: Map[String, String] = Map.empty,
@@ -82,6 +82,28 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       }
   }
 
+  private def apiJsonRequestAsSource[T <: DockerApiRequest](
+    method: HttpMethod,
+    uri: Uri,
+    queryParams: Map[String, String] = Map.empty,
+    body: Option[T] = None
+  )(implicit jw: JsonWriter[T]) = {
+    val entity = body match {
+      case Some(b) =>
+        val req = b.toJson.compactPrint
+        logger.debug(s"Docker API request: $req")
+        HttpEntity(`application/json`, req)
+      case _ => HttpEntity.Empty
+    }
+    apiRequestAsSource(method, uri, queryParams, entity).map { data =>
+      data.dataBytes.map { res =>
+        val s = res.utf8String
+        logger.debug(s"Docker API response: $s")
+        s.parseJson
+      }
+    }
+  }
+
   private def apiJsonRequest[T <: DockerApiRequest](
     method: HttpMethod,
     uri: Uri,
@@ -95,7 +117,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
         HttpEntity(`application/json`, req)
       case _ => HttpEntity.Empty
     }
-    apiRequest(method, uri, queryParams, entity)
+    apiRequestAsSource(method, uri, queryParams, entity)
       .flatMap(_.dataBytes.runFold(ByteString.empty)(_ ++ _))
       .map { res =>
         val s = res.utf8String
@@ -177,7 +199,7 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       "timestamps" -> showTimestamps.toString,
       "tail" -> tail.map(_.toString).getOrElse("all")
     )
-    apiRequest(
+    apiRequestAsSource(
       HttpMethods.GET,
       s"/containers/$id/logs",
       queryParams = params,
@@ -223,7 +245,14 @@ class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: M
       .map(_.convertTo[ContainerChanges])
 
   def containerExport(id: String) =
-    apiRequest(HttpMethods.GET, s"/containers/$id/export")
+    apiRequestAsSource(HttpMethods.GET, s"/containers/$id/export")
       .map(_.dataBytes)
 
+  def containerStats(id: String) =
+    apiJsonRequest(HttpMethods.GET, s"/containers/$id/stats", Map("stream" -> "false"))
+      .map(_.convertTo[ContainerStats])
+
+  def containerStatsAsStream(id: String) =
+    apiJsonRequestAsSource(HttpMethods.GET, s"/containers/$id/stats", Map("stream" -> "true"))
+      .map(_.map(_.convertTo[ContainerStats]))
 }
