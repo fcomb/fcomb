@@ -1,4 +1,4 @@
-package io.fcomb.services.docker
+package io.fcomb.docker.api
 
 import akka.actor.ActorSystem
 import akka.stream.{Materializer, OverflowStrategy}
@@ -14,7 +14,7 @@ import spray.json.DefaultJsonProtocol._
 import org.slf4j.LoggerFactory
 import java.time.ZonedDateTime
 
-object DockerApiClient {
+object Client {
   sealed trait StdStream
 
   case object Stdout extends StdStream
@@ -22,11 +22,11 @@ object DockerApiClient {
   case object Stderr extends StdStream
 }
 
-class DockerApiClient(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializer) {
+class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializer) {
   import sys.dispatcher
-  import DockerApiClient._
-  import DockerApiMessages._
-  import DockerApiMessages.JsonProtocols._
+  import Client._
+  import Methods._
+  import JsonFormats._
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 

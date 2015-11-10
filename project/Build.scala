@@ -187,7 +187,7 @@ object Build extends sbt.Build {
     settings = defaultSettings ++ Seq(
       libraryDependencies ++= Dependencies.services
     )
-  ).dependsOn(persist, utils, templates)
+  ).dependsOn(persist, utils, docker, templates)
 
   lazy val templates = Project(
     id = "templates",
@@ -213,6 +213,15 @@ object Build extends sbt.Build {
         libraryDependencies ++= Dependencies.proxy
       )
   ).dependsOn(persist)
+
+  lazy val docker = Project(
+    id = "docker",
+    base = file("fcomb-docker"),
+    settings =
+      defaultSettings ++ Seq(
+        libraryDependencies ++= Dependencies.docker
+      )
+  ).dependsOn(json, utils)
 
   lazy val tests = Project(
     id = "tests",

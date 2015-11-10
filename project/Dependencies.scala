@@ -199,6 +199,10 @@ object Dependencies {
 
   val response = common
 
+  val docker = common ++ Seq(
+    akkaHttp, akkaStream
+  )
+
   val validations = common ++ Seq(slick)
 
   val services = api

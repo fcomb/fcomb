@@ -1,7 +1,7 @@
-package io.fcomb.services.docker
+package io.fcomb.docker.api
 
-import io.fcomb.services.docker.DockerApiClient._
-import io.fcomb.services.docker.DockerApiMessages._
+import io.fcomb.docker.api.Client._
+import io.fcomb.docker.api.Methods._
 import io.fcomb.tests._
 import io.fcomb.utils.Units._
 import akka.http.scaladsl.server.Directives._
@@ -10,7 +10,7 @@ import akka.stream.scaladsl.Sink
 import spray.json._
 import java.time.ZonedDateTime
 
-class DockerApiClientSpec extends ActorSpec {
+class ClientSpec extends ActorSpec {
   "API client" must {
     val containerId = "52e3163a6ac79040dd3af67525e3ee8bcc7b4de6650781304dc4982e95ca20ee"
 
@@ -19,7 +19,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/version.json")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.version().map { res =>
           val version = Version(
             version = "1.7.1",
@@ -42,7 +42,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/info.json")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.information().map { res =>
           val serviceConfig = ServiceConfig(
             insecureRegistryCidrs = List("127.0.0.0/8"),
@@ -100,7 +100,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/containers.json")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.containers().map { res =>
           val containers = List(
             ContainerItem(
@@ -155,7 +155,7 @@ class DockerApiClientSpec extends ActorSpec {
         }
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         val hostConfig = HostConfig(
           binds = List(VolumeBindPath.VolumeHostPath("/tmp", "/tmp", MountMode.rw)),
           links = List(ContainerLink("nginx", "nginx")),
@@ -228,7 +228,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/container.json")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.containerInspect(containerId).map {
           case res: ContainerBase =>
             val config = RunConfig(
@@ -362,7 +362,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/container_processes.json")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.containerProcesses(containerId).map {
           case res: ContainerProcessList =>
             assert(res.processes == List(
@@ -380,7 +380,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/logs")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.containerLogs(containerId, Set(Stdout)).flatMap { s =>
           source2String(s).map { logs =>
             assert(logs == "Log line 1\nLog line 2\n")
@@ -395,7 +395,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/logs")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.containerLogsAsStream(containerId, Set(Stdout), timeout).flatMap { s =>
           source2String(s).map { logs =>
             assert(logs == "Log line 1\nLog line 2\n")
@@ -410,7 +410,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/changes.json")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.containerChanges(containerId).map {
           case changes: ContainerChanges =>
             val fileChanges = ContainerChanges(List(
@@ -431,7 +431,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/export")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.containerExport(containerId).flatMap { s =>
           source2ByteString(s).map { bs =>
             assert(bs == ByteString("some data"))
@@ -446,7 +446,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/stats.json")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.containerStats(containerId).map {
           case stats: ContainerStats =>
             assert(stats.readedAt == ZonedDateTime.parse("2015-11-09T17:13:24.902264505Z"))
@@ -460,7 +460,7 @@ class DockerApiClientSpec extends ActorSpec {
         get(complete(getFixture("docker/v1.19/stats.json")))
       }
       startFakeHttpServer(handler) { port =>
-        val dc = new DockerApiClient("localhost", port)
+        val dc = new Client("localhost", port)
         dc.containerStatsAsStream(containerId).flatMap(_.map { stats =>
           assert(stats.readedAt == ZonedDateTime.parse("2015-11-09T17:13:24.902264505Z"))
         }.runWith(Sink.head))
