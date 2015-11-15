@@ -11,10 +11,11 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 import java.net.InetAddress
+import kamon.Kamon
 
 object Main extends App {
   private val logger = LoggerFactory.getLogger(this.getClass)
-  // Kamon.start()
+  Kamon.start()
 
   val config = Config.config
 
@@ -54,7 +55,7 @@ object Main extends App {
     case Failure(e) =>
       logger.error(e.getMessage(), e.getCause())
       try {
-        // Kamon.shutdown()
+        Kamon.shutdown()
         sys.terminate()
       } finally {
         System.exit(-1)

@@ -17,7 +17,7 @@ addSbtPlugin("io.spray" % "sbt-revolver" % "0.7.2")
 
 addSbtPlugin("com.sksamuel.scapegoat" %% "sbt-scapegoat" % "1.0.0")
 
-// addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.2")
+addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.4")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-twirl" % "1.1.1")
 

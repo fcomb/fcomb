@@ -10,7 +10,7 @@ object Dependencies {
     val slickPg = "0.10.1"
     val scalaz = "7.1.5"
     val scalikeJdbc = "2.2.8"
-    // val kamon = "0.5.0"
+    val kamon = "0.5.2"
   }
 
   object Compile {
@@ -32,13 +32,14 @@ object Dependencies {
 
     val dns4s           = "com.github.mkroli"             %% "dns4s-akka"                    % "0.8"
 
-    // val akkaTracing     = "com.github.levkhomich"         %% "akka-tracing-core"             % "0.5-SNAPSHOT" changing()
-    // val kamonScala      = "io.kamon"                      %% "kamon-scala"                   % V.kamon
-    // val kamonAkka       = "io.kamon"                      %% "kamon-akka"                    % V.kamon
-    // val kamonAkkaRemote = "io.kamon"                      %% "kamon-akka-remote"             % V.kamon
-    // val kamonNewrelic   = "io.kamon"                      %% "kamon-newrelic"                % V.kamon
-    // val kamonStatsd     = "io.kamon"                      %% "kamon-statsd"                  % V.kamon
-    // val kamonJdbc       = "io.kamon"                      %% "kamon-jdbc"                    % V.kamon
+    val akkaTracing     = "com.github.levkhomich"         %% "akka-tracing-core"             % "0.5-SNAPSHOT" changing()
+    val kamonScala      = "io.kamon"                      %% "kamon-scala"                   % V.kamon
+    val kamonAkka       = "io.kamon"                      %% "kamon-akka"                    % V.kamon
+    val kamonAkkaRemote = "io.kamon"                      %% "kamon-akka-remote"             % V.kamon
+    val kamonStatsd     = "io.kamon"                      %% "kamon-statsd"                  % V.kamon
+    val kamonJdbc       = "io.kamon"                      %% "kamon-jdbc"                    % V.kamon
+    val kamonSystemMetrics = "io.kamon"                   %% "kamon-system-metrics"          % V.kamon
+    val kamonLogReporter = "io.kamon"                     %% "kamon-log-reporter"            % V.kamon
 
     val javaCompat      = "org.scala-lang.modules"        %% "scala-java8-compat"            % "0.7.0"
 
@@ -93,6 +94,7 @@ object Dependencies {
 
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
+    val scalazStream    = "org.scalaz.stream"             %% "scalaz-stream"                 % "0.8"
     val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.5"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
 
@@ -109,6 +111,13 @@ object Dependencies {
     // val monocleGeneric  = "com.github.julien-truffaut"    %%  "monocle-generic"              % V.monocle
     // val monocleMacro    = "com.github.julien-truffaut"    %%  "monocle-macro"                % V.monocle
     // val monocleState    = "com.github.julien-truffaut"    %%  "monocle-state"                % V.monocle
+
+    val scodecBits      = "org.scodec"                    %% "scodec-bits"                   % "1.0.10"
+    val scodecCore      = "org.scodec"                    %% "scodec-core"                   % "1.8.2"
+    val scodecScalaz    = "org.scodec"                    %% "scodec-scalaz"                 % "1.1.0"
+    val scodecStream    = "org.scodec"                    %% "scodec-stream"                 % "0.10.0"
+    val scodecProtocols = "org.scodec"                    %% "scodec-protocols"              % "0.7.0"
+    val scodecAkka      = "org.scodec"                    %% "scodec-akka"                   % "0.1.0-SNAPSHOT" changing()
 
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.3"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
@@ -148,13 +157,19 @@ object Dependencies {
     // pprint,
     sprayJson, sprayJsonShapeless,
     // circleCore, circleGeneric, circleJawn,
-    scalazCore, scalazConcurrent, cats, catsState,
+    scalazCore, scalazConcurrent, scalazStream,
+    cats, catsState,
     shapeless, shapelessScalaz /*,
     jamm */
     , objectsize
   )
 
-  // val kamon = Seq(/*kamonScala, kamonNewrelic, kamonStatsd, kamonAkka, kamonAkkaRemote, kamonJdbc*/)
+  val monitoring = Seq(
+    /* akkaTracing,*/
+    kamonScala, kamonStatsd, kamonAkka,
+    kamonAkkaRemote, kamonJdbc, kamonSystemMetrics,
+    kamonLogReporter
+  )
 
   val akka = Seq(
     akkaActor, akkaClusterSharding, akkaContrib,
@@ -163,6 +178,13 @@ object Dependencies {
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc /*akkaStreamExtensions, akkaPersistenceCassandra*/
   )
+
+  val scodec = Seq(
+    scodecCore, scodecBits, scodecScalaz, scodecStream,
+    scodecProtocols, scodecAkka
+  )
+
+  val root = common ++ monitoring
 
   val api = common ++ akka ++ Seq(oauth)
 
