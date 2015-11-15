@@ -283,6 +283,46 @@ object Methods {
     }
   }
 
+  object Signal extends Enumeration {
+    type Signal = Value
+
+    val ABRT = Value("ABRT")
+    val ALRM = Value("ALRM")
+    val BUS = Value("BUS")
+    val CHLD = Value("CHLD")
+    val CLD = Value("CLD")
+    val CONT = Value("CONT")
+    val FPE = Value("FPE")
+    val HUP = Value("HUP")
+    val ILL = Value("ILL")
+    val INT = Value("INT")
+    val IO = Value("IO")
+    val IOT = Value("IOT")
+    val KILL = Value("KILL")
+    val PIPE = Value("PIPE")
+    val POLL = Value("POLL")
+    val PROF = Value("PROF")
+    val PWR = Value("PWR")
+    val QUIT = Value("QUIT")
+    val SEGV = Value("SEGV")
+    val STKFLT = Value("STKFLT")
+    val STOP = Value("STOP")
+    val SYS = Value("SYS")
+    val TERM = Value("TERM")
+    val TRAP = Value("TRAP")
+    val TSTP = Value("TSTP")
+    val TTIN = Value("TTIN")
+    val TTOU = Value("TTOU")
+    val UNUSED = Value("UNUSED")
+    val URG = Value("URG")
+    val USR1 = Value("USR1")
+    val USR2 = Value("USR2")
+    val VTALRM = Value("VTALRM")
+    val WINCH = Value("WINCH")
+    val XCPU = Value("XCPU")
+    val XFSZ = Value("XFSZ")
+  }
+
   object Capacity extends Enumeration {
     type Capacity = Value
 

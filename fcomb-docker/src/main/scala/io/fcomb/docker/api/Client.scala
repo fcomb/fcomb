@@ -282,9 +282,9 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
       .map(_ => ())
   }
 
-  def containerKill(id: String, signal: String /*TODO*/) = {
+  def containerKill(id: String, signal: Signal.Signal) = {
     val params = Map(
-      "signal" -> signal
+      "signal" -> signal.toString
     )
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/kill", params)
       .map(_ => ())

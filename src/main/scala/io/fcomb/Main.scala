@@ -35,8 +35,9 @@ object Main extends App {
   val port = config.getInt("rest-api.port")
 
   import io.fcomb.docker.api.Client, Client._
+  import io.fcomb.docker.api.Methods._
   val dc = new Client("coreos", 2375)
-  dc.containerStart("mongo")
+  dc.containerKill("mongo", Signal.KILL)
     .onComplete {
       case Success(res) => println(res)
       case Failure(e) =>
