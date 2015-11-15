@@ -41,7 +41,7 @@ package object json {
   }
 
   implicit object LocalDateTimeFormat extends RootJsonFormat[LocalDateTime] {
-    def write(s: LocalDateTime) = JsString(s.toString)
+    def write(d: LocalDateTime) = JsString(d.toString)
 
     def read(v: JsValue) = v match {
       case JsString(v) => LocalDateTime.parse(v)
@@ -55,7 +55,8 @@ package object json {
   }
 
   implicit object ZonedDateTimeFormat extends RootJsonFormat[ZonedDateTime] {
-    def write(s: ZonedDateTime) = JsString(s.toString)
+    def write(d: ZonedDateTime) =
+      JsString(d.withFixedOffsetZone().toString)
 
     def read(v: JsValue) = v match {
       case JsString(v) => ZonedDateTime.parse(v)

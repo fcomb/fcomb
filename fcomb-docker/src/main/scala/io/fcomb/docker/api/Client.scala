@@ -71,6 +71,7 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
           }.map { buf =>
             val msg = buf.toString()
             res.status.intValue() match {
+              case 304 => throw new ContainerAlreadyDidItException(msg)
               case 400 => throw new BadParameterException(msg)
               case 404 => throw new NoSuchContainerException(msg)
               case 406 => throw new ImpossibleToAttachException(msg)
@@ -255,4 +256,54 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
   def containerStatsAsStream(id: String) =
     apiJsonRequestAsSource(HttpMethods.GET, s"/containers/$id/stats", Map("stream" -> "true"))
       .map(_.map(_.convertTo[ContainerStats]))
+
+  def containerResizeTty(id: String, width: Int, height: Int) = {
+    val params = Map(
+      "w" -> width.toString,
+      "h" -> height.toString
+    )
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/resize", params)
+      .map(_ => ())
+  }
+
+  def containerStart(id: String) =
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/start")
+      .map(_ => ())
+
+  def containerStop(id: String) =
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/stop")
+      .map(_ => ())
+
+  def containerStart(id: String, timeout: FiniteDuration) = {
+    val params = Map(
+      "t" -> timeout.toSeconds.toString()
+    )
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/stop", params)
+      .map(_ => ())
+  }
+
+  def containerKill(id: String, signal: String /*TODO*/) = {
+    val params = Map(
+      "signal" -> signal
+    )
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/kill", params)
+      .map(_ => ())
+  }
+
+  def containerRename(id: String, name: String) = {
+    val params = Map(
+      "name" -> name
+    )
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/rename", params)
+      .map(_ => ())
+  }
+
+  def containerPause(id: String) =
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/pause")
+      .map(_ => ())
+
+  def containerUnpause(id: String) =
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/unpause")
+      .map(_ => ())
+
 }

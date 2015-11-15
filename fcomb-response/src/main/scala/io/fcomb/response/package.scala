@@ -7,10 +7,10 @@ import java.util.UUID
 import scala.language.implicitConversions
 
 package object response {
-  trait ModelServiceResponse
+  trait ServiceModelResponse
 
   implicit class ModelItem[T](val m: T) extends AnyRef {
-    def toResponse[E <: ModelServiceResponse]()(implicit f: T => E) =
+    def toResponse[E <: ServiceModelResponse]()(implicit f: T => E) =
       f(m)
   }
 
@@ -19,7 +19,7 @@ package object response {
     email: String,
     username: String,
     fullName: Option[String]
-  ) extends ModelServiceResponse
+  ) extends ServiceModelResponse
 
   case class CombResponse(
     id: Option[Long],
@@ -27,7 +27,7 @@ package object response {
     slug: String,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime
-  ) extends ModelServiceResponse
+  ) extends ServiceModelResponse
 
   case class CombMethodResponse(
     id: Option[Long],
@@ -37,11 +37,11 @@ package object response {
     endpoint: String,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime
-  ) extends ModelServiceResponse
+  ) extends ServiceModelResponse
 
   case class SessionResponse(
     token: String
-  ) extends ModelServiceResponse
+  ) extends ServiceModelResponse
 
   implicit def user2ProfileResponse(u: User): UserProfileResponse =
     UserProfileResponse(

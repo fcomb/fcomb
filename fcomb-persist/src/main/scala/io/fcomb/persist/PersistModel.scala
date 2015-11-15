@@ -138,17 +138,24 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
 
   val idEmptyError = Future.successful(validations.validationErrors("id" -> "can't be empty"))
 
+  def updateDBIO(item: T)(
+    implicit
+    ec: ExecutionContext,
+    m: Manifest[T]
+  ) =
+    findByIdQuery(item.getId)
+      .update(item)
+      .map {
+        case 1 => item.success
+        case _ => recordNotFound(item.getId)
+      }
+
   def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     item.id match {
       case Some(itemId) =>
         val mappedItem = mapModel(item)
         validateThenApplyVM(validate((mappedItem))) {
-          findByIdQuery(itemId)
-            .update(mappedItem)
-            .map {
-              case 1 => mappedItem.success
-              case _ => recordNotFound(itemId)
-            }
+          updateDBIO(mappedItem)
         }
       case None => idEmptyError
     }

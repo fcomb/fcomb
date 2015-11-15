@@ -384,7 +384,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
           case Some(item) => flatResult(f(item))
           case None => e("invalid token")
         }
-      case _ => e("expected 'Authorization' header with token or GET 'auth_token' parameter")
+      case _ => e("expected 'Authorization' header with token or URI 'auth_token' parameter")
     })
   }
 }

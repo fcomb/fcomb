@@ -34,12 +34,9 @@ object Main extends App {
   val interface = config.getString("rest-api.interface")
   val port = config.getInt("rest-api.port")
 
-  import io.fcomb.docker.api.Client
-  import io.fcomb.docker.api.Client._
-  import akka.stream.scaladsl._
+  import io.fcomb.docker.api.Client, Client._
   val dc = new Client("coreos", 2375)
-  dc.containerStatsAsStream("mongo")
-    .map(_.runWith(Sink.foreach(println)))
+  dc.containerStart("mongo")
     .onComplete {
       case Success(res) => println(res)
       case Failure(e) =>

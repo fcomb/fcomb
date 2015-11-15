@@ -117,7 +117,7 @@ object User extends PersistModelWithUuidPk[models.User, UserTable] {
 
   import Validations._
 
-  private val unqiueUsernameCompiled = Compiled {
+  private val uniqueUsernameCompiled = Compiled {
     (id: Rep[Option[UUID]], username: Rep[String]) =>
       table.filter { f => f.id =!= id && f.username === username }.exists
   }
@@ -141,7 +141,7 @@ object User extends PersistModelWithUuidPk[models.User, UserTable] {
       "email" -> List(maxLength(user.email, 255), email(user.email))
     )
     val dbioValidations = validateDBIO(
-      "username" -> List(unique(unqiueUsernameCompiled(user.id, user.username))),
+      "username" -> List(unique(uniqueUsernameCompiled(user.id, user.username))),
       "email" -> List(unique(uniqueEmailCompiled(user.id, user.email)))
     )
     passwordOpt match {

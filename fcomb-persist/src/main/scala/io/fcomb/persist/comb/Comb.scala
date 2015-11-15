@@ -77,7 +77,7 @@ object Comb extends PersistModelWithAutoLongPk[comb.Comb, CombTable] {
     findBySlugWithinUserCompiled(userId, slug).result.headOption
   }
 
-  private val unqiueNameCompiled = Compiled {
+  private val uniqueNameCompiled = Compiled {
     (userId: Rep[UUID], name: Rep[String]) =>
       table.filter { f =>
         f.userId === userId && f.name === name
@@ -99,7 +99,7 @@ object Comb extends PersistModelWithAutoLongPk[comb.Comb, CombTable] {
       "slug" -> List(lengthRange(c.slug, 1, 42))
     )
     val dbioValidations = validateDBIO(
-      "name" -> List(unique(unqiueNameCompiled(c.userId, c.name.toLowerCase))),
+      "name" -> List(unique(uniqueNameCompiled(c.userId, c.name.toLowerCase))),
       "slug" -> List(unique(uniqueSlugCompiled(c.userId, c.slug.toLowerCase)))
     )
     validate(plainValidations, dbioValidations)
