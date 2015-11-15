@@ -14,8 +14,6 @@ object Methods {
     val msg: String
   }
 
-  case class ContainerAlreadyDidItException(msg: String) extends DockerApiException
-
   case class BadParameterException(msg: String) extends DockerApiException
 
   case class ServerErrorException(msg: String) extends DockerApiException
