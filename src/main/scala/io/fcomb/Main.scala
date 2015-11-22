@@ -39,12 +39,9 @@ object Main extends App {
   import io.fcomb.docker.api.Client, Client._
   val dc = new Client("coreos", 2375)
 
-  val source = SynchronousFileSource(new java.io.File("/tmp/etc.tar"))
+  // val source = SynchronousFileSource(new java.io.File("/tmp/etc.tar"))
 
-  dc.containerArchiveExtract(
-    "ubuntu_tty",
-    source,
-    "/tmp"
+  dc.images(
   ).onComplete {
     case Success(res) =>
       // val sink = SynchronousFileSink(new java.io.File("/tmp/etc.tar"))

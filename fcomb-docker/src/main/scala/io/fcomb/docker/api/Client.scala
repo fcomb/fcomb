@@ -2,7 +2,9 @@ package io.fcomb.docker.api
 
 import io.fcomb.docker.api.methods._
 import io.fcomb.docker.api.methods.ContainerMethods._
+import io.fcomb.docker.api.methods.ImageMethods._
 import io.fcomb.docker.api.json.ContainerMethodsFormat._
+import io.fcomb.docker.api.json.ImageMethodsFormat._
 import akka.actor.ActorSystem
 import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
@@ -21,14 +23,6 @@ import org.slf4j.LoggerFactory
 import org.apache.commons.codec.binary.Base64
 import java.nio.ByteOrder
 import java.time.ZonedDateTime
-
-object StdStream extends Enumeration {
-  type StdStream = Value
-
-  val In = Value(0)
-  val Out = Value(1)
-  val Err = Value(2)
-}
 
 final class Client(val host: String, val port: Int)(
   implicit
@@ -50,18 +44,20 @@ final class Client(val host: String, val port: Int)(
       .map(_.convertTo[Version])
 
   def containers(
-    showAll: Boolean = true,
+    showAll: Boolean = false,
     showSize: Boolean = false,
     limit: Option[Int] = None,
     beforeId: Option[String] = None,
-    sinceId: Option[String] = None
+    sinceId: Option[String] = None,
+    filters: Map[String, String] = Map.empty
   ) = {
     val params = Map(
       "all" -> showAll.toString,
       "size" -> showSize.toString,
       "limit" -> limit.map(_.toString).getOrElse(""),
       "before" -> beforeId.getOrElse(""),
-      "since" -> sinceId.getOrElse("")
+      "since" -> sinceId.getOrElse(""),
+      "filters" -> filters.toJson.compactPrint
     )
     apiJsonRequest(HttpMethods.GET, "/containers/json", params)
       .map(_.convertTo[List[ContainerItem]])
@@ -328,4 +324,19 @@ final class Client(val host: String, val port: Int)(
     apiRequestAsSource(HttpMethods.PUT, s"/containers/$id/archive", params, entity)
       .map(_ => ())
   }
+
+  def images(
+    showAll: Boolean = false,
+    filters: Map[String, String] = Map.empty,
+    withName: Option[String] = None
+  ) = {
+    val params = Map(
+      "all" -> showAll.toString,
+      "filters" -> filters.toJson.compactPrint,
+      "filter" -> withName.getOrElse("")
+    )
+    apiJsonRequest(HttpMethods.GET, "/images/json", params)
+      .map(_.convertTo[List[ImageItem]])
+  }
+
 }
