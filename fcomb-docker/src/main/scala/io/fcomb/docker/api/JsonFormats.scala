@@ -629,4 +629,7 @@ private[this] object JsonFormats {
 
   implicit val copyConfigFormat =
     jsonFormat(CopyConfig, "Resource")
+
+  implicit val containerPathStatFormat =
+    jsonFormat(ContainerPathStat, "name", "size", "mode", "mtime", "linkTarget")
 }

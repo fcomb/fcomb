@@ -14,6 +14,7 @@ import scala.concurrent.duration._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import org.slf4j.LoggerFactory
+import org.apache.commons.codec.binary.Base64
 import java.nio.ByteOrder
 import java.time.ZonedDateTime
 
@@ -75,7 +76,7 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
       .via(connectionFlow(idleTimeout))
       .runWith(Sink.head)
       .flatMap { res =>
-        if (res.status.isSuccess()) Future.successful(res.entity)
+        if (res.status.isSuccess()) Future.successful(res)
         else {
           entity.dataBytes.runFold(new StringBuffer) { (acc, bs) =>
             acc.append(bs.utf8String)
@@ -105,7 +106,7 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
     entity: RequestEntity = HttpEntity.Empty
   ) =
     apiRequestAsSource(method, uri, queryParams, entity).map { data =>
-      data.dataBytes.map(_.utf8String.parseJson)
+      data.entity.dataBytes.map(_.utf8String.parseJson)
     }
 
   private def apiJsonRequest(
@@ -115,7 +116,7 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
     entity: RequestEntity = HttpEntity.Empty
   ) =
     apiRequestAsSource(method, uri, queryParams, entity)
-      .flatMap(_.dataBytes.runFold(ByteString.empty)(_ ++ _))
+      .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _))
       .map { res =>
         val s = res.utf8String
         logger.debug(s"Docker API response: $s")
@@ -201,7 +202,7 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
       s"/containers/$id/logs",
       queryParams = params,
       idleTimeout = idleTimeout
-    ).map(_.dataBytes)
+    ).map(_.entity.dataBytes)
   }
 
   def containerLogs(
@@ -243,7 +244,7 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
 
   def containerExport(id: String) =
     apiRequestAsSource(HttpMethods.GET, s"/containers/$id/export")
-      .map(_.dataBytes)
+      .map(_.entity.dataBytes)
 
   def containerStats(id: String) =
     apiJsonRequest(HttpMethods.GET, s"/containers/$id/stats", Map("stream" -> "false"))
@@ -376,6 +377,23 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
   def containerCopy(id: String, path: String) = {
     val entity = requestJsonEntity(CopyConfig(path))
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/copy", entity = entity)
-      .map(_.dataBytes)
+      .map(_.entity.dataBytes)
   }
+
+  private def parseContainerPathStat(headers: Seq[HttpHeader]) = {
+    headers.find(_.name == "X-Docker-Container-Path-Stat").map { header =>
+      val json = new String(Base64.decodeBase64(header.value))
+      json.parseJson.convertTo[ContainerPathStat]
+    }
+  }
+
+  def containerArchiveInformation(id: String, path: String) =
+    apiRequestAsSource(HttpMethods.HEAD, s"/containers/$id/archive", Map("path" -> path))
+      .map(res => parseContainerPathStat(res.headers))
+
+  def containerArchive(id: String, path: String) =
+    apiRequestAsSource(HttpMethods.GET, s"/containers/$id/archive", Map("path" -> path))
+      .map { res =>
+        (res.entity.dataBytes, parseContainerPathStat(res.headers))
+      }
 }

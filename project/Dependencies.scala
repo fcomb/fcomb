@@ -221,7 +221,8 @@ object Dependencies {
   val response = common
 
   val docker = common ++ Seq(
-    akkaHttp, akkaStream
+    akkaHttp, akkaStream,
+    commonsCodec
   )
 
   val validations = common ++ Seq(slick)

@@ -190,6 +190,14 @@ object Methods {
     resource: String
   ) extends DockerApiRequest
 
+  final case class ContainerPathStat(
+    name: String,
+    size: Long,
+    mode: Int, // TODO
+    modifiedAt: ZonedDateTime,
+    linkTarget: Option[String]
+  )
+
   final case class ContainerProcessList(
     processes: List[List[String]],
     titles: List[String]

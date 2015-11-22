@@ -34,17 +34,24 @@ object Main extends App {
   val interface = Config.config.getString("rest-api.interface")
   val port = Config.config.getInt("rest-api.port")
 
+  import akka.stream.scaladsl._
+  import akka.stream.io._
   import io.fcomb.docker.api.Client, Client._
   import io.fcomb.docker.api.Methods._
   val dc = new Client("coreos", 2375)
-  dc.containerWait(
-    "ubuntu_tty"
+  dc.containerArchive(
+    "ubuntu_tty",
+    "/etc"
   ).onComplete {
-      case Success(res) => println(res)
-      case Failure(e) =>
-        e.printStackTrace()
-        println(e)
-    }
+    case Success((res, stat)) =>
+      println(s"stat: $stat")
+      val sink = SynchronousFileSink(new java.io.File("/tmp/etc.tar"))
+      res.runWith(sink).onComplete(println)
+      println(res)
+    case Failure(e) =>
+      e.printStackTrace()
+      println(e)
+  }
 
   // (for {
   //   _ <- Db.migrate()
