@@ -11,4 +11,11 @@ private[api] object ImageMethodsFormat {
     jsonFormat(ImageItem, "Id", "ParentId", "RepoTags", "RepoDigests",
       "Created", "Size", "VirtualSize", "Labels")
 
+  implicit val registryConfigItemFormat = jsonFormat2(RegistryConfigItem)
+
+  implicit object RegistryConfigFormat extends RootJsonWriter[RegistryConfig] {
+    def write(c: RegistryConfig) = JsObject(c.map {
+      case (k, v) => k.toString -> v.toJson
+    })
+  }
 }

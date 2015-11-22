@@ -13,6 +13,7 @@ import akka.http.scaladsl.Http
 import akka.util.ByteString
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.collection.immutable
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import akka.http._
@@ -51,7 +52,7 @@ private[api] trait ApiConnection {
     queryParams: Map[String, String] = Map.empty,
     entity: RequestEntity = HttpEntity.Empty,
     idleTimeout: Option[Duration] = None,
-    headers: List[HttpHeader] = List.empty
+    headers: immutable.Seq[HttpHeader] = immutable.Seq.empty
   ) = {
     Source
       .single(HttpRequest(
@@ -86,6 +87,9 @@ private[api] trait ApiConnection {
     implicit jw: JsonWriter[T]
   ) =
     HttpEntity(`application/json`, body.toJson.compactPrint)
+
+  protected def requestTarEntity(source: Source[ByteString, Any]) =
+    HttpEntity(`application/x-tar`, source)
 
   protected def apiJsonRequestAsSource(
     method: HttpMethod,

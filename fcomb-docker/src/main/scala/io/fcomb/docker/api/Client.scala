@@ -1,5 +1,6 @@
 package io.fcomb.docker.api
 
+import ParamHelpers._
 import io.fcomb.docker.api.methods._
 import io.fcomb.docker.api.methods.ContainerMethods._
 import io.fcomb.docker.api.methods.ImageMethods._
@@ -10,13 +11,12 @@ import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.stream.io.Framing
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.MediaTypes.`application/x-tar`
-import akka.http.scaladsl.model.headers.{UpgradeProtocol, Upgrade}
+import akka.http.scaladsl.model.headers.{UpgradeProtocol, Upgrade, RawHeader}
 import akka.http.scaladsl.Http
 import akka.util.ByteString
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.collection.immutable
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import org.slf4j.LoggerFactory
@@ -54,9 +54,9 @@ final class Client(val host: String, val port: Int)(
     val params = Map(
       "all" -> showAll.toString,
       "size" -> showSize.toString,
-      "limit" -> limit.map(_.toString).getOrElse(""),
-      "before" -> beforeId.getOrElse(""),
-      "since" -> sinceId.getOrElse(""),
+      "limit" -> limit.toParam,
+      "before" -> beforeId.toParam(),
+      "since" -> sinceId.toParam(),
       "filters" -> filters.toJson.compactPrint
     )
     apiJsonRequest(HttpMethods.GET, "/containers/json", params)
@@ -68,7 +68,7 @@ final class Client(val host: String, val port: Int)(
     name: Option[String] = None
   ) = {
     val params = Map(
-      "name" -> name.getOrElse("")
+      "name" -> name.toParam()
     )
     val entity = requestJsonEntity(config)
     apiJsonRequest(HttpMethods.POST, "/containers/create", params, entity)
@@ -88,7 +88,7 @@ final class Client(val host: String, val port: Int)(
     id: String,
     psArgs: Option[String] = None
   ) = {
-    val params = Map("ps_args" -> psArgs.getOrElse(""))
+    val params = Map("ps_args" -> psArgs.toParam())
     apiJsonRequest(HttpMethods.GET, s"/containers/$id/top", params)
       .map(_.convertTo[ContainerProcessList])
   }
@@ -107,9 +107,9 @@ final class Client(val host: String, val port: Int)(
       "follow" -> stream.toString,
       "stdout" -> streams.contains(StdStream.Out).toString,
       "stderr" -> streams.contains(StdStream.Err).toString,
-      "since" -> since.map(_.toEpochSecond).getOrElse(0L).toString,
+      "since" -> since.map(_.toEpochSecond).toParam(0L),
       "timestamps" -> showTimestamps.toString,
-      "tail" -> tail.map(_.toString).getOrElse("all")
+      "tail" -> tail.map(_.toString).toParam("all")
     )
     apiRequestAsSource(
       HttpMethods.GET,
@@ -262,7 +262,7 @@ final class Client(val host: String, val port: Int)(
   val req = HttpRequest(
     HttpMethods.POST,
     s"/containers/$name/attach?stream=1&stdout=1&stderr=1&stdin=1",
-    headers = List(Upgrade(List(UpgradeProtocol("tcp"))))
+    headers = immutable.Seq(Upgrade(List(UpgradeProtocol("tcp"))))
   )
 
   _root_.akka.http.HijackTcp.outgoingConnection("coreos", 2375, settings, req, pf)
@@ -320,7 +320,7 @@ final class Client(val host: String, val port: Int)(
       "path" -> path,
       "noOverwriteDirNonDir" -> (!withOverwrite).toString
     )
-    val entity = HttpEntity(`application/x-tar`, source)
+    val entity = requestTarEntity(source)
     apiRequestAsSource(HttpMethods.PUT, s"/containers/$id/archive", params, entity)
       .map(_ => ())
   }
@@ -333,10 +333,52 @@ final class Client(val host: String, val port: Int)(
     val params = Map(
       "all" -> showAll.toString,
       "filters" -> filters.toJson.compactPrint,
-      "filter" -> withName.getOrElse("")
+      "filter" -> withName.toParam()
     )
     apiJsonRequest(HttpMethods.GET, "/images/json", params)
       .map(_.convertTo[List[ImageItem]])
+  }
+
+  def imageBuild(
+    source: Source[ByteString, Any],
+    dockerfile: String = "Dockerfile",
+    name: Option[String] = None,
+    remoteUri: Option[String] = None,
+    showBuildOutput: Boolean = true,
+    withCache: Boolean = false,
+    withPull: Boolean = true,
+    removeMode: RemoveMode.RemoveMode = RemoveMode.Default,
+    memoryLimit: Option[Long] = None,
+    memorySwapLimit: Option[Long] = None,
+    cpuShares: Option[Int] = None,
+    cpusetCpus: Option[String] = None,
+    cpuPeriod: Option[Long] = None,
+    cpuQuota: Option[Long] = None,
+    registryConfig: Option[RegistryConfig] = None
+  ) = {
+    val params = Map(
+      "dockerfile" -> dockerfile,
+      "t" -> name.toParam(),
+      "remote" -> remoteUri.toParam(),
+      "q" -> (!showBuildOutput).toString,
+      "nocache" -> (!withCache).toString,
+      "pull" -> withPull.toString,
+      "memory" -> memoryLimit.toParam(),
+      "memswap" -> memorySwapLimit.toMemorySwapParam(),
+      "cpushares" -> cpuShares.toParam(),
+      "cpusetcpus" -> cpusetCpus.toParam(),
+      "cpuperiod" -> cpuPeriod.toParam(),
+      "cpuquota" -> cpuQuota.toParam()
+    ) ++ RemoveMode.mapToParams(removeMode)
+    val entity = requestTarEntity(source)
+    val headers = registryConfig match {
+      case Some(config) =>
+        val value = Base64.encodeBase64String(config.toJson.compactPrint.getBytes)
+        immutable.Seq(RawHeader("X-Registry-Config", value))
+      case None => immutable.Seq.empty
+    }
+    apiRequestAsSource(HttpMethods.POST, s"/build", params, entity, headers = headers)
+      // TODO: parse json events
   }
 
 }
