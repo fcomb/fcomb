@@ -11,56 +11,56 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 import java.net.InetAddress
-import kamon.Kamon
+// import kamon.Kamon
 
 object Main extends App {
   private val logger = LoggerFactory.getLogger(this.getClass)
-  Kamon.start()
 
-  val config = Config.config
+  // Kamon.start()
 
-  implicit val sys = ActorSystem(Config.actorSystemName, config)
+  implicit val sys = ActorSystem(Config.actorSystemName, Config.config)
   implicit val mat = ActorMaterializer()
   import sys.dispatcher
 
   val cluster = Cluster(sys)
 
-  if (config.getList("akka.cluster.seed-nodes").isEmpty) {
+  if (Config.config.getList("akka.cluster.seed-nodes").isEmpty) {
     logger.info("Going to a single-node cluster mode")
     cluster.join(cluster.selfAddress)
   }
 
   Implicits.global(sys, mat)
 
-  val interface = config.getString("rest-api.interface")
-  val port = config.getInt("rest-api.port")
+  val interface = Config.config.getString("rest-api.interface")
+  val port = Config.config.getInt("rest-api.port")
 
   import io.fcomb.docker.api.Client, Client._
   import io.fcomb.docker.api.Methods._
   val dc = new Client("coreos", 2375)
-  dc.containerKill("mongo", Signal.KILL)
-    .onComplete {
+  dc.containerWait(
+    "ubuntu_tty"
+  ).onComplete {
       case Success(res) => println(res)
       case Failure(e) =>
         e.printStackTrace()
         println(e)
     }
 
-  (for {
-    _ <- Db.migrate()
-    _ <- server.HttpApiService.start(port, interface, Routes())
-  } yield ()).onComplete {
-    case Success(_) =>
-    // HttpProxy.start(config)
-    case Failure(e) =>
-      logger.error(e.getMessage(), e.getCause())
-      try {
-        Kamon.shutdown()
-        sys.terminate()
-      } finally {
-        System.exit(-1)
-      }
-  }
+  // (for {
+  //   _ <- Db.migrate()
+  //   _ <- server.HttpApiService.start(port, interface, Routes())
+  // } yield ()).onComplete {
+  //   case Success(_) =>
+  //   // HttpProxy.start(config)
+  //   case Failure(e) =>
+  //     logger.error(e.getMessage(), e.getCause())
+  //     try {
+  //       // Kamon.shutdown()
+  //       sys.terminate()
+  //     } finally {
+  //       System.exit(-1)
+  //     }
+  // }
 
   Await.result(sys.whenTerminated, Duration.Inf)
 }

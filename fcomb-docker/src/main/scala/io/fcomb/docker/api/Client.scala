@@ -3,8 +3,10 @@ package io.fcomb.docker.api
 import akka.actor.ActorSystem
 import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
+import akka.stream.io.Framing
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
+import akka.http.scaladsl.model.headers.{UpgradeProtocol, Upgrade}
 import akka.http.scaladsl.Http
 import akka.util.ByteString
 import scala.concurrent.Future
@@ -12,14 +14,17 @@ import scala.concurrent.duration._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import org.slf4j.LoggerFactory
+import java.nio.ByteOrder
 import java.time.ZonedDateTime
 
 object Client {
-  sealed trait StdStream
+  object StdStream extends Enumeration {
+    type StdStream = Value
 
-  case object Stdout extends StdStream
-
-  case object Stderr extends StdStream
+    val In = Value(0)
+    val Out = Value(1)
+    val Err = Value(2)
+  }
 }
 
 class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializer) {
@@ -53,17 +58,24 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
     uri: Uri,
     queryParams: Map[String, String] = Map.empty,
     entity: RequestEntity = HttpEntity.Empty,
-    idleTimeout: Option[Duration] = None
+    idleTimeout: Option[Duration] = None,
+    upgradeProtocol: Option[String] = None
   ) = {
+    val headers = upgradeProtocol match {
+      case Some(p) => List(Upgrade(List(UpgradeProtocol(p))))
+      case None => List.empty
+    }
     Source
       .single(HttpRequest(
         uri = uriWithQuery(uri, queryParams),
         method = method,
-        entity = entity
+        entity = entity,
+        headers = headers
       ))
       .via(connectionFlow(idleTimeout))
       .runWith(Sink.head)
       .flatMap { res =>
+        logger.debug(s"Docker response headers: ${res.headers}")
         if (res.status.isSuccess()) Future.successful(res.entity)
         else {
           entity.dataBytes.runFold(new StringBuffer) { (acc, bs) =>
@@ -183,7 +195,7 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
 
   private def containerLogsAsSource(
     id: String,
-    streams: Set[StdStream],
+    streams: Set[StdStream.StdStream],
     stream: Boolean,
     since: Option[ZonedDateTime],
     showTimestamps: Boolean,
@@ -193,8 +205,8 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
     require(streams.nonEmpty, "Streams cannot be empty")
     val params = Map(
       "follow" -> stream.toString,
-      "stdout" -> streams.contains(Stdout).toString,
-      "stderr" -> streams.contains(Stderr).toString,
+      "stdout" -> streams.contains(StdStream.Out).toString,
+      "stderr" -> streams.contains(StdStream.Err).toString,
       "since" -> since.map(_.toEpochSecond).getOrElse(0L).toString,
       "timestamps" -> showTimestamps.toString,
       "tail" -> tail.map(_.toString).getOrElse("all")
@@ -209,7 +221,7 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
 
   def containerLogs(
     id: String,
-    streams: Set[StdStream],
+    streams: Set[StdStream.StdStream],
     since: Option[ZonedDateTime] = None,
     showTimestamps: Boolean = false,
     tail: Option[Int] = None
@@ -225,7 +237,7 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
 
   def containerLogsAsStream(
     id: String,
-    streams: Set[StdStream],
+    streams: Set[StdStream.StdStream],
     idleTimeout: Duration,
     since: Option[ZonedDateTime] = None,
     showTimestamps: Boolean = false,
@@ -301,5 +313,66 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/unpause")
       .map(_ => ())
 
+  // TODO: add hijack tcp and ws
+  // def containerAttachAsStream(
+  //   id: String,
+  //   streams: Set[StdStream.StdStream],
+  //   idleTimeout: Duration,
+  //   stdin: Option[Source[ByteString, Any]] = None
+  // ) = {
+  //   val params = Map(
+  //     "stream" -> "true",
+  //     "stdout" -> streams.contains(StdStream.Out).toString,
+  //     "stderr" -> streams.contains(StdStream.Err).toString,
+  //     "stdin" -> stdin.nonEmpty.toString
+  //   )
+  //   apiRequestAsSource(
+  //     HttpMethods.POST,
+  //     s"/containers/$id/attach",
+  //     params,
+  //     idleTimeout = Some(idleTimeout),
+  //     upgradeProtocol = Some("tcp")
+  //   ).flatMap { e =>
+  //       println(e.isCloseDelimited(), e.isIndefiniteLength())
+  //       // .via(Framing.lengthField(4, 0, Int.MaxValue, ByteOrder.BIG_ENDIAN))
+  //       e.dataBytes.runForeach { bs =>
+  //         println(s"bs: $bs")
+  //         // print(bs.utf8String)
+  //       }
+  //     }
+  // }
+
+  /*
+  import akka.stream.scaladsl._
+  import akka.util.ByteString
+  import scala.concurrent.Promise
+  import akka.http.scaladsl._
+  import akka.http.scaladsl.model._
+  import akka.http.scaladsl.model.headers._
+
+  val closeConnection = Promise[ByteString]()
+  val source = Source(closeConnection.future).drop(1)
+  val sink = Sink.foreach[ByteString] { bs =>
+    println(s"sink: $bs, ${bs.utf8String}")
+  }
+  val pf = Flow.fromSinkAndSource(sink, source)
+  val settings = akka.http.ClientConnectionSettings(sys)
+
+  val name = "ubuntu_tty" // "mongo"
+  val req = HttpRequest(
+    HttpMethods.POST,
+    s"/containers/$name/attach?stream=1&stdout=1&stderr=1&stdin=1",
+    headers = List(Upgrade(List(UpgradeProtocol("tcp"))))
+  )
+
+  _root_.akka.http.HijackTcp.outgoingConnection("coreos", 2375, settings, req, pf)
+    .onComplete(mr => s"main result: $mr")
+  // _root_.akka.http.HijackTcp.wstest()
+
+   */
+
+  def containerWait(id: String) =
+    apiJsonRequest(HttpMethods.POST, s"/containers/$id/wait")
+      .map(_.convertTo[StatusCode])
 
 }

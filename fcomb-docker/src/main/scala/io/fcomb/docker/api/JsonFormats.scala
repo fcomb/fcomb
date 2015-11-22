@@ -620,4 +620,14 @@ private[this] object JsonFormats {
 
   implicit val containerStatsFormat = jsonFormat(ContainerStats, "read", "precpu_stats",
     "cpu_stats", "memory_stats", "blkio_stats", "networks", "network")
+
+  implicit object StatusCodeFormat extends RootJsonReader[StatusCode] {
+    def read(v: JsValue) = v match {
+      case obj: JsObject => StatusCode(
+        code = obj.get[Int]("StatusCode")
+      )
+      case x => deserializationError(s"Expected JsObject, but got $x")
+    }
+  }
+
 }

@@ -806,4 +806,8 @@ object Methods {
     networks: Option[Map[String, NetworkStats]],
     network: Option[NetworkStats]
   ) extends DockerApiResponse
+
+  case class StatusCode(
+    code: Int
+  ) extends DockerApiResponse
 }

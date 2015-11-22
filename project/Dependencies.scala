@@ -22,7 +22,6 @@ object Dependencies {
     val akkaDistributedData = "com.typesafe.akka"         %% "akka-distributed-data-experimental" % V.akka
     val akkaContrib     = "com.typesafe.akka"             %% "akka-contrib"                  % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
-    // val akkaStreamExtensions = "com.mfglabs"              %% "akka-stream-extensions"        % "0.7.3"
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
@@ -184,7 +183,7 @@ object Dependencies {
     scodecProtocols, scodecAkka
   )
 
-  val root = common ++ monitoring
+  val root = common // ++ monitoring
 
   val api = common ++ akka ++ Seq(oauth)
 
