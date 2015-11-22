@@ -1,33 +1,9 @@
-package io.fcomb.docker.api
+package io.fcomb.docker.api.methods
 
 import spray.json.deserializationError
 import java.time.{LocalDateTime, ZonedDateTime}
 
-object Methods {
-  sealed trait DockerApiMethod
-
-  sealed trait DockerApiResponse extends DockerApiMethod
-
-  sealed trait DockerApiRequest extends DockerApiMethod
-
-  sealed trait DockerApiException extends Throwable {
-    val msg: String
-  }
-
-  case class BadParameterException(msg: String) extends DockerApiException
-
-  case class ServerErrorException(msg: String) extends DockerApiException
-
-  case class NoSuchContainerException(msg: String) extends DockerApiException
-
-  case class ImpossibleToAttachException(msg: String) extends DockerApiException
-
-  case class UnknownException(msg: String) extends DockerApiException
-
-  sealed trait MapToString {
-    def mapToString(): String
-  }
-
+object ContainerMethods {
   final case class IndexInfo(
     name: String,
     mirrors: List[String],

@@ -1,77 +1,12 @@
-package io.fcomb.docker.api
+package io.fcomb.docker.api.json
 
-import Methods._
+import io.fcomb.docker.api.methods.ContainerMethods._
 import spray.json._
 import spray.json.DefaultJsonProtocol.{listFormat => _, _}
 import io.fcomb.json._
 import java.time.{LocalDateTime, ZonedDateTime}
 
-private[this] object JsonFormats {
-  private implicit object OptStringFormat extends RootJsonFormat[Option[String]] {
-    def write(o: Option[String]) = o match {
-      case Some(s) => JsString(s)
-      case None => JsNull
-    }
-
-    def read(v: JsValue) = v match {
-      case JsString(s) =>
-        if (s.isEmpty) None
-        else Some(s)
-      case JsNull => None
-      case x => deserializationError(s"Expected value as JsString, but got $x")
-    }
-  }
-
-  private implicit object OptZonedDateTimeFormat extends RootJsonFormat[Option[ZonedDateTime]] {
-    def write(o: Option[ZonedDateTime]) = o match {
-      case Some(d) => JsString(d.toString)
-      case None => JsNull
-    }
-
-    def read(v: JsValue) = v match {
-      case JsString(s) =>
-        val date = ZonedDateTime.parse(s)
-        if (date.getYear() == 1) None
-        else Some(date)
-      case JsNull => None
-      case x => deserializationError(s"Expected date as JsString, but got $x")
-    }
-  }
-
-  private implicit def listFormat[T: JsonFormat] =
-    new RootJsonFormat[List[T]] {
-      def write(list: List[T]) = list match {
-        case Nil => JsNull
-        case xs => JsArray(xs.map(_.toJson).toVector)
-      }
-
-      def read(value: JsValue): List[T] = value match {
-        case JsArray(xs) => xs.map(_.convertTo[T])(collection.breakOut)
-        case JsNull => List.empty
-        case x => deserializationError(s"Expected List as JsArray, but got $x")
-      }
-    }
-
-  private implicit def mapFormat[K: JsonFormat, V: JsonFormat] =
-    new RootJsonFormat[Map[K, V]] {
-      def write(m: Map[K, V]) = JsObject {
-        m.map { field =>
-          field._1.toJson match {
-            case JsString(x) => x -> field._2.toJson
-            case x => throw new SerializationException(s"Map key must be formatted as JsString, not '$x'")
-          }
-        }
-      }
-
-      def read(value: JsValue) = value match {
-        case x: JsObject => x.fields.map { field =>
-          (JsString(field._1).convertTo[K], field._2.convertTo[V])
-        }(collection.breakOut)
-        case JsNull => Map.empty
-        case x => deserializationError(s"Expected Map as JsObject, but got $x")
-      }
-    }
-
+private[api] object ContainerMethodsFormat {
   implicit val indexInformationFormat =
     jsonFormat(IndexInfo, "Name", "Mirrors", "Secure", "Official")
 

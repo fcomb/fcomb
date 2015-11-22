@@ -37,16 +37,18 @@ object Main extends App {
   import akka.stream.scaladsl._
   import akka.stream.io._
   import io.fcomb.docker.api.Client, Client._
-  import io.fcomb.docker.api.Methods._
   val dc = new Client("coreos", 2375)
-  dc.containerArchive(
+
+  val source = SynchronousFileSource(new java.io.File("/tmp/etc.tar"))
+
+  dc.containerArchiveExtract(
     "ubuntu_tty",
-    "/etc"
+    source,
+    "/tmp"
   ).onComplete {
-    case Success((res, stat)) =>
-      println(s"stat: $stat")
-      val sink = SynchronousFileSink(new java.io.File("/tmp/etc.tar"))
-      res.runWith(sink).onComplete(println)
+    case Success(res) =>
+      // val sink = SynchronousFileSink(new java.io.File("/tmp/etc.tar"))
+      // res.runWith(sink).onComplete(println)
       println(res)
     case Failure(e) =>
       e.printStackTrace()

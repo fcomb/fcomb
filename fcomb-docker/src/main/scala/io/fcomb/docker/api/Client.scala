@@ -1,11 +1,15 @@
 package io.fcomb.docker.api
 
+import io.fcomb.docker.api.methods._
+import io.fcomb.docker.api.methods.ContainerMethods._
+import io.fcomb.docker.api.json.ContainerMethodsFormat._
 import akka.actor.ActorSystem
 import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.stream.io.Framing
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
+import akka.http.scaladsl.model.MediaTypes.`application/x-tar`
 import akka.http.scaladsl.model.headers.{UpgradeProtocol, Upgrade}
 import akka.http.scaladsl.Http
 import akka.util.ByteString
@@ -18,110 +22,24 @@ import org.apache.commons.codec.binary.Base64
 import java.nio.ByteOrder
 import java.time.ZonedDateTime
 
-object Client {
-  object StdStream extends Enumeration {
-    type StdStream = Value
+object StdStream extends Enumeration {
+  type StdStream = Value
 
-    val In = Value(0)
-    val Out = Value(1)
-    val Err = Value(2)
-  }
+  val In = Value(0)
+  val Out = Value(1)
+  val Err = Value(2)
 }
 
-class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializer) {
+final class Client(val host: String, val port: Int)(
+  implicit
+  val sys: ActorSystem,
+  val mat: Materializer
+)
+  extends ApiConnection {
+
   import sys.dispatcher
-  import Client._
-  import Methods._
-  import JsonFormats._
 
-  private val logger = LoggerFactory.getLogger(this.getClass)
-
-  import akka.http._
-
-  // TODO: add TLS
-  def connectionFlow(duration: Option[Duration] = None) = {
-    val settings = duration.foldLeft(ClientConnectionSettings(sys)) {
-      (s, d) => s.copy(idleTimeout = d)
-    } match { // TODO: https://github.com/akka/akka/issues/16468
-      case s => s.copy(parserSettings = s.parserSettings.copy(
-        maxContentLength = Long.MaxValue
-      ))
-    }
-    Http().outgoingConnection(host, port, settings = settings)
-      .buffer(10, OverflowStrategy.backpressure)
-  }
-
-  private def uriWithQuery(uri: Uri, queryParams: Map[String, String]) =
-    uri.withQuery(Uri.Query(queryParams.filter(_._2.nonEmpty)))
-
-  private def apiRequestAsSource(
-    method: HttpMethod,
-    uri: Uri,
-    queryParams: Map[String, String] = Map.empty,
-    entity: RequestEntity = HttpEntity.Empty,
-    idleTimeout: Option[Duration] = None,
-    upgradeProtocol: Option[String] = None
-  ) = {
-    val headers = upgradeProtocol match {
-      case Some(p) => List(Upgrade(List(UpgradeProtocol(p))))
-      case None => List.empty
-    }
-    Source
-      .single(HttpRequest(
-        uri = uriWithQuery(uri, queryParams),
-        method = method,
-        entity = entity,
-        headers = headers
-      ))
-      .via(connectionFlow(idleTimeout))
-      .runWith(Sink.head)
-      .flatMap { res =>
-        if (res.status.isSuccess()) Future.successful(res)
-        else {
-          entity.dataBytes.runFold(new StringBuffer) { (acc, bs) =>
-            acc.append(bs.utf8String)
-          }.map { buf =>
-            val msg = buf.toString()
-            res.status.intValue() match {
-              case 400 => throw new BadParameterException(msg)
-              case 404 => throw new NoSuchContainerException(msg)
-              case 406 => throw new ImpossibleToAttachException(msg)
-              case 500 => throw new ServerErrorException(msg)
-              case _ => throw new UnknownException(msg)
-            }
-          }
-        }
-      }
-  }
-
-  private def requestJsonEntity[T <: DockerApiRequest](body: T)(
-    implicit jw: JsonWriter[T]
-  ) =
-    HttpEntity(`application/json`, body.toJson.compactPrint)
-
-  private def apiJsonRequestAsSource(
-    method: HttpMethod,
-    uri: Uri,
-    queryParams: Map[String, String] = Map.empty,
-    entity: RequestEntity = HttpEntity.Empty
-  ) =
-    apiRequestAsSource(method, uri, queryParams, entity).map { data =>
-      data.entity.dataBytes.map(_.utf8String.parseJson)
-    }
-
-  private def apiJsonRequest(
-    method: HttpMethod,
-    uri: Uri,
-    queryParams: Map[String, String] = Map.empty,
-    entity: RequestEntity = HttpEntity.Empty
-  ) =
-    apiRequestAsSource(method, uri, queryParams, entity)
-      .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _))
-      .map { res =>
-        val s = res.utf8String
-        logger.debug(s"Docker API response: $s")
-        s.parseJson
-      }
+  protected val logger = LoggerFactory.getLogger(this.getClass)
 
   def information() =
     apiJsonRequest(HttpMethods.GET, "/info")
@@ -392,8 +310,22 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
       .map(res => parseContainerPathStat(res.headers))
 
   def containerArchive(id: String, path: String) =
-    apiRequestAsSource(HttpMethods.GET, s"/containers/$id/archive", Map("path" -> path))
-      .map { res =>
-        (res.entity.dataBytes, parseContainerPathStat(res.headers))
-      }
+    apiRequestAsSource(HttpMethods.GET, s"/containers/$id/archive", Map("path" -> path)).map { res =>
+      (res.entity.dataBytes, parseContainerPathStat(res.headers))
+    }
+
+  def containerArchiveExtract(
+    id: String,
+    source: Source[ByteString, Any],
+    path: String,
+    withOverwrite: Boolean = false
+  ) = {
+    val params = Map(
+      "path" -> path,
+      "noOverwriteDirNonDir" -> (!withOverwrite).toString
+    )
+    val entity = HttpEntity(`application/x-tar`, source)
+    apiRequestAsSource(HttpMethods.PUT, s"/containers/$id/archive", params, entity)
+      .map(_ => ())
+  }
 }
