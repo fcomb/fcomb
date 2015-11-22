@@ -28,19 +28,19 @@ object Methods {
     def mapToString(): String
   }
 
-  case class IndexInfo(
+  final case class IndexInfo(
     name: String,
     mirrors: List[String],
     isSecure: Boolean,
     isOfficial: Boolean
   )
 
-  case class ServiceConfig(
+  final case class ServiceConfig(
     insecureRegistryCidrs: List[String],
     indexConfigs: Map[String, IndexInfo]
   )
 
-  case class Information(
+  final case class Information(
     id: String,
     continers: Int,
     images: Int,
@@ -78,12 +78,12 @@ object Methods {
     isExperimentalBuild: Boolean
   ) extends DockerApiResponse
 
-  case class ExecStartCheck(
+  final case class ExecStartCheck(
     isDetach: Boolean,
     isTty: Boolean
   )
 
-  case class ContainerState(
+  final case class ContainerState(
     isRunning: Boolean,
     isPaused: Boolean,
     isRestarting: Boolean,
@@ -103,14 +103,14 @@ object Methods {
     val Udp = Value("udp")
   }
 
-  case class Port(
+  final case class Port(
     privatePort: Int,
     publicPort: Option[Int],
     kind: PortKind.PortKind,
     ip: Option[String]
   )
 
-  case class ContainerItem(
+  final case class ContainerItem(
     id: String,
     names: List[String],
     image: String,
@@ -131,14 +131,14 @@ object Methods {
     val Z = Value("Z")
   }
 
-  case class MountPoint(
+  final case class MountPoint(
     source: String,
     destination: String,
     mode: Set[MountMode.MountMode],
     isReadAndWrite: Boolean
   )
 
-  case class PortBinding(
+  final case class PortBinding(
     port: Int,
     ip: Option[String]
   )
@@ -168,11 +168,11 @@ object Methods {
     }
   }
 
-  case class HostConfigNetworkMode(
+  final case class HostConfigNetworkMode(
     networkMode: String
   )
 
-  case class Container(
+  final case class Container(
     id: String,
     names: List[String],
     image: String,
@@ -186,16 +186,16 @@ object Methods {
     hostConfig: HostConfigNetworkMode
   )
 
-  case class CopyConfig(
+  final case class CopyConfig(
     resource: String
-  )
+  ) extends DockerApiRequest
 
-  case class ContainerProcessList(
+  final case class ContainerProcessList(
     processes: List[List[String]],
     titles: List[String]
   )
 
-  case class Version(
+  final case class Version(
     version: String,
     apiVersion: String,
     gitCommit: String,
@@ -210,11 +210,11 @@ object Methods {
   sealed trait VolumeBindPath extends MapToString
 
   object VolumeBindPath {
-    case class VolumePath(path: String) extends VolumeBindPath {
+    final case class VolumePath(path: String) extends VolumeBindPath {
       def mapToString() = path
     }
 
-    case class VolumeHostPath(
+    final case class VolumeHostPath(
       hostPath: String,
       path: String,
       mode: MountMode.MountMode
@@ -234,7 +234,7 @@ object Methods {
     }
   }
 
-  case class ContainerLink(
+  final case class ContainerLink(
     name: String,
     alias: String
   ) extends MapToString {
@@ -248,7 +248,7 @@ object Methods {
     }
   }
 
-  case class VolumeFrom(
+  final case class VolumeFrom(
     name: String,
     mode: MountMode.MountMode
   ) extends MapToString {
@@ -267,7 +267,7 @@ object Methods {
     }
   }
 
-  case class ExtraHost(
+  final case class ExtraHost(
     hostname: String,
     ip: String
   ) extends MapToString {
@@ -367,23 +367,23 @@ object Methods {
   sealed trait NetworkMode extends MapToString
 
   object NetworkMode {
-    case object Bridge extends NetworkMode {
+    final case object Bridge extends NetworkMode {
       def mapToString() = "bridge"
     }
 
-    case object Host extends NetworkMode {
+    final case object Host extends NetworkMode {
       def mapToString() = "host"
     }
 
-    case class ContainerHost(name: String) extends NetworkMode {
+    final case class ContainerHost(name: String) extends NetworkMode {
       def mapToString() = s"container:$name"
     }
 
-    case object None extends NetworkMode {
+    final case object None extends NetworkMode {
       def mapToString() = "none"
     }
 
-    case object Default extends NetworkMode {
+    final case object Default extends NetworkMode {
       def mapToString() = "default"
     }
 
@@ -400,11 +400,11 @@ object Methods {
   sealed trait IpcMode extends MapToString
 
   object IpcMode {
-    case object Host extends IpcMode {
+    final case object Host extends IpcMode {
       def mapToString() = "host"
     }
 
-    case class ContainerHost(name: String) extends IpcMode {
+    final case class ContainerHost(name: String) extends IpcMode {
       def mapToString() = s"container:$name"
     }
 
@@ -418,7 +418,7 @@ object Methods {
   sealed trait UtsMode extends MapToString
 
   object UtsMode {
-    case object Host extends UtsMode {
+    final case object Host extends UtsMode {
       def mapToString() = "host"
     }
 
@@ -431,7 +431,7 @@ object Methods {
   sealed trait PidMode extends MapToString
 
   object PidMode {
-    case object Host extends PidMode {
+    final case object Host extends PidMode {
       def mapToString() = "host"
     }
 
@@ -441,13 +441,13 @@ object Methods {
     }
   }
 
-  case class DeviceMapping(
+  final case class DeviceMapping(
     pathOnHost: String,
     pathInContainer: String,
     cgroupPermissions: String
   )
 
-  case class Ulimit(
+  final case class Ulimit(
     name: String,
     soft: Int,
     hard: Int
@@ -463,7 +463,7 @@ object Methods {
     val None = Value("none")
   }
 
-  case class LogConfig(
+  final case class LogConfig(
     kind: LogDriver.LogDriver,
     config: Map[String, String] = Map.empty
   )
@@ -477,14 +477,14 @@ object Methods {
     val HyperV = Value("hyperv")
   }
 
-  case class ConsoleSize(
+  final case class ConsoleSize(
     width: Int,
     height: Int
   )
 
   type LxcConf = Map[String, String]
 
-  case class HostConfig(
+  final case class HostConfig(
     binds: List[VolumeBindPath] = List.empty,
     links: List[ContainerLink] = List.empty,
     lxcConf: LxcConf = Map.empty,
@@ -534,11 +534,11 @@ object Methods {
   }
 
   object ExposePort {
-    case class Tcp(port: Int) extends ExposePort {
+    final case class Tcp(port: Int) extends ExposePort {
       val kind = "tcp"
     }
 
-    case class Udp(port: Int) extends ExposePort {
+    final case class Udp(port: Int) extends ExposePort {
       val kind = "udp"
     }
 
@@ -551,7 +551,7 @@ object Methods {
 
   type ExposedPorts = Set[ExposePort]
 
-  case class RunConfig(
+  final case class RunConfig(
     hostname: Option[String] = None,
     domainName: Option[String] = None,
     user: Option[String] = None,
@@ -576,7 +576,7 @@ object Methods {
     onBuild: List[String] = List.empty
   )
 
-  case class ContainerCreate(
+  final case class ContainerCreate(
     image: String,
     hostname: Option[String] = None,
     domainName: Option[String] = None,
@@ -599,12 +599,12 @@ object Methods {
     hostConfig: HostConfig = HostConfig()
   ) extends DockerApiRequest
 
-  case class Address(
+  final case class Address(
     address: String,
     prefixLength: Int
   )
 
-  case class NetworkSettings(
+  final case class NetworkSettings(
     bridge: Option[String],
     endpointId: Option[String],
     gateway: Option[String],
@@ -624,7 +624,7 @@ object Methods {
     secondaryIpv6Addresses: List[Address]
   )
 
-  case class ContainerBase(
+  final case class ContainerBase(
     id: String,
     createdAt: ZonedDateTime,
     path: String,
@@ -651,33 +651,33 @@ object Methods {
     config: RunConfig
   ) extends DockerApiResponse
 
-  case class ContainerCreateResponse(
+  final case class ContainerCreateResponse(
     id: String,
     warnings: List[String]
   ) extends DockerApiResponse
 
-  case class ContainerExecCreateResponse(
+  final case class ContainerExecCreateResponse(
     id: String
   ) extends DockerApiResponse
 
-  case class AuthResponse(
+  final case class AuthResponse(
     status: String
   ) extends DockerApiResponse
 
-  case class ContainerWaitResponse(
+  final case class ContainerWaitResponse(
     statusCode: Int
   ) extends DockerApiResponse
 
-  case class ContainerCommitResponse(
+  final case class ContainerCommitResponse(
     id: String
   ) extends DockerApiResponse
 
-  case class ContainerChange(
+  final case class ContainerChange(
     kind: Int,
     path: String
   ) extends DockerApiResponse
 
-  case class ImageHistory(
+  final case class ImageHistory(
     id: String,
     created: Long,
     createdBy: String,
@@ -686,12 +686,12 @@ object Methods {
     comment: String
   )
 
-  case class ImageDelete(
+  final case class ImageDelete(
     untagged: String,
     deleted: String
   )
 
-  case class Image(
+  final case class Image(
     id: String,
     parentId: String,
     repositoryTags: List[String],
@@ -702,12 +702,12 @@ object Methods {
     labels: Map[String, String]
   )
 
-  case class GraphDriverData(
+  final case class GraphDriverData(
     name: String,
     data: Map[String, String]
   )
 
-  case class ImageInspect(
+  final case class ImageInspect(
     id: String,
     parent: String,
     comment: String,
@@ -732,16 +732,16 @@ object Methods {
     val Deleted = Value(2)
   }
 
-  case class FileChange(
+  final case class FileChange(
     path: String,
     kind: FileChangeKind.FileChangeKind
   )
 
-  case class ContainerChanges(
+  final case class ContainerChanges(
     changes: List[FileChange]
   ) extends DockerApiResponse
 
-  case class NetworkStats(
+  final case class NetworkStats(
     rxBytes: Long,
     rxPackets: Long,
     rxErrors: Long,
@@ -752,26 +752,26 @@ object Methods {
     txDropped: Long
   )
 
-  case class ThrottlingData(
+  final case class ThrottlingData(
     periods: Long,
     throttledPeriods: Long,
     throttledTime: Long
   )
 
-  case class CpuUsage(
+  final case class CpuUsage(
     total: Long,
     perCpu: List[Long],
     inKernelMode: Long,
     inUserMode: Long
   )
 
-  case class CpuStats(
+  final case class CpuStats(
     cpu: CpuUsage,
     system: Long,
     throttling: ThrottlingData
   )
 
-  case class MemoryStats(
+  final case class MemoryStats(
     usage: Long,
     maxUsage: Long,
     stats: Map[String, Long],
@@ -779,14 +779,14 @@ object Methods {
     limit: Long
   )
 
-  case class BlockIoStatEntry(
+  final case class BlockIoStatEntry(
     major: Long,
     minor: Long,
     op: Option[String],
     value: Long
   )
 
-  case class BlockIoStats(
+  final case class BlockIoStats(
     ioServiceBytes: List[BlockIoStatEntry],
     ioServiced: List[BlockIoStatEntry],
     ioQueued: List[BlockIoStatEntry],
@@ -797,7 +797,7 @@ object Methods {
     sectors: List[BlockIoStatEntry]
   )
 
-  case class ContainerStats(
+  final case class ContainerStats(
     readedAt: ZonedDateTime,
     preCpu: CpuStats,
     cpu: CpuStats,
@@ -805,9 +805,5 @@ object Methods {
     blockIo: BlockIoStats,
     networks: Option[Map[String, NetworkStats]],
     network: Option[NetworkStats]
-  ) extends DockerApiResponse
-
-  case class StatusCode(
-    code: Int
   ) extends DockerApiResponse
 }

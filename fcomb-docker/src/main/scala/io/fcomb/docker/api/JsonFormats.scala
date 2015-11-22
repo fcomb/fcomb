@@ -515,7 +515,7 @@ private[this] object JsonFormats {
   }
 
   implicit val addressFormat =
-    jsonFormat(Address, "Addr", "PrefixLen")
+      jsonFormat(Address, "Addr", "PrefixLen")
 
   implicit val networkSettingsFormat =
     jsonFormat(NetworkSettings, "Bridge", "EndpointID", "Gateway", "GlobalIPv6Address",
@@ -595,11 +595,13 @@ private[this] object JsonFormats {
     def read(v: JsValue) = ContainerChanges(v.convertTo[List[FileChange]])
   }
 
-  implicit val networkStatsFormat = jsonFormat(NetworkStats, "rx_bytes", "rx_packets",
-    "rx_errors", "rx_dropped", "tx_bytes", "tx_packets", "tx_errors", "tx_dropped")
+  implicit val networkStatsFormat =
+    jsonFormat(NetworkStats, "rx_bytes", "rx_packets",
+      "rx_errors", "rx_dropped", "tx_bytes", "tx_packets", "tx_errors", "tx_dropped")
 
-  implicit val cpuUsageFormat = jsonFormat(CpuUsage, "total_usage", "percpu_usage",
-    "usage_in_kernelmode", "usage_in_usermode")
+  implicit val cpuUsageFormat =
+    jsonFormat(CpuUsage, "total_usage", "percpu_usage",
+      "usage_in_kernelmode", "usage_in_usermode")
 
   implicit val throttlingDataFormat =
     jsonFormat(ThrottlingData, "periods", "throttled_periods", "throttled_time")
@@ -618,16 +620,13 @@ private[this] object JsonFormats {
       "io_queue_recursive", "io_service_time_recursive", "io_wait_time_recursive",
       "io_merged_recursive", "io_time_recursive", "sectors_recursive")
 
-  implicit val containerStatsFormat = jsonFormat(ContainerStats, "read", "precpu_stats",
-    "cpu_stats", "memory_stats", "blkio_stats", "networks", "network")
+  implicit val containerStatsFormat =
+    jsonFormat(ContainerStats, "read", "precpu_stats",
+      "cpu_stats", "memory_stats", "blkio_stats", "networks", "network")
 
-  implicit object StatusCodeFormat extends RootJsonReader[StatusCode] {
-    def read(v: JsValue) = v match {
-      case obj: JsObject => StatusCode(
-        code = obj.get[Int]("StatusCode")
-      )
-      case x => deserializationError(s"Expected JsObject, but got $x")
-    }
-  }
+  implicit val containerWaitResponseFormat =
+    jsonFormat(ContainerWaitResponse, "StatusCode")
 
+  implicit val copyConfigFormat =
+    jsonFormat(CopyConfig, "Resource")
 }

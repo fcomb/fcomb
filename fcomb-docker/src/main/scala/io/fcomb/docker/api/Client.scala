@@ -75,7 +75,6 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
       .via(connectionFlow(idleTimeout))
       .runWith(Sink.head)
       .flatMap { res =>
-        logger.debug(s"Docker response headers: ${res.headers}")
         if (res.status.isSuccess()) Future.successful(res.entity)
         else {
           entity.dataBytes.runFold(new StringBuffer) { (acc, bs) =>
@@ -94,41 +93,27 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
       }
   }
 
-  private def apiJsonRequestAsSource[T <: DockerApiRequest](
-    method: HttpMethod,
-    uri: Uri,
-    queryParams: Map[String, String] = Map.empty,
-    body: Option[T] = None
-  )(implicit jw: JsonWriter[T]) = {
-    val entity = body match {
-      case Some(b) =>
-        val req = b.toJson.compactPrint
-        logger.debug(s"Docker API request: $req")
-        HttpEntity(`application/json`, req)
-      case _ => HttpEntity.Empty
-    }
-    apiRequestAsSource(method, uri, queryParams, entity).map { data =>
-      data.dataBytes.map { res =>
-        val s = res.utf8String
-        logger.debug(s"Docker API response: $s")
-        s.parseJson
-      }
-    }
-  }
+  private def requestJsonEntity[T <: DockerApiRequest](body: T)(
+    implicit jw: JsonWriter[T]
+  ) =
+    HttpEntity(`application/json`, body.toJson.compactPrint)
 
-  private def apiJsonRequest[T <: DockerApiRequest](
+  private def apiJsonRequestAsSource(
     method: HttpMethod,
     uri: Uri,
     queryParams: Map[String, String] = Map.empty,
-    body: Option[T] = None
-  )(implicit jw: JsonWriter[T]) = {
-    val entity = body match {
-      case Some(b) =>
-        val req = b.toJson.compactPrint
-        logger.debug(s"Docker API request: $req")
-        HttpEntity(`application/json`, req)
-      case _ => HttpEntity.Empty
+    entity: RequestEntity = HttpEntity.Empty
+  ) =
+    apiRequestAsSource(method, uri, queryParams, entity).map { data =>
+      data.dataBytes.map(_.utf8String.parseJson)
     }
+
+  private def apiJsonRequest(
+    method: HttpMethod,
+    uri: Uri,
+    queryParams: Map[String, String] = Map.empty,
+    entity: RequestEntity = HttpEntity.Empty
+  ) =
     apiRequestAsSource(method, uri, queryParams, entity)
       .flatMap(_.dataBytes.runFold(ByteString.empty)(_ ++ _))
       .map { res =>
@@ -136,7 +121,6 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
         logger.debug(s"Docker API response: $s")
         s.parseJson
       }
-  }
 
   def information() =
     apiJsonRequest(HttpMethods.GET, "/info")
@@ -171,7 +155,8 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
     val params = Map(
       "name" -> name.getOrElse("")
     )
-    apiJsonRequest(HttpMethods.POST, "/containers/create", params, Some(config))
+    val entity = requestJsonEntity(config)
+    apiJsonRequest(HttpMethods.POST, "/containers/create", params, entity)
       .map(_.convertTo[ContainerCreateResponse])
   }
 
@@ -373,6 +358,24 @@ class Client(host: String, port: Int)(implicit sys: ActorSystem, mat: Materializ
 
   def containerWait(id: String) =
     apiJsonRequest(HttpMethods.POST, s"/containers/$id/wait")
-      .map(_.convertTo[StatusCode])
+      .map(_.convertTo[ContainerWaitResponse])
 
+  def containerRemove(
+    id: String,
+    force: Boolean = false,
+    withVolumes: Boolean = false
+  ) = {
+    val params = Map(
+      "force" -> force.toString,
+      "v" -> withVolumes.toString
+    )
+    apiRequestAsSource(HttpMethods.DELETE, s"/containers/$id", params)
+      .map(_ => ())
+  }
+
+  def containerCopy(id: String, path: String) = {
+    val entity = requestJsonEntity(CopyConfig(path))
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/copy", entity = entity)
+      .map(_.dataBytes)
+  }
 }
