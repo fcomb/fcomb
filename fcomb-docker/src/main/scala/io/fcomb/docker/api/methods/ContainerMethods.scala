@@ -691,23 +691,6 @@ object ContainerMethods {
     data: Map[String, String]
   )
 
-  final case class ImageInspect(
-    id: String,
-    parent: String,
-    comment: String,
-    created: LocalDateTime,
-    container: String,
-    // TODO: containerConfig: *runconfig.Config
-    dockerVersion: String,
-    author: String,
-    // config          *runconfig.Config
-    architecture: String,
-    os: String,
-    size: Long,
-    virtualSize: Long,
-    graphDriver: GraphDriverData
-  )
-
   object FileChangeKind extends Enumeration {
     type FileChangeKind = Value
 

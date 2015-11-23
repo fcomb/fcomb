@@ -395,4 +395,45 @@ final class Client(val host: String, val port: Int)(
     // TODO: parse json events
   }
 
+  def imagePullWithUrl(
+    url: URL,
+    tag: Option[String] = None,
+    repositoryName: Option[String] = None,
+    registry: Option[URL] = None,
+    registryAuth: Option[AuthConfig] = None
+  ) = {
+    val params = Map(
+      "fromSrc" -> url.toString,
+      "tag" -> tag.toParam(),
+      "repo" -> repositoryName.toParam(),
+      "registry" -> registry.map(_.toString).toParam()
+    )
+    val headers = AuthConfig.mapToHeaders(registryAuth)
+    apiRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
+    // TODO: parse json events
+  }
+
+  def imagePullWithStream(
+    source: Source[ByteString, Any],
+    tag: Option[String] = None,
+    repositoryName: Option[String] = None,
+    registry: Option[URL] = None,
+    registryAuth: Option[AuthConfig] = None
+  ) = {
+    val params = Map(
+      "fromSrc" -> "-",
+      "tag" -> tag.toParam(),
+      "repo" -> repositoryName.toParam(),
+      "registry" -> registry.map(_.toString).toParam()
+    )
+    val entity = requestTarEntity(source)
+    val headers = AuthConfig.mapToHeaders(registryAuth)
+    apiRequestAsSource(HttpMethods.POST, s"/images/create", params, entity, headers = headers)
+    // TODO: parse json events
+  }
+
+  def imageInspect(id: String) =
+    apiJsonRequest(HttpMethods.GET, s"/images/$id/json")
+      .map(_.convertTo[ImageInspect])
+
 }

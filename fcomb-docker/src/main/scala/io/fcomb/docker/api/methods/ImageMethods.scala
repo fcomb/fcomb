@@ -1,5 +1,6 @@
 package io.fcomb.docker.api.methods
 
+import ContainerMethods.{GraphDriverData, RunConfig}
 import akka.http.scaladsl.model.headers.RawHeader
 import scala.collection.immutable
 import spray.json._
@@ -11,8 +12,8 @@ object ImageMethods {
   final case class ImageItem(
     id: String,
     parentId: Option[String],
-    repoTags: List[String],
-    repoDigests: List[String],
+    repositoryTags: List[String],
+    repositoryDigests: List[String],
     createdAt: ZonedDateTime,
     size: Long,
     virtualSize: Long,
@@ -73,4 +74,24 @@ object ImageMethods {
           immutable.Seq.empty
       }
   }
+
+  final case class ImageInspect(
+    id: String,
+    repositoryTags: List[String],
+    repositoryDigests: List[String],
+    parentId: Option[String],
+    comment: Option[String],
+    createdAt: ZonedDateTime,
+    containerId: Option[String],
+    containerConfig: RunConfig,
+    dockerVersion: String,
+    author: Option[String],
+    config: RunConfig,
+    architecture: String,
+    os: String,
+    size: Option[Long],
+    virtualSize: Long,
+    graphDriver: GraphDriverData
+  ) extends DockerApiResponse
+
 }

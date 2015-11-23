@@ -70,4 +70,36 @@ package object json {
         case x => deserializationError(s"Expected Map as JsObject, but got $x")
       }
     }
+
+  object ZeroOptLongFormat extends RootJsonFormat[Option[Long]] {
+    def write(opt: Option[Long]) = opt match {
+      case Some(n) if n > 0L => JsNumber(n)
+      case _ => JsNumber(0)
+    }
+
+    def read(v: JsValue) = v match {
+      case JsNumber(jn) => jn.toLong match {
+        case 0L => None
+        case n => Some(n)
+      }
+      case JsNull => None
+      case x => deserializationError(s"Expected value as JsNumber, but got $x")
+    }
+  }
+
+  object ZeroOptIntFormat extends RootJsonFormat[Option[Int]] {
+    def write(opt: Option[Int]) = opt match {
+      case Some(n) if n > 0 => JsNumber(n)
+      case _ => JsNumber(0)
+    }
+
+    def read(v: JsValue) = v match {
+      case JsNumber(jn) => jn.toInt match {
+        case 0 => None
+        case n => Some(n)
+      }
+      case JsNull => None
+      case x => deserializationError(s"Expected value as JsNumber, but got $x")
+    }
+  }
 }
