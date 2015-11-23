@@ -18,4 +18,8 @@ private[api] object ImageMethodsFormat {
       case (k, v) => k.toString -> v.toJson
     })
   }
+
+  implicit val authConfigFormat =
+    jsonFormat(AuthConfig.apply, "username", "password",
+      "email", "serveraddress")
 }

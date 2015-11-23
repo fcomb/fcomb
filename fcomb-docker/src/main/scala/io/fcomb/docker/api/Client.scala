@@ -11,7 +11,7 @@ import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.stream.io.Framing
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{UpgradeProtocol, Upgrade, RawHeader}
+import akka.http.scaladsl.model.headers.{UpgradeProtocol, Upgrade}
 import akka.http.scaladsl.Http
 import akka.util.ByteString
 import scala.concurrent.Future
@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory
 import org.apache.commons.codec.binary.Base64
 import java.nio.ByteOrder
 import java.time.ZonedDateTime
+import java.net.URL
 
 final class Client(val host: String, val port: Int)(
   implicit
@@ -371,14 +372,27 @@ final class Client(val host: String, val port: Int)(
       "cpuquota" -> cpuQuota.toParam()
     ) ++ RemoveMode.mapToParams(removeMode)
     val entity = requestTarEntity(source)
-    val headers = registryConfig match {
-      case Some(config) =>
-        val value = Base64.encodeBase64String(config.toJson.compactPrint.getBytes)
-        immutable.Seq(RawHeader("X-Registry-Config", value))
-      case None => immutable.Seq.empty
-    }
+    val headers = RegistryConfig.mapToHeaders(registryConfig)
     apiRequestAsSource(HttpMethods.POST, s"/build", params, entity, headers = headers)
-      // TODO: parse json events
+    // TODO: parse json events
+  }
+
+  def imagePull(
+    name: String,
+    tag: Option[String] = None,
+    repositoryName: Option[String] = None,
+    registry: Option[URL] = None,
+    registryAuth: Option[AuthConfig] = None
+  ) = {
+    val params = Map(
+      "fromImage" -> name,
+      "tag" -> tag.toParam(),
+      "repo" -> repositoryName.toParam(),
+      "registry" -> registry.map(_.toString).toParam()
+    )
+    val headers = AuthConfig.mapToHeaders(registryAuth)
+    apiRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
+    // TODO: parse json events
   }
 
 }

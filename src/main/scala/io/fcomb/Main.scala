@@ -41,8 +41,8 @@ object Main extends App {
 
   val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
 
-  dc.imageBuild(
-    source
+  dc.imagePull(
+    "nginx"
   ).onComplete {
     case Success(res) =>
       res.entity.dataBytes.runWith(Sink.foreach(bs => println(s"build: ${bs.utf8String}")))
