@@ -41,7 +41,7 @@ object Main extends App {
 
   val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
 
-  dc.imageInspect(
+  dc.imageHistory(
     "nginx"
   ).onComplete {
     case Success(res) =>

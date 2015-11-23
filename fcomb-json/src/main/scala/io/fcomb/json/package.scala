@@ -30,7 +30,7 @@ package object json {
       }
   }
 
-  implicit object UuidFormat extends RootJsonFormat[UUID] {
+  implicit object UuidFormat extends JsonFormat[UUID] {
     def write(u: UUID) = JsString(u.toString)
 
     def read(v: JsValue) = v match {
@@ -40,7 +40,7 @@ package object json {
     }
   }
 
-  implicit object LocalDateTimeFormat extends RootJsonFormat[LocalDateTime] {
+  implicit object LocalDateTimeFormat extends JsonFormat[LocalDateTime] {
     def write(d: LocalDateTime) = JsString(d.toString)
 
     def read(v: JsValue) = v match {
@@ -54,7 +54,7 @@ package object json {
     }
   }
 
-  implicit object ZonedDateTimeFormat extends RootJsonFormat[ZonedDateTime] {
+  implicit object ZonedDateTimeFormat extends JsonFormat[ZonedDateTime] {
     def write(d: ZonedDateTime) =
       JsString(d.withFixedOffsetZone().toString)
 
@@ -70,7 +70,7 @@ package object json {
   }
 
   def createStringEnumJsonFormat[T <: Enumeration](obj: T) =
-    new RootJsonFormat[T#Value] {
+    new JsonFormat[T#Value] {
       def write(obj: T#Value) = JsString(obj.toString)
 
       private val values = OpenHashMap(
@@ -90,7 +90,7 @@ package object json {
     }
 
   def createIntEnumJsonFormat[T <: Enumeration](obj: T) =
-    new RootJsonFormat[T#Value] {
+    new JsonFormat[T#Value] {
       def write(obj: T#Value) = JsNumber(obj.id)
 
       private val values = IntMap(
@@ -138,7 +138,7 @@ package object json {
   implicit val combMethodResponseJsonProtocol = jsonFormat7(CombMethodResponse)
 
   object errors {
-    implicit object JsonStatusCodeFormat extends RootJsonFormat[ErrorStatus.ErrorStatus] {
+    implicit object JsonStatusCodeFormat extends JsonFormat[ErrorStatus.ErrorStatus] {
       def write(status: ErrorStatus.ErrorStatus) = JsString(status.toString)
 
       def read(v: JsValue) = throw new NotImplementedError

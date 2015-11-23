@@ -39,11 +39,6 @@ object HijackTcp {
     val httpResponseResult = Promise[HttpResponse]()
     val httpResponseFlow = responseFlow.map(_ => ByteString.empty)
 
-    val requestRendererFactory = new HttpRequestRendererFactory(
-      settings.userAgentHeader,
-      settings.requestHeaderSizeHint,
-      sys.log
-    )
     val renderedInitialRequest = HttpRequestRendererFactory.renderStrict(
       RequestRenderingContext(request, Host(serverAddress)), settings, sys.log
     )

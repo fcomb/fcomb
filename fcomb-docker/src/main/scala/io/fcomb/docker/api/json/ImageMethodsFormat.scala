@@ -48,4 +48,20 @@ private[api] object ImageMethodsFormat {
       case x => deserializationError(s"Expected JsObject, but got $x")
     }
   }
+
+  implicit object ImageHistoryFormat extends RootJsonFormat[ImageHistory] {
+    def read(v: JsValue) = v match {
+      case obj: JsObject => ImageHistory(
+        id = obj.get[String]("Id"),
+        createdAt = obj.get[LocalDateTime]("Created"),
+        createdBy = obj.get[String]("CreatedBy"),
+        tags = obj.getList[String]("Tags"),
+        size = obj.getOpt[Long]("Size")(ZeroOptLongFormat),
+        comment = obj.getOpt[String]("Comment")
+      )
+      case x => deserializationError(s"Expected JsObject, but got $x")
+    }
+
+    def write(m: ImageHistory) = throw new NotImplementedError
+  }
 }

@@ -31,7 +31,7 @@ private[api] trait ApiConnection {
   import sys.dispatcher
 
   // TODO: add TLS
-  private def connectionFlow(duration: Option[Duration] = None) = {
+  private def connectionFlow(duration: Option[Duration]) = {
     val settings = duration.foldLeft(ClientConnectionSettings(sys)) {
       (s, d) => s.copy(idleTimeout = d)
     } match { // TODO: https://github.com/akka/akka/issues/16468

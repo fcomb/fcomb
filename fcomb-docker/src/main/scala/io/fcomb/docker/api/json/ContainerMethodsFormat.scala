@@ -131,7 +131,7 @@ private[api] object ContainerMethodsFormat {
     }
   }
 
-  object MemorySwapFormat extends RootJsonFormat[Option[Long]] {
+  object MemorySwapFormat extends JsonFormat[Option[Long]] {
     def write(opt: Option[Long]) = opt match {
       case Some(n) if n >= 0 => JsNumber(n)
       case _ => JsNumber(-1)

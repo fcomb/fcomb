@@ -661,31 +661,6 @@ object ContainerMethods {
     path: String
   ) extends DockerApiResponse
 
-  final case class ImageHistory(
-    id: String,
-    created: Long,
-    createdBy: String,
-    tags: List[String],
-    size: Long,
-    comment: String
-  )
-
-  final case class ImageDelete(
-    untagged: String,
-    deleted: String
-  )
-
-  final case class Image(
-    id: String,
-    parentId: String,
-    repositoryTags: List[String],
-    repositoryDigests: List[String],
-    created: Int,
-    size: Int,
-    virtualSize: Int,
-    labels: Map[String, String]
-  )
-
   final case class GraphDriverData(
     name: String,
     data: Map[String, String]

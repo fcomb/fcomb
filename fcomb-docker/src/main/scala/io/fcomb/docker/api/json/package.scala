@@ -6,7 +6,7 @@ import io.fcomb.json._
 import java.time.{LocalDateTime, ZonedDateTime}
 
 package object json {
-  implicit object OptStringFormat extends RootJsonFormat[Option[String]] {
+  implicit object OptStringFormat extends JsonFormat[Option[String]] {
     def write(o: Option[String]) = o match {
       case Some(s) => JsString(s)
       case None => JsNull
@@ -21,7 +21,7 @@ package object json {
     }
   }
 
-  implicit object OptZonedDateTimeFormat extends RootJsonFormat[Option[ZonedDateTime]] {
+  implicit object OptZonedDateTimeFormat extends JsonFormat[Option[ZonedDateTime]] {
     def write(o: Option[ZonedDateTime]) = o match {
       case Some(d) => JsString(d.toString)
       case None => JsNull
@@ -71,7 +71,7 @@ package object json {
       }
     }
 
-  object ZeroOptLongFormat extends RootJsonFormat[Option[Long]] {
+  object ZeroOptLongFormat extends JsonFormat[Option[Long]] {
     def write(opt: Option[Long]) = opt match {
       case Some(n) if n > 0L => JsNumber(n)
       case _ => JsNumber(0)
@@ -87,7 +87,7 @@ package object json {
     }
   }
 
-  object ZeroOptIntFormat extends RootJsonFormat[Option[Int]] {
+  object ZeroOptIntFormat extends JsonFormat[Option[Int]] {
     def write(opt: Option[Int]) = opt match {
       case Some(n) if n > 0 => JsNumber(n)
       case _ => JsNumber(0)

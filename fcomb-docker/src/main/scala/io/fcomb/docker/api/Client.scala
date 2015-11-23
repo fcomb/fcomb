@@ -436,4 +436,7 @@ final class Client(val host: String, val port: Int)(
     apiJsonRequest(HttpMethods.GET, s"/images/$id/json")
       .map(_.convertTo[ImageInspect])
 
+  def imageHistory(id: String) =
+    apiJsonRequest(HttpMethods.GET, s"/images/$id/history")
+      .map(_.convertTo[List[ImageHistory]])
 }
