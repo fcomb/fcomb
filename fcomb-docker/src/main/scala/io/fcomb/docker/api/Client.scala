@@ -295,7 +295,7 @@ final class Client(val host: String, val port: Int)(
   }
 
   private def parseContainerPathStat(headers: Seq[HttpHeader]) = {
-    headers.find(_.name == "X-Docker-Container-Path-Stat").map { header =>
+    headers.find(_.is("x-docker-container-path-stat")).map { header =>
       val json = new String(Base64.decodeBase64(header.value))
       json.parseJson.convertTo[ContainerPathStat]
     }
