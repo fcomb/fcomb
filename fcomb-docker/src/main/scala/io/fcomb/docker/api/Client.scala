@@ -52,7 +52,7 @@ final class Client(val host: String, val port: Int)(
     limit: Option[Int] = None,
     beforeId: Option[String] = None,
     sinceId: Option[String] = None,
-    filters: Map[String, String] = Map.empty
+    filters: Map[String, List[String]] = Map.empty
   ) = {
     val params = Map(
       "all" -> showAll.toString,
@@ -354,7 +354,7 @@ final class Client(val host: String, val port: Int)(
 
   def images(
     showAll: Boolean = false,
-    filters: Map[String, String] = Map.empty,
+    filters: Map[String, List[String]] = Map.empty,
     withName: Option[String] = None
   ) = {
     val params = Map(
