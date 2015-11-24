@@ -4,8 +4,10 @@ import ParamHelpers._
 import io.fcomb.docker.api.methods._
 import io.fcomb.docker.api.methods.ContainerMethods._
 import io.fcomb.docker.api.methods.ImageMethods._
+import io.fcomb.docker.api.methods.MiscMethods._
 import io.fcomb.docker.api.json.ContainerMethodsFormat._
 import io.fcomb.docker.api.json.ImageMethodsFormat._
+import io.fcomb.docker.api.json.MiscMethodsFormat._
 import akka.actor.ActorSystem
 import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
@@ -403,8 +405,8 @@ final class Client(val host: String, val port: Int)(
 
   def imagePull(
     name: String,
-    tag: Option[String] = None,
     repositoryName: Option[String] = None,
+    tag: Option[String] = None,
     registry: Option[Registry] = None,
     registryAuth: Option[AuthConfig] = None
   ) = {
@@ -421,8 +423,8 @@ final class Client(val host: String, val port: Int)(
 
   def imagePullWithUrl(
     url: URL,
-    tag: Option[String] = None,
     repositoryName: Option[String] = None,
+    tag: Option[String] = None,
     registry: Option[Registry] = None,
     registryAuth: Option[AuthConfig] = None
   ) = {
@@ -439,8 +441,8 @@ final class Client(val host: String, val port: Int)(
 
   def imagePullWithStream(
     source: Source[ByteString, Any],
-    tag: Option[String] = None,
     repositoryName: Option[String] = None,
+    tag: Option[String] = None,
     registry: Option[Registry] = None,
     registryAuth: Option[AuthConfig] = None
   ) = {
@@ -511,4 +513,39 @@ final class Client(val host: String, val port: Int)(
   def imageSearch(term: String) =
     apiJsonRequest(HttpMethods.GET, "/images/search", Map("term" -> term))
       .map(_.convertTo[List[ImageSearchResult]])
+
+  def imageCommit(
+    containerId: String,
+    repositoryName: Option[String] = None,
+    tag: Option[String] = None,
+    comment: Option[String] = None,
+    author: Option[String] = None,
+    withPause: Boolean = false,
+    changes: List[String] = List.empty,
+    config: Option[RunConfig] = None
+  ) = {
+    val params = Map(
+      "container" -> containerId,
+      "repo" -> repositoryName.toParam(),
+      "tag" -> tag.toParam(),
+      "comment" -> comment.toParam(),
+      "author" -> author.toParam(),
+      "pause" -> withPause.toString,
+      "changes" -> changes.mkString("\n")
+    )
+    val entity = config match {
+      case Some(c) => requestJsonEntity(c)
+      case None => HttpEntity.Empty
+    }
+    apiJsonRequest(HttpMethods.POST, "/commit", params, entity)
+      .map(_.convertTo[ContainerCommitResponse])
+  }
+
+  def auth(config: AuthConfig) =
+    apiRequestAsSource(HttpMethods.POST, "/auth", entity = requestJsonEntity(config))
+      .map(_ => ())
+
+  def ping() =
+    apiRequestAsSource(HttpMethods.GET, "/_ping")
+      .map(_ => ())
 }

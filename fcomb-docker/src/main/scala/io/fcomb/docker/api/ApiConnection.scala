@@ -84,7 +84,7 @@ private[api] trait ApiConnection {
       }
   }
 
-  protected def requestJsonEntity[T <: DockerApiRequest](body: T)(
+  protected def requestJsonEntity[T](body: T)(
     implicit jw: JsonWriter[T]
   ) =
     HttpEntity(`application/json`, body.toJson.compactPrint)

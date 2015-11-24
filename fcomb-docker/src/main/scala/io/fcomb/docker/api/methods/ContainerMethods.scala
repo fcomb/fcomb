@@ -4,61 +4,6 @@ import spray.json.deserializationError
 import java.time.{LocalDateTime, ZonedDateTime}
 
 object ContainerMethods {
-  final case class IndexInfo(
-    name: String,
-    mirrors: List[String],
-    isSecure: Boolean,
-    isOfficial: Boolean
-  )
-
-  final case class ServiceConfig(
-    insecureRegistryCidrs: List[String],
-    indexConfigs: Map[String, IndexInfo]
-  )
-
-  final case class Information(
-    id: String,
-    continers: Int,
-    images: Int,
-    driver: String,
-    driverStatus: List[List[String]],
-    isMemoryLimit: Boolean,
-    isSwapLimit: Boolean,
-    isCpuCfsPeriod: Boolean,
-    isCpuCfsQuota: Boolean,
-    isIpv4Forwarding: Boolean,
-    isBridgeNfIptables: Boolean,
-    isBridgeNfIp6tables: Boolean,
-    isDebug: Boolean,
-    fileDescriptors: Int,
-    isOomKillDisable: Boolean,
-    goroutines: Int,
-    systemTime: ZonedDateTime,
-    executionDriver: String,
-    loggingDriver: Option[String],
-    eventsListeners: Int,
-    kernelVersion: String,
-    operatingSystem: String,
-    indexServerAddress: String,
-    registryConfig: Option[ServiceConfig],
-    initSha1: String,
-    initPath: String,
-    cpus: Int,
-    memory: Long,
-    dockerRootDir: String,
-    httpProxy: Option[String],
-    httpsProxy: Option[String],
-    noProxy: Option[String],
-    name: Option[String],
-    labels: Map[String, String],
-    isExperimentalBuild: Boolean
-  ) extends DockerApiResponse
-
-  final case class ExecStartCheck(
-    isDetach: Boolean,
-    isTty: Boolean
-  )
-
   final case class ContainerState(
     isRunning: Boolean,
     isPaused: Boolean,
@@ -177,18 +122,6 @@ object ContainerMethods {
   final case class ContainerProcessList(
     processes: List[List[String]],
     titles: List[String]
-  )
-
-  final case class Version(
-    version: String,
-    apiVersion: String,
-    gitCommit: String,
-    goVersion: String,
-    os: String,
-    arch: String,
-    kernelVersion: Option[String],
-    experimental: Option[Boolean],
-    buildTime: Option[String]
   )
 
   sealed trait VolumeBindPath extends MapToString
@@ -549,7 +482,7 @@ object ContainerMethods {
     isStdinOnce: Boolean = false,
     env: List[String] = List.empty,
     command: List[String] = List.empty,
-    image: String,
+    image: Option[String],
     volumes: Map[String, Unit] = Map.empty,
     volumeDriver: Option[String] = None,
     workingDirectory: Option[String] = None,

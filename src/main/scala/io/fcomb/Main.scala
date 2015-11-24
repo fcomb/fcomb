@@ -37,11 +37,12 @@ object Main extends App {
   import akka.stream.scaladsl._
   import akka.stream.io._
   import io.fcomb.docker.api.Client, Client._
-  import io.fcomb.docker.api.methods.ImageMethods._
+  import io.fcomb.docker.api.methods.ContainerMethods._
+  import io.fcomb.docker.api.methods.MiscMethods._
   val dc = new Client("coreos", 2375)
   // val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
-  dc.imageSearch(
-    "ubuntu"
+  dc.imageCommit(
+    "ubuntu_tty"
   ).onComplete {
     case Success(res) =>
       // res.entity.dataBytes.runWith(Sink.foreach(bs => println(s"build: ${bs.utf8String}")))

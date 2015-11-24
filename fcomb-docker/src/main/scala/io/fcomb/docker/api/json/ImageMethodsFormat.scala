@@ -21,10 +21,6 @@ private[api] object ImageMethodsFormat {
     })
   }
 
-  implicit val authConfigFormat =
-    jsonFormat(AuthConfig.apply, "username", "password",
-      "email", "serveraddress")
-
   implicit object ImageInspectFormat extends RootJsonReader[ImageInspect] {
     def read(v: JsValue) = v match {
       case obj: JsObject => ImageInspect(
@@ -68,5 +64,4 @@ private[api] object ImageMethodsFormat {
   implicit val imageSearchResultFormat =
     jsonFormat(ImageSearchResult, "description", "is_official", "is_automated",
       "name", "star_count")
-
 }

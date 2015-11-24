@@ -39,9 +39,6 @@ object ImageMethods {
     password: String
   )
 
-  private def mapToJsonAsBase64[T](obj: T)(implicit jw: JsonWriter[T]) =
-    Base64.encodeBase64String(obj.toJson.compactPrint.getBytes)
-
   object RegistryConfig {
     import io.fcomb.docker.api.json.ImageMethodsFormat.RegistryConfigFormat
 
@@ -53,27 +50,6 @@ object ImageMethods {
         case None =>
           immutable.Seq.empty
       }
-  }
-
-  final case class AuthConfig(
-    username: String,
-    password: String,
-    email: Option[String],
-    serverAddress: String
-  ) extends DockerApiResponse
-
-  object AuthConfig {
-    import io.fcomb.docker.api.json.ImageMethodsFormat.authConfigFormat
-
-    private val emptyConfig = Base64.encodeBase64String(JsObject().compactPrint.getBytes)
-
-    def mapToHeaders(configOpt: Option[AuthConfig]) = {
-      val value = configOpt match {
-        case Some(config) => mapToJsonAsBase64(config)
-        case None => emptyConfig
-      }
-      immutable.Seq(RawHeader("X-Registry-Auth", value))
-    }
   }
 
   final case class ImageInspect(

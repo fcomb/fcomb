@@ -1,5 +1,8 @@
 package io.fcomb.docker.api
 
+import spray.json._
+import org.apache.commons.codec.binary.Base64
+
 package object methods {
   sealed trait DockerApiMethod
 
@@ -28,4 +31,7 @@ package object methods {
   trait MapToString {
     def mapToString(): String
   }
+
+  private[api] def mapToJsonAsBase64[T](obj: T)(implicit jw: JsonWriter[T]) =
+    Base64.encodeBase64String(obj.toJson.compactPrint.getBytes)
 }
