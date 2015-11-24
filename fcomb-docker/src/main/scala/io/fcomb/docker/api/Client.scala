@@ -494,4 +494,21 @@ final class Client(val host: String, val port: Int)(
     apiRequestAsSource(HttpMethods.POST, s"/images/$id/tag", params)
       .map(_ => ())
   }
+
+  def imageRemove(
+    id: String,
+    withPrune: Boolean = true,
+    withForce: Boolean = false
+  ) = {
+    val params = Map(
+      "noprune" -> (!withPrune).toString(),
+      "force" -> withForce.toString()
+    )
+    apiRequestAsSource(HttpMethods.DELETE, s"/images/$id", params)
+      .map(_ => ())
+  }
+
+  def imageSearch(term: String) =
+    apiJsonRequest(HttpMethods.GET, "/images/search", Map("term" -> term))
+      .map(_.convertTo[List[ImageSearchResult]])
 }

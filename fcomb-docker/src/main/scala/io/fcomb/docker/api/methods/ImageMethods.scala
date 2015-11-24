@@ -129,4 +129,12 @@ object ImageMethods {
       if (url.getPort == -1) url.getHost()
       else s"${url.getHost}:${url.getPort}"
   }
+
+  final case class ImageSearchResult(
+    description: Option[String],
+    isOfficial: Boolean,
+    isAutomated: Boolean,
+    name: String,
+    starCount: Int
+  )
 }

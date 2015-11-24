@@ -64,4 +64,9 @@ private[api] object ImageMethodsFormat {
 
     def write(m: ImageHistory) = throw new NotImplementedError
   }
+
+  implicit val imageSearchResultFormat =
+    jsonFormat(ImageSearchResult, "description", "is_official", "is_automated",
+      "name", "star_count")
+
 }
