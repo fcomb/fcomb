@@ -1,5 +1,7 @@
 package io.fcomb.docker.api
 
+import methods.ImageMethods.Registry
+
 private[api] object ParamHelpers {
   implicit class OptionStringHelpers(val opt: Option[String]) extends AnyVal {
     def toParam(default: String = "") =
@@ -23,5 +25,10 @@ private[api] object ParamHelpers {
 
     def toMemorySwapParam() =
       opt.getOrElse(-1L).toString
+  }
+
+  implicit class OptionRegistryHelpers(val opt: Option[Registry]) extends AnyVal {
+    def toParam() =
+      opt.map(_.toParam).getOrElse("")
   }
 }

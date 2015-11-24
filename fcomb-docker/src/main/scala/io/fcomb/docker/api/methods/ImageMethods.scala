@@ -65,14 +65,15 @@ object ImageMethods {
   object AuthConfig {
     import io.fcomb.docker.api.json.ImageMethodsFormat.authConfigFormat
 
-    def mapToHeaders(configOpt: Option[AuthConfig]) =
-      configOpt match {
-        case Some(config) =>
-          val value = mapToJsonAsBase64(config)
-          immutable.Seq(RawHeader("X-Registry-Auth", value))
-        case None =>
-          immutable.Seq.empty
+    private val emptyConfig = Base64.encodeBase64String(JsObject().compactPrint.getBytes)
+
+    def mapToHeaders(configOpt: Option[AuthConfig]) = {
+      val value = configOpt match {
+        case Some(config) => mapToJsonAsBase64(config)
+        case None => emptyConfig
       }
+      immutable.Seq(RawHeader("X-Registry-Auth", value))
+    }
   }
 
   final case class ImageInspect(
@@ -118,4 +119,14 @@ object ImageMethods {
     virtualSize: Int,
     labels: Map[String, String]
   )
+
+  final case class Registry(name: String) {
+    val url =
+      if (name.toLowerCase.startsWith("http")) new URL(name)
+      else new URL(s"http://$name")
+
+    def toParam() =
+      if (url.getPort == -1) url.getHost()
+      else s"${url.getHost}:${url.getPort}"
+  }
 }

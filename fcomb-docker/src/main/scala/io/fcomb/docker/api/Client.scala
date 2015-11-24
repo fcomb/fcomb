@@ -302,11 +302,11 @@ final class Client(val host: String, val port: Int)(
 
   def containerRemove(
     id: String,
-    force: Boolean = false,
+    withForce: Boolean = false,
     withVolumes: Boolean = false
   ) = {
     val params = Map(
-      "force" -> force.toString,
+      "force" -> withForce.toString,
       "v" -> withVolumes.toString
     )
     apiRequestAsSource(HttpMethods.DELETE, s"/containers/$id", params)
@@ -405,14 +405,14 @@ final class Client(val host: String, val port: Int)(
     name: String,
     tag: Option[String] = None,
     repositoryName: Option[String] = None,
-    registry: Option[URL] = None,
+    registry: Option[Registry] = None,
     registryAuth: Option[AuthConfig] = None
   ) = {
     val params = Map(
       "fromImage" -> name,
       "tag" -> tag.toParam(),
       "repo" -> repositoryName.toParam(),
-      "registry" -> registry.map(_.toString).toParam()
+      "registry" -> registry.toParam()
     )
     val headers = AuthConfig.mapToHeaders(registryAuth)
     apiRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
@@ -423,14 +423,14 @@ final class Client(val host: String, val port: Int)(
     url: URL,
     tag: Option[String] = None,
     repositoryName: Option[String] = None,
-    registry: Option[URL] = None,
+    registry: Option[Registry] = None,
     registryAuth: Option[AuthConfig] = None
   ) = {
     val params = Map(
       "fromSrc" -> url.toString,
       "tag" -> tag.toParam(),
       "repo" -> repositoryName.toParam(),
-      "registry" -> registry.map(_.toString).toParam()
+      "registry" -> registry.toParam()
     )
     val headers = AuthConfig.mapToHeaders(registryAuth)
     apiRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
@@ -441,18 +441,18 @@ final class Client(val host: String, val port: Int)(
     source: Source[ByteString, Any],
     tag: Option[String] = None,
     repositoryName: Option[String] = None,
-    registry: Option[URL] = None,
+    registry: Option[Registry] = None,
     registryAuth: Option[AuthConfig] = None
   ) = {
     val params = Map(
       "fromSrc" -> "-",
       "tag" -> tag.toParam(),
       "repo" -> repositoryName.toParam(),
-      "registry" -> registry.map(_.toString).toParam()
+      "registry" -> registry.toParam()
     )
     val entity = requestTarEntity(source)
     val headers = AuthConfig.mapToHeaders(registryAuth)
-    apiRequestAsSource(HttpMethods.POST, s"/images/create", params, entity, headers = headers)
+    apiRequestAsSource(HttpMethods.POST, "/images/create", params, entity, headers = headers)
     // TODO: parse json events
   }
 
@@ -463,4 +463,35 @@ final class Client(val host: String, val port: Int)(
   def imageHistory(id: String) =
     apiJsonRequest(HttpMethods.GET, s"/images/$id/history")
       .map(_.convertTo[List[ImageHistory]])
+
+  def imagePush(
+    id: String,
+    tag: Option[String] = None,
+    registry: Option[Registry] = None,
+    registryAuth: Option[AuthConfig] = None
+  ) = {
+    val params = Map("tag" -> tag.toParam())
+    val headers = AuthConfig.mapToHeaders(registryAuth)
+    val name = registry match {
+      case Some(r) => s"${r.toParam}/$id"
+      case None => id
+    }
+    apiRequestAsSource(HttpMethods.POST, s"/images/$name/push", params, headers = headers)
+    // TODO: parse json events
+  }
+
+  def imageTag(
+    id: String,
+    repositoryName: String,
+    tag: Option[String] = None,
+    withForce: Boolean = false
+  ) = {
+    val params = Map(
+      "tag" -> tag.toParam(),
+      "repo" -> repositoryName,
+      "force" -> withForce.toString
+    )
+    apiRequestAsSource(HttpMethods.POST, s"/images/$id/tag", params)
+      .map(_ => ())
+  }
 }

@@ -75,6 +75,7 @@ private[api] trait ApiConnection {
               case 403 => throw new PermissionDeniedException(msg)
               case 404 => throw new ResouceOrContainerNotFoundException(msg)
               case 406 => throw new ImpossibleToAttachException(msg)
+              case 409 => throw new ConflictException(msg)
               case 500 => throw new ServerErrorException(msg)
               case _ => throw new UnknownException(msg)
             }

@@ -37,16 +37,19 @@ object Main extends App {
   import akka.stream.scaladsl._
   import akka.stream.io._
   import io.fcomb.docker.api.Client, Client._
+  import io.fcomb.docker.api.methods.ImageMethods._
   val dc = new Client("coreos", 2375)
   // val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
-  dc.imageHistory(
-    "nginx"
+  dc.imagePush(
+    "ubuntu",
+    None,
+    Some(Registry("0.0.0.0:5000"))
   ).onComplete {
     case Success(res) =>
-      // res.entity.dataBytes.runWith(Sink.foreach(bs => println(s"build: ${bs.utf8String}")))
+      res.entity.dataBytes.runWith(Sink.foreach(bs => println(s"build: ${bs.utf8String}")))
       // val sink = SynchronousFileSink(new java.io.File("/tmp/etc.tar"))
       // res.runWith(sink).onComplete(println)
-      println(res)
+      // println(res)
     case Failure(e) =>
       e.printStackTrace()
       println(e)

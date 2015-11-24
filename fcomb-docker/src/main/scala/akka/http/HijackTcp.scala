@@ -30,7 +30,7 @@ object HijackTcp {
   )(
     implicit
     sys: akka.actor.ActorSystem, mat: Materializer
-  ): Future[Unit] = {
+  ) = {
     import sys.dispatcher
 
     val serverAddress = new InetSocketAddress(hostname, port)
@@ -73,11 +73,8 @@ object HijackTcp {
     val tcpFlow = Tcp().outgoingConnection(serverAddress, None, settings.socketOptions,
       halfClose = true, settings.connectingTimeout, settings.idleTimeout)
 
-    g
-      .joinMat(tcpFlow)(Keep.right)
+    g.joinMat(tcpFlow)(Keep.right)
       .mapMaterializedValue(_.map(_ => ()))
-      .join(flow)
-      .run()
   }
 
   // def wstest()(implicit sys: akka.actor.ActorSystem, mat: Materializer) = {

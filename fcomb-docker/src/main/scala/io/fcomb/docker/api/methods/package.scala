@@ -23,6 +23,8 @@ package object methods {
 
   case class UnknownException(msg: String) extends DockerApiException
 
+  case class ConflictException(msg: String) extends DockerApiException
+
   trait MapToString {
     def mapToString(): String
   }
