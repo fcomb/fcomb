@@ -38,9 +38,7 @@ object Main extends App {
   import akka.stream.io._
   import io.fcomb.docker.api.Client, Client._
   val dc = new Client("coreos", 2375)
-
-  val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
-
+  // val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
   dc.imageHistory(
     "nginx"
   ).onComplete {

@@ -253,23 +253,47 @@ final class Client(val host: String, val port: Int)(
 
   val closeConnection = Promise[ByteString]()
   val source = Source(closeConnection.future).drop(1)
-  val sink = Sink.foreach[ByteString] { bs =>
-    println(s"sink: $bs, ${bs.utf8String}")
-  }
-  val pf = Flow.fromSinkAndSource(sink, source)
-  val settings = akka.http.ClientConnectionSettings(sys)
+  // val sink = Sink.foreach[ByteString] { bs =>
+  //   println(s"sink: $bs, ${bs.utf8String}")
+  // }
+  // val pf = Flow.fromSinkAndSource(sink, Source.tick(1.second, 1.second, ByteString("ls\r")) ++ source)
+  // val settings = akka.http.ClientConnectionSettings(sys)
 
-  val name = "ubuntu_tty" // "mongo"
-  val req = HttpRequest(
-    HttpMethods.POST,
-    s"/containers/$name/attach?stream=1&stdout=1&stderr=1&stdin=1",
-    headers = immutable.Seq(Upgrade(List(UpgradeProtocol("tcp"))))
-  )
+  // val name = "ubuntu_tty" // "mongo"
+  // val req = HttpRequest(
+  //   HttpMethods.POST,
+  //   s"/containers/$name/attach?stream=1&stdout=1&stderr=1&stdin=1",
+  //   headers = immutable.Seq(Upgrade(List(UpgradeProtocol("tcp"))))
+  // )
 
-  _root_.akka.http.HijackTcp.outgoingConnection("coreos", 2375, settings, req, pf)
-    .onComplete(mr => s"main result: $mr")
+  // _root_.akka.http.HijackTcp.outgoingConnection("localhost", 2376, settings, req, pf)
+  // .onComplete(mr => s"main result: $mr")
   // _root_.akka.http.HijackTcp.wstest()
 
+  import akka.stream.stage._
+  class CloseStage extends PushStage[ByteString, ByteString] {
+    def onPush(elem: ByteString, ctx: Context[ByteString]): SyncDirective =
+      ctx.push(elem)
+
+    override def onUpstreamFinish(ctx: Context[ByteString]): TerminationDirective = {
+      // println("onUpstreamFinish!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      // ???
+      ctx.fail(new Throwable("!!!!"))
+    }
+  }
+
+  val s = Source.tick(1.second, 1.second, ByteString("ls\r")) ++ source
+  val ff = Tcp()
+    .outgoingConnection("localhost", 2376)
+    .transform(() => new CloseStage())
+    .runWith(s, Sink.foreach(println))
+    ._2
+  ff.onComplete(mr => s"main result: $mr")
+  ff.recover {
+    case e: Throwable =>
+      println(s"e: $e")
+      ???
+  }
    */
 
   def containerWait(id: String) =
