@@ -415,7 +415,7 @@ private[api] object ContainerMethodsFormat {
     )
   }
 
-  implicit object ContainerBaseFormat extends RootJsonReader[ContainerBase] {
+  implicit object ContainerBaseFormat extends RootJsonFormat[ContainerBase] {
     def read(v: JsValue) = v match {
       case obj: JsObject => ContainerBase(
         id = obj.get[String]("Id"),
@@ -445,6 +445,8 @@ private[api] object ContainerMethodsFormat {
       )
       case x => deserializationError(s"Expected JsObject, but got $x")
     }
+
+    def write(c: ContainerBase) = throw new NotImplementedError
   }
 
   implicit val fileChangeKindFormat =
@@ -500,4 +502,21 @@ private[api] object ContainerMethodsFormat {
 
   implicit val containerCommitResponseFormat =
     jsonFormat(ContainerCommitResponse, "Id")
+
+  implicit val execConfigFormat =
+    jsonFormat(ExecConfig, "User", "Privileged", "Tty", "Container", "AttachStdin",
+      "AttachStderr", "AttachStdout", "Detach", "Cmd")
+
+  implicit val containerExecCreateResponseFormat =
+    jsonFormat(ContainerExecCreateResponse, "Id")
+
+  implicit val execStartCheckFormat =
+    jsonFormat(ExecStartCheck, "Detach", "Tty")
+
+  implicit val processConfigFormat =
+    jsonFormat(ProcessConfig, "Privileged", "User", "Tty", "Entrypoint", "Arguments")
+
+  implicit val execInspectFormat =
+    jsonFormat(ExecInspect, "ID", "Running", "ExitCode", "ProcessConfig", "OpenStdin",
+      "OpenStderr", "OpenStdout", "Container")
 }

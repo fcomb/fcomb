@@ -681,4 +681,40 @@ object ContainerMethods {
     networks: Option[Map[String, NetworkStats]],
     network: Option[NetworkStats]
   ) extends DockerApiResponse
+
+  final case class ExecConfig(
+    user: Option[String] = None,
+    isPrivileged: Boolean = false,
+    isTty: Boolean = false,
+    containerId: Option[String] = None,
+    isAttachStdin: Boolean = false,
+    isAttachStderr: Boolean = false,
+    isAttachStdout: Boolean = false,
+    isDetach: Boolean = false,
+    command: List[String]
+  )
+
+  final case class ExecStartCheck(
+    isDetach: Boolean,
+    isTty: Boolean
+  ) extends DockerApiRequest
+
+  final case class ProcessConfig(
+    isPrivileged: Boolean,
+	  user: Option[String],
+	  isTty: Boolean,
+	  entrypoint: Option[String],
+	  arguments: List[String]
+  )
+
+  final case class ExecInspect(
+    id: String,
+	  isRunning: Boolean,
+	  exitCode: Option[Int],
+	  processConfig: ProcessConfig,
+	  isOpenStdin: Boolean,
+	  isOpenStderr: Boolean,
+	  isOpenStdout: Boolean,
+	  container: ContainerBase
+  ) extends DockerApiResponse
 }

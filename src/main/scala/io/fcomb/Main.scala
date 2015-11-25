@@ -41,8 +41,8 @@ object Main extends App {
   import io.fcomb.docker.api.methods.MiscMethods._
   val dc = new Client("coreos", 2375)
   val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
-  dc.imagesLoad(
-    source
+  dc.execCreate(
+    "ubuntu_tty", ExecConfig(command = List("ls"))
   ).onComplete {
     case Success(res) =>
       // res.entity.dataBytes.runWith(Sink.foreach(bs => println(s"build: ${bs.utf8String}")))

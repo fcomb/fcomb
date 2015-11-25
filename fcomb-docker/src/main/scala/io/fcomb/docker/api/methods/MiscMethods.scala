@@ -57,11 +57,6 @@ object MiscMethods {
     isExperimentalBuild: Boolean
   ) extends DockerApiResponse
 
-  final case class ExecStartCheck(
-    isDetach: Boolean,
-    isTty: Boolean
-  )
-
   final case class Version(
     version: String,
     apiVersion: String,

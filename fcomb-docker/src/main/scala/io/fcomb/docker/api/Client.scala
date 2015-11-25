@@ -589,4 +589,32 @@ final class Client(val host: String, val port: Int)(
     apiRequestAsSource(HttpMethods.GET, "/events", params)
     // TODO: map events
   }
+
+  def execCreate(
+    containerId: String,
+    config: ExecConfig
+  ) = {
+    val entity = requestJsonEntity(config)
+    apiJsonRequest(HttpMethods.POST, s"/containers/$containerId/exec", entity = entity)
+      .map(_.convertTo[ContainerExecCreateResponse])
+  }
+
+  // TODO
+  // def execStart() = ???
+
+  // TODO
+  // def execStartAsStream() = ???
+
+  def execResizeTty(id: String, width: Int, height: Int) = {
+    val params = Map(
+      "w" -> width.toString,
+      "h" -> height.toString
+    )
+    apiRequestAsSource(HttpMethods.POST, s"/exec/$id/resize", params)
+      .map(_ => ())
+  }
+
+  def execInspect(id: String) =
+    apiJsonRequest(HttpMethods.POST, s"/exec/$id/json")
+      .map(_.convertTo[ExecConfig])
 }
