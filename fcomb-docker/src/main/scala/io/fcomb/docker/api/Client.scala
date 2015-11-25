@@ -12,6 +12,7 @@ import akka.actor.ActorSystem
 import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.stream.io.Framing
+import akka.http.HijackTcp
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{UpgradeProtocol, Upgrade}
 import akka.http.scaladsl.Http
@@ -27,7 +28,7 @@ import java.nio.ByteOrder
 import java.time.ZonedDateTime
 import java.net.URL
 
-final class Client(val host: String, val port: Int)(
+final class Client(val hostname: String, val port: Int)(
   implicit
   val sys: ActorSystem,
   val mat: Materializer
@@ -141,10 +142,10 @@ final class Client(val host: String, val port: Int)(
   def containerLogsAsStream(
     id: String,
     streams: Set[StdStream.StdStream],
-    idleTimeout: Duration,
     since: Option[ZonedDateTime] = None,
     showTimestamps: Boolean = false,
-    tail: Option[Int] = None
+    tail: Option[Int] = None,
+    idleTimeout: Duration = Duration.Inf
   ) = containerLogsAsSource(
     id = id,
     streams = streams,
@@ -216,34 +217,29 @@ final class Client(val host: String, val port: Int)(
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/unpause")
       .map(_ => ())
 
-  // TODO: add hijack tcp and ws
-  // def containerAttachAsStream(
-  //   id: String,
-  //   streams: Set[StdStream.StdStream],
-  //   idleTimeout: Duration,
-  //   stdin: Option[Source[ByteString, Any]] = None
-  // ) = {
-  //   val params = Map(
-  //     "stream" -> "true",
-  //     "stdout" -> streams.contains(StdStream.Out).toString,
-  //     "stderr" -> streams.contains(StdStream.Err).toString,
-  //     "stdin" -> stdin.nonEmpty.toString
-  //   )
-  //   apiRequestAsSource(
-  //     HttpMethods.POST,
-  //     s"/containers/$id/attach",
-  //     params,
-  //     idleTimeout = Some(idleTimeout),
-  //     upgradeProtocol = Some("tcp")
-  //   ).flatMap { e =>
-  //       println(e.isCloseDelimited(), e.isIndefiniteLength())
-  //       // .via(Framing.lengthField(4, 0, Int.MaxValue, ByteOrder.BIG_ENDIAN))
-  //       e.dataBytes.runForeach { bs =>
-  //         println(s"bs: $bs")
-  //         // print(bs.utf8String)
-  //       }
-  //     }
-  // }
+  private val upgradeHeaders =
+    immutable.Seq(Upgrade(List(UpgradeProtocol("tcp"))))
+
+  def containerAttachAsStream(
+    id: String,
+    streams: Set[StdStream.StdStream],
+    flow: Flow[ByteString, ByteString, Any],
+    idleTimeout: Duration = Duration.Inf
+  ) = {
+    val params = Map(
+      "stream" -> "true",
+      "stdout" -> streams.contains(StdStream.Out).toString,
+      "stderr" -> streams.contains(StdStream.Err).toString,
+      "stdin" -> streams.contains(StdStream.In).toString
+    )
+    val req = HttpRequest(
+      method = HttpMethods.POST,
+      uri = uriWithQuery(s"/containers/$id/attach", params),
+      headers = upgradeHeaders
+    )
+    val settings = clientSettings(Some(idleTimeout))
+    HijackTcp.outgoingConnection(hostname, port, settings, req, flow)
+  }
 
   /*
   import akka.stream.scaladsl._

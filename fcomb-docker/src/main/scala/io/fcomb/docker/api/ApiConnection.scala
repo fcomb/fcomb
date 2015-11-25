@@ -22,7 +22,7 @@ import org.slf4j.Logger
 private[api] trait ApiConnection {
   protected val logger: Logger
 
-  val host: String
+  val hostname: String
   val port: Int
 
   implicit val sys: ActorSystem
@@ -30,20 +30,22 @@ private[api] trait ApiConnection {
 
   import sys.dispatcher
 
-  // TODO: add TLS
-  private def connectionFlow(duration: Option[Duration]) = {
-    val settings = duration.foldLeft(ClientConnectionSettings(sys)) {
+  protected def clientSettings(duration: Option[Duration]) =
+    duration.foldLeft(ClientConnectionSettings(sys)) {
       (s, d) => s.copy(idleTimeout = d)
     } match { // TODO: https://github.com/akka/akka/issues/16468
       case s => s.copy(parserSettings = s.parserSettings.copy(
         maxContentLength = Long.MaxValue
       ))
     }
-    Http().outgoingConnection(host, port, settings = settings)
-      .buffer(10, OverflowStrategy.backpressure)
-  }
 
-  private def uriWithQuery(uri: Uri, queryParams: Map[String, String]) = {
+  // TODO: add TLS
+  private def connectionFlow(duration: Option[Duration]) =
+    Http()
+      .outgoingConnection(hostname, port, settings = clientSettings(duration))
+      .buffer(10, OverflowStrategy.backpressure)
+
+  protected def uriWithQuery(uri: Uri, queryParams: Map[String, String]) = {
     val q = uri.query() ++ queryParams.filter(_._2.nonEmpty)
     uri.withQuery(Uri.Query(q: _*))
   }
