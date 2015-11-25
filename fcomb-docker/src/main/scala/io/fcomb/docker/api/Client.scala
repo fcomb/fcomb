@@ -541,6 +541,27 @@ final class Client(val host: String, val port: Int)(
       .map(_.convertTo[ContainerCommitResponse])
   }
 
+  def imageGet(
+    id: String,
+    tag: Option[String] = None
+  ) = {
+    val name = tag match {
+      case Some(t) => s"$id:$t"
+      case None => id
+    }
+    apiRequestAsSource(HttpMethods.GET, s"/images/$name/get")
+      .map(_.entity.dataBytes)
+  }
+
+  def imagesGet(names: List[String]) = {
+    val q = names.foldRight(Seq.empty[(String, String)]) {
+      case (name, acc) => ("names", name) +: acc
+    }
+    val uri = Uri("/images/get").withQuery(Uri.Query(q: _*))
+    apiRequestAsSource(HttpMethods.GET, uri)
+      .map(_.entity.dataBytes)
+  }
+
   def auth(config: AuthConfig) =
     apiRequestAsSource(HttpMethods.POST, "/auth", entity = requestJsonEntity(config))
       .map(_ => ())

@@ -43,8 +43,10 @@ private[api] trait ApiConnection {
       .buffer(10, OverflowStrategy.backpressure)
   }
 
-  private def uriWithQuery(uri: Uri, queryParams: Map[String, String]) =
-    uri.withQuery(Uri.Query(queryParams.filter(_._2.nonEmpty)))
+  private def uriWithQuery(uri: Uri, queryParams: Map[String, String]) = {
+    val q = uri.query() ++ queryParams.filter(_._2.nonEmpty)
+    uri.withQuery(Uri.Query(q: _*))
+  }
 
   protected def apiRequestAsSource(
     method: HttpMethod,
@@ -85,7 +87,8 @@ private[api] trait ApiConnection {
   }
 
   protected def requestJsonEntity[T](body: T)(
-    implicit jw: JsonWriter[T]
+    implicit
+    jw: JsonWriter[T]
   ) =
     HttpEntity(`application/json`, body.toJson.compactPrint)
 
