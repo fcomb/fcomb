@@ -284,11 +284,11 @@ object ContainerMethods {
   sealed trait NetworkMode extends MapToString
 
   object NetworkMode {
-    final case object Bridge extends NetworkMode {
+    case object Bridge extends NetworkMode {
       def mapToString() = "bridge"
     }
 
-    final case object Host extends NetworkMode {
+    case object Host extends NetworkMode {
       def mapToString() = "host"
     }
 
@@ -296,11 +296,11 @@ object ContainerMethods {
       def mapToString() = s"container:$name"
     }
 
-    final case object None extends NetworkMode {
+    case object None extends NetworkMode {
       def mapToString() = "none"
     }
 
-    final case object Default extends NetworkMode {
+    case object Default extends NetworkMode {
       def mapToString() = "default"
     }
 
@@ -317,7 +317,7 @@ object ContainerMethods {
   sealed trait IpcMode extends MapToString
 
   object IpcMode {
-    final case object Host extends IpcMode {
+    case object Host extends IpcMode {
       def mapToString() = "host"
     }
 
@@ -335,7 +335,7 @@ object ContainerMethods {
   sealed trait UtsMode extends MapToString
 
   object UtsMode {
-    final case object Host extends UtsMode {
+    case object Host extends UtsMode {
       def mapToString() = "host"
     }
 
@@ -348,7 +348,7 @@ object ContainerMethods {
   sealed trait PidMode extends MapToString
 
   object PidMode {
-    final case object Host extends PidMode {
+    case object Host extends PidMode {
       def mapToString() = "host"
     }
 

@@ -106,25 +106,25 @@ object MiscMethods {
   }
 
   object ContainerEvent {
-    final case object Attach extends ContainerEvent("attach")
-    final case object Commit extends ContainerEvent("commit")
-    final case object Copy extends ContainerEvent("copy")
-    final case object Create extends ContainerEvent("create")
-    final case object Destroy extends ContainerEvent("destroy")
-    final case object Die extends ContainerEvent("die")
-    final case object ExecCreate extends ContainerEvent("exec_create")
-    final case object ExecStart extends ContainerEvent("exec_start")
-    final case object Export extends ContainerEvent("export")
-    final case object Kill extends ContainerEvent("kill")
-    final case object Oom extends ContainerEvent("oom")
-    final case object Pause extends ContainerEvent("pause")
-    final case object Rename extends ContainerEvent("rename")
-    final case object Resize extends ContainerEvent("resize")
-    final case object Restart extends ContainerEvent("restart")
-    final case object Start extends ContainerEvent("start")
-    final case object Stop extends ContainerEvent("stop")
-    final case object Top extends ContainerEvent("top")
-    final case object Unpause extends ContainerEvent("unpause")
+    case object Attach extends ContainerEvent("attach")
+    case object Commit extends ContainerEvent("commit")
+    case object Copy extends ContainerEvent("copy")
+    case object Create extends ContainerEvent("create")
+    case object Destroy extends ContainerEvent("destroy")
+    case object Die extends ContainerEvent("die")
+    case object ExecCreate extends ContainerEvent("exec_create")
+    case object ExecStart extends ContainerEvent("exec_start")
+    case object Export extends ContainerEvent("export")
+    case object Kill extends ContainerEvent("kill")
+    case object Oom extends ContainerEvent("oom")
+    case object Pause extends ContainerEvent("pause")
+    case object Rename extends ContainerEvent("rename")
+    case object Resize extends ContainerEvent("resize")
+    case object Restart extends ContainerEvent("restart")
+    case object Start extends ContainerEvent("start")
+    case object Stop extends ContainerEvent("stop")
+    case object Top extends ContainerEvent("top")
+    case object Unpause extends ContainerEvent("unpause")
 
     val all: Set[DockerEvent] = Set(Attach, Commit, Copy, Create, Destroy, Die,
       ExecCreate, ExecStart, Export, Kill, Oom, Pause, Rename,
@@ -132,12 +132,12 @@ object MiscMethods {
   }
 
   object ImageEvent {
-    final case object Delete extends ImageEvent("delete")
-    final case object Import extends ImageEvent("import")
-    final case object Pull extends ImageEvent("pull")
-    final case object Push extends ImageEvent("push")
-    final case object Tag extends ImageEvent("tag")
-    final case object Untag extends ImageEvent("untag")
+    case object Delete extends ImageEvent("delete")
+    case object Import extends ImageEvent("import")
+    case object Pull extends ImageEvent("pull")
+    case object Push extends ImageEvent("push")
+    case object Tag extends ImageEvent("tag")
+    case object Untag extends ImageEvent("untag")
 
     val all: Set[DockerEvent] = Set(Delete, Import, Pull, Push, Tag, Untag)
   }
