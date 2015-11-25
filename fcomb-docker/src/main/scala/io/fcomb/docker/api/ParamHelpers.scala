@@ -1,6 +1,7 @@
 package io.fcomb.docker.api
 
 import methods.ImageMethods.Registry
+import java.time.ZonedDateTime
 
 private[api] object ParamHelpers {
   implicit class OptionStringHelpers(val opt: Option[String]) extends AnyVal {
@@ -30,5 +31,10 @@ private[api] object ParamHelpers {
   implicit class OptionRegistryHelpers(val opt: Option[Registry]) extends AnyVal {
     def toParam() =
       opt.map(_.toParam).getOrElse("")
+  }
+
+  implicit class OptionZonedDateTimeHelpers(val opt: Option[ZonedDateTime]) extends AnyVal {
+    def toParamAsTimestamp() =
+      opt.map(_.toEpochSecond).toParam()
   }
 }

@@ -41,11 +41,11 @@ object Main extends App {
   import io.fcomb.docker.api.methods.MiscMethods._
   val dc = new Client("coreos", 2375)
   // val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
-  dc.imageCommit(
-    "ubuntu_tty"
+  dc.eventsAsStream(
+    filters = Map(EventKind.Event -> DockerEvent.all)
   ).onComplete {
     case Success(res) =>
-      // res.entity.dataBytes.runWith(Sink.foreach(bs => println(s"build: ${bs.utf8String}")))
+      res.entity.dataBytes.runWith(Sink.foreach(bs => println(s"build: ${bs.utf8String}")))
       // val sink = SynchronousFileSink(new java.io.File("/tmp/etc.tar"))
       // res.runWith(sink).onComplete(println)
       println(res)

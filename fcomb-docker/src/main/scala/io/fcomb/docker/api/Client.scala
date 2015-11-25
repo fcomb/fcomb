@@ -110,7 +110,7 @@ final class Client(val host: String, val port: Int)(
       "follow" -> stream.toString,
       "stdout" -> streams.contains(StdStream.Out).toString,
       "stderr" -> streams.contains(StdStream.Err).toString,
-      "since" -> since.map(_.toEpochSecond).toParam(0L),
+      "since" -> since.toParamAsTimestamp(),
       "timestamps" -> showTimestamps.toString,
       "tail" -> tail.map(_.toString).toParam("all")
     )
@@ -548,4 +548,18 @@ final class Client(val host: String, val port: Int)(
   def ping() =
     apiRequestAsSource(HttpMethods.GET, "/_ping")
       .map(_ => ())
+
+  def eventsAsStream(
+    since: Option[ZonedDateTime] = None,
+    until: Option[ZonedDateTime] = None,
+    filters: EventsFilter = Map.empty
+  ) = {
+    val params = Map(
+      "since" -> since.toParamAsTimestamp(),
+      "until" -> since.toParamAsTimestamp(),
+      "filters" -> EventsFitler.mapToParam(filters)
+    )
+    apiRequestAsSource(HttpMethods.GET, "/events", params)
+    // TODO: map events
+  }
 }
