@@ -562,6 +562,12 @@ final class Client(val host: String, val port: Int)(
       .map(_.entity.dataBytes)
   }
 
+  def imagesLoad(source: Source[ByteString, Any]) = {
+    val entity = requestTarEntity(source)
+    apiRequestAsSource(HttpMethods.POST, "/images/load", entity = entity)
+      .map(_ => ())
+  }
+
   def auth(config: AuthConfig) =
     apiRequestAsSource(HttpMethods.POST, "/auth", entity = requestJsonEntity(config))
       .map(_ => ())
