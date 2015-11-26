@@ -10,23 +10,14 @@ package object methods {
 
   trait DockerApiRequest extends DockerApiMethod
 
-  sealed trait DockerApiException extends Throwable {
-    val msg: String
-  }
-
-  case class BadParameterException(msg: String) extends DockerApiException
-
-  case class PermissionDeniedException(msg: String) extends DockerApiException
-
-  case class ServerErrorException(msg: String) extends DockerApiException
-
-  case class ResouceOrContainerNotFoundException(msg: String) extends DockerApiException
-
-  case class ImpossibleToAttachException(msg: String) extends DockerApiException
-
-  case class UnknownException(msg: String) extends DockerApiException
-
-  case class ConflictException(msg: String) extends DockerApiException
+  abstract class DockerApiException(msg: String) extends Throwable(msg)
+  case class BadParameterException(msg: String) extends DockerApiException(msg)
+  case class PermissionDeniedException(msg: String) extends DockerApiException(msg)
+  case class ServerErrorException(msg: String) extends DockerApiException(msg)
+  case class ResouceOrContainerNotFoundException(msg: String) extends DockerApiException(msg)
+  case class ImpossibleToAttachException(msg: String) extends DockerApiException(msg)
+  case class UnknownException(msg: String) extends DockerApiException(msg)
+  case class ConflictException(msg: String) extends DockerApiException(msg)
 
   trait MapToString {
     def mapToString(): String
