@@ -1,5 +1,6 @@
 package akka.http
 
+import akka.actor.ActorSystem
 import akka.http.impl.engine.parsing._
 import akka.http.impl.engine.parsing.HttpMessageParser.StateResult
 import akka.http.impl.engine.parsing.ParserOutput._
@@ -13,7 +14,7 @@ import akka.stream.stage.{Context, Stage, StageState, StatefulStage, SyncDirecti
 import akka.util.ByteString
 import java.net.InetSocketAddress
 import org.slf4j.LoggerFactory
-import scala.concurrent._
+import scala.concurrent.{Future, Promise}
 
 object HijackTcp {
   private val logger = LoggerFactory.getLogger(this.getClass)
@@ -26,7 +27,7 @@ object HijackTcp {
     responseFlow: Flow[HttpResponse, Any, Any] = Flow[HttpResponse]
   )(
     implicit
-    sys: akka.actor.ActorSystem,
+    sys: ActorSystem,
     mat: Materializer
   ) = {
     import sys.dispatcher
@@ -74,34 +75,6 @@ object HijackTcp {
     g.joinMat(tcpFlow)(Keep.right)
       .mapMaterializedValue(_.map(_ => ()))
   }
-
-  // def wstest()(implicit sys: akka.actor.ActorSystem, mat: Materializer) = {
-  //   import sys.dispatcher
-  //   import scala.concurrent.duration._
-
-  //   val settings =
-  //     ClientConnectionSettings(sys).copy(idleTimeout = Duration.Inf) match {
-  //       case s => s.copy(parserSettings = s.parserSettings.copy(
-  //         maxContentLength = Long.MaxValue
-  //       ))
-  //     }
-
-  //   val req = WebsocketRequest(
-  //     Uri(s"ws://coreos:2375/containers/$name/attach/ws?stream=1&stdout=1&stderr=1"),
-  //     extraHeaders = List(
-  //       Upgrade(List(UpgradeProtocol("tcp"))),
-  //       Origin("http://coreos:2375")
-  //     )
-  //   )
-
-  //   val closeConnectin = Promise[TextMessage]()
-
-  //   Http()
-  //     .websocketClientFlow(req, settings = settings, log = sys.log)
-  //     .runWith(Source(closeConnectin.future).drop(1), Sink.foreach(println))
-  //     ._2
-  //     .onComplete(println)
-  // }
 
   private class HijackStage(
     req: HttpRequest,

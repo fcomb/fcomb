@@ -4,7 +4,7 @@ import io.fcomb.docker.api.methods._
 import akka.actor.ActorSystem
 import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
-import akka.stream.io.Framing
+import akka.http.{ClientConnectionSettings, HijackTcp}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.MediaTypes.`application/x-tar`
@@ -15,8 +15,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.collection.immutable
 import spray.json._
-import spray.json.DefaultJsonProtocol._
-import akka.http._
 import org.slf4j.Logger
 
 private[api] trait ApiConnection {
@@ -43,10 +41,15 @@ private[api] trait ApiConnection {
     }
 
   // TODO: add TLS
-  private def connectionFlow(duration: Option[Duration]) =
+  private def httpConnectionFlow(duration: Option[Duration]) =
     Http()
       .outgoingConnection(hostname, port, settings = clientSettings(duration))
       .buffer(10, OverflowStrategy.backpressure)
+
+  protected def hijackConnectionFlow(req: HttpRequest, idleTimeout: Duration) = {
+    val settings = clientConnectionSettings.copy(idleTimeout = idleTimeout)
+    HijackTcp.outgoingConnection(hostname, port, settings, req, responseFlow)
+  }
 
   protected def uriWithQuery(uri: Uri, queryParams: Map[String, String]) = {
     val q = uri.query() ++ queryParams.filter(_._2.nonEmpty)
@@ -73,6 +76,9 @@ private[api] trait ApiConnection {
     }
   }
 
+  protected val responseFlow =
+    Flow[HttpResponse].mapAsync(1)(mapHttpResponse)
+
   protected def apiRequestAsSource(
     method: HttpMethod,
     uri: Uri,
@@ -88,7 +94,7 @@ private[api] trait ApiConnection {
         entity = entity,
         headers = headers
       ))
-      .via(connectionFlow(idleTimeout))
+      .via(httpConnectionFlow(idleTimeout))
       .runWith(Sink.head)
       .flatMap(mapHttpResponse)
   }

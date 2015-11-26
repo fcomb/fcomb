@@ -1,10 +1,9 @@
 package io.fcomb.docker.api
 
-import akka.stream.stage._
 import akka.stream.BidiShape
 import akka.stream.scaladsl._
-import akka.util.{ByteString, ByteStringBuilder, ByteIterator}
-import java.nio.ByteOrder
+import akka.stream.stage._
+import akka.util.{ByteIterator, ByteString, ByteStringBuilder}
 
 object StdStream extends Enumeration {
   type StdStream = Value
@@ -12,6 +11,8 @@ object StdStream extends Enumeration {
   val In = Value(0)
   val Out = Value(1)
   val Err = Value(2)
+
+  val all = Set(In, Out, Err)
 }
 
 object StdStreamFrame {

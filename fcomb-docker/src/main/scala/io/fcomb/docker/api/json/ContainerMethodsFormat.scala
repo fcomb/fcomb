@@ -504,8 +504,8 @@ private[api] object ContainerMethodsFormat {
     jsonFormat(ContainerCommitResponse, "Id")
 
   implicit val execConfigFormat =
-    jsonFormat(ExecConfig, "User", "Privileged", "Tty", "Container", "AttachStdin",
-      "AttachStderr", "AttachStdout", "Detach", "Cmd")
+    jsonFormat(ExecConfig, "Cmd", "User", "Privileged", "Tty", "Container",
+      "AttachStdin", "AttachStderr", "AttachStdout", "Detach")
 
   implicit val containerExecCreateResponseFormat =
     jsonFormat(ContainerExecCreateResponse, "Id")

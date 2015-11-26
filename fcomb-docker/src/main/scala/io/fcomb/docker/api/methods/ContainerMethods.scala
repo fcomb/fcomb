@@ -683,15 +683,15 @@ object ContainerMethods {
   ) extends DockerApiResponse
 
   final case class ExecConfig(
-    user: Option[String] = None,
-    isPrivileged: Boolean = false,
-    isTty: Boolean = false,
-    containerId: Option[String] = None,
-    isAttachStdin: Boolean = false,
-    isAttachStderr: Boolean = false,
-    isAttachStdout: Boolean = false,
-    isDetach: Boolean = false,
-    command: List[String]
+    command: List[String],
+    user: Option[String],
+    isPrivileged: Boolean,
+    isTty: Boolean,
+    containerId: Option[String],
+    isAttachStdin: Boolean,
+    isAttachStderr: Boolean,
+    isAttachStdout: Boolean,
+    isDetach: Boolean
   )
 
   final case class ExecStartCheck(

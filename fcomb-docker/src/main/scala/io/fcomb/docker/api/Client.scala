@@ -1,32 +1,27 @@
 package io.fcomb.docker.api
 
 import ParamHelpers._
+import akka.actor.ActorSystem
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.{Upgrade, UpgradeProtocol}
+import akka.stream.Materializer
+import akka.stream.scaladsl._
+import akka.util.ByteString
+import io.fcomb.docker.api.json.ContainerMethodsFormat._
+import io.fcomb.docker.api.json.ImageMethodsFormat._
+import io.fcomb.docker.api.json.MiscMethodsFormat._
 import io.fcomb.docker.api.methods._
 import io.fcomb.docker.api.methods.ContainerMethods._
 import io.fcomb.docker.api.methods.ImageMethods._
 import io.fcomb.docker.api.methods.MiscMethods._
-import io.fcomb.docker.api.json.ContainerMethodsFormat._
-import io.fcomb.docker.api.json.ImageMethodsFormat._
-import io.fcomb.docker.api.json.MiscMethodsFormat._
-import akka.actor.ActorSystem
-import akka.stream.{Materializer, OverflowStrategy}
-import akka.stream.scaladsl._
-import akka.stream.io.Framing
-import akka.http.HijackTcp
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{UpgradeProtocol, Upgrade}
-import akka.http.scaladsl.Http
-import akka.util.ByteString
-import scala.concurrent.Future
-import scala.concurrent.duration._
+import java.net.URL
+import java.time.ZonedDateTime
+import org.apache.commons.codec.binary.Base64
+import org.slf4j.LoggerFactory
 import scala.collection.immutable
+import scala.concurrent.duration._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import org.slf4j.LoggerFactory
-import org.apache.commons.codec.binary.Base64
-import java.nio.ByteOrder
-import java.time.ZonedDateTime
-import java.net.URL
 
 // TODO: TLS auth
 final class Client(val hostname: String, val port: Int)(
@@ -247,9 +242,7 @@ final class Client(val hostname: String, val port: Int)(
       uri = uriWithQuery(s"/containers/$id/attach", params),
       headers = upgradeHeaders
     )
-    val settings = clientSettings(Some(idleTimeout))
-    val responseFlow = Flow[HttpResponse].mapAsync(1)(mapHttpResponse)
-    HijackTcp.outgoingConnection(hostname, port, settings, req, responseFlow)
+    hijackConnectionFlow(req, idleTimeout)
   }
 
   def containerAttachAsStream(
@@ -567,18 +560,75 @@ final class Client(val hostname: String, val port: Int)(
 
   def execCreate(
     containerId: String,
-    config: ExecConfig
+    command: List[String],
+    streams: Set[StdStream.StdStream],
+    isTty: Boolean,
+    user: Option[String] = None,
+    isPrivileged: Boolean = false
   ) = {
+    val config = ExecConfig(
+      command = command,
+      user = user,
+      isPrivileged = isPrivileged,
+      isTty = isTty,
+      containerId = Some(containerId),
+      isAttachStdin = streams.contains(StdStream.In),
+      isAttachStdout = streams.contains(StdStream.Out),
+      isAttachStderr = streams.contains(StdStream.Err),
+      isDetach = false
+    )
     val entity = requestJsonEntity(config)
     apiJsonRequest(HttpMethods.POST, s"/containers/$containerId/exec", entity = entity)
       .map(_.convertTo[ContainerExecCreateResponse])
   }
 
-  // TODO
-  // def execStart() = ???
+  def execStart(
+    id: String,
+    isTty: Boolean
+  ) = {
+    val entity = requestJsonEntity(ExecStartCheck(
+      isDetach = true,
+      isTty = isTty
+    ))
+    apiRequestAsSource(HttpMethods.POST, s"/exec/$id/start", entity = entity)
+      .map(_ => ())
+  }
 
-  // TODO
-  // def execStartAsStream() = ???
+  private def execStartAsSource(
+    id: String,
+    isTty: Boolean,
+    idleTimeout: Duration
+  ) = {
+    val entity = requestJsonEntity(ExecStartCheck(
+      isDetach = false,
+      isTty = isTty
+    ))
+    val req = HttpRequest(
+      method = HttpMethods.POST,
+      uri = s"/exec/$id/start",
+      entity = entity,
+      headers = upgradeHeaders
+    )
+    hijackConnectionFlow(req, idleTimeout)
+  }
+
+  def execAttachAsStream(
+    id: String,
+    flow: Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
+    idleTimeout: Duration = Duration.Inf
+  ) =
+    execStartAsSource(id, false, idleTimeout)
+      .join(stdStreamFrameCodec.join(flow))
+      .run()
+
+  def execAttachAsTtyStream(
+    id: String,
+    flow: Flow[ByteString, ByteString, Any],
+    idleTimeout: Duration = Duration.Inf
+  ) =
+    execStartAsSource(id, true, idleTimeout)
+      .join(flow)
+      .run()
 
   def execResizeTty(id: String, width: Int, height: Int) = {
     val params = Map(
