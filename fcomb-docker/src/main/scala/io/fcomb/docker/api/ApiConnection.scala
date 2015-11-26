@@ -30,8 +30,11 @@ private[api] trait ApiConnection {
 
   import sys.dispatcher
 
+  protected val clientConnectionSettings =
+    ClientConnectionSettings(sys)
+
   protected def clientSettings(duration: Option[Duration]) =
-    duration.foldLeft(ClientConnectionSettings(sys)) {
+    duration.foldLeft(clientConnectionSettings) {
       (s, d) => s.copy(idleTimeout = d)
     } match { // TODO: https://github.com/akka/akka/issues/16468
       case s => s.copy(parserSettings = s.parserSettings.copy(
@@ -48,6 +51,26 @@ private[api] trait ApiConnection {
   protected def uriWithQuery(uri: Uri, queryParams: Map[String, String]) = {
     val q = uri.query() ++ queryParams.filter(_._2.nonEmpty)
     uri.withQuery(Uri.Query(q: _*))
+  }
+
+  protected def mapHttpResponse(res: HttpResponse) = {
+    if (res.status.isSuccess()) Future.successful(res)
+    else {
+      res.entity.dataBytes.runFold(new StringBuffer) { (acc, bs) =>
+        acc.append(bs.utf8String)
+      }.map { buf =>
+        val msg = buf.toString()
+        res.status.intValue() match {
+          case 400 => throw new BadParameterException(msg)
+          case 403 => throw new PermissionDeniedException(msg)
+          case 404 => throw new ResouceOrContainerNotFoundException(msg)
+          case 406 => throw new ImpossibleToAttachException(msg)
+          case 409 => throw new ConflictException(msg)
+          case 500 => throw new ServerErrorException(msg)
+          case _ => throw new UnknownException(msg)
+        }
+      }
+    }
   }
 
   protected def apiRequestAsSource(
@@ -67,25 +90,7 @@ private[api] trait ApiConnection {
       ))
       .via(connectionFlow(idleTimeout))
       .runWith(Sink.head)
-      .flatMap { res =>
-        if (res.status.isSuccess()) Future.successful(res)
-        else {
-          entity.dataBytes.runFold(new StringBuffer) { (acc, bs) =>
-            acc.append(bs.utf8String)
-          }.map { buf =>
-            val msg = buf.toString()
-            res.status.intValue() match {
-              case 400 => throw new BadParameterException(msg)
-              case 403 => throw new PermissionDeniedException(msg)
-              case 404 => throw new ResouceOrContainerNotFoundException(msg)
-              case 406 => throw new ImpossibleToAttachException(msg)
-              case 409 => throw new ConflictException(msg)
-              case 500 => throw new ServerErrorException(msg)
-              case _ => throw new UnknownException(msg)
-            }
-          }
-        }
-      }
+      .flatMap(mapHttpResponse)
   }
 
   protected def requestJsonEntity[T](body: T)(

@@ -4,7 +4,6 @@ import akka.stream.stage._
 import akka.stream.BidiShape
 import akka.stream.scaladsl._
 import akka.util.{ByteString, ByteStringBuilder, ByteIterator}
-import io.fcomb.utils.Units._
 import java.nio.ByteOrder
 
 object StdStream extends Enumeration {
@@ -22,23 +21,12 @@ object StdStreamFrame {
 
   private implicit val byteOrder = ByteOrder.BIG_ENDIAN
 
-  private def toBytes(frame: StdStreamFrame) = frame match {
-    case (stream, bs) =>
-      val buf = new ByteStringBuilder()
-      buf.putByte(stream.id.toByte)
-      buf.append(zeros)
-      buf.putInt(bs.length)
-      buf.append(bs)
-      buf.result
-  }
-
   class FramingException(msg: String) extends RuntimeException(msg)
 
-  private class FromBytesStage extends PushPullStage[ByteString, StdStreamFrame] {
+  private class FromBytesStage(maximumFrameLength: Int) extends PushPullStage[ByteString, StdStreamFrame] {
     private var buffer = ByteString.empty
     private var stream = StdStream.Out
     private val minimumChunkSize = 8
-    private val maximumFrameLength = 1.MB()
     private var frameSize = Int.MaxValue
 
     private def parseLength: Int = {
@@ -75,7 +63,9 @@ object StdStreamFrame {
     }
 
     private def emitFrame(ctx: Context[StdStreamFrame]): SyncDirective = {
-      val parsedFrame = buffer.take(frameSize).compact
+      val parsedFrame = buffer.drop(minimumChunkSize)
+        .take(frameSize)
+        .compact
       stream = StdStream(buffer.head)
       buffer = buffer.drop(frameSize)
       frameSize = Int.MaxValue
@@ -102,9 +92,11 @@ object StdStreamFrame {
     }
   }
 
-  val codec = BidiFlow.fromGraph(FlowGraph.create() { b =>
-    val outbound = b.add(Flow[StdStreamFrame].map(toBytes))
-    val inbound = b.add(Flow[ByteString].transform(() ⇒ new FromBytesStage()))
-    BidiShape.fromFlows(outbound, inbound)
-  })
+  def codec(maximumFrameLength: Int) =
+    BidiFlow.fromGraph(FlowGraph.create() { b =>
+      val outbound = b.add(Flow[ByteString])
+      val inbound = b.add(Flow[ByteString]
+        .transform(() ⇒ new FromBytesStage(maximumFrameLength)))
+      BidiShape.fromFlows(outbound, inbound)
+    })
 }

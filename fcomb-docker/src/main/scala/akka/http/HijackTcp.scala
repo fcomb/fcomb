@@ -5,7 +5,6 @@ import akka.http.impl.engine.parsing.HttpMessageParser.StateResult
 import akka.http.impl.engine.parsing.ParserOutput._
 import akka.http.impl.engine.rendering._
 import akka.http.impl.util._
-import akka.http.scaladsl._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.stream._
@@ -15,7 +14,6 @@ import akka.util.ByteString
 import java.net.InetSocketAddress
 import org.slf4j.LoggerFactory
 import scala.concurrent._
-import scala.concurrent.duration._
 
 object HijackTcp {
   private val logger = LoggerFactory.getLogger(this.getClass)
@@ -25,11 +23,11 @@ object HijackTcp {
     port: Int,
     settings: ClientConnectionSettings,
     request: HttpRequest,
-    flow: Flow[ByteString, ByteString, Any],
-    responseFlow: Flow[HttpResponse, HttpResponse, Any] = Flow[HttpResponse]
+    responseFlow: Flow[HttpResponse, Any, Any] = Flow[HttpResponse]
   )(
     implicit
-    sys: akka.actor.ActorSystem, mat: Materializer
+    sys: akka.actor.ActorSystem,
+    mat: Materializer
   ) = {
     import sys.dispatcher
 

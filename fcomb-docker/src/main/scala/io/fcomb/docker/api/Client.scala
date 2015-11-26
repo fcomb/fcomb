@@ -220,10 +220,12 @@ final class Client(val hostname: String, val port: Int)(
   private val upgradeHeaders =
     immutable.Seq(Upgrade(List(UpgradeProtocol("tcp"))))
 
-  def containerAttachAsStream(
+  private lazy val stdStreamFrameCodec =
+    StdStreamFrame.codec(clientConnectionSettings.parserSettings.maxChunkSize).reversed
+
+  private def containerAttachAsSource(
     id: String,
     streams: Set[StdStream.StdStream],
-    flow: Flow[ByteString, ByteString, Any],
     idleTimeout: Duration = Duration.Inf
   ) = {
     val params = Map(
@@ -238,61 +240,29 @@ final class Client(val hostname: String, val port: Int)(
       headers = upgradeHeaders
     )
     val settings = clientSettings(Some(idleTimeout))
-    HijackTcp.outgoingConnection(hostname, port, settings, req, flow)
+    val responseFlow = Flow[HttpResponse].mapAsync(1)(mapHttpResponse)
+    HijackTcp.outgoingConnection(hostname, port, settings, req, responseFlow)
   }
 
-  /*
-  import akka.stream.scaladsl._
-  import akka.util.ByteString
-  import scala.concurrent.Promise
-  import akka.http.scaladsl._
-  import akka.http.scaladsl.model._
-  import akka.http.scaladsl.model.headers._
+  def containerAttachAsStream(
+    id: String,
+    streams: Set[StdStream.StdStream],
+    flow: Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
+    idleTimeout: Duration = Duration.Inf
+  ) =
+    containerAttachAsSource(id, streams, idleTimeout)
+      .join(stdStreamFrameCodec.join(flow))
+      .run()
 
-  val closeConnection = Promise[ByteString]()
-  val source = Source(closeConnection.future).drop(1)
-  // val sink = Sink.foreach[ByteString] { bs =>
-  //   println(s"sink: $bs, ${bs.utf8String}")
-  // }
-  // val pf = Flow.fromSinkAndSource(sink, Source.tick(1.second, 1.second, ByteString("ls\r")) ++ source)
-  // val settings = akka.http.ClientConnectionSettings(sys)
-
-  // val name = "ubuntu_tty" // "mongo"
-  // val req = HttpRequest(
-  //   HttpMethods.POST,
-  //   s"/containers/$name/attach?stream=1&stdout=1&stderr=1&stdin=1",
-  //   headers = immutable.Seq(Upgrade(List(UpgradeProtocol("tcp"))))
-  // )
-
-  // _root_.akka.http.HijackTcp.outgoingConnection("localhost", 2376, settings, req, pf)
-  // .onComplete(mr => s"main result: $mr")
-  // _root_.akka.http.HijackTcp.wstest()
-
-  import akka.stream.stage._
-  class CloseStage extends PushStage[ByteString, ByteString] {
-    def onPush(elem: ByteString, ctx: Context[ByteString]): SyncDirective =
-      ctx.push(elem)
-
-    override def onUpstreamFinish(ctx: Context[ByteString]): TerminationDirective = {
-      // println("onUpstreamFinish!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-      // ???
-      ctx.fail(new Throwable("!!!!"))
-    }
-  }
-
-  val s = Source.tick(1.second, 1.second, ByteString("ls\r")) ++ source
-  val ff = Tcp()
-    .outgoingConnection("localhost", 2376)
-    .transform(() => new CloseStage())
-    .runWith(s, Sink.foreach(println))
-    ._2
-  ff.onComplete(mr => s"main result: $mr")
-  ff.recover {
-    case e: Throwable =>
-      println(s"e: $e")
-      ???
-  }
-   */
+  def containerAttachAsTtyStream(
+    id: String,
+    streams: Set[StdStream.StdStream],
+    flow: Flow[ByteString, ByteString, Any],
+    idleTimeout: Duration = Duration.Inf
+  ) =
+    containerAttachAsSource(id, streams, idleTimeout)
+      .join(flow)
+      .run()
 
   def containerWait(id: String) =
     apiJsonRequest(HttpMethods.POST, s"/containers/$id/wait")
