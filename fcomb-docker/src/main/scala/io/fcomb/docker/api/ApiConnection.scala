@@ -78,8 +78,8 @@ private[api] trait ApiConnection {
     uri: Uri,
     queryParams: Map[String, String] = Map.empty,
     entity: RequestEntity = HttpEntity.Empty,
-    idleTimeout: Option[Duration] = None,
-    headers: immutable.Seq[HttpHeader] = immutable.Seq.empty
+    headers: immutable.Seq[HttpHeader] = immutable.Seq.empty,
+    idleTimeout: Option[Duration] = None
   ) = {
     Source
       .single(HttpRequest(
@@ -106,19 +106,22 @@ private[api] trait ApiConnection {
     method: HttpMethod,
     uri: Uri,
     queryParams: Map[String, String] = Map.empty,
-    entity: RequestEntity = HttpEntity.Empty
+    entity: RequestEntity = HttpEntity.Empty,
+    headers: immutable.Seq[HttpHeader] = immutable.Seq.empty,
+    idleTimeout: Option[Duration] = None
   ) =
-    apiRequestAsSource(method, uri, queryParams, entity).map { data =>
-      data.entity.dataBytes.map(_.utf8String.parseJson)
-    }
+    apiRequestAsSource(method, uri, queryParams, entity, headers, idleTimeout)
+      .map(_.entity.dataBytes.map(_.utf8String.parseJson))
 
   protected def apiJsonRequest(
     method: HttpMethod,
     uri: Uri,
     queryParams: Map[String, String] = Map.empty,
-    entity: RequestEntity = HttpEntity.Empty
+    entity: RequestEntity = HttpEntity.Empty,
+    headers: immutable.Seq[HttpHeader] = immutable.Seq.empty,
+    idleTimeout: Option[Duration] = None
   ) =
-    apiRequestAsSource(method, uri, queryParams, entity)
+    apiRequestAsSource(method, uri, queryParams, entity, headers, idleTimeout)
       .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _))
       .map { res =>
         val s = res.utf8String

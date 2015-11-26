@@ -28,6 +28,7 @@ import java.nio.ByteOrder
 import java.time.ZonedDateTime
 import java.net.URL
 
+// TODO: TLS auth
 final class Client(val hostname: String, val port: Int)(
   implicit
   val sys: ActorSystem,
@@ -168,9 +169,16 @@ final class Client(val hostname: String, val port: Int)(
     apiJsonRequest(HttpMethods.GET, s"/containers/$id/stats", Map("stream" -> "false"))
       .map(_.convertTo[ContainerStats])
 
-  def containerStatsAsStream(id: String) =
-    apiJsonRequestAsSource(HttpMethods.GET, s"/containers/$id/stats", Map("stream" -> "true"))
-      .map(_.map(_.convertTo[ContainerStats]))
+  def containerStatsAsStream(
+    id: String,
+    idleTimeout: Duration = Duration.Inf
+  ) =
+    apiJsonRequestAsSource(
+      HttpMethods.GET,
+      s"/containers/$id/stats",
+      Map("stream" -> "true"),
+      idleTimeout = Some(idleTimeout)
+    ).map(_.map(_.convertTo[ContainerStats]))
 
   def containerResizeTty(id: String, width: Int, height: Int) = {
     val params = Map(
@@ -226,7 +234,7 @@ final class Client(val hostname: String, val port: Int)(
   private def containerAttachAsSource(
     id: String,
     streams: Set[StdStream.StdStream],
-    idleTimeout: Duration = Duration.Inf
+    idleTimeout: Duration
   ) = {
     val params = Map(
       "stream" -> "true",
@@ -365,8 +373,8 @@ final class Client(val hostname: String, val port: Int)(
     ) ++ RemoveMode.mapToParams(removeMode)
     val entity = requestTarEntity(source)
     val headers = RegistryConfig.mapToHeaders(registryConfig)
-    apiRequestAsSource(HttpMethods.POST, s"/build", params, entity, headers = headers)
-    // TODO: parse json events
+    apiJsonRequestAsSource(HttpMethods.POST, s"/build", params, entity, headers = headers)
+      .map(_.map(_.convertTo[EventMessage]))
   }
 
   def imagePull(
@@ -383,8 +391,8 @@ final class Client(val hostname: String, val port: Int)(
       "registry" -> registry.toParam()
     )
     val headers = AuthConfig.mapToHeaders(registryAuth)
-    apiRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
-    // TODO: parse json events
+    apiJsonRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
+      .map(_.map(_.convertTo[EventMessage]))
   }
 
   def imagePullWithUrl(
@@ -401,8 +409,8 @@ final class Client(val hostname: String, val port: Int)(
       "registry" -> registry.toParam()
     )
     val headers = AuthConfig.mapToHeaders(registryAuth)
-    apiRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
-    // TODO: parse json events
+    apiJsonRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
+      .map(_.map(_.convertTo[EventMessage]))
   }
 
   def imagePullWithStream(
@@ -420,8 +428,8 @@ final class Client(val hostname: String, val port: Int)(
     )
     val entity = requestTarEntity(source)
     val headers = AuthConfig.mapToHeaders(registryAuth)
-    apiRequestAsSource(HttpMethods.POST, "/images/create", params, entity, headers = headers)
-    // TODO: parse json events
+    apiJsonRequestAsSource(HttpMethods.POST, "/images/create", params, entity, headers = headers)
+      .map(_.map(_.convertTo[EventMessage]))
   }
 
   def imageInspect(id: String) =
@@ -444,8 +452,8 @@ final class Client(val hostname: String, val port: Int)(
       case Some(r) => s"${r.toParam}/$id"
       case None => id
     }
-    apiRequestAsSource(HttpMethods.POST, s"/images/$name/push", params, headers = headers)
-    // TODO: parse json events
+    apiJsonRequestAsSource(HttpMethods.POST, s"/images/$name/push", params, headers = headers)
+      .map(_.map(_.convertTo[EventMessage]))
   }
 
   def imageTag(
@@ -545,15 +553,16 @@ final class Client(val hostname: String, val port: Int)(
   def eventsAsStream(
     since: Option[ZonedDateTime] = None,
     until: Option[ZonedDateTime] = None,
-    filters: EventsFilter = Map.empty
+    filters: EventsFilter = Map.empty,
+    idleTimeout: Duration = Duration.Inf
   ) = {
     val params = Map(
       "since" -> since.toParamAsTimestamp(),
       "until" -> since.toParamAsTimestamp(),
       "filters" -> EventsFitler.mapToParam(filters)
     )
-    apiRequestAsSource(HttpMethods.GET, "/events", params)
-    // TODO: map events
+    apiJsonRequestAsSource(HttpMethods.GET, "/events", params, idleTimeout = Some(idleTimeout))
+      .map(_.map(_.convertTo[EventKindMessage]))
   }
 
   def execCreate(

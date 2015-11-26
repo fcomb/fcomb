@@ -77,4 +77,71 @@ private[api] object MiscMethodsFormat {
     jsonFormat(AuthConfig.apply, "username", "password",
       "email", "serveraddress")
 
+  implicit object EventMessageProgressFormat extends RootJsonFormat[EventMessageProgress] {
+    def write(m: EventMessageProgress) = throw new NotImplementedError
+
+    def read(v: JsValue) = v match {
+      case obj: JsObject =>
+        val total = obj.getOpt[Long]("total") match {
+          case Some(n) if n <= 0 => None
+          case t => t
+        }
+        EventMessageProgress(
+          current = obj.get[Long]("current"),
+          total = total,
+          startedAt = obj.getOpt[ZonedDateTime]("start")
+        )
+      case x => deserializationError(s"Expected JsObject, but got $x")
+    }
+  }
+
+  implicit object EventMessageErrorFormat extends RootJsonFormat[EventMessageError] {
+    def write(m: EventMessageError) = throw new NotImplementedError
+
+    def read(v: JsValue) = v match {
+      case obj: JsObject => EventMessageError(
+        code = obj.getOpt[Int]("code"),
+        message = obj.get[String]("message")
+      )
+      case x => deserializationError(s"Expected JsObject, but got $x")
+    }
+  }
+
+  implicit object EventMessageFormat extends RootJsonReader[EventMessage] {
+    def read(v: JsValue) = v match {
+      case obj: JsObject =>
+        val progressDetail =
+          obj.fields.get("progressDetail").flatMap { pdObj =>
+            if (pdObj.asJsObject.fields.nonEmpty)
+              Some(pdObj.convertTo[EventMessageProgress])
+            else None
+          }
+        EventMessage(
+          stream = obj.getOpt[String]("stream"),
+          status = obj.getOpt[String]("status"),
+          progressDetail = progressDetail,
+          progressMessage = obj.getOpt[String]("progress"),
+          id = obj.getOpt[String]("id"),
+          from = obj.getOpt[String]("from"),
+          timeAt = obj.getOpt[ZonedDateTime]("time"),
+          errorDetail = obj.getOpt[EventMessageError]("errorDetail"),
+          errorMessage = obj.getOpt[String]("error")
+        )
+      case x => deserializationError(s"Expected JsObject, but got $x")
+    }
+  }
+
+  implicit object EventKindMessageFormat extends RootJsonReader[EventKindMessage] {
+    def read(v: JsValue) = v match {
+      case obj: JsObject =>
+        val event = DockerEvent.fromString(obj.get[String]("status"))
+        EventKindMessage(
+          event = event,
+          id = obj.get[String]("id"),
+          from = obj.getOpt[String]("from"),
+          timeAt = obj.get[ZonedDateTime]("time")
+        )
+      case x => deserializationError(s"Expected JsObject, but got $x")
+    }
+  }
 }

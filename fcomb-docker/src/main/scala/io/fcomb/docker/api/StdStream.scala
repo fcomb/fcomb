@@ -17,10 +17,6 @@ object StdStream extends Enumeration {
 object StdStreamFrame {
   type StdStreamFrame = (StdStream.StdStream, ByteString)
 
-  private val zeros = ByteString(0, 0, 0)
-
-  private implicit val byteOrder = ByteOrder.BIG_ENDIAN
-
   class FramingException(msg: String) extends RuntimeException(msg)
 
   private class FromBytesStage(maximumFrameLength: Int) extends PushPullStage[ByteString, StdStreamFrame] {
@@ -66,7 +62,7 @@ object StdStreamFrame {
       val parsedFrame = buffer.drop(minimumChunkSize)
         .take(frameSize)
         .compact
-      stream = StdStream(buffer.head)
+      stream = StdStream(buffer.head.toInt)
       buffer = buffer.drop(frameSize)
       frameSize = Int.MaxValue
       if (ctx.isFinishing && buffer.isEmpty) ctx.pushAndFinish((stream, parsedFrame))

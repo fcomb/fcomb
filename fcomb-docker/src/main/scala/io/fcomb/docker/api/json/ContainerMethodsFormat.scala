@@ -213,7 +213,7 @@ private[api] object ContainerMethodsFormat {
     def write(c: LxcConf) = c.toJson
 
     def read(v: JsValue) = v match {
-      case JsArray(xs: Vector[JsObject]) => xs.map { item =>
+      case JsArray(xs) => xs.asInstanceOf[Vector[JsObject]].map { item =>
         (item.get[String]("Key"), item.get[String]("Value"))
       }.toMap
       case JsNull => Map.empty
@@ -352,7 +352,7 @@ private[api] object ContainerMethodsFormat {
   }
 
   implicit val addressFormat =
-      jsonFormat(Address, "Addr", "PrefixLen")
+    jsonFormat(Address, "Addr", "PrefixLen")
 
   implicit val networkSettingsFormat =
     jsonFormat(NetworkSettings, "Bridge", "EndpointID", "Gateway", "GlobalIPv6Address",

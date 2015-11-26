@@ -1,7 +1,7 @@
 package io.fcomb.docker.api.methods
 
 import akka.http.scaladsl.model.headers.RawHeader
-import scala.collection.immutable
+import scala.collection.{immutable, mutable}
 import spray.json._
 import org.apache.commons.codec.binary.Base64
 import java.time.ZonedDateTime
@@ -98,6 +98,16 @@ object MiscMethods {
 
   object DockerEvent {
     val all: Set[DockerEvent] = ContainerEvent.all ++ ImageEvent.all
+
+    private val values = mutable.OpenHashMap(
+      all.toSeq.map(e => (e.value.toLowerCase, e)): _*
+    )
+
+    def fromString(e: String) =
+      values.getOrElse(
+        e.toLowerCase(),
+        throw new IllegalArgumentException(s"Unknown event: $e")
+      )
   }
 
   object ContainerEvent {
@@ -145,6 +155,13 @@ object MiscMethods {
     val Container = Value("container")
   }
 
+  final case class EventKindMessage(
+    event: DockerEvent,
+    id: String,
+    from: Option[String],
+    timeAt: ZonedDateTime
+  ) extends DockerApiResponse
+
   type EventsFilter = Map[EventKind.EventKind, Set[DockerEvent]]
 
   object EventsFitler {
@@ -152,5 +169,31 @@ object MiscMethods {
       case (k, events) =>
         k.toString -> JsArray(events.map(e => JsString(e.value)).toSeq: _*)
     }).compactPrint
+  }
+
+  final case class EventMessageProgress(
+    current: Long,
+    total: Option[Long],
+    startedAt: Option[ZonedDateTime]
+  )
+
+  final case class EventMessageError(
+    code: Option[Int],
+    message: String
+  )
+
+  final case class EventMessage(
+    stream: Option[String],
+    status: Option[String],
+    progressDetail: Option[EventMessageProgress],
+    progressMessage: Option[String],
+    id: Option[String],
+    from: Option[String],
+    timeAt: Option[ZonedDateTime],
+    errorDetail: Option[EventMessageError],
+    errorMessage: Option[String]
+  ) extends DockerApiResponse {
+    def isFailure() =
+      errorDetail.nonEmpty || errorMessage.nonEmpty
   }
 }

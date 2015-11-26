@@ -44,27 +44,18 @@ object Main extends App {
   import io.fcomb.docker.api.methods.ContainerMethods._
   import io.fcomb.docker.api.methods.MiscMethods._
   val dc = new Client("coreos", 2375)
-  // val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
+  val source = SynchronousFileSource(new java.io.File("/tmp/build.tar"))
 
-  val p = Promise[ByteString]()
-  val source = Source.tick(1.second, 1.second, ByteString("ls\n")) ++
-    Source(p.future).drop(1)
-  val flow = Flow.fromSinkAndSource(Sink.foreach[StdStreamFrame.StdStreamFrame] {
-    case (stream, bs) =>
-    println(s"$stream bs: ${bs.utf8String}")
-  }, source)
-
-  dc.containerAttachAsStream(
-    "ubuntu_tty",
-    Set(StdStream.In, StdStream.Out, StdStream.Err),
-    flow
+  dc.eventsAsStream(
+    filters = Map(EventKind.Event -> DockerEvent.all)
   ).onComplete {
       case Success(res) =>
-        // res.entity.dataBytes.runWith(Sink.foreach(bs => println(s"build: ${bs.utf8String}")))
+        res.runWith(Sink.foreach(println))
+        // res.entity.dataBytes.runWith(Sink.foreach(println))
         // res.runFold(0L)(_ + _.length).onComplete(println)
         // val sink = SynchronousFileSink(new java.io.File("/tmp/etc.tar"))
         // res.runWith(sink).onComplete(println)
-        println("res:" + res)
+        // println("res:" + res)
       case Failure(e) =>
         e.printStackTrace()
         println(e)
