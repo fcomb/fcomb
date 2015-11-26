@@ -43,18 +43,19 @@ object Main extends App {
   import io.fcomb.docker.api._
   import io.fcomb.docker.api.methods.ContainerMethods._
   import io.fcomb.docker.api.methods.MiscMethods._
-  val dc = new Client("coreos", 2375)
+  val dc = new Client("coreos", 2376)
+  dc.ping().onComplete(println)
 
-  dc.execCreate("ubuntu_tty", List("/bin/bash"), StdStream.all, false).flatMap { res =>
-    val p = Promise[ByteString]()
-    val source = Source.tick(1.second, 1.second, ByteString("ls\n")) ++
-      Source(p.future).drop(1)
-    val flow = Flow.fromSinkAndSource(Sink.foreach[StdStreamFrame.StdStreamFrame] { case (_, bs) =>
-      println(bs.utf8String)
-    }, source)
-    println(s"res: $res")
-    dc.execAttachAsStream(res.id, flow)
-  }.onComplete(println)
+  // dc.execCreate("ubuntu_tty", List("/bin/bash"), StdStream.all, false).flatMap { res =>
+  //   val p = Promise[ByteString]()
+  //   val source = Source.tick(1.second, 1.second, ByteString("ls\n")) ++
+  //     Source(p.future).drop(1)
+  //   val flow = Flow.fromSinkAndSource(Sink.foreach[StdStreamFrame.StdStreamFrame] { case (_, bs) =>
+  //     println(bs.utf8String)
+  //   }, source)
+  //   println(s"res: $res")
+  //   dc.execAttachAsStream(res.id, flow)
+  // }.onComplete(println)
 
   // (for {
   //   _ <- Db.migrate()

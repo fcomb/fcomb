@@ -137,6 +137,7 @@ object Dependencies {
     val lz4             = "net.jpountz.lz4"               %  "lz4"                           % "1.3.0"
 
     // val jamm            = "com.github.jbellis"            % "jamm"                           % "0.3.1"
+    // "com.github.jnr" % "jnr-unixsocket" % "0.10"
   }
 
   object Test {
