@@ -225,7 +225,16 @@ object Build extends sbt.Build {
       defaultSettings ++ Seq(
         libraryDependencies ++= Dependencies.docker
       )
-  ).dependsOn(json, utils)
+  ).dependsOn(json, utils, crypto)
+
+  lazy val crypto = Project(
+    id = "crypto",
+    base = file("fcomb-crypto"),
+    settings =
+      defaultSettings ++ Seq(
+        libraryDependencies ++= Dependencies.crypto
+      )
+  )
 
   lazy val tests = Project(
     id = "tests",

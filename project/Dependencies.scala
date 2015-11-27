@@ -226,6 +226,8 @@ object Dependencies {
     commonsCodec
   )
 
+  val crypto = common
+
   val validations = common ++ Seq(slick)
 
   val services = api

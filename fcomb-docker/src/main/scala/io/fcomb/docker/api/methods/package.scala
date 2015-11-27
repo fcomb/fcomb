@@ -5,9 +5,7 @@ import org.apache.commons.codec.binary.Base64
 
 package object methods {
   sealed trait DockerApiMethod
-
   trait DockerApiResponse extends DockerApiMethod
-
   trait DockerApiRequest extends DockerApiMethod
 
   abstract class DockerApiException(msg: String) extends Throwable(msg)

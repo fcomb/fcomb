@@ -1,27 +1,28 @@
 package io.fcomb.docker.api
 
-import io.fcomb.docker.api.methods._
 import akka.actor.ActorSystem
-import akka.stream.{Materializer, OverflowStrategy}
-import akka.stream.scaladsl._
 import akka.http.{ClientConnectionSettings, HijackTcp}
+import akka.http.scaladsl.{Http, HttpsContext}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.MediaTypes.`application/x-tar`
-import akka.http.scaladsl.model.headers.{UpgradeProtocol, Upgrade}
-import akka.http.scaladsl.Http
+import akka.stream.{Materializer, OverflowStrategy}
+import akka.stream.scaladsl._
 import akka.util.ByteString
+import io.fcomb.docker.api.methods._
+import javax.net.ssl.SSLContext
+import org.slf4j.Logger
+import scala.collection.immutable
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.collection.immutable
 import spray.json._
-import org.slf4j.Logger
 
 private[api] trait ApiConnection {
   protected val logger: Logger
 
   val hostname: String
   val port: Int
+  val sslContext: Option[SSLContext]
 
   implicit val sys: ActorSystem
   implicit val mat: Materializer
@@ -40,15 +41,23 @@ private[api] trait ApiConnection {
       ))
     }
 
-  // TODO: add TLS
-  private def httpConnectionFlow(duration: Option[Duration]) =
-    Http()
-      .outgoingConnection(hostname, port, settings = clientSettings(duration))
-      .buffer(10, OverflowStrategy.backpressure)
+  private def httpConnectionFlow(duration: Option[Duration]) = {
+    val connection = sslContext match {
+      case Some(ctx) => Http().outgoingConnectionTls(
+        hostname,
+        port,
+        settings = clientSettings(duration),
+        httpsContext = Some(HttpsContext(ctx))
+      )
+      case _ =>
+        Http().outgoingConnection(hostname, port, settings = clientSettings(duration))
+    }
+    connection.buffer(10, OverflowStrategy.backpressure)
+  }
 
   protected def hijackConnectionFlow(req: HttpRequest, idleTimeout: Duration) = {
     val settings = clientConnectionSettings.copy(idleTimeout = idleTimeout)
-    HijackTcp.outgoingConnection(hostname, port, settings, req, responseFlow)
+    HijackTcp.outgoingConnection(hostname, port, settings, req, responseFlow, sslContext)
   }
 
   protected def uriWithQuery(uri: Uri, queryParams: Map[String, String]) = {

@@ -6,13 +6,16 @@ import akka.http.impl.engine.parsing.HttpMessageParser.StateResult
 import akka.http.impl.engine.parsing.ParserOutput._
 import akka.http.impl.engine.rendering._
 import akka.http.impl.util._
+import akka.http.scaladsl.HttpsContext
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.stream._
+import akka.stream.io.{Client, SendBytes, SessionBytes, SslTls, SslTlsInbound}
 import akka.stream.scaladsl._
 import akka.stream.stage.{Context, Stage, StageState, StatefulStage, SyncDirective}
 import akka.util.ByteString
 import java.net.InetSocketAddress
+import javax.net.ssl.SSLContext
 import org.slf4j.LoggerFactory
 import scala.concurrent.{Future, Promise}
 
@@ -24,7 +27,8 @@ object HijackTcp {
     port: Int,
     settings: ClientConnectionSettings,
     request: HttpRequest,
-    responseFlow: Flow[HttpResponse, Any, Any] = Flow[HttpResponse]
+    responseFlow: Flow[HttpResponse, Any, Any] = Flow[HttpResponse],
+    sslEngine: Option[SSLContext] = None
   )(
     implicit
     sys: ActorSystem,
@@ -69,11 +73,34 @@ object HijackTcp {
         )
       })
 
-    val tcpFlow = Tcp().outgoingConnection(serverAddress, None, settings.socketOptions,
-      halfClose = true, settings.connectingTimeout, settings.idleTimeout)
+    val transportFlow = Tcp().outgoingConnection(
+      serverAddress,
+      None,
+      settings.socketOptions,
+      halfClose = true,
+      settings.connectingTimeout,
+      settings.idleTimeout
+    )
+    val connectionFlow = sslEngine match {
+      case Some(ctx) =>
+        val hctx = HttpsContext(ctx)
+        val hostInfo = Some(hostname -> port)
+        SslTls(ctx, hctx.firstSession, Client, hostInfo = hostInfo)
+          .joinMat(transportFlow)(Keep.right)
+          .join(tlsFlow)
+      case _ => transportFlow
+    }
 
-    g.joinMat(tcpFlow)(Keep.right)
+    g.joinMat(connectionFlow)(Keep.right)
       .mapMaterializedValue(_.map(_ => ()))
+  }
+
+  private val tlsFlow = {
+    val wrapTls = Flow[ByteString].map(SendBytes)
+    val unwrapTls = Flow[SslTlsInbound].collect {
+      case SessionBytes(_, bytes) ⇒ bytes
+    }
+    BidiFlow.fromFlows(unwrapTls, wrapTls)
   }
 
   private class HijackStage(

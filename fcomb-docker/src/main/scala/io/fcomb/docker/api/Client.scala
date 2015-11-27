@@ -10,12 +10,12 @@ import akka.util.ByteString
 import io.fcomb.docker.api.json.ContainerMethodsFormat._
 import io.fcomb.docker.api.json.ImageMethodsFormat._
 import io.fcomb.docker.api.json.MiscMethodsFormat._
-import io.fcomb.docker.api.methods._
 import io.fcomb.docker.api.methods.ContainerMethods._
 import io.fcomb.docker.api.methods.ImageMethods._
 import io.fcomb.docker.api.methods.MiscMethods._
 import java.net.URL
 import java.time.ZonedDateTime
+import javax.net.ssl.SSLContext
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import scala.collection.immutable
@@ -23,8 +23,11 @@ import scala.concurrent.duration._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
-// TODO: TLS auth
-final class Client(val hostname: String, val port: Int)(
+final class Client(
+  val hostname: String,
+  val port: Int,
+  val sslContext: Option[SSLContext] = None
+)(
   implicit
   val sys: ActorSystem,
   val mat: Materializer
