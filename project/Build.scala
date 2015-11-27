@@ -1,6 +1,7 @@
 import sbt._
 import sbt.Keys._
-import spray.revolver.RevolverPlugin._
+import spray.revolver._
+import spray.revolver.RevolverPlugin.autoImport.{reStart, reStartArgs}
 import com.typesafe.sbt.SbtNativePackager, SbtNativePackager._
 import com.typesafe.sbt.packager.Keys._
 import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
@@ -15,13 +16,13 @@ object Build extends sbt.Build {
   lazy val buildSettings =
     Defaults.defaultSettings ++
       Seq(
-        organization         := Organization,
-        version              := Version,
-        scalaVersion         := ScalaVersion,
-        crossPaths           := false,
-        organizationName     := Organization,
+        organization := Organization,
+        version := Version,
+        scalaVersion := ScalaVersion,
+        crossPaths := false,
+        organizationName := Organization,
         organizationHomepage := Some(url("https://fcomb.io")),
-        ivyScala             := ivyScala.value.map(_.copy(
+        ivyScala := ivyScala.value.map(_.copy(
           overrideScalaVersion = true
         ))
       )
@@ -57,8 +58,8 @@ object Build extends sbt.Build {
     buildSettings ++
     net.virtualvoid.sbt.graph.Plugin.graphSettings ++
       Seq(
-        resolvers                 ++= Resolvers.seq,
-        scalacOptions in Compile  ++= Seq(
+        resolvers ++= Resolvers.seq,
+        scalacOptions in Compile ++= Seq(
           "-encoding",
           "UTF-8",
           "-deprecation",
@@ -66,32 +67,32 @@ object Build extends sbt.Build {
           "-feature",
           "-language:higherKinds"
         ) ++ compilerFlags,
-        javaOptions               ++= Seq("-Dfile.encoding=UTF-8", "-Dscalac.patmat.analysisBudget=off"),
-        javacOptions              ++= Seq("-source", javaVersion, "-target", javaVersion, "-Xlint:unchecked", "-Xlint:deprecation"),
+        javaOptions ++= Seq("-Dfile.encoding=UTF-8", "-Dscalac.patmat.analysisBudget=off"),
+        javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion, "-Xlint:unchecked", "-Xlint:deprecation"),
         parallelExecution in Test := false,
-        fork              in Test := true
+        fork in Test := true
       )
 
   lazy val root = Project(
     "server",
     file("."),
     settings =
-      defaultSettings               ++
+      defaultSettings ++
       SbtNativePackager.packageArchetype.java_application ++
       SbtAspectj.aspectjSettings ++
-      Revolver.settings             ++
+      RevolverPlugin.settings ++
         Seq(
           libraryDependencies ++= Dependencies.root,
-          Revolver.reStartArgs :=  Seq("io.fcomb.Main"),
-          mainClass  in Revolver.reStart := Some("io.fcomb.Main"),
-          autoCompilerPlugins :=  true,
+          reStartArgs :=  Seq("io.fcomb.Main"),
+          mainClass in reStart := Some("io.fcomb.Main"),
+          autoCompilerPlugins := true,
           scalacOptions in (Compile,doc) := Seq(
             "-groups",
             "-implicits",
             "-diagrams"
           ) ++ compilerFlags,
           executableScriptName := "start",
-          javaOptions in Revolver.reStart <++= AspectjKeys.weaverOptions in SbtAspectj.Aspectj,
+          javaOptions in reStart <++= AspectjKeys.weaverOptions in SbtAspectj.Aspectj,
           javaOptions in run <++= AspectjKeys.weaverOptions in SbtAspectj.Aspectj,
           javaOptions in Universal ++= javaRunOptions.map { o => s"-J$o" },
           packageName in Universal := "dist",
@@ -101,7 +102,7 @@ object Build extends sbt.Build {
           bashScriptExtraDefines += """addJava "-javaagent:${app_home}/../aspectj/weaver.jar"""",
           scriptClasspath ~= (cp => "../config" +: cp),
           fork in run := true,
-          fork in Revolver.reStart := true
+          fork in reStart := true
         )
   ).dependsOn(api/*, proxy*/)
     .enablePlugins(SbtNativePackager)

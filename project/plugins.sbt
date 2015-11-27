@@ -11,7 +11,7 @@ addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.7.5")
 
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.1.9")
 
-addSbtPlugin("io.spray" % "sbt-revolver" % "0.7.2")
+addSbtPlugin("io.spray" % "sbt-revolver" % "0.8.0-RC1")
 
 // addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.1.0")
 
