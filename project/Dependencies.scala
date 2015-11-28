@@ -2,8 +2,9 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.0"
+    val akka = "2.4.1"
     val akkaExperimental = "2.0-M1"
+    val bouncyCastle = "1.53"
     val cats = "0.3.0"
     val circle = "0.1.1"
     val slick = "3.1.0"
@@ -79,10 +80,13 @@ object Dependencies {
     // val phantom         = "com.websudos"                  %% "phantom-dsl"                   % V.phantom
     // val phantomUdt      = "com.websudos"                  %% "phantom-udt"                   % V.phantom
 
-    val levelDb         = "org.iq80.leveldb"              % "leveldb"                        % "0.7"
-    val levelDbJni      = "org.fusesource.leveldbjni"     % "leveldbjni-all"                 % "1.8"
+    val levelDb         = "org.iq80.leveldb"              %  "leveldb"                        % "0.7"
+    val levelDbJni      = "org.fusesource.leveldbjni"     %  "leveldbjni-all"                 % "1.8"
 
     val redis           = "com.etaty.rediscala"           %% "rediscala"                     % "1.5.0"
+
+    val bcProvider      = "org.bouncycastle"              %  "bcprov-jdk15on"                % V.bouncyCastle
+    val bcPkix          = "org.bouncycastle"              %  "bcpkix-jdk15on"                % V.bouncyCastle
 
     val oauth           = "com.nulab-inc"                 %% "scala-oauth2-core"             % "0.13.1"
     val bcrypt          = "com.github.t3hnar"             %% "scala-bcrypt"                  % "2.4"
@@ -226,7 +230,7 @@ object Dependencies {
     commonsCodec
   )
 
-  val crypto = common
+  val crypto = common ++ Seq(bcProvider, bcPkix)
 
   val validations = common ++ Seq(slick)
 

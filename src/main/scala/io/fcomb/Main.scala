@@ -34,38 +34,10 @@ object Main extends App {
   val interface = Config.config.getString("rest-api.interface")
   val port = Config.config.getInt("rest-api.port")
 
-  import akka.stream.scaladsl._
-  import akka.stream.io._
-  import akka.util.ByteString
-  import scala.concurrent._
-  import scala.concurrent.duration._
-  import io.fcomb.docker.api.Client, Client._
-  import io.fcomb.docker.api._
-  import io.fcomb.docker.api.methods.ContainerMethods._
-  import io.fcomb.docker.api.methods.MiscMethods._
-
-  import io.fcomb.crypto.Tls
+  import io.fcomb.crypto._
   import java.nio.file.Paths
 
-  val ctx = Tls.context(
-    Paths.get("/tmp/coreos/client.der"),
-    Paths.get("/tmp/coreos/client.pem"),
-    Some(Paths.get("/tmp/coreos/ca.pem"))
-  )
-
-  val dc = new Client("coreos", 2376, Some(ctx))
-  // dc.ping().onComplete(println)
-  dc.execCreate("ubuntu_tty", List("/bin/bash"), StdStream.all, false).flatMap { res =>
-    val p = Promise[ByteString]()
-    val source = Source.tick(1.second, 1.second, ByteString("ls\n")) ++
-      Source(p.future).drop(1)
-    val flow = Flow.fromSinkAndSource(Sink.foreach[StdStreamFrame.StdStreamFrame] {
-      case (_, bs) =>
-        println(bs.utf8String)
-    }, source)
-    println(s"res: $res")
-    dc.execAttachAsStream(res.id, flow)
-  }.onComplete(println)
+  Ca.generate()
 
   // (for {
   //   _ <- Db.migrate()
