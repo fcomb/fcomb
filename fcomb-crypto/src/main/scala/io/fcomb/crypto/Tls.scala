@@ -43,7 +43,7 @@ object Tls {
       case None => null
     }
 
-    val ctx = SSLContext.getInstance("TLS")
+    val ctx = SSLContext.getInstance("TLSv1.2")
     ctx.init(keyManagers, trustManager, new SecureRandom)
     ctx
   }
