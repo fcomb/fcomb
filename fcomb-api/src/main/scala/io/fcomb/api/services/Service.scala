@@ -2,11 +2,12 @@ package io.fcomb.api.services
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.headers.Authorization
+import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes}
 import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
-import akka.http.scaladsl.unmarshalling.Unmarshaller
+import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Source, Sink}
+import akka.stream.io.SynchronousFileSink
 import akka.util.ByteString
 import io.fcomb.json._
 import io.fcomb.json.errors._
@@ -21,6 +22,7 @@ import scala.language.implicitConversions
 import scalaz._
 import scalaz.Scalaz._
 import spray.json._
+import java.io.File
 
 sealed trait RequestBody[R] {
   val body: Option[R]
@@ -82,6 +84,11 @@ object ServiceResult {
     statusCode: StatusCode,
     contentType: ContentType
   ) extends ServiceResult
+
+  case class CompleteFileResult(
+    s: Source[ByteString, Any],
+    filename: Option[String]
+  ) extends ServiceResult
 }
 import ServiceResult._
 
@@ -130,6 +137,20 @@ object ServiceRoute {
       ))
     case CompleteFutureResult(f) =>
       f.flatMap(serviceResultToRoute(rCtx, _))
+    case CompleteFileResult(s, name) =>
+      val headers = name match {
+        case Some(filename) if filename.nonEmpty =>
+          List(`Content-Disposition`(
+            ContentDispositionTypes.attachment,
+            Map("filename" -> filename)
+          ))
+        case _ => List.empty
+      }
+      rCtx.complete(HttpResponse(
+        status = StatusCodes.OK,
+        entity = HttpEntity(ContentTypes.`application/octet-stream`, s),
+        headers = headers
+      ))
   }
 
   def serviceMethodToRoute(method: ServiceMethod)(
@@ -177,6 +198,12 @@ trait CompleteResultMethods {
     contentType: ContentType
   ): ServiceResult =
     CompleteSourceResult(s, statusCode, contentType)
+
+  def completeFile(
+    s: Source[ByteString, Any],
+    filename: Option[String]
+  ): ServiceResult =
+    CompleteFileResult(s, filename)
 }
 
 trait ServiceLogging {
@@ -189,11 +216,11 @@ trait ServiceExceptionMethods {
       _: ParsingException |
       _: Unmarshaller.UnsupportedContentTypeException =>
       (
-        SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
+        InternalException(e.getMessage),
         StatusCodes.UnprocessableEntity
       )
     case _ => (
-      SingleFailureResponse(ErrorStatus.Internal, e.getMessage),
+      InternalException(e.getMessage),
       StatusCodes.InternalServerError
     )
   }
@@ -214,7 +241,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
 
   def completeThrowable(e: Throwable)(implicit ctx: ServiceContext) =
     mapThrowable(e) match {
-      case (e, status) => complete(e, status)
+      case (e, status) => complete(e.toErrorMessage(), status)
     }
 
   def recoverThrowable(f: Future[ServiceResult])(
@@ -267,22 +294,28 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     complete(requestBodyTryAs[T]().map {
       case \/-(o) => o match {
         case Some(res) => f(res)
-        case _ =>
-          completeErrors("body" -> "can't be empty")(StatusCodes.BadRequest)
+        case _ => completeError(JsonBodyCantBeEmpty)(StatusCodes.BadRequest)
       }
       case -\/(e) => completeThrowable(e)
     })
 
-  def completeErrors(errors: (String, String)*)(statusCode: StatusCode)(
+  def completeErrors(errors: Seq[DtCemException])(statusCode: StatusCode)(
     implicit
     ctx: ServiceContext
   ) =
-    complete(validationErrors(errors: _*), statusCode)
+    complete(FailureResponse.fromExceptions(errors), statusCode)
 
-  def validationErrors(errors: (String, String)*) =
-    ValidationErrorsMap(errors.map {
-      case (k, v) => (k, List(v))
-    }.toMap)
+  def completeError(error: DtCemException)(statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext
+  ) =
+    complete(FailureResponse.fromException(error), statusCode)
+
+  def completeNotFound()(
+    implicit
+    ctx: ServiceContext
+  ): ServiceResult =
+    completeError(RecordNotFoundException)(StatusCodes.NotFound)
 
   def complete[T](res: T, statusCode: StatusCode)(
     implicit
@@ -291,6 +324,24 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     jw: JsonWriter[T]
   ): ServiceResult =
     complete(ctx.marshaller.serialize(res), statusCode, ctx.contentType)
+
+  def complete[T](f: Future[T], statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    m: Manifest[T],
+    jw: JsonWriter[T]
+  ): ServiceResult =
+    complete(f.map(complete(_, statusCode)))
+
+  def completeItems[T](f: Future[Seq[T]], statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    m: Manifest[T],
+    jw: JsonWriter[MultipleDataResponse[T]]
+  ): ServiceResult =
+    complete(f.map(items => complete(MultipleDataResponse[T](items, None), statusCode)))
 
   def completeValidation[T](res: Validation[ValidationErrors, T], statusCode: StatusCode)(
     implicit
@@ -302,11 +353,11 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     case Failure(e) => complete(e)
   }
 
-  def complete(e: ValidationErrors)(
+  def complete(errors: ValidationErrors)(
     implicit
     ctx: ServiceContext
   ): ServiceResult =
-    complete(ValidationErrorsMap(e), StatusCodes.UnprocessableEntity)
+    complete(FailureResponse.fromExceptions(errors), StatusCodes.UnprocessableEntity)
 
   def completeValidation[T](f: Future[Validation[ValidationErrors, T]], statusCode: StatusCode)(
     implicit
@@ -329,6 +380,26 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ec: ExecutionContext
   ): ServiceResult =
     complete(f.map(_ => completeWithoutContent(statusCode)))
+
+  def completeOrNotFound[T](opt: Option[T], statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    m: Manifest[T],
+    jw: JsonWriter[T]
+  ): ServiceResult = opt match {
+    case Some(item) => complete(item, statusCode)
+    case None => completeNotFound
+  }
+
+  def completeOrNotFound[T](f: Future[Option[T]], statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    m: Manifest[T],
+    jw: JsonWriter[T]
+  ): ServiceResult =
+    complete(f.map(opt => completeOrNotFound(opt, statusCode)))
 
   def completeValidationWithoutContent(
     res: Validation[ValidationErrors, _],
@@ -374,17 +445,78 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     ec: ExecutionContext
   ): ServiceResult = {
-    def e(message: String) = Future.successful(
-      completeErrors("auth" -> message)(StatusCodes.Unauthorized)
-    )
+    def mapException(e: DtCemException) =
+      Future.successful(completeError(e)(StatusCodes.Unauthorized))
 
     complete(getAuthToken() match {
       case Some(token) =>
         persist.Session.findById(token).flatMap {
           case Some(item) => flatResult(f(item))
-          case None => e("invalid token")
+          case None => mapException(InvalidAuthorizationToken)
         }
-      case _ => e("expected 'Authorization' header with token or URI 'auth_token' parameter")
+      case _ => mapException(ExpectedAuthorizationToken)
     })
   }
+
+  def requestAsBodyParts[T](
+    f: Source[Multipart.FormData.BodyPart, Any] => Future[ServiceResult]
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    mat: Materializer
+  ): ServiceResult =
+    complete(Unmarshal(ctx.requestContext.request.entity)
+      .to[Multipart.FormData]
+      .flatMap(body => f(body.parts)))
+
+  def requestAsBodyPart[T](
+    f: Multipart.FormData.BodyPart => Future[ServiceResult]
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    mat: Materializer
+  ): ServiceResult =
+    requestAsBodyParts(_.runWith(Sink.head).flatMap(f))
+
+  def requestAsFileParts[T](
+    f: Source[Multipart.FormData.BodyPart, Any] => Future[ServiceResult]
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    mat: Materializer
+  ): ServiceResult =
+    requestAsBodyParts { parts =>
+      f(parts.filter(_.additionalDispositionParams.contains("filename")))
+    }
+
+  def requestAsFilePart[T](
+    f: Multipart.FormData.BodyPart => Future[ServiceResult]
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    mat: Materializer
+  ): ServiceResult =
+    requestAsFileParts(_.runWith(Sink.head).flatMap(f))
+
+  def requestAsFile[T](f: (File, Option[String], ContentType) => ServiceResult)(
+    implicit
+    ctx: ServiceContext,
+    ec: ExecutionContext,
+    mat: Materializer
+  ): ServiceResult =
+    requestAsFilePart { part =>
+      val extension = part.filename.flatMap { n =>
+        n.split('.').tail.lastOption.map(e => s".$e")
+      }.getOrElse("")
+      val prefix = Random.random.alphanumeric.take(15).mkString
+      val filename = s"/tmp/file_${prefix}$extension"
+      val file = new File(filename)
+      file.deleteOnExit()
+      part.entity.dataBytes.runWith(SynchronousFileSink(file))
+        .map(_ => f(file, part.filename, part.entity.contentType()))
+    }
 }

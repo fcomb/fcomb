@@ -1,5 +1,6 @@
 package io.fcomb
 
+import io.fcomb.models.errors.ValidationException
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{existentials, implicitConversions, postfixOps}
@@ -11,18 +12,18 @@ import slick.lifted.AppliedCompiledFunction
 package object validations {
   type DBIOT[T] = DBIOAction[T, NoStream, Effect.Read]
 
-  type PlainValidationT[T] = Validation[NonEmptyList[String], T]
-  type FutureValidationT[T] = Future[Validation[NonEmptyList[String], T]]
-  type DBIOValidationT[T] = DBIOT[Validation[NonEmptyList[String], T]]
+  type PlainValidationT[T] = Validation[String, T]
+  type FutureValidationT[T] = Future[Validation[String, T]]
+  type DBIOValidationT[T] = DBIOT[Validation[String, T]]
 
-  type PlainValidation = Validation[NonEmptyList[String], Unit]
+  type PlainValidation = Validation[String, Unit]
   type FutureValidation = Future[PlainValidation]
   type DBIOValidation = DBIOT[PlainValidation]
 
   type DBIOActionValidator = DBIOAction[Boolean, NoStream, Effect.Read]
 
   def plainValidation(validations: Seq[PlainValidation]) =
-    validations.foldLeft(().successNel[String]) {
+    validations.foldLeft(().success[String]) {
       (acc, v) => (acc |@| v) { (_, _) => () }
     }
 
@@ -32,114 +33,112 @@ package object validations {
   def dbioValidation(validations: Seq[DBIOValidation])(implicit ec: ExecutionContext) =
     DBIO.sequence(validations).map(plainValidation)
 
-  type ColumnErrors = (String, NonEmptyList[String])
-  type ColumnValidation = Validation[ColumnErrors, Unit]
-  type ValidationErrors = Map[String, List[String]]
+  type ColumnValidation = Validation[ValidationException, Unit]
+  type ValidationErrors = List[ValidationException]
   type ValidationResult[T] = Validation[ValidationErrors, T]
   type ValidationResultUnit = ValidationResult[Unit]
-
-  val emptyValidationErrors: ValidationErrors = Map.empty[String, List[String]]
 
   def successResult[E](res: E): validations.ValidationResult[E] =
     res.success[validations.ValidationErrors]
 
   def validationErrors[M](errors: (String, String)*): ValidationResult[M] =
     errors.map {
-      case (k, v) => (k, List(v))
-    }.toMap.failure[M]
+      case (param, msg) => ValidationException(param, msg)
+    }.toList.failure[M]
 
   def validateColumn(column: String, validation: PlainValidation): ColumnValidation =
     validation match {
       case Success(_) => ().success
-      case Failure(errors) => (column, errors).failure
+      case Failure(msg) => ValidationException(column, msg).failure
     }
 
-  def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResult[Unit] = {
-    val res = validations.foldLeft(List.empty[ColumnErrors]) {
+  def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResult[Unit] =
+    validations.foldLeft(List.empty[ValidationException]) {
       (acc, v) =>
         v match {
           case Success(_) => acc
           case Failure(e) => e :: acc
         }
+    } match {
+      case Nil => ().success
+      case xs => xs.failure
     }
-    if (res.isEmpty) ().success
-    else res.foldLeft(Map.empty[String, List[String]]) {
-      case (acc, (c, v)) =>
-        acc + ((c, v.toList ::: acc.getOrElse(c, List.empty)))
-    }.failure
-  }
 
-  def validatePlain(result: (String, List[PlainValidation])*): ValidationResult[Unit] = {
-    val res = result.foldLeft(Map.empty[String, List[String]]) {
+  def validatePlain(result: (String, List[PlainValidation])*): ValidationResult[Unit] =
+    result.foldLeft(List.empty[ValidationException]) {
       case (m, (c, v)) => plainValidation(v) match {
         case Success(_) => m
-        case Failure(r) => m + ((c, r.toList))
+        case Failure(msg) => ValidationException(c, msg) :: m
       }
+    } match {
+      case Nil => ().success
+      case xs => xs.failure
     }
-    if (res.isEmpty) ().success
-    else res.failure
-  }
 
-  def validateDBIO(result: (String, List[DBIOValidation])*)(implicit ec: ExecutionContext): DBIOT[ValidationResult[Unit]] = {
-    val emptyMap = DBIO
-      .successful(Map.empty[String, List[String]])
+  def validateDBIO(
+    result: (String, List[DBIOValidation])*
+  )(
+    implicit
+    ec: ExecutionContext
+  ): DBIOT[ValidationResult[Unit]] = {
+    val emptyList = DBIO
+      .successful(List.empty[ValidationException])
       .asInstanceOf[DBIOT[ValidationErrors]]
-    val res = result.foldLeft(emptyMap) {
+    result.foldLeft(emptyList) {
       case (m, (c, v)) => dbioValidation(v).flatMap {
         case Success(_) => m
-        case Failure(r) => m.map(_ + ((c, r.toList)))
+        case Failure(msg) => m.map(ValidationException(c, msg) :: _)
       }
-    }
-    res.map {
-      case m if m.isEmpty => ().success
-      case m => m.failure
+    }.map {
+      case Nil => ().success
+      case xs => xs.failure
     }
   }
 
   object Validations {
     def present(value: String): PlainValidation =
-      if (value.isEmpty) "is empty".failureNel
-      else ().successNel
+      if (value.isEmpty) "is empty".failure
+      else ().success
 
     val emailRegEx = """\A([a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+)@([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*)\z""".r
 
     def email(value: String): PlainValidation =
-      if (emailRegEx.findFirstIn(value).isDefined) ().successNel
-      else "invalid email format".failureNel
+      if (emailRegEx.findFirstIn(value).isDefined) ().success
+      else "invalid email format".failure
 
     def unique(
       action: AppliedCompiledFunction[_, Rep[Boolean], Boolean]
     )(implicit ec: ExecutionContext): DBIOValidation = {
       action.result.map {
-        case true => "not unique".failureNel
-        case false => ().successNel
+        case true => "not unique".failure
+        case false => ().success
       }
     }
 
     val uuidRegEx = """(?i)\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z""".r
 
     def uuid(value: String): PlainValidation =
-      if (uuidRegEx.findFirstIn(value).isDefined) ().successNel
-      else "invalid UUID format".failureNel
+      if (uuidRegEx.findFirstIn(value).isDefined) ().success
+      else "invalid UUID format".failure
 
     def notUuid(value: String): PlainValidation =
       if (uuidRegEx.findFirstIn(value).isDefined)
-        "cannot be an UUID format".failureNel
-      else ().successNel
+        "cannot be an UUID format".failure
+      else ().success
 
     def lengthRange(value: String, from: Int, to: Int): PlainValidation = {
-      if (value.length >= from && value.length <= to) ().successNel
-      else s"length is less than $from or greater than $to".failureNel
+      if (value.length >= from && value.length <= to) ().success
+      else s"length is less than $from or greater than $to".failure
     }
 
     def maxLength(value: String, to: Int): PlainValidation = {
-      if (value.length <= to) ().successNel
-      else s"length is greater than $to".failureNel
+      if (value.length <= to) ().success
+      else s"length is greater than $to".failure
     }
 
     def minLength(value: String, from: Int): PlainValidation = {
-      if (value.length >= from) ().successNel
-      else s"length is less than $from".failureNel
+      if (value.length >= from) ().success
+      else s"length is less than $from".failure
     }
   }
 

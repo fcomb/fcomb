@@ -20,14 +20,11 @@ class HttpApiService(routes: Route)(
 ) extends ServiceExceptionMethods {
   private val logger = LoggerFactory.getLogger(this.getClass)
 
-  private def jsonResponse[T <: ErrorResponse](
-    e: T,
+  private def errorResponse[T <: DtCemException](
+    error: T,
     status: StatusCode
-  )(
-    implicit
-    m: Manifest[T],
-    jw: JsonWriter[T]
-  ) =
+  ) = {
+    val e = FailureResponse.fromException(error)
     complete(HttpResponse(
       status = status,
       entity = HttpEntity(
@@ -35,15 +32,16 @@ class HttpApiService(routes: Route)(
         e.toJson.compactPrint
       )
     ))
+  }
 
   private def handleException(e: Throwable) =
     mapThrowable(e) match {
-      case (e, status) => jsonResponse(e, status)
+      case (e, status) => errorResponse(e, status)
     }
 
   private def handleRejection(r: Rejection) = r match {
-    case _ => jsonResponse(
-      SingleFailureResponse(ErrorStatus.Internal, r.toString),
+    case _ => errorResponse(
+      InternalException(r.toString),
       StatusCodes.BadRequest
     )
   }
@@ -61,7 +59,7 @@ class HttpApiService(routes: Route)(
           handleRejection(r)
       }
       .handleNotFound {
-        jsonResponse(resourceNotFound, StatusCodes.NotFound)
+        errorResponse(ResourceNotFoundException, StatusCodes.NotFound)
       }
       .result
 

@@ -3,7 +3,7 @@ package io.fcomb
 import io.fcomb.models.comb._
 
 package object request {
-  trait ServiceModelRequest
+  trait ServiceModelRequest extends models.ServiceModel
 
   case class UserSignUpRequest(
     email: String,

@@ -34,26 +34,21 @@ object Main extends App {
   val interface = Config.config.getString("rest-api.interface")
   val port = Config.config.getInt("rest-api.port")
 
-  import io.fcomb.crypto._
-  import java.nio.file.Paths
-
-  Ca.generate()
-
-  // (for {
-  //   _ <- Db.migrate()
-  //   _ <- server.HttpApiService.start(port, interface, Routes())
-  // } yield ()).onComplete {
-  //   case Success(_) =>
-  //   // HttpProxy.start(config)
-  //   case Failure(e) =>
-  //     logger.error(e.getMessage(), e.getCause())
-  //     try {
-  //       // Kamon.shutdown()
-  //       sys.terminate()
-  //     } finally {
-  //       System.exit(-1)
-  //     }
-  // }
+  (for {
+    _ <- Db.migrate()
+    _ <- server.HttpApiService.start(port, interface, Routes())
+  } yield ()).onComplete {
+    case Success(_) =>
+    // HttpProxy.start(config)
+    case Failure(e) =>
+      logger.error(e.getMessage(), e.getCause())
+      try {
+        // Kamon.shutdown()
+        sys.terminate()
+      } finally {
+        System.exit(-1)
+      }
+  }
 
   Await.result(sys.whenTerminated, Duration.Inf)
 }

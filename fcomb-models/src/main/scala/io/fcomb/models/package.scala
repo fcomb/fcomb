@@ -22,4 +22,31 @@ package object models {
   trait ModelWithAutoLongPk extends ModelWithLongPk with ModelWithAutoPk[Long]
 
   trait ModelWithUuidPk extends ModelWithPk[UUID]
+
+  trait ServiceModel
+
+  case class PaginationData(
+    total: Int,
+    offset: Long,
+    limit: Long
+  )
+
+  case class MultipleDataResponse[A](
+    items: Seq[A],
+    pagination: Option[PaginationData]
+  )
+
+  sealed trait SortOrder
+  case object Asc extends SortOrder
+  case object Desc extends SortOrder
+
+  case class PaginatorQuery(
+    limit: Long,
+    offset: Long,
+    filter: Seq[(String, String)],
+    filterNot: Seq[(String, String)],
+    order: Seq[(String, SortOrder)],
+    includes: Seq[String],
+    excludes: Seq[String]
+  )
 }

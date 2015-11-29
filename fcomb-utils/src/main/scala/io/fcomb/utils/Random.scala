@@ -1,8 +1,9 @@
 package io.fcomb.utils
 
-import scala.util.{ Random => ScRandom }
+import scala.util.{ Random => ScalaRandom }
 import java.security.SecureRandom
 
 object Random {
-  val rand = new ScRandom(new SecureRandom())
+  val sRandom = new SecureRandom()
+  val random = new ScalaRandom(sRandom)
 }

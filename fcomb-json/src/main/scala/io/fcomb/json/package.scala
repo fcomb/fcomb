@@ -117,8 +117,6 @@ package object json {
 
   implicit val changePasswordRequestJsonProtocol = jsonFormat2(ChangePasswordRequest)
 
-  implicit val validationErrorsResponseJsonProtocol = jsonFormat1(ValidationErrorsMap)
-
   implicit val userSignUpRequestJsonProtocol = jsonFormat4(UserSignUpRequest)
 
   implicit val userRequestJsonProtocol = jsonFormat3(UserRequest)
@@ -138,14 +136,10 @@ package object json {
   implicit val combMethodResponseJsonProtocol = jsonFormat7(CombMethodResponse)
 
   object errors {
-    implicit object JsonStatusCodeFormat extends JsonFormat[ErrorStatus.ErrorStatus] {
-      def write(status: ErrorStatus.ErrorStatus) = JsString(status.toString)
+    implicit val errorKindFormat = createStringEnumJsonFormat(ErrorKind)
 
-      def read(v: JsValue) = throw new NotImplementedError
-    }
+    implicit val errorMessageFormat = jsonFormat4(ErrorMessage)
 
-    implicit val validationFailureResponseFormat = jsonFormat2(MultipleFailureResponse)
-
-    implicit val internalFailureResponseFormat = jsonFormat2(SingleFailureResponse)
+    implicit val failureResponseFormat = jsonFormat1(FailureResponse.apply)
   }
 }

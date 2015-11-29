@@ -27,7 +27,7 @@ object ResetPassword {
   ): Future[ValidationResultUnit] = {
     persist.User.findByEmail(email).flatMap {
       case Some(user) =>
-        val token = Random.rand.alphanumeric.take(42).mkString
+        val token = Random.random.alphanumeric.take(42).mkString
         val date = LocalDateTime.now.plusSeconds(ttl.get)
         redis.set(s"$prefix$token", user.id.toString, ttl).flatMap { _ =>
           val template = templates.ResetPassword(s"title: token $token", s"date: $date", token)

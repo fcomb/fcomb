@@ -81,8 +81,8 @@ object CombMethod extends PersistModelWithAutoLongPk[comb.CombMethod, CombMethod
 
   private def validateUri(uri: String): PlainValidation =
     RouteTrie.validateUri(uri) match {
-      case Right(_) => ().successNel
-      case Left(e) => e.failureNel
+      case Right(_) => ().success
+      case Left(e) => e.failure
     }
 
   private def validateEndpoint(uri: String, endpoint: String): PlainValidation = {
@@ -92,11 +92,11 @@ object CombMethod extends PersistModelWithAutoLongPk[comb.CombMethod, CombMethod
           val unknownParameters = comb.CombMethodUtils.endpointParams(url)
             .filterNot(_ == "*")
             .diff(uriParameters.toList)
-          if (unknownParameters.isEmpty) ().successNel
-          else s"parameters not from URI: ${unknownParameters.mkString(", ")}".failureNel
-        case Left(_) => "invalid uri".failureNel
+          if (unknownParameters.isEmpty) ().success
+          else s"parameters not from URI: ${unknownParameters.mkString(", ")}".failure
+        case Left(_) => "invalid uri".failure
       }
-      case Failure(e) => e.getMessage.failureNel
+      case Failure(e) => e.getMessage.failure
     }
   }
 

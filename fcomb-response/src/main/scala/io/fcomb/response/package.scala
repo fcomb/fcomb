@@ -7,7 +7,7 @@ import java.util.UUID
 import scala.language.implicitConversions
 
 package object response {
-  trait ServiceModelResponse
+  trait ServiceModelResponse extends ServiceModel
 
   implicit class ModelItem[T](val m: T) extends AnyRef {
     def toResponse[E <: ServiceModelResponse]()(implicit f: T => E) =
