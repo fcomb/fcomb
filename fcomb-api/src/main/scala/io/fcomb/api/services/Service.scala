@@ -7,7 +7,6 @@ import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, Sink}
-import akka.stream.io.SynchronousFileSink
 import akka.util.ByteString
 import io.fcomb.json._
 import io.fcomb.json.errors._
@@ -516,7 +515,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       val filename = s"/tmp/file_${prefix}$extension"
       val file = new File(filename)
       file.deleteOnExit()
-      part.entity.dataBytes.runWith(SynchronousFileSink(file))
+      part.entity.dataBytes.runWith(Sink.file(file))
         .map(_ => f(file, part.filename, part.entity.contentType()))
     }
 }

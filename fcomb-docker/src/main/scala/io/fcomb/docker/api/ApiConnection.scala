@@ -35,10 +35,6 @@ private[api] trait ApiConnection {
   protected def clientSettings(duration: Option[Duration]) =
     duration.foldLeft(clientConnectionSettings) {
       (s, d) => s.copy(idleTimeout = d)
-    } match { // TODO: https://github.com/akka/akka/issues/16468
-      case s => s.copy(parserSettings = s.parserSettings.copy(
-        maxContentLength = Long.MaxValue
-      ))
     }
 
   private def httpConnectionFlow(duration: Option[Duration]) = {
