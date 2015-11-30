@@ -63,7 +63,7 @@ object Session extends PersistTypes[models.Session] {
   ) = {
     redis.get(getKey(sessionId)).flatMap {
       case Some(userId) if sessionId.startsWith(userPrefix) =>
-        User.findById(UUID.fromString(userId.utf8String))
+        User.findById(userId.utf8String.toLong)
       case _ =>
         Future.successful(None)
     }

@@ -1,7 +1,7 @@
 package io.fcomb
 
 import io.fcomb.models._
-import io.fcomb.models.comb._
+// import io.fcomb.models.comb._
 import io.fcomb.models.errors._
 import io.fcomb.request._
 import io.fcomb.response._
@@ -109,7 +109,7 @@ package object json {
       }
     }
 
-  implicit val methodKindJsonProtocol = createStringEnumJsonFormat(MethodKind)
+  // implicit val methodKindJsonProtocol = createStringEnumJsonFormat(MethodKind)
 
   implicit val resetPasswordRequestJsonProtocol = jsonFormat1(ResetPasswordRequest)
 
@@ -127,13 +127,13 @@ package object json {
 
   implicit val sessionResponseJsonProtocol = jsonFormat1(SessionResponse)
 
-  implicit val combRequestJsonProtocol = jsonFormat2(CombRequest)
+  // implicit val combRequestJsonProtocol = jsonFormat2(CombRequest)
 
-  implicit val combResponseJsonProtocol = jsonFormat5(CombResponse)
+  // implicit val combResponseJsonProtocol = jsonFormat5(CombResponse)
 
-  implicit val combMethodRequestJsonProtocol = jsonFormat3(CombMethodRequest)
+  // implicit val combMethodRequestJsonProtocol = jsonFormat3(CombMethodRequest)
 
-  implicit val combMethodResponseJsonProtocol = jsonFormat7(CombMethodResponse)
+  // implicit val combMethodResponseJsonProtocol = jsonFormat7(CombMethodResponse)
 
   object errors {
     implicit val errorKindFormat = createStringEnumJsonFormat(ErrorKind)

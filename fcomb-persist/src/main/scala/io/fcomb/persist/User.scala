@@ -7,12 +7,12 @@ import io.fcomb.models
 import io.fcomb.validations._
 import java.time.LocalDateTime
 import java.util.UUID
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scalaz._
 import scalaz.Scalaz._
 import slick.jdbc.GetResult
 
-class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistTableWithUuidPk {
+class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistTableWithAutoLongPk {
   def email = column[String]("email")
   def username = column[String]("username")
   def fullName = column[Option[String]]("full_name")
@@ -25,18 +25,17 @@ class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistT
       ((models.User.apply _).tupled, models.User.unapply)
 }
 
-object User extends PersistModelWithUuidPk[models.User, UserTable] {
+object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
   val table = TableQuery[UserTable]
 
   def create(
-    email:    String,
+    email: String,
     username: String,
     password: String,
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = LocalDateTime.now()
     val user = mapModel(models.User(
-      id = Some(UUID.randomUUID()),
       email = email,
       username = username,
       fullName = fullName,
@@ -49,8 +48,8 @@ object User extends PersistModelWithUuidPk[models.User, UserTable] {
     }
   }
 
-  def updateByRequest(id: UUID)(
-    email:    String,
+  def updateByRequest(id: Long)(
+    email: String,
     username: String,
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] =
@@ -61,29 +60,14 @@ object User extends PersistModelWithUuidPk[models.User, UserTable] {
       updatedAt = LocalDateTime.now()
     ))
 
-  implicit val allWithCombsResult = GetResult(r =>
-    (r.<<[UUID], r.<<[String], r.<<[Map[String, String]]))
-
-  def allWithCombs() = db.run {
-    sql"""
-    select
-      users.id,
-      users.username,
-      hstore(array_agg_custom(array[combs.id::text, combs.slug])) as combs
-    from users
-    inner join combs on combs.user_id = users.id
-    group by users.id
-    """.as[(UUID, String, Map[String, String])]
-  }
-
-  private val updatePasswordCompiled = Compiled { (userId: Rep[UUID]) =>
+  private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) =>
     table
       .filter(_.id === userId)
       .map { t => (t.passwordHash, t.updatedAt) }
   }
 
   def updatePassword(
-    userId: UUID,
+    userId: Long,
     password: String
   )(implicit ec: ExecutionContext): Future[Boolean] = {
     val salt = generateSalt
@@ -96,7 +80,7 @@ object User extends PersistModelWithUuidPk[models.User, UserTable] {
   }
 
   def changePassword(
-    user:        models.User,
+    user: models.User,
     oldPassword: String,
     newPassword: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
@@ -118,12 +102,12 @@ object User extends PersistModelWithUuidPk[models.User, UserTable] {
   import Validations._
 
   private val uniqueUsernameCompiled = Compiled {
-    (id: Rep[Option[UUID]], username: Rep[String]) =>
+    (id: Rep[Option[Long]], username: Rep[String]) =>
       table.filter { f => f.id =!= id && f.username === username }.exists
   }
 
   private val uniqueEmailCompiled = Compiled {
-    (id: Rep[Option[UUID]], email: Rep[String]) =>
+    (id: Rep[Option[Long]], email: Rep[String]) =>
       table.filter { f => f.id =!= id && f.email === email }.exists
   }
 
@@ -133,7 +117,7 @@ object User extends PersistModelWithUuidPk[models.User, UserTable] {
     )
 
   def userValidation(
-    user:        models.User,
+    user: models.User,
     passwordOpt: Option[String]
   )(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(

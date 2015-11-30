@@ -52,10 +52,11 @@ object ResetPassword {
       case Success(_) =>
         redis.get(key).flatMap {
           case Some(id) =>
-            val updateF = persist.User.updatePassword(UUID.fromString(id.utf8String), password).map {
-              case true  => ().success
-              case false => persist.User.validationError("id", "not found")
-            }
+            val updateF =
+              persist.User.updatePassword(id.utf8String.toLong, password).map {
+                case true  => ().success
+                case false => persist.User.validationError("id", "not found")
+              }
             for {
               res <- updateF
               _ <- redis.del(key)

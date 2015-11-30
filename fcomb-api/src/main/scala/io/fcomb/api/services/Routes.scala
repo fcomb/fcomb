@@ -21,23 +21,23 @@ object Routes {
 
     // format: OFF
     pathPrefix("v1") {
-      pathPrefix("combs") {
-        pathEndOrSingleSlash {
-          post(comb.CombService.create)
-        } ~
-        pathPrefix(LongNumber) { id: Long =>
-          pathEndOrSingleSlash {
-            get(comb.CombService.show(id)) ~
-            put(comb.CombService.update(id)) ~
-            delete(comb.CombService.destroy(id))
-          } ~
-          pathPrefix("methods") {
-            pathEndOrSingleSlash {
-              post(comb.CombMethodService.create(id))
-            }
-          }
-        }
-      } ~
+      // pathPrefix("combs") {
+      //   pathEndOrSingleSlash {
+      //     post(comb.CombService.create)
+      //   } ~
+      //   pathPrefix(LongNumber) { id: Long =>
+      //     pathEndOrSingleSlash {
+      //       get(comb.CombService.show(id)) ~
+      //       put(comb.CombService.update(id)) ~
+      //       delete(comb.CombService.destroy(id))
+      //     } ~
+      //     pathPrefix("methods") {
+      //       pathEndOrSingleSlash {
+      //         post(comb.CombMethodService.create(id))
+      //       }
+      //     }
+      //   }
+      // } ~
       pathPrefix("users") {
         path("sign_up") {
           post(UserService.signUp)

@@ -1,6 +1,6 @@
 package io.fcomb
 
-import io.fcomb.models.comb._
+// import io.fcomb.models.comb._
 
 package object request {
   trait ServiceModelRequest extends models.ServiceModel
@@ -32,16 +32,16 @@ package object request {
     newPassword: String
   ) extends ServiceModelRequest
 
-  case class CombRequest(
-    name: String,
-    slug: Option[String]
-  ) extends ServiceModelRequest
+  // case class CombRequest(
+  //   name: String,
+  //   slug: Option[String]
+  // ) extends ServiceModelRequest
 
-  case class CombMethodRequest(
-    kind: MethodKind.MethodKind,
-    uri: String,
-    endpoint: String
-  ) extends ServiceModelRequest
+  // case class CombMethodRequest(
+  //   kind: MethodKind.MethodKind,
+  //   uri: String,
+  //   endpoint: String
+  // ) extends ServiceModelRequest
 
   case class SessionRequest(
     email: String,

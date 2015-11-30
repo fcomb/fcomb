@@ -6,14 +6,16 @@ import java.util.UUID
 
 @SerialVersionUID(1L)
 case class User(
-  id: Option[UUID] = None,
+  id: Option[Long] = None,
   email: String,
   username: String,
   fullName: Option[String],
   passwordHash: String,
   createdAt: LocalDateTime,
   updatedAt: LocalDateTime
-) extends ModelWithUuidPk {
+) extends ModelWithAutoLongPk {
+  def withPk(id: Long) = this.copy(id = Some(id))
+
   def isValidPassword(password: String) =
     password.isBcrypted(passwordHash)
 }

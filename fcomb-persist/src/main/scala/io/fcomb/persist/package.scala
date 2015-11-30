@@ -27,7 +27,7 @@ package object persist {
   //       UUID.fromString(rs.getString(index))
   //   }
 
-  implicit val methodKindColumnType = createEnumJdbcType("method_kind", models.comb.MethodKind)
+  // implicit val methodKindColumnType = createEnumJdbcType("method_kind", models.comb.MethodKind)
 
   import io.fcomb.RichPostgresDriver.api._
 
