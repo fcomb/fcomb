@@ -22,10 +22,10 @@ trait PersistTypes[T] {
   def validationErrorAsFuture[E](columnName: String, error: String): Future[validations.ValidationResult[E]] =
     Future.successful(validationError(columnName, error))
 
-  def recordNotFound(columnName: String, id: String): ValidationModel =
-    validationError(columnName, s"not found record with id: $id")
+  def recordNotFound[E](columnName: String, id: String): validations.ValidationResult[E] =
+    validationError(columnName, s"Not found `$id` record")
 
-  def recordNotFoundAsFuture(field: String, id: String): Future[ValidationModel] =
+  def recordNotFoundAsFuture[E](field: String, id: String): Future[validations.ValidationResult[E]] =
     Future.successful(recordNotFound(field, id))
 }
 
@@ -119,10 +119,10 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
   @inline
   def mapModel(item: T): T = item
 
-  def recordNotFound(id: T#PkType): ValidationModel =
+  def recordNotFound[E](id: T#PkType): validations.ValidationResult[E] =
     recordNotFound("id", id.toString)
 
-  def recordNotFoundAsFuture(id: T#PkType): Future[ValidationModel] =
+  def recordNotFoundAsFuture[E](id: T#PkType): Future[validations.ValidationResult[E]] =
     Future.successful(recordNotFound(id))
 
   def findByIdDBIO(id: T#PkType) =
@@ -130,6 +130,8 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
 
   def findById(id: T#PkType): Future[Option[T]] =
     db.run(findByIdDBIO(id))
+
+  def notCurrentPkFilter(id: Rep[Option[T#PkType]]): Query[Q, T, Seq]
 
   def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val mappedItem = mapModel(item)
@@ -145,10 +147,15 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
   ) =
     findByIdQuery(item.getId)
       .update(item)
-      .map {
-        case 1 => item.success
-        case _ => recordNotFound(item.getId)
-      }
+      .map(strictUpdateDBIO(item.getId, item))
+
+  def strictUpdateDBIO[R](id: T#PkType, res: R)(q: Int)(
+    implicit
+    ec: ExecutionContext
+  ): validations.ValidationResult[R] = q match {
+    case 1 => res.success
+    case _ => recordNotFound(id)
+  }
 
   def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     item.id match {
@@ -178,10 +185,15 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
   def destroy(id: T#PkType)(implicit ec: ExecutionContext) = db.run {
     findByIdQuery(id)
       .delete
-      .map {
-        case 0 => recordNotFound(id)
-        case _ => ().success
-      }
+      .map(strictDestroyDBIO(id)(_))
+  }
+
+  def strictDestroyDBIO(id: T#PkType)(q: Int)(
+    implicit
+    ec: ExecutionContext
+  ): validations.ValidationResult[Unit] = q match {
+    case 0 => recordNotFound(id)
+    case _ => ().success
   }
 }
 
@@ -195,6 +207,11 @@ trait PersistModelWithUuidPk[T <: models.ModelWithUuidPk, Q <: Table[T] with Per
 
   def findByIdQuery(id: UUID) =
     findByIdCompiled(id)
+
+  def notCurrentPkFilter(id: Rep[Option[UUID]]) =
+    table.filter { q =>
+      id.flatMap(id => q.id.map(_ =!= id)).getOrElse(id.isEmpty)
+    }
 }
 
 trait PersistModelWithAutoLongPk[T <: models.ModelWithAutoLongPk, Q <: Table[T] with PersistTableWithAutoLongPk] extends PersistModelWithPk[Long, T, Q] {
@@ -208,4 +225,9 @@ trait PersistModelWithAutoLongPk[T <: models.ModelWithAutoLongPk, Q <: Table[T] 
 
   def findByIdQuery(id: Long) =
     findByIdCompiled(id)
+
+  def notCurrentPkFilter(id: Rep[Option[Long]]) =
+    table.filter { q =>
+      id.flatMap(id => q.id.map(_ =!= id)).getOrElse(id.isEmpty)
+    }
 }
