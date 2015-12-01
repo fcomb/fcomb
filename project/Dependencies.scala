@@ -15,6 +15,8 @@ object Dependencies {
   }
 
   object Compile {
+    val std             = "org.improving"                 %% "psp-std"                       % "0.5.6"
+
     val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.4.0"
     val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.2.2"
 
@@ -147,13 +149,14 @@ object Dependencies {
   object Test {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.5" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.6.5" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.6.6" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.5" % "test"
   }
 
   import Compile._, Test._
 
   val common = Seq(
+    std,
     javaCompat,
     logbackClassic, scalaLogging,
     config, configs,

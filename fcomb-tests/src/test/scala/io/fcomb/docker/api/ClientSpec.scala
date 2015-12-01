@@ -3,6 +3,7 @@ package io.fcomb.docker.api
 import io.fcomb.docker.api.methods._
 import io.fcomb.docker.api.methods.ContainerMethods._
 import io.fcomb.docker.api.methods.ImageMethods._
+import io.fcomb.docker.api.methods.MiscMethods._
 import io.fcomb.tests._
 import io.fcomb.utils.Units._
 import akka.http.scaladsl.server.Directives._
@@ -30,7 +31,7 @@ class ClientSpec extends ActorSpec {
             os = "linux",
             arch = "amd64",
             kernelVersion = Some("4.1.7-coreos"),
-            experimental = None,
+            experimental = false,
             buildTime = None
           )
           assert(res === version)
@@ -246,7 +247,7 @@ class ClientSpec extends ActorSpec {
               isStdinOnce = true,
               env = List("TEST=test:ttest"),
               command = List("ls"),
-              image = "ubuntu",
+              image = Some("ubuntu"),
               volumes = Map.empty,
               volumeDriver = None,
               workingDirectory = Some("/tmp"),
@@ -397,11 +398,12 @@ class ClientSpec extends ActorSpec {
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
-        dc.containerLogsAsStream(containerId, Set(StdStream.Out), timeout).flatMap { s =>
-          source2String(s).map { logs =>
-            assert(logs == "Log line 1\nLog line 2\n")
+        dc.containerLogsAsStream(containerId, Set(StdStream.Out), idleTimeout = timeout)
+          .flatMap { s =>
+            source2String(s).map { logs =>
+              assert(logs == "Log line 1\nLog line 2\n")
+            }
           }
-        }
       }
     }
 

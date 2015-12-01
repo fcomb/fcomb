@@ -6,6 +6,7 @@ import com.typesafe.sbt.SbtNativePackager, SbtNativePackager._
 import com.typesafe.sbt.packager.Keys._
 import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
 import play.twirl.sbt._, Import._
+import net.virtualvoid.sbt.graph.DependencyGraphSettings
 // import io.ino.sbtpillar.Plugin.PillarKeys._
 
 object Build extends sbt.Build {
@@ -56,7 +57,7 @@ object Build extends sbt.Build {
 
   lazy val defaultSettings =
     buildSettings ++
-    net.virtualvoid.sbt.graph.Plugin.graphSettings ++
+      DependencyGraphSettings.graphSettings ++
       Seq(
         resolvers ++= Resolvers.seq,
         scalacOptions in Compile ++= Seq(

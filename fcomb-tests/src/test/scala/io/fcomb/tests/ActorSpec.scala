@@ -47,7 +47,7 @@ abstract class ActorSpec extends TestKit(ActorSystemSpec.system)
 
   def startFakeHttpServer(handler: Route)(f: Int => Future[Unit]): Unit =
     await {
-      val port = Random.rand.nextInt(50000) + 10000
+      val port = Random.random.nextInt(50000) + 10000
       Http().bindAndHandle(handler, "localhost", port).flatMap { h =>
         f(port).andThen {
           case res => h.unbind().map(_ => res)
