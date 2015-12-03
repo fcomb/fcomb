@@ -367,18 +367,24 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(f.map(completeValidation(_, statusCode)))
 
-  def completeWithoutContent(statusCode: StatusCode)(
+  def completeWithoutResult(statusCode: StatusCode)(
     implicit
     ctx: ServiceContext
   ): ServiceResult =
     CompleteWithoutResult(statusCode, ctx.contentType)
 
-  def completeWithoutContent(f: Future[_], statusCode: StatusCode)(
+  def completeWithoutContent()(
+    implicit
+    ctx: ServiceContext
+  ): ServiceResult =
+    completeWithoutResult(StatusCodes.NoContent)
+
+  def completeWithoutContent(f: Future[_])(
     implicit
     ctx: ServiceContext,
     ec: ExecutionContext
   ): ServiceResult =
-    complete(f.map(_ => completeWithoutContent(statusCode)))
+    complete(f.map(_ => completeWithoutContent))
 
   def completeOrNotFound[T](opt: Option[T], statusCode: StatusCode)(
     implicit
@@ -401,25 +407,23 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     complete(f.map(opt => completeOrNotFound(opt, statusCode)))
 
   def completeValidationWithoutContent(
-    res: Validation[ValidationErrors, _],
-    statusCode: StatusCode
+    res: Validation[ValidationErrors, _]
   )(
     implicit
     ctx: ServiceContext
   ): ServiceResult = res match {
-    case Success(s) => completeWithoutContent(statusCode)
+    case Success(s) => completeWithoutContent()
     case Failure(e) => complete(e)
   }
 
   def completeValidationWithoutContent(
-    f: Future[Validation[ValidationErrors, _]],
-    statusCode: StatusCode
+    f: Future[Validation[ValidationErrors, _]]
   )(
     implicit
     ctx: ServiceContext,
     ec: ExecutionContext
   ): ServiceResult =
-    complete(f.map(completeValidationWithoutContent(_, statusCode)))
+    complete(f.map(completeValidationWithoutContent))
 
   def getAuthToken()(implicit ctx: ServiceContext): Option[String] = {
     val r = ctx.requestContext.request

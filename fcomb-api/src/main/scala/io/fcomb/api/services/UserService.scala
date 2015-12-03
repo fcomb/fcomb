@@ -49,13 +49,12 @@ object UserService extends Service {
   ) = action { implicit ctx =>
     authorizeUser { user =>
       requestBodyAs[UserRequest] { req =>
-        completeValidation(
+        completeValidationWithoutContent(
           persist.User.updateByRequest(user.getId)(
             email = req.email,
             username = req.username,
             fullName = req.fullName
-          ).map(_.map(_.toResponse[UserProfileResponse])),
-          StatusCodes.OK
+          )
         )
       }
     }
@@ -69,9 +68,7 @@ object UserService extends Service {
     authorizeUser { user =>
       requestBodyAs[ChangePasswordRequest] { req =>
         completeWithoutContent(
-          persist.User
-            .changePassword(user, req.oldPassword, req.newPassword),
-          StatusCodes.NoContent
+          persist.User.changePassword(user, req.oldPassword, req.newPassword)
         )
       }
     }
@@ -85,8 +82,7 @@ object UserService extends Service {
     import sys.dispatcher
     requestBodyAs[ResetPasswordRequest] { req =>
       completeWithoutContent(
-        ResetPassword.reset(req.email),
-        StatusCodes.NoContent
+        ResetPassword.reset(req.email)
       )
     }
   }
@@ -98,8 +94,7 @@ object UserService extends Service {
   ) = action { implicit ctx =>
     requestBodyAs[ResetPasswordSetRequest] { req =>
       completeWithoutContent(
-        ResetPassword.set(req.token, req.password),
-        StatusCodes.NoContent
+        ResetPassword.set(req.token, req.password)
       )
     }
   }

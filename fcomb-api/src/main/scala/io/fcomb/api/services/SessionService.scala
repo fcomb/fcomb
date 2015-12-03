@@ -34,8 +34,7 @@ object SessionService extends Service {
         getAuthToken() match {
           case Some(token) => persist.Session.destroy(token)
           case None => Future.successful(())
-        },
-        StatusCodes.NoContent
+        }
       )
     }
   }

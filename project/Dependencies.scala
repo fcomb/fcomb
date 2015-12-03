@@ -7,10 +7,12 @@ object Dependencies {
     val bouncyCastle = "1.53"
     val cats = "0.3.0"
     val circle = "0.1.1"
+    // val doobie = "0.2.3"
     val slick = "3.1.0"
     val slickPg = "0.10.1"
     val scalaz = "7.1.5"
     val scalikeJdbc = "2.2.8"
+    val quill = "0.1.0"
     val kamon = "0.5.2"
   }
 
@@ -66,6 +68,10 @@ object Dependencies {
     val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1204-jdbc42" exclude("org.slf4j", "slf4j-simple")
+    val quillJdbc       = "io.getquill"                   %% "quill-jdbc"                    % V.quill
+    val quillAsync      = "io.getquill"                   %% "quill-async"                   % V.quill
+    // val doobieCore      = "org.tpolecat"                  %% "doobie-core"                   % V.doobie
+    // val doobiePostgres  = "org.tpolecat"                  %% "doobie-contrib-postgresql"     % V.doobie
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
     val slickHikariCp   = "com.typesafe.slick"            %% "slick-hikaricp"                % V.slick exclude("com.zaxxer", "HikariCP-java6")
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg exclude("org.postgresql", "postgresql")
@@ -82,8 +88,8 @@ object Dependencies {
     // val phantom         = "com.websudos"                  %% "phantom-dsl"                   % V.phantom
     // val phantomUdt      = "com.websudos"                  %% "phantom-udt"                   % V.phantom
 
-    val levelDb         = "org.iq80.leveldb"              %  "leveldb"                        % "0.7"
-    val levelDbJni      = "org.fusesource.leveldbjni"     %  "leveldbjni-all"                 % "1.8"
+    val levelDb         = "org.iq80.leveldb"              %  "leveldb"                       % "0.7"
+    val levelDbJni      = "org.fusesource.leveldbjni"     %  "leveldbjni-all"                % "1.8"
 
     val redis           = "com.etaty.rediscala"           %% "rediscala"                     % "1.5.0"
 
@@ -206,6 +212,8 @@ object Dependencies {
   val persist = common ++ Seq(
     postgresJdbc,
     dbMigration,
+    quillJdbc, quillAsync,
+    // doobieCore, doobiePostgres,
     slick, slickHikariCp, slickPg, slickPgSprayJson, slickJdbc, // slickless,
     // relate,
     // scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,

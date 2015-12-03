@@ -6,8 +6,8 @@ import io.fcomb.models.ModelWithAutoLongPk
 case class Application(
   id: Option[Long] = None,
   name: String,
-  image: ContainerImage,
-  deployOptions: ContainerDeployOptions
+  image: DockerImage,
+  deployOptions: DockerDeployOptions
 ) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 }
@@ -25,6 +25,20 @@ case class DockerImage(
 
 sealed trait DeployOptions
 
+sealed trait ContainerDeployOptions extends DeployOptions
+
+case class DockerDeployPort()
+
 @SerialVersionUID(1L)
-case class ContainerDeployOptions(
-) extends DeployOptions
+case class DockerDeployOptions(
+  ports: Set[DockerDeployPort],
+  isAutoRestart: Boolean,
+  isAutoDestroy: Boolean,
+  isPrivileged: Boolean,
+  // pid: ...,
+  // network: ....
+  command: Option[String],
+  entrypoint: Option[String],
+  memoryLimit: Option[Long],
+  cpuShares: Option[Long]
+) extends ContainerDeployOptions

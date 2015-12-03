@@ -52,7 +52,7 @@ package object validations {
       case Failure(msg) => ValidationException(column, msg).failure
     }
 
-  def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResult[Unit] =
+  def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResultUnit =
     validations.foldLeft(List.empty[ValidationException]) {
       (acc, v) =>
         v match {
@@ -64,7 +64,7 @@ package object validations {
       case xs => xs.failure
     }
 
-  def validatePlain(result: (String, List[PlainValidation])*): ValidationResult[Unit] =
+  def validatePlain(result: (String, List[PlainValidation])*): ValidationResultUnit =
     result.foldLeft(List.empty[ValidationException]) {
       case (m, (c, v)) => plainValidation(v) match {
         case Success(_) => m
@@ -80,7 +80,7 @@ package object validations {
   )(
     implicit
     ec: ExecutionContext
-  ): DBIOT[ValidationResult[Unit]] = {
+  ): DBIOT[ValidationResultUnit] = {
     val emptyList = DBIO
       .successful(List.empty[ValidationException])
       .asInstanceOf[DBIOT[ValidationErrors]]
