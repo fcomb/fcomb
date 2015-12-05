@@ -5,7 +5,7 @@ import io.fcomb.Db._
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models
 import io.fcomb.validations._
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz._
@@ -17,8 +17,8 @@ class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistT
   def username = column[String]("username")
   def fullName = column[Option[String]]("full_name")
   def passwordHash = column[String]("password_hash")
-  def createdAt = column[LocalDateTime]("created_at")
-  def updatedAt = column[LocalDateTime]("updated_at")
+  def createdAt = column[ZonedDateTime]("created_at")
+  def updatedAt = column[ZonedDateTime]("updated_at")
 
   def * =
     (id, email, username, fullName, passwordHash, createdAt, updatedAt) <>
@@ -34,7 +34,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     password: String,
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
-    val timeAt = LocalDateTime.now()
+    val timeAt = ZonedDateTime.now()
     val user = mapModel(models.User(
       email = email,
       username = username,
@@ -57,7 +57,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
       email = email,
       username = username,
       fullName = fullName,
-      updatedAt = LocalDateTime.now()
+      updatedAt = ZonedDateTime.now()
     ))
 
   private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) =>
@@ -74,7 +74,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     val passwordHash = password.bcrypt(salt)
     db.run {
       updatePasswordCompiled(userId)
-        .update((passwordHash, LocalDateTime.now))
+        .update((passwordHash, ZonedDateTime.now))
         .map(_ == 1)
     }
   }

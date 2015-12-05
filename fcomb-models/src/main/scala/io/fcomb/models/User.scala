@@ -1,7 +1,7 @@
 package io.fcomb.models
 
 import com.github.t3hnar.bcrypt._
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.util.UUID
 
 @SerialVersionUID(1L)
@@ -11,8 +11,8 @@ case class User(
   username: String,
   fullName: Option[String],
   passwordHash: String,
-  createdAt: LocalDateTime,
-  updatedAt: LocalDateTime
+  createdAt: ZonedDateTime,
+  updatedAt: ZonedDateTime
 ) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 
