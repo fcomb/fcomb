@@ -13,19 +13,19 @@ import slick.jdbc.TransactionIsolation
 import slick.lifted.AppliedCompiledFunction
 
 trait PersistTypes[T] {
-  type ValidationModel = validations.ValidationResult[T]
+  type ValidationModel = ValidationResult[T]
   type ValidationDBIOResult = DBIOT[ValidationResultUnit]
 
-  def validationError[E](columnName: String, error: String): validations.ValidationResult[E] =
+  def validationError[E](columnName: String, error: String): ValidationResult[E] =
     validations.validationErrors(columnName -> error)
 
-  def validationErrorAsFuture[E](columnName: String, error: String): Future[validations.ValidationResult[E]] =
+  def validationErrorAsFuture[E](columnName: String, error: String): Future[ValidationResult[E]] =
     Future.successful(validationError(columnName, error))
 
-  def recordNotFound[E](columnName: String, id: String): validations.ValidationResult[E] =
+  def recordNotFound[E](columnName: String, id: String): ValidationResult[E] =
     validationError(columnName, s"Not found `$id` record")
 
-  def recordNotFoundAsFuture[E](field: String, id: String): Future[validations.ValidationResult[E]] =
+  def recordNotFoundAsFuture[E](field: String, id: String): Future[ValidationResult[E]] =
     Future.successful(recordNotFound(field, id))
 }
 
@@ -35,7 +35,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   type ModelDBIO = DBIOAction[T, NoStream, Effect.All]
   type ModelDBIOOption = DBIOAction[Option[T], NoStream, Effect.All]
 
-  val validationsOpt = Option.empty[T => Future[validations.ValidationResult[_]]]
+  val validationsOpt = Option.empty[T => Future[ValidationResult[_]]]
 
   // @inline
   // private def recoverPersistExceptions(
@@ -46,7 +46,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   //   }
 
   @inline
-  private def runInTransaction[Q](
+  def runInTransaction[Q](
     q: DBIOAction[Q, NoStream, Effect.All]
   )(implicit ec: ExecutionContext): Future[Q] =
     db.run(q.transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted))
@@ -99,19 +99,19 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 
   def strictUpdateDBIO[R](res: R)(
     q: Int,
-    error: validations.ValidationResult[R]
+    error: ValidationResult[R]
   )(
     implicit
     ec: ExecutionContext
-  ): validations.ValidationResult[R] = q match {
+  ): ValidationResult[R] = q match {
     case 1 => res.success
     case _ => error
   }
 
-  def strictDestroyDBIO(q: Int, error: validations.ValidationResultUnit)(
+  def strictDestroyDBIO(q: Int, error: ValidationResultUnit)(
     implicit
     ec: ExecutionContext
-  ): validations.ValidationResultUnit = q match {
+  ): ValidationResultUnit = q match {
     case 0 => error
     case _ => ().success
   }
@@ -143,10 +143,10 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
   override def createDBIO(items: Seq[T]) =
     tableWithPk ++= items
 
-  def recordNotFound[E](id: T#PkType): validations.ValidationResult[E] =
+  def recordNotFound[E](id: T#PkType): ValidationResult[E] =
     recordNotFound("id", id.toString)
 
-  def recordNotFoundAsFuture[E](id: T#PkType): Future[validations.ValidationResult[E]] =
+  def recordNotFoundAsFuture[E](id: T#PkType): Future[ValidationResult[E]] =
     Future.successful(recordNotFound(id))
 
   def findByPkDBIO(id: T#PkType) =
@@ -169,7 +169,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
   def strictUpdateDBIO[R](id: T#PkType, res: R)(q: Int)(
     implicit
     ec: ExecutionContext
-  ): validations.ValidationResult[R] =
+  ): ValidationResult[R] =
     super.strictUpdateDBIO(res)(q, recordNotFound(id))
 
   def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
@@ -202,7 +202,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
   def strictDestroyDBIO(id: T#PkType)(q: Int)(
     implicit
     ec: ExecutionContext
-  ): validations.ValidationResultUnit =
+  ): ValidationResultUnit =
     super.strictDestroyDBIO(q, recordNotFound(id))
 }
 

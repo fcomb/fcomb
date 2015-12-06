@@ -29,6 +29,9 @@ package object persist {
 
   // implicit val methodKindColumnType = createEnumJdbcType("method_kind", models.comb.MethodKind)
 
+  implicit val UserCertificateKindColumnType =
+    createEnumJdbcType("user_certificate_kind", models.UserCertificateKind)
+
   import io.fcomb.RichPostgresDriver.api._
 
   implicit val localDateTimeType =

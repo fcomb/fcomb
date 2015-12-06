@@ -4,7 +4,6 @@ import akka.actor.{ActorSystem, Address}
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.api.services.Routes
-// import io.fcomb.services.CombMethodProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
@@ -22,33 +21,48 @@ object Main extends App {
   implicit val mat = ActorMaterializer()
   import sys.dispatcher
 
-  val cluster = Cluster(sys)
+  {
+    import io.fcomb.crypto._
+    import java.nio.file._
 
-  if (Config.config.getList("akka.cluster.seed-nodes").isEmpty) {
-    logger.info("Going to a single-node cluster mode")
-    cluster.join(cluster.selfAddress)
+    val (caCert, caKey) = Certificate.generateRootAuthority("", "", "", "", "", "")
+    Files.write(Paths.get("/tmp/ca.pem"), Certificate.toPem(caCert).getBytes)
+    Files.write(Paths.get("/tmp/ca-key.pem"), Certificate.toPem(caKey, Some("password")).getBytes)
+
+    val (clientCert, clientKey) = Certificate.generateClient(caCert, caKey)
+    Files.write(Paths.get("/tmp/client.pem"), Certificate.toPem(clientCert).getBytes)
+    Files.write(Paths.get("/tmp/client-key.pem"), Certificate.toPem(clientKey, Some("password")).getBytes)
+
+    println("done")
   }
 
-  Implicits.global(sys, mat)
+  // val cluster = Cluster(sys)
 
-  val interface = Config.config.getString("rest-api.interface")
-  val port = Config.config.getInt("rest-api.port")
+  // if (Config.config.getList("akka.cluster.seed-nodes").isEmpty) {
+  //   logger.info("Going to a single-node cluster mode")
+  //   cluster.join(cluster.selfAddress)
+  // }
 
-  (for {
-    _ <- Db.migrate()
-    _ <- server.HttpApiService.start(port, interface, Routes())
-  } yield ()).onComplete {
-    case Success(_) =>
-    // HttpProxy.start(config)
-    case Failure(e) =>
-      logger.error(e.getMessage(), e.getCause())
-      try {
-        // Kamon.shutdown()
-        sys.terminate()
-      } finally {
-        System.exit(-1)
-      }
-  }
+  // Implicits.global(sys, mat)
+
+  // val interface = Config.config.getString("rest-api.interface")
+  // val port = Config.config.getInt("rest-api.port")
+
+  // (for {
+  //   _ <- Db.migrate()
+  //   _ <- server.HttpApiService.start(port, interface, Routes())
+  // } yield ()).onComplete {
+  //   case Success(_) =>
+  //   // HttpProxy.start(config)
+  //   case Failure(e) =>
+  //     logger.error(e.getMessage(), e.getCause())
+  //     try {
+  //       // Kamon.shutdown()
+  //       sys.terminate()
+  //     } finally {
+  //       System.exit(-1)
+  //     }
+  // }
 
   Await.result(sys.whenTerminated, Duration.Inf)
 }
