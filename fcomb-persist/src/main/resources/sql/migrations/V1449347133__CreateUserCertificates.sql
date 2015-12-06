@@ -5,7 +5,7 @@ CREATE TABLE user_certificates (
   kind user_certificate_kind NOT NULL,
   certificate bytea NOT NULL,
   key bytea NOT NULL,
-  password bytea NOT NULL,
+  password bytea,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, kind)
 );

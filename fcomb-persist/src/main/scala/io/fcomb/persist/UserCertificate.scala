@@ -12,7 +12,7 @@ class UserCertificateTable(tag: Tag) extends Table[models.UserCertificate](tag, 
   def kind = column[models.UserCertificateKind.UserCertificateKind]("kind")
   def certificate = column[Array[Byte]]("certificate")
   def key = column[Array[Byte]]("key")
-  def password = column[Array[Byte]]("password")
+  def password = column[Option[Array[Byte]]]("password")
   def createdAt = column[ZonedDateTime]("created_at")
 
   def * =
@@ -27,7 +27,7 @@ object UserCertificate extends PersistModel[models.UserCertificate, UserCertific
     userId: Long,
     rootCertificate: Array[Byte],
     rootKey: Array[Byte],
-    rootPassword: Array[Byte]
+    rootPassword: Option[Array[Byte]]
   )(implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
     val timeAt = ZonedDateTime.now()
     val certs = Seq(

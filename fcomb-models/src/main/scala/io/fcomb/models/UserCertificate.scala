@@ -15,6 +15,6 @@ case class UserCertificate(
   kind: UserCertificateKind.UserCertificateKind,
   certificate: Array[Byte],
   key: Array[Byte],
-  password: Array[Byte],
+  password: Option[Array[Byte]],
   createdAt: ZonedDateTime
 )
