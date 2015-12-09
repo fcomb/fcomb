@@ -10,7 +10,7 @@ object Dependencies {
     // val doobie = "0.2.3"
     val slick = "3.1.0"
     val slickPg = "0.10.1"
-    val scalaz = "7.1.5"
+    val scalaz = "7.2.0"
     val scalikeJdbc = "2.2.8"
     val quill = "0.1.0"
     val kamon = "0.5.2"
@@ -67,7 +67,7 @@ object Dependencies {
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
     val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
 
-    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1204-jdbc42" exclude("org.slf4j", "slf4j-simple")
+    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1206-jdbc42" exclude("org.slf4j", "slf4j-simple")
     val quillJdbc       = "io.getquill"                   %% "quill-jdbc"                    % V.quill
     val quillAsync      = "io.getquill"                   %% "quill-async"                   % V.quill
     // val doobieCore      = "org.tpolecat"                  %% "doobie-core"                   % V.doobie

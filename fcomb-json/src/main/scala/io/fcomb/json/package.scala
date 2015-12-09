@@ -25,8 +25,8 @@ package object json {
 
     def getList[T](fieldName: String)(implicit jr: JsonReader[T]): List[T] =
       obj.fields.get(fieldName) match {
-        case Some(JsArray(l)) => l.map(_.convertTo[T]).toList
-        case _ => List.empty
+        case Some(JsArray(l)) ⇒ l.map(_.convertTo[T]).toList
+        case _                ⇒ List.empty
       }
   }
 
@@ -34,8 +34,8 @@ package object json {
     def write(u: UUID) = JsString(u.toString)
 
     def read(v: JsValue) = v match {
-      case JsString(s) => UUID.fromString(s)
-      case _ =>
+      case JsString(s) ⇒ UUID.fromString(s)
+      case _ ⇒
         throw new DeserializationException("invalid UUID")
     }
   }
@@ -44,12 +44,12 @@ package object json {
     def write(d: LocalDateTime) = JsString(d.toString)
 
     def read(v: JsValue) = v match {
-      case JsString(v) => LocalDateTime.parse(v)
-      case JsNumber(n) =>
+      case JsString(v) ⇒ LocalDateTime.parse(v)
+      case JsNumber(n) ⇒
         Instant.ofEpochSecond(n.toLong)
           .atZone(ZoneId.systemDefault())
           .toLocalDateTime()
-      case _ =>
+      case _ ⇒
         throw new DeserializationException("invalid LocalDateTime")
     }
   }
@@ -59,12 +59,12 @@ package object json {
       JsString(d.withFixedOffsetZone().toString)
 
     def read(v: JsValue) = v match {
-      case JsString(v) => ZonedDateTime.parse(v)
-      case JsNumber(n) =>
+      case JsString(v) ⇒ ZonedDateTime.parse(v)
+      case JsNumber(n) ⇒
         Instant.ofEpochSecond(n.toLong)
           .atZone(ZoneId.systemDefault())
           .withFixedOffsetZone()
-      case _ =>
+      case _ ⇒
         throw new DeserializationException("invalid ZonedDateTime")
     }
   }
@@ -74,7 +74,7 @@ package object json {
       def write(obj: T#Value) = JsString(obj.toString)
 
       private val values = OpenHashMap(
-        obj.values.toSeq.map(v => (v.toString.toLowerCase, v)): _*
+        obj.values.toSeq.map(v ⇒ (v.toString.toLowerCase, v)): _*
       )
 
       private val klassName =
@@ -94,7 +94,7 @@ package object json {
       def write(obj: T#Value) = JsNumber(obj.id)
 
       private val values = IntMap(
-        obj.values.toSeq.map(v => (v.id, v)): _*
+        obj.values.toSeq.map(v ⇒ (v.id, v)): _*
       )
 
       private val klassName =

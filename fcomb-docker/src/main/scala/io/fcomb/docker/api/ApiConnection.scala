@@ -34,18 +34,18 @@ private[api] trait ApiConnection {
 
   protected def clientSettings(duration: Option[Duration]) =
     duration.foldLeft(clientConnectionSettings) {
-      (s, d) => s.copy(idleTimeout = d)
+      (s, d) ⇒ s.copy(idleTimeout = d)
     }
 
   private def httpConnectionFlow(duration: Option[Duration]) = {
     val connection = sslContext match {
-      case Some(ctx) => Http().outgoingConnectionTls(
+      case Some(ctx) ⇒ Http().outgoingConnectionTls(
         hostname,
         port,
         settings = clientSettings(duration),
         httpsContext = Some(HttpsContext(ctx))
       )
-      case _ =>
+      case _ ⇒
         Http().outgoingConnection(hostname, port, settings = clientSettings(duration))
     }
     connection.buffer(10, OverflowStrategy.backpressure)
@@ -64,18 +64,18 @@ private[api] trait ApiConnection {
   protected def mapHttpResponse(res: HttpResponse) = {
     if (res.status.isSuccess()) Future.successful(res)
     else {
-      res.entity.dataBytes.runFold(new StringBuffer) { (acc, bs) =>
+      res.entity.dataBytes.runFold(new StringBuffer) { (acc, bs) ⇒
         acc.append(bs.utf8String)
-      }.map { buf =>
+      }.map { buf ⇒
         val msg = buf.toString()
         res.status.intValue() match {
-          case 400 => throw new BadParameterException(msg)
-          case 403 => throw new PermissionDeniedException(msg)
-          case 404 => throw new ResouceOrContainerNotFoundException(msg)
-          case 406 => throw new ImpossibleToAttachException(msg)
-          case 409 => throw new ConflictException(msg)
-          case 500 => throw new ServerErrorException(msg)
-          case _ => throw new UnknownException(msg)
+          case 400 ⇒ throw new BadParameterException(msg)
+          case 403 ⇒ throw new PermissionDeniedException(msg)
+          case 404 ⇒ throw new ResouceOrContainerNotFoundException(msg)
+          case 406 ⇒ throw new ImpossibleToAttachException(msg)
+          case 409 ⇒ throw new ConflictException(msg)
+          case 500 ⇒ throw new ServerErrorException(msg)
+          case _   ⇒ throw new UnknownException(msg)
         }
       }
     }
@@ -85,12 +85,12 @@ private[api] trait ApiConnection {
     Flow[HttpResponse].mapAsync(1)(mapHttpResponse)
 
   protected def apiRequestAsSource(
-    method: HttpMethod,
-    uri: Uri,
-    queryParams: Map[String, String] = Map.empty,
-    entity: RequestEntity = HttpEntity.Empty,
-    headers: immutable.Seq[HttpHeader] = immutable.Seq.empty,
-    idleTimeout: Option[Duration] = None
+    method:      HttpMethod,
+    uri:         Uri,
+    queryParams: Map[String, String]       = Map.empty,
+    entity:      RequestEntity             = HttpEntity.Empty,
+    headers:     immutable.Seq[HttpHeader] = immutable.Seq.empty,
+    idleTimeout: Option[Duration]          = None
   ) = {
     Source
       .single(HttpRequest(
@@ -114,27 +114,27 @@ private[api] trait ApiConnection {
     HttpEntity(`application/x-tar`, source)
 
   protected def apiJsonRequestAsSource(
-    method: HttpMethod,
-    uri: Uri,
-    queryParams: Map[String, String] = Map.empty,
-    entity: RequestEntity = HttpEntity.Empty,
-    headers: immutable.Seq[HttpHeader] = immutable.Seq.empty,
-    idleTimeout: Option[Duration] = None
+    method:      HttpMethod,
+    uri:         Uri,
+    queryParams: Map[String, String]       = Map.empty,
+    entity:      RequestEntity             = HttpEntity.Empty,
+    headers:     immutable.Seq[HttpHeader] = immutable.Seq.empty,
+    idleTimeout: Option[Duration]          = None
   ) =
     apiRequestAsSource(method, uri, queryParams, entity, headers, idleTimeout)
       .map(_.entity.dataBytes.map(_.utf8String.parseJson))
 
   protected def apiJsonRequest(
-    method: HttpMethod,
-    uri: Uri,
-    queryParams: Map[String, String] = Map.empty,
-    entity: RequestEntity = HttpEntity.Empty,
-    headers: immutable.Seq[HttpHeader] = immutable.Seq.empty,
-    idleTimeout: Option[Duration] = None
+    method:      HttpMethod,
+    uri:         Uri,
+    queryParams: Map[String, String]       = Map.empty,
+    entity:      RequestEntity             = HttpEntity.Empty,
+    headers:     immutable.Seq[HttpHeader] = immutable.Seq.empty,
+    idleTimeout: Option[Duration]          = None
   ) =
     apiRequestAsSource(method, uri, queryParams, entity, headers, idleTimeout)
       .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _))
-      .map { res =>
+      .map { res ⇒
         val s = res.utf8String
         logger.debug(s"Docker API response: $s")
         s.parseJson

@@ -24,15 +24,15 @@ import spray.json._
 import spray.json.DefaultJsonProtocol._
 
 final class Client(
-  val hostname: String,
-  val port: Int,
+  val hostname:   String,
+  val port:       Int,
   val sslContext: Option[SSLContext] = None
 )(
   implicit
   val sys: ActorSystem,
   val mat: Materializer
 )
-  extends ApiConnection {
+    extends ApiConnection {
 
   import sys.dispatcher
 
@@ -47,20 +47,20 @@ final class Client(
       .map(_.convertTo[Version])
 
   def containers(
-    showAll: Boolean = false,
-    showSize: Boolean = false,
-    limit: Option[Int] = None,
-    beforeId: Option[String] = None,
-    sinceId: Option[String] = None,
-    filters: Map[String, Set[String]] = Map.empty
+    showAll:  Boolean                  = false,
+    showSize: Boolean                  = false,
+    limit:    Option[Int]              = None,
+    beforeId: Option[String]           = None,
+    sinceId:  Option[String]           = None,
+    filters:  Map[String, Set[String]] = Map.empty
   ) = {
     val params = Map(
-      "all" -> showAll.toString,
-      "size" -> showSize.toString,
-      "limit" -> limit.toParam,
-      "before" -> beforeId.toParam(),
-      "since" -> sinceId.toParam(),
-      "filters" -> filters.toJson.compactPrint
+      "all" → showAll.toString,
+      "size" → showSize.toString,
+      "limit" → limit.toParam,
+      "before" → beforeId.toParam(),
+      "since" → sinceId.toParam(),
+      "filters" → filters.toJson.compactPrint
     )
     apiJsonRequest(HttpMethods.GET, "/containers/json", params)
       .map(_.convertTo[List[ContainerItem]])
@@ -68,10 +68,10 @@ final class Client(
 
   def containerCreate(
     config: ContainerCreate,
-    name: Option[String] = None
+    name:   Option[String]  = None
   ) = {
     val params = Map(
-      "name" -> name.toParam()
+      "name" → name.toParam()
     )
     val entity = requestJsonEntity(config)
     apiJsonRequest(HttpMethods.POST, "/containers/create", params, entity)
@@ -79,40 +79,40 @@ final class Client(
   }
 
   def containerInspect(
-    id: String,
+    id:       String,
     showSize: Boolean = false
   ) = {
-    val params = Map("size" -> showSize.toString)
+    val params = Map("size" → showSize.toString)
     apiJsonRequest(HttpMethods.GET, s"/containers/$id/json", params)
       .map(_.convertTo[ContainerBase])
   }
 
   def containerProcesses(
-    id: String,
+    id:     String,
     psArgs: Option[String] = None
   ) = {
-    val params = Map("ps_args" -> psArgs.toParam())
+    val params = Map("ps_args" → psArgs.toParam())
     apiJsonRequest(HttpMethods.GET, s"/containers/$id/top", params)
       .map(_.convertTo[ContainerProcessList])
   }
 
   private def containerLogsAsSource(
-    id: String,
-    streams: Set[StdStream.StdStream],
-    stream: Boolean,
-    since: Option[ZonedDateTime],
+    id:             String,
+    streams:        Set[StdStream.StdStream],
+    stream:         Boolean,
+    since:          Option[ZonedDateTime],
     showTimestamps: Boolean,
-    tail: Option[Int],
-    idleTimeout: Option[Duration]
+    tail:           Option[Int],
+    idleTimeout:    Option[Duration]
   ) = {
     require(streams.nonEmpty, "Streams cannot be empty")
     val params = Map(
-      "follow" -> stream.toString,
-      "stdout" -> streams.contains(StdStream.Out).toString,
-      "stderr" -> streams.contains(StdStream.Err).toString,
-      "since" -> since.toParamAsTimestamp(),
-      "timestamps" -> showTimestamps.toString,
-      "tail" -> tail.map(_.toString).toParam("all")
+      "follow" → stream.toString,
+      "stdout" → streams.contains(StdStream.Out).toString,
+      "stderr" → streams.contains(StdStream.Err).toString,
+      "since" → since.toParamAsTimestamp(),
+      "timestamps" → showTimestamps.toString,
+      "tail" → tail.map(_.toString).toParam("all")
     )
     apiRequestAsSource(
       HttpMethods.GET,
@@ -123,11 +123,11 @@ final class Client(
   }
 
   def containerLogs(
-    id: String,
-    streams: Set[StdStream.StdStream],
-    since: Option[ZonedDateTime] = None,
-    showTimestamps: Boolean = false,
-    tail: Option[Int] = None
+    id:             String,
+    streams:        Set[StdStream.StdStream],
+    since:          Option[ZonedDateTime]    = None,
+    showTimestamps: Boolean                  = false,
+    tail:           Option[Int]              = None
   ) = containerLogsAsSource(
     id = id,
     streams = streams,
@@ -139,12 +139,12 @@ final class Client(
   )
 
   def containerLogsAsStream(
-    id: String,
-    streams: Set[StdStream.StdStream],
-    since: Option[ZonedDateTime] = None,
-    showTimestamps: Boolean = false,
-    tail: Option[Int] = None,
-    idleTimeout: Duration = Duration.Inf
+    id:             String,
+    streams:        Set[StdStream.StdStream],
+    since:          Option[ZonedDateTime]    = None,
+    showTimestamps: Boolean                  = false,
+    tail:           Option[Int]              = None,
+    idleTimeout:    Duration                 = Duration.Inf
   ) = containerLogsAsSource(
     id = id,
     streams = streams,
@@ -164,64 +164,64 @@ final class Client(
       .map(_.entity.dataBytes)
 
   def containerStats(id: String) =
-    apiJsonRequest(HttpMethods.GET, s"/containers/$id/stats", Map("stream" -> "false"))
+    apiJsonRequest(HttpMethods.GET, s"/containers/$id/stats", Map("stream" → "false"))
       .map(_.convertTo[ContainerStats])
 
   def containerStatsAsStream(
-    id: String,
+    id:          String,
     idleTimeout: Duration = Duration.Inf
   ) =
     apiJsonRequestAsSource(
       HttpMethods.GET,
       s"/containers/$id/stats",
-      Map("stream" -> "true"),
+      Map("stream" → "true"),
       idleTimeout = Some(idleTimeout)
     ).map(_.map(_.convertTo[ContainerStats]))
 
   def containerResizeTty(id: String, width: Int, height: Int) = {
     val params = Map(
-      "w" -> width.toString,
-      "h" -> height.toString
+      "w" → width.toString,
+      "h" → height.toString
     )
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/resize", params)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def containerStart(id: String) =
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/start")
-      .map(_ => ())
+      .map(_ ⇒ ())
 
   def containerStop(id: String, timeout: FiniteDuration) = {
     val params = Map(
-      "t" -> timeout.toSeconds.toString()
+      "t" → timeout.toSeconds.toString()
     )
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/stop", params)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def containerKill(id: String, signal: Signal.Signal) = {
     val params = Map(
-      "signal" -> signal.toString
+      "signal" → signal.toString
     )
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/kill", params)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def containerRename(id: String, name: String) = {
     val params = Map(
-      "name" -> name
+      "name" → name
     )
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/rename", params)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def containerPause(id: String) =
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/pause")
-      .map(_ => ())
+      .map(_ ⇒ ())
 
   def containerUnpause(id: String) =
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/unpause")
-      .map(_ => ())
+      .map(_ ⇒ ())
 
   private val upgradeHeaders =
     immutable.Seq(Upgrade(List(UpgradeProtocol("tcp"))))
@@ -230,15 +230,15 @@ final class Client(
     StdStreamFrame.codec(clientConnectionSettings.parserSettings.maxChunkSize).reversed
 
   private def containerAttachAsSource(
-    id: String,
-    streams: Set[StdStream.StdStream],
+    id:          String,
+    streams:     Set[StdStream.StdStream],
     idleTimeout: Duration
   ) = {
     val params = Map(
-      "stream" -> "true",
-      "stdout" -> streams.contains(StdStream.Out).toString,
-      "stderr" -> streams.contains(StdStream.Err).toString,
-      "stdin" -> streams.contains(StdStream.In).toString
+      "stream" → "true",
+      "stdout" → streams.contains(StdStream.Out).toString,
+      "stderr" → streams.contains(StdStream.Err).toString,
+      "stdin" → streams.contains(StdStream.In).toString
     )
     val req = HttpRequest(
       method = HttpMethods.POST,
@@ -249,20 +249,20 @@ final class Client(
   }
 
   def containerAttachAsStream(
-    id: String,
-    streams: Set[StdStream.StdStream],
-    flow: Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
-    idleTimeout: Duration = Duration.Inf
+    id:          String,
+    streams:     Set[StdStream.StdStream],
+    flow:        Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
+    idleTimeout: Duration                                             = Duration.Inf
   ) =
     containerAttachAsSource(id, streams, idleTimeout)
       .join(stdStreamFrameCodec.join(flow))
       .run()
 
   def containerAttachAsTtyStream(
-    id: String,
-    streams: Set[StdStream.StdStream],
-    flow: Flow[ByteString, ByteString, Any],
-    idleTimeout: Duration = Duration.Inf
+    id:          String,
+    streams:     Set[StdStream.StdStream],
+    flow:        Flow[ByteString, ByteString, Any],
+    idleTimeout: Duration                          = Duration.Inf
   ) =
     containerAttachAsSource(id, streams, idleTimeout)
       .join(flow)
@@ -273,16 +273,16 @@ final class Client(
       .map(_.convertTo[ContainerWaitResponse])
 
   def containerRemove(
-    id: String,
-    withForce: Boolean = false,
+    id:          String,
+    withForce:   Boolean = false,
     withVolumes: Boolean = false
   ) = {
     val params = Map(
-      "force" -> withForce.toString,
-      "v" -> withVolumes.toString
+      "force" → withForce.toString,
+      "v" → withVolumes.toString
     )
     apiRequestAsSource(HttpMethods.DELETE, s"/containers/$id", params)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def containerCopy(id: String, path: String) = {
@@ -292,80 +292,80 @@ final class Client(
   }
 
   private def parseContainerPathStat(headers: Seq[HttpHeader]) = {
-    headers.find(_.is("x-docker-container-path-stat")).map { header =>
+    headers.find(_.is("x-docker-container-path-stat")).map { header ⇒
       val json = new String(Base64.decodeBase64(header.value))
       json.parseJson.convertTo[ContainerPathStat]
     }
   }
 
   def containerArchiveInformation(id: String, path: String) =
-    apiRequestAsSource(HttpMethods.HEAD, s"/containers/$id/archive", Map("path" -> path))
-      .map(res => parseContainerPathStat(res.headers))
+    apiRequestAsSource(HttpMethods.HEAD, s"/containers/$id/archive", Map("path" → path))
+      .map(res ⇒ parseContainerPathStat(res.headers))
 
   def containerArchive(id: String, path: String) =
-    apiRequestAsSource(HttpMethods.GET, s"/containers/$id/archive", Map("path" -> path)).map { res =>
+    apiRequestAsSource(HttpMethods.GET, s"/containers/$id/archive", Map("path" → path)).map { res ⇒
       (res.entity.dataBytes, parseContainerPathStat(res.headers))
     }
 
   def containerArchiveExtract(
-    id: String,
-    source: Source[ByteString, Any],
-    path: String,
-    withOverwrite: Boolean = false
+    id:            String,
+    source:        Source[ByteString, Any],
+    path:          String,
+    withOverwrite: Boolean                 = false
   ) = {
     val params = Map(
-      "path" -> path,
-      "noOverwriteDirNonDir" -> (!withOverwrite).toString
+      "path" → path,
+      "noOverwriteDirNonDir" → (!withOverwrite).toString
     )
     val entity = requestTarEntity(source)
     apiRequestAsSource(HttpMethods.PUT, s"/containers/$id/archive", params, entity)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def images(
-    showAll: Boolean = false,
-    filters: Map[String, Set[String]] = Map.empty,
-    withName: Option[String] = None
+    showAll:  Boolean                  = false,
+    filters:  Map[String, Set[String]] = Map.empty,
+    withName: Option[String]           = None
   ) = {
     val params = Map(
-      "all" -> showAll.toString,
-      "filters" -> filters.toJson.compactPrint,
-      "filter" -> withName.toParam()
+      "all" → showAll.toString,
+      "filters" → filters.toJson.compactPrint,
+      "filter" → withName.toParam()
     )
     apiJsonRequest(HttpMethods.GET, "/images/json", params)
       .map(_.convertTo[List[ImageItem]])
   }
 
   def imageBuild(
-    source: Source[ByteString, Any],
-    dockerfile: String = "Dockerfile",
-    name: Option[String] = None,
-    remoteUri: Option[String] = None,
-    showBuildOutput: Boolean = true,
-    withCache: Boolean = false,
-    withPull: Boolean = true,
-    removeMode: RemoveMode.RemoveMode = RemoveMode.Default,
-    memoryLimit: Option[Long] = None,
-    memorySwapLimit: Option[Long] = None,
-    cpuShares: Option[Int] = None,
-    cpusetCpus: Option[String] = None,
-    cpuPeriod: Option[Long] = None,
-    cpuQuota: Option[Long] = None,
-    registryConfig: Option[RegistryConfig] = None
+    source:          Source[ByteString, Any],
+    dockerfile:      String                  = "Dockerfile",
+    name:            Option[String]          = None,
+    remoteUri:       Option[String]          = None,
+    showBuildOutput: Boolean                 = true,
+    withCache:       Boolean                 = false,
+    withPull:        Boolean                 = true,
+    removeMode:      RemoveMode.RemoveMode   = RemoveMode.Default,
+    memoryLimit:     Option[Long]            = None,
+    memorySwapLimit: Option[Long]            = None,
+    cpuShares:       Option[Int]             = None,
+    cpusetCpus:      Option[String]          = None,
+    cpuPeriod:       Option[Long]            = None,
+    cpuQuota:        Option[Long]            = None,
+    registryConfig:  Option[RegistryConfig]  = None
   ) = {
     val params = Map(
-      "dockerfile" -> dockerfile,
-      "t" -> name.toParam(),
-      "remote" -> remoteUri.toParam(),
-      "q" -> (!showBuildOutput).toString,
-      "nocache" -> (!withCache).toString,
-      "pull" -> withPull.toString,
-      "memory" -> memoryLimit.toParam(),
-      "memswap" -> memorySwapLimit.toMemorySwapParam(),
-      "cpushares" -> cpuShares.toParam(),
-      "cpusetcpus" -> cpusetCpus.toParam(),
-      "cpuperiod" -> cpuPeriod.toParam(),
-      "cpuquota" -> cpuQuota.toParam()
+      "dockerfile" → dockerfile,
+      "t" → name.toParam(),
+      "remote" → remoteUri.toParam(),
+      "q" → (!showBuildOutput).toString,
+      "nocache" → (!withCache).toString,
+      "pull" → withPull.toString,
+      "memory" → memoryLimit.toParam(),
+      "memswap" → memorySwapLimit.toMemorySwapParam(),
+      "cpushares" → cpuShares.toParam(),
+      "cpusetcpus" → cpusetCpus.toParam(),
+      "cpuperiod" → cpuPeriod.toParam(),
+      "cpuquota" → cpuQuota.toParam()
     ) ++ RemoveMode.mapToParams(removeMode)
     val entity = requestTarEntity(source)
     val headers = RegistryConfig.mapToHeaders(registryConfig)
@@ -374,17 +374,17 @@ final class Client(
   }
 
   def imagePull(
-    name: String,
-    repositoryName: Option[String] = None,
-    tag: Option[String] = None,
-    registry: Option[Registry] = None,
-    registryAuth: Option[AuthConfig] = None
+    name:           String,
+    repositoryName: Option[String]     = None,
+    tag:            Option[String]     = None,
+    registry:       Option[Registry]   = None,
+    registryAuth:   Option[AuthConfig] = None
   ) = {
     val params = Map(
-      "fromImage" -> name,
-      "tag" -> tag.toParam(),
-      "repo" -> repositoryName.toParam(),
-      "registry" -> registry.toParam()
+      "fromImage" → name,
+      "tag" → tag.toParam(),
+      "repo" → repositoryName.toParam(),
+      "registry" → registry.toParam()
     )
     val headers = AuthConfig.mapToHeaders(registryAuth)
     apiJsonRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
@@ -392,17 +392,17 @@ final class Client(
   }
 
   def imagePullWithUrl(
-    url: URL,
-    repositoryName: Option[String] = None,
-    tag: Option[String] = None,
-    registry: Option[Registry] = None,
-    registryAuth: Option[AuthConfig] = None
+    url:            URL,
+    repositoryName: Option[String]     = None,
+    tag:            Option[String]     = None,
+    registry:       Option[Registry]   = None,
+    registryAuth:   Option[AuthConfig] = None
   ) = {
     val params = Map(
-      "fromSrc" -> url.toString,
-      "tag" -> tag.toParam(),
-      "repo" -> repositoryName.toParam(),
-      "registry" -> registry.toParam()
+      "fromSrc" → url.toString,
+      "tag" → tag.toParam(),
+      "repo" → repositoryName.toParam(),
+      "registry" → registry.toParam()
     )
     val headers = AuthConfig.mapToHeaders(registryAuth)
     apiJsonRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
@@ -410,17 +410,17 @@ final class Client(
   }
 
   def imagePullWithStream(
-    source: Source[ByteString, Any],
-    repositoryName: Option[String] = None,
-    tag: Option[String] = None,
-    registry: Option[Registry] = None,
-    registryAuth: Option[AuthConfig] = None
+    source:         Source[ByteString, Any],
+    repositoryName: Option[String]          = None,
+    tag:            Option[String]          = None,
+    registry:       Option[Registry]        = None,
+    registryAuth:   Option[AuthConfig]      = None
   ) = {
     val params = Map(
-      "fromSrc" -> "-",
-      "tag" -> tag.toParam(),
-      "repo" -> repositoryName.toParam(),
-      "registry" -> registry.toParam()
+      "fromSrc" → "-",
+      "tag" → tag.toParam(),
+      "repo" → repositoryName.toParam(),
+      "registry" → registry.toParam()
     )
     val entity = requestTarEntity(source)
     val headers = AuthConfig.mapToHeaders(registryAuth)
@@ -437,87 +437,87 @@ final class Client(
       .map(_.convertTo[List[ImageHistory]])
 
   def imagePush(
-    id: String,
-    tag: Option[String] = None,
-    registry: Option[Registry] = None,
+    id:           String,
+    tag:          Option[String]     = None,
+    registry:     Option[Registry]   = None,
     registryAuth: Option[AuthConfig] = None
   ) = {
-    val params = Map("tag" -> tag.toParam())
+    val params = Map("tag" → tag.toParam())
     val headers = AuthConfig.mapToHeaders(registryAuth)
     val name = registry match {
-      case Some(r) => s"${r.toParam}/$id"
-      case None => id
+      case Some(r) ⇒ s"${r.toParam}/$id"
+      case None    ⇒ id
     }
     apiJsonRequestAsSource(HttpMethods.POST, s"/images/$name/push", params, headers = headers)
       .map(_.map(_.convertTo[EventMessage]))
   }
 
   def imageTag(
-    id: String,
+    id:             String,
     repositoryName: String,
-    tag: Option[String] = None,
-    withForce: Boolean = false
+    tag:            Option[String] = None,
+    withForce:      Boolean        = false
   ) = {
     val params = Map(
-      "tag" -> tag.toParam(),
-      "repo" -> repositoryName,
-      "force" -> withForce.toString
+      "tag" → tag.toParam(),
+      "repo" → repositoryName,
+      "force" → withForce.toString
     )
     apiRequestAsSource(HttpMethods.POST, s"/images/$id/tag", params)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def imageRemove(
-    id: String,
+    id:        String,
     withPrune: Boolean = true,
     withForce: Boolean = false
   ) = {
     val params = Map(
-      "noprune" -> (!withPrune).toString(),
-      "force" -> withForce.toString()
+      "noprune" → (!withPrune).toString(),
+      "force" → withForce.toString()
     )
     apiRequestAsSource(HttpMethods.DELETE, s"/images/$id", params)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def imageSearch(term: String) =
-    apiJsonRequest(HttpMethods.GET, "/images/search", Map("term" -> term))
+    apiJsonRequest(HttpMethods.GET, "/images/search", Map("term" → term))
       .map(_.convertTo[List[ImageSearchResult]])
 
   def imageCommit(
-    containerId: String,
-    repositoryName: Option[String] = None,
-    tag: Option[String] = None,
-    comment: Option[String] = None,
-    author: Option[String] = None,
-    withPause: Boolean = false,
-    changes: List[String] = List.empty,
-    config: Option[RunConfig] = None
+    containerId:    String,
+    repositoryName: Option[String]    = None,
+    tag:            Option[String]    = None,
+    comment:        Option[String]    = None,
+    author:         Option[String]    = None,
+    withPause:      Boolean           = false,
+    changes:        List[String]      = List.empty,
+    config:         Option[RunConfig] = None
   ) = {
     val params = Map(
-      "container" -> containerId,
-      "repo" -> repositoryName.toParam(),
-      "tag" -> tag.toParam(),
-      "comment" -> comment.toParam(),
-      "author" -> author.toParam(),
-      "pause" -> withPause.toString,
-      "changes" -> changes.mkString("\n")
+      "container" → containerId,
+      "repo" → repositoryName.toParam(),
+      "tag" → tag.toParam(),
+      "comment" → comment.toParam(),
+      "author" → author.toParam(),
+      "pause" → withPause.toString,
+      "changes" → changes.mkString("\n")
     )
     val entity = config match {
-      case Some(c) => requestJsonEntity(c)
-      case None => HttpEntity.Empty
+      case Some(c) ⇒ requestJsonEntity(c)
+      case None    ⇒ HttpEntity.Empty
     }
     apiJsonRequest(HttpMethods.POST, "/commit", params, entity)
       .map(_.convertTo[ContainerCommitResponse])
   }
 
   def imageGet(
-    id: String,
+    id:  String,
     tag: Option[String] = None
   ) = {
     val name = tag match {
-      case Some(t) => s"$id:$t"
-      case None => id
+      case Some(t) ⇒ s"$id:$t"
+      case None    ⇒ id
     }
     apiRequestAsSource(HttpMethods.GET, s"/images/$name/get")
       .map(_.entity.dataBytes)
@@ -525,7 +525,7 @@ final class Client(
 
   def imagesGet(names: List[String]) = {
     val q = names.foldRight(Seq.empty[(String, String)]) {
-      case (name, acc) => ("names", name) +: acc
+      case (name, acc) ⇒ ("names", name) +: acc
     }
     val uri = Uri("/images/get").withQuery(Uri.Query(q: _*))
     apiRequestAsSource(HttpMethods.GET, uri)
@@ -535,39 +535,39 @@ final class Client(
   def imagesLoad(source: Source[ByteString, Any]) = {
     val entity = requestTarEntity(source)
     apiRequestAsSource(HttpMethods.POST, "/images/load", entity = entity)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def auth(config: AuthConfig) =
     apiRequestAsSource(HttpMethods.POST, "/auth", entity = requestJsonEntity(config))
-      .map(_ => ())
+      .map(_ ⇒ ())
 
   def ping() =
     apiRequestAsSource(HttpMethods.GET, "/_ping")
-      .map(_ => ())
+      .map(_ ⇒ ())
 
   def eventsAsStream(
-    since: Option[ZonedDateTime] = None,
-    until: Option[ZonedDateTime] = None,
-    filters: EventsFilter = Map.empty,
-    idleTimeout: Duration = Duration.Inf
+    since:       Option[ZonedDateTime] = None,
+    until:       Option[ZonedDateTime] = None,
+    filters:     EventsFilter          = Map.empty,
+    idleTimeout: Duration              = Duration.Inf
   ) = {
     val params = Map(
-      "since" -> since.toParamAsTimestamp(),
-      "until" -> since.toParamAsTimestamp(),
-      "filters" -> EventsFitler.mapToParam(filters)
+      "since" → since.toParamAsTimestamp(),
+      "until" → since.toParamAsTimestamp(),
+      "filters" → EventsFitler.mapToParam(filters)
     )
     apiJsonRequestAsSource(HttpMethods.GET, "/events", params, idleTimeout = Some(idleTimeout))
       .map(_.map(_.convertTo[EventKindMessage]))
   }
 
   def execCreate(
-    containerId: String,
-    command: List[String],
-    streams: Set[StdStream.StdStream],
-    isTty: Boolean,
-    user: Option[String] = None,
-    isPrivileged: Boolean = false
+    containerId:  String,
+    command:      List[String],
+    streams:      Set[StdStream.StdStream],
+    isTty:        Boolean,
+    user:         Option[String]           = None,
+    isPrivileged: Boolean                  = false
   ) = {
     val config = ExecConfig(
       command = command,
@@ -586,7 +586,7 @@ final class Client(
   }
 
   def execStart(
-    id: String,
+    id:    String,
     isTty: Boolean
   ) = {
     val entity = requestJsonEntity(ExecStartCheck(
@@ -594,12 +594,12 @@ final class Client(
       isTty = isTty
     ))
     apiRequestAsSource(HttpMethods.POST, s"/exec/$id/start", entity = entity)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   private def execStartAsSource(
-    id: String,
-    isTty: Boolean,
+    id:          String,
+    isTty:       Boolean,
     idleTimeout: Duration
   ) = {
     val entity = requestJsonEntity(ExecStartCheck(
@@ -616,18 +616,18 @@ final class Client(
   }
 
   def execAttachAsStream(
-    id: String,
-    flow: Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
-    idleTimeout: Duration = Duration.Inf
+    id:          String,
+    flow:        Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
+    idleTimeout: Duration                                             = Duration.Inf
   ) =
     execStartAsSource(id, false, idleTimeout)
       .join(stdStreamFrameCodec.join(flow))
       .run()
 
   def execAttachAsTtyStream(
-    id: String,
-    flow: Flow[ByteString, ByteString, Any],
-    idleTimeout: Duration = Duration.Inf
+    id:          String,
+    flow:        Flow[ByteString, ByteString, Any],
+    idleTimeout: Duration                          = Duration.Inf
   ) =
     execStartAsSource(id, true, idleTimeout)
       .join(flow)
@@ -635,11 +635,11 @@ final class Client(
 
   def execResizeTty(id: String, width: Int, height: Int) = {
     val params = Map(
-      "w" -> width.toString,
-      "h" -> height.toString
+      "w" → width.toString,
+      "h" → height.toString
     )
     apiRequestAsSource(HttpMethods.POST, s"/exec/$id/resize", params)
-      .map(_ => ())
+      .map(_ ⇒ ())
   }
 
   def execInspect(id: String) =
