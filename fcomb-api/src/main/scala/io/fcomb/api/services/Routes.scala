@@ -8,6 +8,8 @@ import akka.stream.Materializer
 import io.fcomb.api.services.ServiceRoute.Implicits._
 
 object Routes {
+  val apiVersion = "v1"
+
   private val pongJsonResponse = HttpResponse(
     status = StatusCodes.OK,
     entity = HttpEntity(
@@ -20,7 +22,7 @@ object Routes {
     import sys.dispatcher
 
     // format: OFF
-    pathPrefix("v1") {
+    pathPrefix(apiVersion) {
       // pathPrefix("combs") {
       //   pathEndOrSingleSlash {
       //     post(comb.CombService.create)

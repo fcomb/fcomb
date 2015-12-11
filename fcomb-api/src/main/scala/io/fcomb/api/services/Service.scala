@@ -2,7 +2,7 @@ package io.fcomb.api.services
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes}
+import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, Location}
 import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
@@ -64,31 +64,35 @@ case object JsonMarshaller extends Marshaller {
 sealed trait ServiceResult
 
 object ServiceResult {
+  sealed trait CompleteResultItem extends ServiceResult {
+    val statusCode: StatusCode
+    val contentType: ContentType
+    val headers: List[HttpHeader]
+  }
+
   case class CompleteWithoutResult(
     statusCode:  StatusCode,
-    contentType: ContentType
-  ) extends ServiceResult
+    contentType: ContentType,
+    headers:     List[HttpHeader] = List.empty
+  ) extends CompleteResultItem
 
   case class CompleteResult(
     response:    ByteString,
     statusCode:  StatusCode,
-    contentType: ContentType
-  ) extends ServiceResult
+    contentType: ContentType,
+    headers:     List[HttpHeader] = List.empty
+  ) extends CompleteResultItem
 
   case class CompleteFutureResult(
     f: Future[ServiceResult]
   ) extends ServiceResult
 
   case class CompleteSourceResult(
-    s:           Source[ByteString, Any],
+    source:      Source[ByteString, Any],
     statusCode:  StatusCode,
-    contentType: ContentType
-  ) extends ServiceResult
-
-  case class CompleteFileResult(
-    s:        Source[ByteString, Any],
-    filename: Option[String]
-  ) extends ServiceResult
+    contentType: ContentType,
+    headers:     List[HttpHeader]        = List.empty
+  ) extends CompleteResultItem
 }
 import ServiceResult._
 
@@ -120,37 +124,26 @@ object ServiceRoute {
     implicit
     ec: ExecutionContext
   ): Future[RouteResult] = res match {
-    case CompleteResult(res, status, ct) ⇒
+    case CompleteResult(res, status, ct, headers) ⇒
       rCtx.complete(HttpResponse(
         status = status,
+        headers = headers,
         entity = HttpEntity(ct, res)
       ))
-    case CompleteSourceResult(s, status, ct) ⇒
+    case CompleteSourceResult(s, status, ct, headers) ⇒
       rCtx.complete(HttpResponse(
         status = status,
+        headers = headers,
         entity = HttpEntity.CloseDelimited(ct, s)
       ))
-    case CompleteWithoutResult(status, ct) ⇒
+    case CompleteWithoutResult(status, ct, headers) ⇒
       rCtx.complete(HttpResponse(
         status = status,
+        headers = headers,
         entity = HttpEntity.empty(ct)
       ))
     case CompleteFutureResult(f) ⇒
       f.flatMap(serviceResultToRoute(rCtx, _))
-    case CompleteFileResult(s, name) ⇒
-      val headers = name match {
-        case Some(filename) if filename.nonEmpty ⇒
-          List(`Content-Disposition`(
-            ContentDispositionTypes.attachment,
-            Map("filename" → filename)
-          ))
-        case _ ⇒ List.empty
-      }
-      rCtx.complete(HttpResponse(
-        status = StatusCodes.OK,
-        entity = HttpEntity(ContentTypes.`application/octet-stream`, s),
-        headers = headers
-      ))
   }
 
   def serviceMethodToRoute(method: ServiceMethod)(
@@ -188,22 +181,34 @@ trait CompleteResultMethods {
     statusCode:  StatusCode,
     contentType: ContentType
   )(implicit ec: ExecutionContext): ServiceResult =
-    CompleteFutureResult(f.map { bs ⇒
-      CompleteResult(bs, statusCode, contentType)
-    })
+    CompleteFutureResult(f.map(complete(_, statusCode, contentType)))
 
   def complete(
-    s:           Source[ByteString, Any],
+    source:      Source[ByteString, Any],
     statusCode:  StatusCode,
     contentType: ContentType
   ): ServiceResult =
-    CompleteSourceResult(s, statusCode, contentType)
+    CompleteSourceResult(source, statusCode, contentType)
 
   def completeFile(
-    s:        Source[ByteString, Any],
-    filename: Option[String]
-  ): ServiceResult =
-    CompleteFileResult(s, filename)
+    source: Source[ByteString, Any],
+    name:   Option[String]
+  ): ServiceResult = {
+    val headers = name match {
+      case Some(filename) if filename.nonEmpty ⇒
+        List(`Content-Disposition`(
+          ContentDispositionTypes.attachment,
+          Map("filename" → filename)
+        ))
+      case _ ⇒ List.empty
+    }
+    CompleteSourceResult(
+      source,
+      StatusCodes.OK,
+      ContentTypes.`application/octet-stream`,
+      headers
+    )
+  }
 }
 
 trait ServiceLogging {
@@ -227,6 +232,8 @@ trait ServiceExceptionMethods {
 }
 
 trait Service extends CompleteResultMethods with ServiceExceptionMethods with ServiceLogging {
+  val apiPrefix = s"/${Routes.apiVersion}"
+
   def action(f: ServiceContext ⇒ ServiceResult) =
     new ServiceMethod {
       def apply(ctx: ServiceContext) =
@@ -353,6 +360,55 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     case Success(s) ⇒ complete(s, statusCode)
     case Failure(e) ⇒ complete(e)
   }
+
+  def completeAsCreated(uri: Uri)(
+    implicit
+    ctx: ServiceContext
+  ): ServiceResult =
+    CompleteWithoutResult(
+      StatusCodes.Created,
+      ctx.contentType,
+      List(Location(uri))
+    )
+
+  def completeValidationAsCreated(res: Validation[ValidationErrors, _], uri: Uri)(
+    implicit
+    ctx: ServiceContext
+  ): ServiceResult = res match {
+    case Success(s) ⇒ completeAsCreated(uri)
+    case Failure(e) ⇒ complete(e)
+  }
+
+  def completeValidationAsCreated(f: Future[Validation[ValidationErrors, _]], uri: Uri)(
+    implicit
+    ctx: ServiceContext,
+    ec:  ExecutionContext
+  ): ServiceResult =
+    complete(f.map(completeValidationAsCreated(_, uri)))
+
+  def completeValidationWithPkAsCreated(
+    res:       Validation[ValidationErrors, _ <: ModelWithPk[_]],
+    uriPrefix: Uri
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec:  ExecutionContext
+  ): ServiceResult =
+    res match {
+      case Success(res) ⇒
+        completeAsCreated(s"$apiPrefix/$uriPrefix/${res.getId}")
+      case Failure(e) ⇒ complete(e)
+    }
+
+  def completeValidationWithPkAsCreated(
+    f:         Future[Validation[ValidationErrors, _ <: ModelWithPk[_]]],
+    uriPrefix: Uri
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec:  ExecutionContext
+  ): ServiceResult =
+    complete(f.map(completeValidationWithPkAsCreated(_, uriPrefix)))
 
   def complete(errors: ValidationErrors)(
     implicit
