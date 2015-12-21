@@ -40,22 +40,42 @@ object Routes {
       //     }
       //   }
       // } ~
-      pathPrefix("users") {
-        path("sign_up") {
-          post(UserService.signUp)
+      pathPrefix(node.NodeService.pathPrefix) {
+        pathPrefix("join") {
+          pathEndOrSingleSlash {
+            post(node.NodeService.join)
+          }
+        }
+      } ~
+      pathPrefix("account") {
+        pathPrefix(UserTokenService.pathPrefix) {
+          pathEndOrSingleSlash {
+            get(UserTokenService.index)
+          }
+        }
+      } ~
+      pathPrefix(UserService.pathPrefix) {
+        pathPrefix("sign_up") {
+          pathEndOrSingleSlash {
+            post(UserService.signUp)
+          }
         } ~
         pathPrefix("me") {
           pathEndOrSingleSlash {
             get(UserService.me) ~
             put(UserService.updateProfile)
           } ~
-          path("password") {
-            put(UserService.changePassword)
+          pathPrefix("password") {
+            pathEndOrSingleSlash {
+              put(UserService.changePassword)
+            }
           }
         } ~
-        path("reset_password") {
-          post(UserService.resetPassword) ~
-          put(UserService.setPassword)
+        pathPrefix("reset_password") {
+          pathEndOrSingleSlash {
+            post(UserService.resetPassword) ~
+            put(UserService.setPassword)
+          }
         }
       } ~
       pathPrefix("sessions") {
@@ -64,8 +84,10 @@ object Routes {
           delete(SessionService.destroy)
         }
       } ~
-      path("ping") {
-        get(complete(pongJsonResponse))
+      pathPrefix("ping") {
+        pathEndOrSingleSlash {
+          get(complete(pongJsonResponse))
+        }
       }
     }
     // format: ON

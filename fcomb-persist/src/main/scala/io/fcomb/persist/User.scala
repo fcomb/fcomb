@@ -29,7 +29,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
   val table = TableQuery[UserTable]
 
   def create(
-    email: String,
+    email:    String,
     username: String,
     password: String,
     fullName: Option[String]
@@ -45,11 +45,19 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     ))
     validateThenApply(validate(userValidation(user, Some(password)))) {
       createDBIO(user)
-    }
+    }.flatMap(createCallbacks)
+  }
+
+  private def createCallbacks(res: ValidationModel)(
+    implicit
+    ec: ExecutionContext
+  ) = res match {
+    case s @ Success(u) ⇒ UserToken.createDefaults(u.getId).map(_ ⇒ s)
+    case e @ Failure(_) ⇒ Future.successful(e)
   }
 
   def updateByRequest(id: Long)(
-    email: String,
+    email:    String,
     username: String,
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] =
@@ -60,14 +68,14 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
       updatedAt = ZonedDateTime.now()
     ))
 
-  private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) =>
+  private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) ⇒
     table
       .filter(_.id === userId)
-      .map { t => (t.passwordHash, t.updatedAt) }
+      .map { t ⇒ (t.passwordHash, t.updatedAt) }
   }
 
   def updatePassword(
-    userId: Long,
+    userId:   Long,
     password: String
   )(implicit ec: ExecutionContext): Future[Boolean] = {
     val salt = generateSalt
@@ -80,19 +88,35 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
   }
 
   def changePassword(
-    user: models.User,
+    user:        models.User,
     oldPassword: String,
     newPassword: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     if (oldPassword == newPassword)
       validationErrorAsFuture("password", "can't be the same")
     else if (user.isValidPassword(oldPassword))
-      updatePassword(user.getId, newPassword).map(_ => user.success)
+      updatePassword(user.getId, newPassword).map(_ ⇒ user.success)
     else
       validationErrorAsFuture("password", "doesn't match")
   }
 
-  private val findByEmailCompiled = Compiled { email: Rep[String] =>
+  private val findByTokenCompiled = Compiled {
+    (token: Rep[String], role: Rep[models.TokenRole.TokenRole]) ⇒
+      table
+        .joinLeft(UserToken.table).on(_.id === _.userId)
+        .filter { q ⇒
+          q._2.map(_.token) === token &&
+            q._2.map(_.role) === role &&
+            q._2.map(_.state) === models.TokenState.Enabled
+        }
+        .map(_._1)
+        .take(1)
+  }
+
+  def findByToken(token: String, role: models.TokenRole.TokenRole) =
+    db.run(findByTokenCompiled(token, role).result.headOption)
+
+  private val findByEmailCompiled = Compiled { email: Rep[String] ⇒
     table.filter(_.email === email).take(1)
   }
 
@@ -102,36 +126,36 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
   import Validations._
 
   private val uniqueUsernameCompiled = Compiled {
-    (id: Rep[Option[Long]], username: Rep[String]) =>
-      table.filter { f => f.id =!= id && f.username === username }.exists
+    (id: Rep[Option[Long]], username: Rep[String]) ⇒
+      table.filter { f ⇒ f.id =!= id && f.username === username }.exists
   }
 
   private val uniqueEmailCompiled = Compiled {
-    (id: Rep[Option[Long]], email: Rep[String]) =>
-      table.filter { f => f.id =!= id && f.email === email }.exists
+    (id: Rep[Option[Long]], email: Rep[String]) ⇒
+      table.filter { f ⇒ f.id =!= id && f.email === email }.exists
   }
 
   def validatePassword(password: String) =
     validatePlain(
-      "password" -> List(lengthRange(password, 6, 50))
+      "password" → List(lengthRange(password, 6, 50))
     )
 
   def userValidation(
-    user: models.User,
+    user:        models.User,
     passwordOpt: Option[String]
   )(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(
-      "username" -> List(lengthRange(user.username, 1, 255), notUuid(user.username)),
-      "email" -> List(maxLength(user.email, 255), email(user.email))
+      "username" → List(lengthRange(user.username, 1, 255), notUuid(user.username)),
+      "email" → List(maxLength(user.email, 255), email(user.email))
     )
     val dbioValidations = validateDBIO(
-      "username" -> List(unique(uniqueUsernameCompiled(user.id, user.username))),
-      "email" -> List(unique(uniqueEmailCompiled(user.id, user.email)))
+      "username" → List(unique(uniqueUsernameCompiled(user.id, user.username))),
+      "email" → List(unique(uniqueEmailCompiled(user.id, user.email)))
     )
     passwordOpt match {
-      case Some(password) =>
+      case Some(password) ⇒
         (validatePassword(password) ::: plainValidations, dbioValidations)
-      case None =>
+      case None ⇒
         (plainValidations, dbioValidations)
     }
   }

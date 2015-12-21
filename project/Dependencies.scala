@@ -9,7 +9,7 @@ object Dependencies {
     val circle = "0.1.1"
     // val doobie = "0.2.3"
     val slick = "3.1.0"
-    val slickPg = "0.10.1"
+    val slickPg = "0.10.2"
     val scalaz = "7.2.0"
     val scalikeJdbc = "2.2.8"
     val quill = "0.1.0"

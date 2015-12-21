@@ -109,6 +109,11 @@ package object json {
       }
     }
 
+  implicit val paginationDataFormat = jsonFormat3(PaginationData)
+
+  implicit def multipleDataResponse[A: JsonFormat] =
+    jsonFormat2(MultipleDataResponse.apply[A])
+
   // implicit val methodKindJsonProtocol = createStringEnumJsonFormat(MethodKind)
 
   implicit val resetPasswordRequestJsonProtocol = jsonFormat1(ResetPasswordRequest)
@@ -134,6 +139,17 @@ package object json {
   // implicit val combMethodRequestJsonProtocol = jsonFormat3(CombMethodRequest)
 
   // implicit val combMethodResponseJsonProtocol = jsonFormat7(CombMethodResponse)
+
+  implicit val nodeJoinRequestJsonProtocol =
+    jsonFormat1(NodeJoinRequest)
+
+  implicit val tokenRoleJsonProtocol =
+    createStringEnumJsonFormat(TokenRole)
+
+  implicit val tokenStateJsonProtocol =
+    createStringEnumJsonFormat(TokenState)
+
+  implicit val userTokenJsonProtocol = jsonFormat6(UserToken)
 
   object errors {
     implicit val errorKindFormat = createStringEnumJsonFormat(ErrorKind)

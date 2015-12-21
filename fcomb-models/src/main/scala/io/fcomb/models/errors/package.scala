@@ -53,7 +53,7 @@ package object errors {
 
   case object ExpectedAuthorizationToken extends DtCemException {
     def toErrorMessage() = ErrorMessage(
-      "Expected 'Authorization' header with token or URI 'auth_token' parameter",
+      "Expected 'Authorization' header with token or URI 'access_token' parameter",
       ErrorKind.Authorization
     )
   }

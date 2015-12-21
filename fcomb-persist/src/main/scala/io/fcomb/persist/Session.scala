@@ -25,7 +25,7 @@ object Session extends PersistTypes[models.Session] {
     implicit
     ec: ExecutionContext
   ): Future[ValidationModel] =
-    createToken(userPrefix, user.getId.toString)
+    createToken(prefix, user.getId.toString)
 
   private def createToken(
     prefix: String,
@@ -34,7 +34,7 @@ object Session extends PersistTypes[models.Session] {
     implicit
     ec: ExecutionContext
   ): Future[ValidationModel] = {
-    val sessionId = s"$userPrefix${random.alphanumeric.take(sessionIdLength).mkString}"
+    val sessionId = s"$prefix${random.alphanumeric.take(sessionIdLength).mkString}"
     redis.set(getKey(sessionId), id, ttl).map { _ =>
       models.Session(sessionId).success[validations.ValidationErrors]
     }
@@ -62,7 +62,7 @@ object Session extends PersistTypes[models.Session] {
     ec: ExecutionContext
   ) = {
     redis.get(getKey(sessionId)).flatMap {
-      case Some(userId) if sessionId.startsWith(userPrefix) =>
+      case Some(userId) if sessionId.startsWith(prefix) =>
         User.findByPk(userId.utf8String.toLong)
       case _ =>
         Future.successful(None)
@@ -72,12 +72,9 @@ object Session extends PersistTypes[models.Session] {
   def destroy(sessionId: String) =
     redis.del(getKey(sessionId))
 
-  def isValid(sessionId: String) =
-    sessionId.length == sessionIdLength
-
   @inline
   private def getKey(sessionId: String) =
-    s"ses:${DigestUtils.sha1Hex(sessionId.take(sessionIdLength))}"
+    DigestUtils.sha1Hex(sessionId.take(sessionIdLength))
 
-  private val userPrefix = "usr_"
+  val prefix = "ses_"
 }

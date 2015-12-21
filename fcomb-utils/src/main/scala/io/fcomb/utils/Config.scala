@@ -14,4 +14,20 @@ object Config {
   val redis = config.getConfig("redis")
 
   val mandrillKey = config.getString("mandrill.key")
+
+  case class CertificateIssuer(
+    organizationalUnit: String,
+    organization: String,
+    city: String,
+    state: String,
+    country: String
+  )
+
+  val certificateIssuer = CertificateIssuer(
+    organizationalUnit = config.getString("certificates.issuer.organizationalUnit"),
+    organization = config.getString("certificates.issuer.organization"),
+    city = config.getString("certificates.issuer.city"),
+    state = config.getString("certificates.issuer.state"),
+    country = config.getString("certificates.issuer.country")
+  )
 }

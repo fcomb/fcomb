@@ -29,8 +29,17 @@ package object persist {
 
   // implicit val methodKindColumnType = createEnumJdbcType("method_kind", models.comb.MethodKind)
 
-  implicit val UserCertificateKindColumnType =
-    createEnumJdbcType("user_certificate_kind", models.UserCertificateKind)
+  implicit val certificateKindColumnType =
+    createEnumJdbcType("certificate_kind", models.CertificateKind)
+
+  implicit val nodeStateColumnType =
+    createEnumJdbcType("node_state", models.node.NodeState)
+
+  implicit val tokenRoleColumnType =
+    createEnumJdbcType("token_role", models.TokenRole)
+
+  implicit val tokenStateColumnType =
+    createEnumJdbcType("token_state", models.TokenState)
 
   import io.fcomb.RichPostgresDriver.api._
 

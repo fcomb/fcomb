@@ -11,6 +11,8 @@ import io.fcomb.services.user.ResetPassword
 import scala.concurrent.ExecutionContext
 
 object UserService extends Service {
+  val pathPrefix = "users"
+
   def signUp(
     implicit
     ec: ExecutionContext,

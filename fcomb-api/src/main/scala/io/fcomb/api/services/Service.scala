@@ -488,16 +488,22 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     val authHeader = r.headers.collectFirst {
       case a: Authorization ⇒ a
     }
-    val authParameter = r.uri.query().get("auth_token")
+    val authParameter = r.uri.query().get("access_token")
     (authHeader, authParameter) match {
       case (Some(token), _) ⇒
         val s = token.value.split(' ')
-        if (s.head.toLowerCase == "token") Some(s.last)
+        if (s.head.toLowerCase == "bearer") Some(s.last)
         else None
       case (_, token @ Some(_)) ⇒ token
       case _                    ⇒ None
     }
   }
+
+  private def mapAccessException(e: DtCemException)(
+    implicit
+    ctx: ServiceContext
+  ) =
+    Future.successful(completeError(e)(StatusCodes.Unauthorized))
 
   def authorizeUser(
     f: User ⇒ ServiceResult
@@ -506,16 +512,30 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     ec:  ExecutionContext
   ): ServiceResult = {
-      def mapException(e: DtCemException) =
-        Future.successful(completeError(e)(StatusCodes.Unauthorized))
-
     complete(getAuthToken() match {
-      case Some(token) ⇒
+      case Some(token) if token.startsWith(persist.Session.prefix) ⇒
         persist.Session.findById(token).flatMap {
           case Some(item) ⇒ flatResult(f(item))
-          case None       ⇒ mapException(InvalidAuthorizationToken)
+          case None       ⇒ mapAccessException(InvalidAuthorizationToken)
         }
-      case _ ⇒ mapException(ExpectedAuthorizationToken)
+      case _ ⇒ mapAccessException(ExpectedAuthorizationToken)
+    })
+  }
+
+  def authorizeUserByToken(role: TokenRole.TokenRole)(
+    f: User ⇒ ServiceResult
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec:  ExecutionContext
+  ): ServiceResult = {
+    complete(getAuthToken() match {
+      case Some(token) if token.startsWith(persist.UserToken.prefix) ⇒
+        persist.User.findByToken(token, role).flatMap {
+          case Some(item) ⇒ flatResult(f(item))
+          case None       ⇒ mapAccessException(InvalidAuthorizationToken)
+        }
+      case _ ⇒ mapAccessException(ExpectedAuthorizationToken)
     })
   }
 

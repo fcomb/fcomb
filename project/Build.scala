@@ -193,7 +193,7 @@ object Build extends sbt.Build {
     settings = defaultSettings ++ Seq(
       libraryDependencies ++= Dependencies.services
     )
-  ).dependsOn(persist, utils, docker, templates)
+  ).dependsOn(persist, utils, docker, crypto, templates)
 
   lazy val templates = Project(
     id = "templates",

@@ -47,4 +47,9 @@ package object request {
     email: String,
     password: String
   ) extends ServiceModelRequest
+
+  // TODO: signed datetime with private key with HMAC?
+  case class NodeJoinRequest(
+    certificationRequest: String
+  ) extends ServiceModelRequest
 }
