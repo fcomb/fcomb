@@ -5,15 +5,16 @@ import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.node.{Node ⇒ MNode, NodeState}
 import io.fcomb.request
+import io.fcomb.response
 import io.fcomb.persist._
 import io.fcomb.validations._
-import io.fcomb.utils.Random.random
-import java.time.LocalDateTime
+import io.fcomb.utils.{StringUtils, Random}
 import scala.concurrent.{ExecutionContext, Future}
 import org.apache.commons.codec.digest.DigestUtils
 import java.time.ZonedDateTime
 import java.security.PublicKey
-import java.util.UUID
+import java.util.{Base64, UUID}
+import java.io.StringWriter
 
 class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWithAutoLongPk {
   def userId = column[Long]("user_id")
@@ -43,19 +44,27 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
       .head
   }
 
+  private def toPemAsCertificate(encoded: Array[Byte]) = {
+    val writer = new StringWriter()
+    writer.write(s"-----BEGIN CERTIFICATE-----\r\n")
+    writer.write(Base64.getMimeEncoder().encodeToString(encoded))
+    writer.write(s"\r\n-----END CERTIFICATE-----\r\n")
+    writer.toString()
+  }
+
   def create(
-    id: Long,
-    userId: Long,
+    id:                Long,
+    userId:            Long,
     rootCertificateId: Long,
     signedCertificate: Array[Byte],
-    publicKeyHash: String
+    publicKeyHash:     String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeNow = ZonedDateTime.now()
     super.create(MNode(
       id = Some(id),
       userId = userId,
-      state = NodeState.Initialize,
-      token = random.alphanumeric.take(96).mkString,
+      state = NodeState.Initializing,
+      token = Random.random.alphanumeric.take(128).mkString,
       rootCertificateId = rootCertificateId,
       signedCertificate = signedCertificate,
       publicKeyHash = publicKeyHash,
@@ -64,31 +73,35 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
     ))
   }
 
-  // def createByRequest(kind: DictionaryKind.DictionaryKind, req: request.DictionaryItemRequest)(
-  //   implicit
-  //   ec: ExecutionContext
-  // ) = {
-  //   val timeNow = ZonedDateTime.now
-  //   create(models.DictionaryItem(
-  //     kind = kind,
-  //     title = req.title,
-  //     createdAt = timeNow,
-  //     updatedAt = timeNow
-  //   ))
-  // }
+  private val findByIdAsAgentCompiled = Compiled { id: Rep[Long] ⇒
+    table
+      .filter(_.id === id)
+      .join(UserCertificate.table).on(_.rootCertificateId === _.id)
+      .map {
+        case (t, uct) ⇒
+          (t.token, t.state, t.signedCertificate, t.createdAt,
+            t.updatedAt, uct.certificate)
+      }
+  }
 
-  // def updateByRequest(
-  //   id:   Long,
-  //   kind: DictionaryKind.DictionaryKind,
-  //   req:  request.DictionaryItemRequest
-  // )(
-  //   implicit
-  //   ec: ExecutionContext
-  // ) =
-  //   update(id)(_.copy(
-  //     title = req.title,
-  //     updatedAt = ZonedDateTime.now
-  //   ))
+  def findByIdAndTokenAsAgentResponse(id: Long, token: String)(
+    implicit
+    ec: ExecutionContext
+  ) = db.run {
+    findByIdAsAgentCompiled(id).result.headOption.map {
+      case Some((nodeToken, state, signedCert, createdAt, updatedAt, rootCert)) ⇒
+        if (StringUtils.secureEqual(token, nodeToken))
+          Some(response.AgentNodeResponse(
+            state = state,
+            rootCertificate = toPemAsCertificate(rootCert),
+            signedCertificate = toPemAsCertificate(signedCert),
+            createdAt = createdAt,
+            updatedAt = updatedAt
+          ))
+        else None
+      case None ⇒ None
+    }
+  }
 
   private val findByPublicKeyHashCompiled = Compiled { hash: Rep[String] ⇒
     table.filter(_.publicKeyHash === hash).take(1)

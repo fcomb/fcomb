@@ -1,8 +1,6 @@
 package io.fcomb
 
-import io.fcomb.models._
-// import io.fcomb.models.comb._
-import io.fcomb.models.errors._
+import io.fcomb.models._, errors._, node._
 import io.fcomb.request._
 import io.fcomb.response._
 import java.time._
@@ -131,6 +129,12 @@ package object json {
   implicit val sessionRequestJsonProtocol = jsonFormat2(SessionRequest)
 
   implicit val sessionResponseJsonProtocol = jsonFormat1(SessionResponse)
+
+  implicit val nodeStateJsonProtocol =
+    createStringEnumJsonFormat(NodeState)
+
+  implicit val agetnNodeResponseJsonProtocol =
+    jsonFormat5(AgentNodeResponse)
 
   // implicit val combRequestJsonProtocol = jsonFormat2(CombRequest)
 

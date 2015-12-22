@@ -198,7 +198,7 @@ private[api] object ContainerMethodsFormat {
 
   implicit object ConsoleSizeFormat extends RootJsonFormat[ConsoleSize] {
     def write(s: ConsoleSize) =
-      JsArray(List(JsNumber(s.width), JsNumber(s.height)))
+      JsArray(Vector(JsNumber(s.width), JsNumber(s.height)))
 
     def read(v: JsValue) = v match {
       case JsArray(Vector(JsNumber(w), JsNumber(h))) =>

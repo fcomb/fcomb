@@ -95,7 +95,7 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
       }, false)
   }
 
-  def initializing(userId: Long, req: PKCS10): Unit = {
+  def initializing(userId: Long, req: PKCS10) =
     PNode.findByPublicKeyHash(publicKeyHash).onComplete {
       case Success(res) ⇒ res match {
         case Some(node) ⇒ self ! Initialize(node)
@@ -103,7 +103,6 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
       }
       case Failure(e) ⇒ handleThrowable(e)
     }
-  }
 
   def initialized(node: MNode): Receive = {
     case _: JoinNode    ⇒ sender ! node

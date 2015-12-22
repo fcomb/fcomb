@@ -31,7 +31,7 @@ object SessionService extends Service {
   ) = action { implicit ctx =>
     authorizeUser { _ =>
       completeWithoutContent(
-        getAuthToken() match {
+        getAuthToken("session") match {
           case Some(token) => persist.Session.destroy(token)
           case None => Future.successful(())
         }

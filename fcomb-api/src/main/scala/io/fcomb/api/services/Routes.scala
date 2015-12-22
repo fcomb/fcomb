@@ -40,10 +40,17 @@ object Routes {
       //     }
       //   }
       // } ~
-      pathPrefix(node.NodeService.pathPrefix) {
-        pathPrefix("join") {
-          pathEndOrSingleSlash {
-            post(node.NodeService.join)
+      pathPrefix(agent.AgentService.pathPrefix) {
+        pathPrefix(agent.NodeService.pathPrefix) {
+          pathPrefix(LongNumber) { nodeId =>
+            pathEndOrSingleSlash {
+              get(agent.NodeService.show(nodeId))
+            }
+          } ~
+          pathPrefix("join") {
+            pathEndOrSingleSlash {
+              post(agent.NodeService.join)
+            }
           }
         }
       } ~

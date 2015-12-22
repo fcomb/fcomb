@@ -361,14 +361,14 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     case Failure(e) ⇒ complete(e)
   }
 
-  def completeAsCreated(uri: Uri)(
+  def completeAsCreated(uri: Uri, headers: List[HttpHeader] = List.empty)(
     implicit
     ctx: ServiceContext
   ): ServiceResult =
     CompleteWithoutResult(
       StatusCodes.Created,
       ctx.contentType,
-      List(Location(uri))
+      Location(uri) :: headers
     )
 
   def completeValidationAsCreated(res: Validation[ValidationErrors, _], uri: Uri)(
@@ -483,7 +483,9 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(f.map(completeValidationWithoutContent))
 
-  def getAuthToken()(implicit ctx: ServiceContext): Option[String] = {
+  def getAuthToken(schema: String)(
+    implicit ctx: ServiceContext
+  ): Option[String] = {
     val r = ctx.requestContext.request
     val authHeader = r.headers.collectFirst {
       case a: Authorization ⇒ a
@@ -492,14 +494,14 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     (authHeader, authParameter) match {
       case (Some(token), _) ⇒
         val s = token.value.split(' ')
-        if (s.head.toLowerCase == "bearer") Some(s.last)
+        if (s.head.toLowerCase == schema) Some(s.last)
         else None
       case (_, token @ Some(_)) ⇒ token
       case _                    ⇒ None
     }
   }
 
-  private def mapAccessException(e: DtCemException)(
+  def mapAccessException(e: DtCemException)(
     implicit
     ctx: ServiceContext
   ) =
@@ -512,7 +514,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     ec:  ExecutionContext
   ): ServiceResult = {
-    complete(getAuthToken() match {
+    complete(getAuthToken("session") match {
       case Some(token) if token.startsWith(persist.Session.prefix) ⇒
         persist.Session.findById(token).flatMap {
           case Some(item) ⇒ flatResult(f(item))
@@ -529,7 +531,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     ec:  ExecutionContext
   ): ServiceResult = {
-    complete(getAuthToken() match {
+    complete(getAuthToken("token") match {
       case Some(token) if token.startsWith(persist.UserToken.prefix) ⇒
         persist.User.findByToken(token, role).flatMap {
           case Some(item) ⇒ flatResult(f(item))

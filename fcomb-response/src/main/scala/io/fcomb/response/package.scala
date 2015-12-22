@@ -1,8 +1,8 @@
 package io.fcomb
 
-import io.fcomb.models._
+import io.fcomb.models._, node._
 // import io.fcomb.models.comb._
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.language.implicitConversions
 
@@ -10,13 +10,13 @@ package object response {
   trait ServiceModelResponse extends ServiceModel
 
   implicit class ModelItem[T](val m: T) extends AnyRef {
-    def toResponse[E <: ServiceModelResponse]()(implicit f: T => E) =
+    def toResponse[E <: ServiceModelResponse]()(implicit f: T ⇒ E) =
       f(m)
   }
 
   case class UserProfileResponse(
-    id: Option[Long],
-    email: String,
+    id:       Option[Long],
+    email:    String,
     username: String,
     fullName: Option[String]
   ) extends ServiceModelResponse
@@ -42,6 +42,14 @@ package object response {
   case class SessionResponse(
     token: String
   ) extends ServiceModelResponse
+
+  case class AgentNodeResponse(
+    state:             NodeState.NodeState,
+    rootCertificate:   String,
+    signedCertificate: String,
+    createdAt:         ZonedDateTime,
+    updatedAt:         ZonedDateTime
+  )
 
   implicit def user2ProfileResponse(u: User): UserProfileResponse =
     UserProfileResponse(
