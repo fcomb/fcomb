@@ -9,7 +9,9 @@ import io.fcomb.persist._
 import io.fcomb.validations._
 import java.time.LocalDateTime
 import scala.concurrent.{ExecutionContext, Future}
+import org.apache.commons.codec.digest.DigestUtils
 import java.time.ZonedDateTime
+import java.security.PublicKey
 import java.util.UUID
 
 class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWithAutoLongPk {
@@ -17,18 +19,27 @@ class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWi
   def token = column[String]("token")
   def rootCertificateId = column[Long]("root_certificate_id")
   def signedCertificate = column[Array[Byte]]("signed_certificate")
-  def publicKeySha256 = column[String]("public_key_sha256")
+  def publicKeyHash = column[String]("public_key_hash")
   def createdAt = column[ZonedDateTime]("created_at")
   def updatedAt = column[ZonedDateTime]("updated_at")
 
   def * =
     (id, state, token, rootCertificateId, signedCertificate,
-      publicKeySha256, createdAt, updatedAt) <>
+      publicKeyHash, createdAt, updatedAt) <>
       ((MNode.apply _).tupled, MNode.unapply)
 }
 
 object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
   val table = TableQuery[NodeTable]
+
+  def getPublicKeyHash(key: PublicKey): String =
+    DigestUtils.sha256Hex(key.getEncoded())
+
+  def getNodeIdSequence() = db.run {
+    sql"select nextval('nodes_id_seq'::regclass)"
+      .as[Long]
+      .head
+  }
 
   // def createByRequest(kind: DictionaryKind.DictionaryKind, req: request.DictionaryItemRequest)(
   //   implicit
@@ -55,6 +66,14 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
   //     title = req.title,
   //     updatedAt = ZonedDateTime.now
   //   ))
+
+  private val findByPublicKeyHashCompiled = Compiled { hash: Rep[String] ⇒
+    table.filter(_.publicKeyHash === hash).take(1)
+  }
+
+  def findByPublicKeyHash(hash: String) = db.run {
+    findByPublicKeyHashCompiled(hash).result.headOption
+  }
 
   // private val uniqueTitleCompiled = Compiled {
   //   (id: Rep[Option[Long]], kind: Rep[DictionaryKind.DictionaryKind], title: Rep[String]) ⇒

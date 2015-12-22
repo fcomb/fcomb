@@ -24,7 +24,7 @@ object NodeService extends Service {
       requestBodyAs[NodeJoinRequest] { req ⇒
         // TODO: add authorization header with node token!
         completeValidationWithPkAsCreated(
-          NodeManager.createByRequest(user.getId, req),
+          NodeManager.joinByRequest(user.getId, req),
           ""
         )
       }

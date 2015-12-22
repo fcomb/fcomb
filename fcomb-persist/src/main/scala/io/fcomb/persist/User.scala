@@ -125,6 +125,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
 
   import Validations._
 
+  // TODO: move filterNotPk
   private val uniqueUsernameCompiled = Compiled {
     (id: Rep[Option[Long]], username: Rep[String]) ⇒
       table.filter { f ⇒ f.id =!= id && f.username === username }.exists

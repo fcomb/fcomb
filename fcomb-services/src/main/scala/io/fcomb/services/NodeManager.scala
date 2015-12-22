@@ -12,7 +12,7 @@ object NodeManager {
   val beginRequest = "-----BEGIN CERTIFICATE REQUEST-----\n"
   val beginNewRequest = "-----BEGIN NEW CERTIFICATE REQUEST-----\n"
 
-  def createByRequest(userId: Long, req: NodeJoinRequest)(
+  def joinByRequest(userId: Long, req: NodeJoinRequest)(
     implicit
     ec: ExecutionContext
   ): Future[PNode.ValidationModel] = {
@@ -21,8 +21,7 @@ object NodeManager {
     if ((rs.startsWith(beginRequest) || rs.startsWith(beginNewRequest))) {
       val body = rs.substring(rs.indexOf('\n'), rs.lastIndexOf('\n'))
       val csr = new PKCS10(Base64.getMimeDecoder().decode(body))
-      println(s"csr: $csr")
-      val nodeName = new X500Name("CN=wow")
+      NodeJoinProcessor.join(userId, csr).onComplete(println)
       ???
       // CertificateProcessor.generateUserCertificates(userId).flatMap {
       //   case (rootCert, rootKey) =>

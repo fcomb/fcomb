@@ -8,17 +8,20 @@ import akka.actor._
 import akka.cluster.sharding._
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.collection.mutable.HashSet
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
-import sun.security.x509.{X500Name, CertificateExtensions}
-import sun.security.pkcs10.PKCS10
+import java.security.{KeyFactory, PrivateKey}
 import java.security.cert.X509Certificate
-import java.security.PrivateKey
+import java.security.spec.PKCS8EncodedKeySpec
 import java.time.ZonedDateTime
+import sun.security.pkcs10.PKCS10
+import sun.security.x509.{CertificateExtensions, X500Name, X509CertImpl}
 
 // TODO: add router and distribution by userId
+
+case object EmptyActorRef extends Throwable
 
 object CertificateProcessor {
   val extractEntityId: ShardRegion.ExtractEntityId = {
@@ -33,27 +36,25 @@ object CertificateProcessor {
 
   val shardName = "UserCertificateProcessor"
 
-  def lookup()(implicit sys: ActorSystem) =
-    sys.dispatchers.lookup(shardName)
-
-  case class CertificateProcessorRegion(ref: ActorRef)
-
-  def startRegion(timeout: Duration)(implicit sys: ActorSystem) =
-    CertificateProcessorRegion(ClusterSharding(sys).start(
+  def startRegion(timeout: Duration)(implicit sys: ActorSystem) = {
+    val ref = ClusterSharding(sys).start(
       typeName = shardName,
       entityProps = props(timeout),
       settings = ClusterShardingSettings(sys),
       extractEntityId = extractEntityId,
       extractShardId = extractShardId
-    ))
+    )
+    actorRef = ref
+    ref
+  }
 
   sealed trait Entity
 
   case class SignRequest(
-    request:          PKCS10,
-    name:             X500Name,
-    extOpt:           Option[CertificateExtensions] = None,
-    expireAfterDays:  Int                           = Certificate.defaultExpireAfterDays
+    request:         PKCS10,
+    name:            X500Name,
+    extOpt:          Option[CertificateExtensions],
+    expireAfterDays: Int
   ) extends Entity
 
   def props(timeout: Duration) =
@@ -61,12 +62,25 @@ object CertificateProcessor {
 
   case class EntityEnvelope(userId: Long, payload: Entity)
 
-  // def generateUserCertificates(userId: Long)(
-  //   implicit
-  //   sys: ActorSystem,
-  //   timeout: Timeout = Timeout(30.seconds)
-  // ): Future[(X509Certificate, PrivateKey)] =
-  //   (lookup() ? GenerateUserCertificates(userId)).mapTo[(X509Certificate, PrivateKey)]
+  private var actorRef: ActorRef = _
+
+  def generateUserCertificates(
+    userId:          Long,
+    request:         PKCS10,
+    name:            X500Name,
+    extOpt:          Option[CertificateExtensions] = None,
+    expireAfterDays: Int                           = Certificate.defaultExpireAfterDays
+  )(
+    implicit
+    timeout: Timeout = Timeout(30.seconds)
+  ): Future[X509Certificate] = {
+    Option(actorRef) match {
+      case Some(ref) ⇒
+        val req = SignRequest(request, name, extOpt, expireAfterDays)
+        ask(ref, EntityEnvelope(userId, req)).mapTo[X509Certificate]
+      case None ⇒ Future.failed(EmptyActorRef)
+    }
+  }
 }
 
 class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with ActorLogging {
@@ -78,13 +92,17 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
 
   val userId = self.path.name.toLong
 
-  case class Initialize(rootCert: models.UserCertificate)
+  case class Initialize(cert: X509Certificate, key: PrivateKey)
+
+  case object Stop
+
+  case class Failed(e: Throwable)
 
   initializing()
 
   def receive = {
-    case Initialize(rootCert) ⇒
-      context.become(initialized(rootCert), false)
+    case Initialize(cert, key) ⇒
+      context.become(initialized(cert, key), false)
       unstashAll()
     case msg ⇒
       log.warning(s"stash message: $msg")
@@ -92,31 +110,51 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
   }
 
   def initializing(): Unit = {
-    val replyTo = sender()
     UserCertificate.findRootCertByUserId(userId).onComplete {
       case Success(res) ⇒ res match {
-        case Some(rootCert) ⇒ self ! Initialize(rootCert)
-        case None           ⇒ generateAndPersistCertificates(replyTo)
+        case Some(cert) ⇒ self ! initializeWith(cert)
+        case None       ⇒ generateAndPersistCertificates()
       }
-      case Failure(e) ⇒ handleThrowable(e, replyTo)
+      case Failure(e) ⇒ handleThrowable(e)
     }
   }
 
-  def initialized(rootCert: models.UserCertificate): Receive = {
+  def initialized(cert: X509Certificate, key: PrivateKey): Receive = {
+    case SignRequest(req, name, extOpt, expireAfterDays) ⇒
+      val signed = Certificate.signCertificationRequest(cert, key,
+        req, name, extOpt, expireAfterDays)
+      sender ! signed
     case ReceiveTimeout ⇒ suicide()
-    case m              ⇒ sender ! rootCert
   }
 
-  def handleThrowable(e: Throwable, replyTo: ActorRef): Unit = {
+  def failed(e: Throwable): Receive = {
+    case _: Entity ⇒ sender ! Status.Failure(e)
+    case Stop      ⇒ suicide()
+  }
+
+  def handleThrowable(e: Throwable): Unit = {
     log.error(e, e.getMessage())
-    replyTo ! Status.Failure(e)
-    suicide()
+    context.become({
+      case Failed(e) ⇒
+        context.become(failed(e), false)
+        unstashAll()
+        self ! Stop
+    }, false)
+    self ! Failed(e)
+  }
+
+  def initializeWith(rootCert: models.UserCertificate) = {
+    val cert = new X509CertImpl(rootCert.certificate)
+    val kf = KeyFactory.getInstance("RSA")
+    val spec = new PKCS8EncodedKeySpec(rootCert.key)
+    val key = kf.generatePrivate(spec)
+    Initialize(cert, key)
   }
 
   def suicide() =
     context.parent ! Passivate(stopMessage = PoisonPill)
 
-  def generateAndPersistCertificates(replyTo: ActorRef) = {
+  def generateAndPersistCertificates() = {
     val (rootCert, rootKey) =
       Certificate.generateRootAuthority(
         commonName = s"User#$userId",
@@ -137,10 +175,10 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
     ).onComplete {
         case Success(res) ⇒
           res match {
-            case scalaz.Success(rootCert) ⇒ self ! Initialize(rootCert)
-            case scalaz.Failure(e)        ⇒ handleThrowable(e.head, replyTo)
+            case scalaz.Success(cert) ⇒ self ! initializeWith(cert)
+            case scalaz.Failure(e)    ⇒ handleThrowable(e.head)
           }
-        case Failure(e) ⇒ handleThrowable(e, replyTo)
+        case Failure(e) ⇒ handleThrowable(e)
       }
   }
 }
