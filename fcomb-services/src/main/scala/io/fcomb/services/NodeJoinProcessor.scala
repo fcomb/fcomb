@@ -55,12 +55,12 @@ object NodeJoinProcessor {
   def join(userId: Long, req: PKCS10)(
     implicit
     timeout: Timeout = Timeout(30.seconds)
-  ): Future[X509Certificate] = {
+  ): Future[MNode] = {
     Option(actorRef) match {
       case Some(ref) ⇒
         val hash = PNode.getPublicKeyHash(req.getSubjectPublicKeyInfo())
         ask(ref, EntityEnvelope(hash, JoinNode(userId, req)))
-          .mapTo[X509Certificate]
+          .mapTo[MNode]
       case None ⇒ Future.failed(EmptyActorRef)
     }
   }
@@ -73,7 +73,7 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
 
   context.setReceiveTimeout(timeout)
 
-  val hash = self.path.name
+  val publicKeyHash = self.path.name
 
   case class Initialize(node: MNode)
 
@@ -96,7 +96,7 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
   }
 
   def initializing(userId: Long, req: PKCS10): Unit = {
-    PNode.findByPublicKeyHash(hash).onComplete {
+    PNode.findByPublicKeyHash(publicKeyHash).onComplete {
       case Success(res) ⇒ res match {
         case Some(node) ⇒ self ! Initialize(node)
         case None       ⇒ joinNode(userId, req)
@@ -106,7 +106,7 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
   }
 
   def initialized(node: MNode): Receive = {
-    case msg: Entity    ⇒ sender ! node
+    case _: JoinNode    ⇒ sender ! node
     case ReceiveTimeout ⇒ suicide()
   }
 
@@ -129,16 +129,25 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
   def suicide() =
     context.parent ! Passivate(stopMessage = PoisonPill)
 
-  def joinNode(userId: Long, req: PKCS10) = {
-    PNode.getNodeIdSequence().onComplete {
-      case Success(nodeId) ⇒
-        val name = new X500Name(s"CN=node-$nodeId")
-        CertificateProcessor.generateUserCertificates(userId, req, name).onComplete {
-          case Success(signed) ⇒
-            println(s"signed: $signed")
-          case Failure(e) ⇒ handleThrowable(e)
-        }
-      case Failure(e) ⇒ handleThrowable(e)
+  def joinNode(userId: Long, req: PKCS10) =
+    (for {
+      nodeId ← PNode.getNodeIdSequence()
+      name = new X500Name(s"CN=node-$nodeId")
+      signed ← UserCertificateProcessor
+        .generateUserCertificates(userId, req, name)
+      res ← PNode.create(
+        nodeId,
+        userId,
+        signed.certificateId,
+        signed.certificate.getEncoded(),
+        publicKeyHash
+      )
+    } yield res match {
+      case scalaz.Success(node) ⇒
+        self ! Initialize(node)
+      case scalaz.Failure(e) ⇒
+        throw e.head
+    }).recover {
+      case e: Throwable ⇒ handleThrowable(e)
     }
-  }
 }

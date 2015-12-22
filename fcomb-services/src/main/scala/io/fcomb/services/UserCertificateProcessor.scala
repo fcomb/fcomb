@@ -23,7 +23,7 @@ import sun.security.x509.{CertificateExtensions, X500Name, X509CertImpl}
 
 case object EmptyActorRef extends Throwable
 
-object CertificateProcessor {
+object UserCertificateProcessor {
   val extractEntityId: ShardRegion.ExtractEntityId = {
     case EntityEnvelope(userId, payload) ⇒ (userId.toString, payload)
   }
@@ -64,6 +64,11 @@ object CertificateProcessor {
 
   private var actorRef: ActorRef = _
 
+  case class SignedCertificate(
+    certificate:   X509Certificate,
+    certificateId: Long
+  )
+
   def generateUserCertificates(
     userId:          Long,
     request:         PKCS10,
@@ -73,11 +78,11 @@ object CertificateProcessor {
   )(
     implicit
     timeout: Timeout = Timeout(30.seconds)
-  ): Future[X509Certificate] = {
+  ): Future[SignedCertificate] = {
     Option(actorRef) match {
       case Some(ref) ⇒
         val req = SignRequest(request, name, extOpt, expireAfterDays)
-        ask(ref, EntityEnvelope(userId, req)).mapTo[X509Certificate]
+        ask(ref, EntityEnvelope(userId, req)).mapTo[SignedCertificate]
       case None ⇒ Future.failed(EmptyActorRef)
     }
   }
@@ -85,14 +90,14 @@ object CertificateProcessor {
 
 class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with ActorLogging {
   import context.dispatcher
-  import CertificateProcessor._
+  import UserCertificateProcessor._
   import ShardRegion.Passivate
 
   context.setReceiveTimeout(timeout)
 
   val userId = self.path.name.toLong
 
-  case class Initialize(cert: X509Certificate, key: PrivateKey)
+  case class Initialize(cert: X509Certificate, key: PrivateKey, certificateId: Long)
 
   case object Stop
 
@@ -101,8 +106,8 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
   initializing()
 
   def receive = {
-    case Initialize(cert, key) ⇒
-      context.become(initialized(cert, key), false)
+    case Initialize(cert, key, certificateId) ⇒
+      context.become(initialized(cert, key, certificateId), false)
       unstashAll()
     case msg ⇒
       log.warning(s"stash message: $msg")
@@ -119,11 +124,11 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
     }
   }
 
-  def initialized(cert: X509Certificate, key: PrivateKey): Receive = {
+  def initialized(cert: X509Certificate, key: PrivateKey, certificateId: Long): Receive = {
     case SignRequest(req, name, extOpt, expireAfterDays) ⇒
       val signed = Certificate.signCertificationRequest(cert, key,
         req, name, extOpt, expireAfterDays)
-      sender ! signed
+      sender ! SignedCertificate(signed, certificateId)
     case ReceiveTimeout ⇒ suicide()
   }
 
@@ -148,7 +153,7 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
     val kf = KeyFactory.getInstance("RSA")
     val spec = new PKCS8EncodedKeySpec(rootCert.key)
     val key = kf.generatePrivate(spec)
-    Initialize(cert, key)
+    Initialize(cert, key, rootCert.getId)
   }
 
   def suicide() =

@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Address}
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.api.services.Routes
-import io.fcomb.services.{CertificateProcessor, NodeJoinProcessor}
+import io.fcomb.services.{UserCertificateProcessor, NodeJoinProcessor}
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
@@ -39,7 +39,7 @@ object Main extends App {
     _ ← server.HttpApiService.start(port, interface, Routes())
   } yield ()).onComplete {
     case Success(_) ⇒
-      CertificateProcessor.startRegion(5.minutes)
+      UserCertificateProcessor.startRegion(5.minutes)
       NodeJoinProcessor.startRegion(5.minutes)
       // HttpProxy.start(config)
       // sys.actorOf(CertificateProcessor.props(), name = CertificateProcessor.actorName)

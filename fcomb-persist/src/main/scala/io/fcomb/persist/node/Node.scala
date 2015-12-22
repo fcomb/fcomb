@@ -7,6 +7,7 @@ import io.fcomb.models.node.{Node ⇒ MNode, NodeState}
 import io.fcomb.request
 import io.fcomb.persist._
 import io.fcomb.validations._
+import io.fcomb.utils.Random.random
 import java.time.LocalDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import org.apache.commons.codec.digest.DigestUtils
@@ -15,6 +16,7 @@ import java.security.PublicKey
 import java.util.UUID
 
 class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWithAutoLongPk {
+  def userId = column[Long]("user_id")
   def state = column[NodeState.NodeState]("state")
   def token = column[String]("token")
   def rootCertificateId = column[Long]("root_certificate_id")
@@ -24,7 +26,7 @@ class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWi
   def updatedAt = column[ZonedDateTime]("updated_at")
 
   def * =
-    (id, state, token, rootCertificateId, signedCertificate,
+    (id, userId, state, token, rootCertificateId, signedCertificate,
       publicKeyHash, createdAt, updatedAt) <>
       ((MNode.apply _).tupled, MNode.unapply)
 }
@@ -39,6 +41,27 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
     sql"select nextval('nodes_id_seq'::regclass)"
       .as[Long]
       .head
+  }
+
+  def create(
+    id: Long,
+    userId: Long,
+    rootCertificateId: Long,
+    signedCertificate: Array[Byte],
+    publicKeyHash: String
+  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
+    val timeNow = ZonedDateTime.now()
+    super.create(MNode(
+      id = Some(id),
+      userId = userId,
+      state = NodeState.Initialize,
+      token = random.alphanumeric.take(96).mkString,
+      rootCertificateId = rootCertificateId,
+      signedCertificate = signedCertificate,
+      publicKeyHash = publicKeyHash,
+      createdAt = timeNow,
+      updatedAt = timeNow
+    ))
   }
 
   // def createByRequest(kind: DictionaryKind.DictionaryKind, req: request.DictionaryItemRequest)(

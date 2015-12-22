@@ -12,11 +12,12 @@ object NodeState extends Enumeration {
 
 case class Node(
   id: Option[Long] = None,
+  userId: Long,
   state: NodeState.NodeState,
   token: String, // security token specific for node
   rootCertificateId: Long,
   signedCertificate: Array[Byte],
-  publicKeySha256: String,
+  publicKeyHash: String,
   createdAt: ZonedDateTime,
   updatedAt: ZonedDateTime
 ) extends ModelWithAutoLongPk {

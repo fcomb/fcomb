@@ -3,12 +3,13 @@ package io.fcomb.persist
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models
-import io.fcomb.validations.ValidationResultUnit
 import scalaz._, Scalaz._
 import scala.concurrent.{ExecutionContext, Future}
 import java.time.ZonedDateTime
 
-class UserCertificateTable(tag: Tag) extends Table[models.UserCertificate](tag, "user_certificates") {
+class UserCertificateTable(tag: Tag) extends Table[models.UserCertificate](tag, "user_certificates")
+    with PersistTableWithAutoLongPk {
+
   def userId = column[Long]("user_id")
   def kind = column[models.CertificateKind.CertificateKind]("kind")
   def certificate = column[Array[Byte]]("certificate")
@@ -17,11 +18,11 @@ class UserCertificateTable(tag: Tag) extends Table[models.UserCertificate](tag, 
   def updatedAt = column[ZonedDateTime]("updated_at")
 
   def * =
-    (userId, kind, certificate, key, createdAt, updatedAt) <>
+    (id, userId, kind, certificate, key, createdAt, updatedAt) <>
       ((models.UserCertificate.apply _).tupled, models.UserCertificate.unapply)
 }
 
-object UserCertificate extends PersistModel[models.UserCertificate, UserCertificateTable] {
+object UserCertificate extends PersistModelWithAutoLongPk[models.UserCertificate, UserCertificateTable] {
   val table = TableQuery[UserCertificateTable]
 
   def createRootAndClient(
@@ -32,27 +33,26 @@ object UserCertificate extends PersistModel[models.UserCertificate, UserCertific
     clientKey:         Array[Byte]
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = ZonedDateTime.now()
-    val certs = Seq(
-      models.UserCertificate(
-        userId = userId,
-        kind = models.CertificateKind.Root,
-        certificate = rootCertificate,
-        key = rootKey,
-        createdAt = timeAt,
-        updatedAt = timeAt
-      ),
-      models.UserCertificate(
-        userId = userId,
-        kind = models.CertificateKind.Client,
-        certificate = clientCertificate,
-        key = clientKey,
-        createdAt = timeAt,
-        updatedAt = timeAt
-      )
+    val rootCert = models.UserCertificate(
+      userId = userId,
+      kind = models.CertificateKind.Root,
+      certificate = rootCertificate,
+      key = rootKey,
+      createdAt = timeAt,
+      updatedAt = timeAt
     )
-    runInTransaction(createDBIO(certs).map { _ ⇒
-      certs.head.success // root cert
-    })
+    val clientCert = models.UserCertificate(
+      userId = userId,
+      kind = models.CertificateKind.Client,
+      certificate = clientCertificate,
+      key = clientKey,
+      createdAt = timeAt,
+      updatedAt = timeAt
+    )
+    runInTransaction(for {
+      root ← createDBIO(rootCert)
+      client ← createDBIO(clientCert)
+    } yield root.success)
   }
 
   private val findRootCertByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
