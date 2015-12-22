@@ -90,7 +90,7 @@ object StdStreamFrame {
   }
 
   def codec(maximumFrameLength: Int) =
-    BidiFlow.fromGraph(FlowGraph.create() { b =>
+    BidiFlow.fromGraph(GraphDSL.create() { b =>
       val outbound = b.add(Flow[ByteString])
       val inbound = b.add(Flow[ByteString]
         .transform(() ⇒ new FromBytesStage(maximumFrameLength)))

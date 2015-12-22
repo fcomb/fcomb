@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, C
 import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Source, Sink}
+import akka.stream.scaladsl.{Source, Sink, FileIO}
 import akka.util.ByteString
 import io.fcomb.json._
 import io.fcomb.json.errors._
@@ -152,7 +152,7 @@ object ServiceRoute {
   ): Route = { rCtx: RequestContext ⇒
     val ctx = new ServiceContext {
       val requestContext = rCtx
-      val requestContentType = rCtx.request.entity.contentType()
+      val requestContentType = rCtx.request.entity.contentType
     }
     serviceResultToRoute(rCtx, method(ctx))
   }
@@ -597,7 +597,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       val filename = s"/tmp/file_${prefix}$extension"
       val file = new File(filename)
       file.deleteOnExit()
-      part.entity.dataBytes.runWith(Sink.file(file))
-        .map(_ ⇒ f(file, part.filename, part.entity.contentType()))
+      part.entity.dataBytes.runWith(FileIO.toFile(file))
+        .map(_ ⇒ f(file, part.filename, part.entity.contentType))
     }
 }

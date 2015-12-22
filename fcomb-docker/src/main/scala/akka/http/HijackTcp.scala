@@ -49,8 +49,8 @@ object HijackTcp {
     logger.debug(s"Hijack request: ${renderedInitialRequest.utf8String}")
 
     val g =
-      BidiFlow.fromGraph(FlowGraph.create(httpResponseFlow) { implicit b => responseFlow =>
-        import FlowGraph.Implicits._
+      BidiFlow.fromGraph(GraphDSL.create(httpResponseFlow) { implicit b => responseFlow =>
+        import GraphDSL.Implicits._
 
         val networkIn = b.add(Flow[ByteString].transform(() ⇒
           new HijackStage(request, httpResponseResult, valve, settings)))
@@ -59,7 +59,7 @@ object HijackTcp {
         val mergeOut = b.add(Concat[ByteString](3))
         val requestSource = b.add(Source.single(renderedInitialRequest) ++ valve.source)
 
-        val httpResponseSource = b.add(Source(httpResponseResult.future))
+        val httpResponseSource = b.add(Source.fromFuture(httpResponseResult.future))
 
         requestSource ~> mergeOut.in(0)
         mergeOut.out ~> streamIn
@@ -68,7 +68,7 @@ object HijackTcp {
         BidiShape(
           mergeOut.in(1),
           streamIn.outlet,
-          networkIn.inlet,
+          networkIn.in,
           networkIn.outlet
         )
       })
