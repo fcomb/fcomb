@@ -90,7 +90,7 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
   ) = db.run {
     findByIdAsAgentCompiled(id).result.headOption.map {
       case Some((nodeToken, state, signedCert, createdAt, updatedAt, rootCert)) ⇒
-        if (StringUtils.secureEqual(token, nodeToken))
+        if (StringUtils.equalSecure(token, nodeToken))
           Some(response.AgentNodeResponse(
             state = state,
             rootCertificate = toPemAsCertificate(rootCert),

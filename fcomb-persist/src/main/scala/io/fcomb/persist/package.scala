@@ -41,6 +41,9 @@ package object persist {
   implicit val tokenStateColumnType =
     createEnumJdbcType("token_state", models.TokenState)
 
+  implicit val applicationStateColumnType =
+    createEnumJdbcType("application_state",  models.application.ApplicationState)
+
   import io.fcomb.RichPostgresDriver.api._
 
   implicit val localDateTimeType =

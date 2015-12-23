@@ -15,7 +15,7 @@ object StringUtils {
   def normalizeEmail(email: String) =
     email.trim.toLowerCase
 
-  def secureEqual(s1: String, s2: String) = {
+  def equalSecure(s1: String, s2: String) = {
     if (s1.length != s2.length) false
     else {
       val res = s1.zip(s2).foldLeft(0) {
