@@ -74,12 +74,14 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
 
   def unapply2(a: MApplication) = {
     val ports = a.deployOptions.ports.toJson
+    val deployOptionsTuple =
+      DockerDeployOptions.unapply(a.deployOptions)
+        .get
+        .copy(_1 = ports)
     Some((
       a.id, a.userId, a.state, a.name, a.createdAt, a.updatedAt,
       DockerImage.unapply(a.image).get,
-      DockerDeployOptions.unapply(a.deployOptions)
-      .get
-      .copy(_1 = ports)
+      deployOptionsTuple
     ))
   }
 }
@@ -87,43 +89,52 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
 object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationTable] {
   val table = TableQuery[ApplicationTable]
 
-  // def create(
-  //   id:                Long,
-  //   userId:            Long,
-  //   rootCertificateId: Long,
-  //   signedCertificate: Array[Byte],
-  //   publicKeyHash:     String
-  // )(implicit ec: ExecutionContext): Future[ValidationModel] = {
-  //   val timeNow = ZonedDateTime.now()
-  //   super.create(MNode(
-  //     id = Some(id),
-  //     userId = userId,
-  //     state = NodeState.Initializing,
-  //     token = Random.random.alphanumeric.take(128).mkString,
-  //     rootCertificateId = rootCertificateId,
-  //     signedCertificate = signedCertificate,
-  //     publicKeyHash = publicKeyHash,
-  //     createdAt = timeNow,
-  //     updatedAt = timeNow
+  def createByRequest(
+    userId: Long,
+    req:    request.ApplicationRequest
+  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
+    val timeNow = ZonedDateTime.now()
+    create(MApplication(
+      userId = userId,
+      state = ApplicationState.Initializing,
+      name = req.name,
+      image = req.image,
+      deployOptions = req.deployOptions,
+      createdAt = timeNow,
+      updatedAt = timeNow
+    ))
+  }
+
+  // def updateByRequest(id: Long, req: request.ApplicationRequest)(
+  //   implicit
+  //   ec: ExecutionContext
+  // ): Future[ValidationModel] =
+  //   update(id)(_.copy(
+  //     name = req.name,
+  //     image = req.image,
+  //     deployOptions = req.deployOptions,
+  //     updatedAt = ZonedDateTime.now()
   //   ))
-  // }
 
-  // private val uniqueTitleCompiled = Compiled {
-  //   (id: Rep[Option[Long]], kind: Rep[DictionaryKind.DictionaryKind], title: Rep[String]) ⇒
-  //     notCurrentPkFilter(id).filter { q ⇒
-  //       q.kind === kind && q.title.toLowerCase === title.toLowerCase
-  //     }.exists
-  // }
+  private val uniqueNameCompiled = Compiled {
+    (id: Rep[Option[Long]], userId: Rep[Long], name: Rep[String]) ⇒
+      notCurrentPkFilter(id).filter { q ⇒
+        q.userId === userId && q.name.toLowerCase === name.toLowerCase
+      }.exists
+  }
 
-  // import Validations._
+  import Validations._
 
-  // override def validate(d: models.DictionaryItem)(implicit ec: ExecutionContext): ValidationDBIOResult = {
-  //   val plainValidations = validatePlain(
-  //     "title" → List(lengthRange(d.title, 1, 255))
-  //   )
-  //   val dbioValidations = validateDBIO(
-  //     "title" → List(unique(uniqueTitleCompiled(d.id, d.kind, d.title)))
-  //   )
-  //   validate(plainValidations, dbioValidations)
-  // }
+  override def validate(a: MApplication)(
+    implicit
+    ec: ExecutionContext
+  ): ValidationDBIOResult = {
+    val plainValidations = validatePlain(
+      "name" → List(lengthRange(a.name, 1, 255))
+    )
+    val dbioValidations = validateDBIO(
+      "name" → List(unique(uniqueNameCompiled(a.id, a.userId, a.name)))
+    )
+    validate(plainValidations, dbioValidations)
+  }
 }

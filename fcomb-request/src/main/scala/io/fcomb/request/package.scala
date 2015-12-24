@@ -6,14 +6,14 @@ package object request {
   trait ServiceModelRequest extends models.ServiceModel
 
   case class UserSignUpRequest(
-    email: String,
+    email:    String,
     password: String,
     username: String,
     fullName: Option[String]
   ) extends ServiceModelRequest
 
   case class UserRequest(
-    email: String,
+    email:    String,
     username: String,
     fullName: Option[String]
   ) extends ServiceModelRequest
@@ -23,7 +23,7 @@ package object request {
   ) extends ServiceModelRequest
 
   case class ResetPasswordSetRequest(
-    token: String,
+    token:    String,
     password: String
   ) extends ServiceModelRequest
 
@@ -44,12 +44,18 @@ package object request {
   // ) extends ServiceModelRequest
 
   case class SessionRequest(
-    email: String,
+    email:    String,
     password: String
   ) extends ServiceModelRequest
 
   // TODO: signed datetime with private key with HMAC?
   case class NodeJoinRequest(
     certificationRequest: String
+  ) extends ServiceModelRequest
+
+  case class ApplicationRequest(
+    name:          String,
+    image:         models.application.DockerImage,
+    deployOptions: models.application.DockerDeployOptions
   ) extends ServiceModelRequest
 }

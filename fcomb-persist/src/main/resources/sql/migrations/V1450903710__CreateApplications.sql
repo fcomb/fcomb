@@ -24,3 +24,5 @@ CREATE TABLE applications (
   ddo_cpu_shares bigint,
   PRIMARY KEY (id)
 );
+
+CREATE UNIQUE INDEX ON applications (user_id, lower(name));

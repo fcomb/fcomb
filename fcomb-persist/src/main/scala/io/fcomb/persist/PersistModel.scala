@@ -117,18 +117,16 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   )(
     implicit
     ec: ExecutionContext
-  ): ValidationResult[R] = q match {
-    case 1 ⇒ res.success
-    case _ ⇒ error
-  }
+  ): ValidationResult[R] =
+    if (q == 0) error
+    else res.success
 
   def strictDestroyDBIO(q: Int, error: ValidationResultUnit)(
     implicit
     ec: ExecutionContext
-  ): ValidationResultUnit = q match {
-    case 0 ⇒ error
-    case _ ⇒ ().success
-  }
+  ): ValidationResultUnit =
+    if (q == 0) error
+    else ().success
 }
 
 trait PersistTableWithPk[T] { this: Table[_] ⇒
