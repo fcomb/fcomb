@@ -116,6 +116,23 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
   //     updatedAt = ZonedDateTime.now()
   //   ))
 
+  private val findAllByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
+    table.filter(_.userId === userId)
+  }
+
+  def findAllByUserId(userId: Long) =
+    db.run(findAllByUserIdCompiled(userId).result)
+
+  private val findByIdAndUserIdCompiled = Compiled {
+    (id: Rep[Long], userId: Rep[Long]) ⇒
+      table.filter { q ⇒
+        q.id === id && q.userId === userId
+      }
+  }
+
+  def findByIdAndUserId(id: Long, userId: Long) =
+    db.run(findByIdAndUserIdCompiled(id, userId).result.headOption)
+
   private val uniqueNameCompiled = Compiled {
     (id: Rep[Option[Long]], userId: Rep[Long], name: Rep[String]) ⇒
       notCurrentPkFilter(id).filter { q ⇒

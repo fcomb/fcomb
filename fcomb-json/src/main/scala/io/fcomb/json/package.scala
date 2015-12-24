@@ -159,6 +159,21 @@ package object json {
   implicit val dockerDeployPortJsonProtocol =
     jsonFormat5(DockerDeployPort)
 
+  implicit val dockerImageJsonProtocol =
+    jsonFormat3(DockerImage)
+
+  implicit val dockerDeployOptionsJsonProtocol =
+    jsonFormat8(DockerDeployOptions)
+
+  implicit val applicationRequestJsonProtocol =
+    jsonFormat3(ApplicationRequest)
+
+  implicit val applicationStateJsonProtocol =
+    createStringEnumJsonFormat(ApplicationState)
+
+  implicit val applicationJsonProtocol =
+    jsonFormat8(Application)
+
   implicit val userTokenJsonProtocol = jsonFormat6(UserToken)
 
   object errors {
