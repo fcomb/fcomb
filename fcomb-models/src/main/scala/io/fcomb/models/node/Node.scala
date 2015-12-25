@@ -8,6 +8,11 @@ object NodeState extends Enumeration {
 
   val Initializing = Value("initializing")
   val Available = Value("available")
+  val Unreachable = Value("unreachable")
+  val Upgrading = Value("upgrading")
+  val Terminating = Value("terminating")
+  val Terminated = Value("terminated")
+  val Deleted = Value("deleted")
 }
 
 case class Node(

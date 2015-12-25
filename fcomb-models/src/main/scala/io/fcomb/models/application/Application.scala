@@ -7,12 +7,16 @@ object ApplicationState extends Enumeration {
   type ApplicationState = Value
 
   val Initializing = Value("initializing")
+  val Starting = Value("starting")
   val Running = Value("running")
+  val PartlyRunning = Value("partly_running")
   val Stopping = Value("stopping")
   val Stopped = Value("stopped")
-  val Pausing = Value("pausing")
-  val Paused = Value("paused")
-  val Destroying = Value("destroying")
+  val Deploying = Value("deploying")
+  val Scaling = Value("scaling")
+  val Terminating = Value("terminating")
+  val Terminated = Value("terminated")
+  val Deleted = Value("deleted")
 }
 
 @SerialVersionUID(1L)

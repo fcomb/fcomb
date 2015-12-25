@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
   object V {
     val akka = "2.4.1"
-    val akkaExperimental = "2.0"
+    val akkaExperimental = "2.0.1"
     val bouncyCastle = "1.53"
     val cats = "0.3.0"
     val circle = "0.1.1"

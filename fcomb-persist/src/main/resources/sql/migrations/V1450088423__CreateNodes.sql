@@ -1,4 +1,5 @@
-CREATE TYPE node_state AS ENUM ('initializing', 'available');
+CREATE TYPE node_state AS ENUM ('initializing', 'available', 'unreachable', 'upgrading',
+  'terminating', 'terminated', 'deleted');
 
 CREATE TABLE nodes (
   id serial NOT NULL,

@@ -1,4 +1,6 @@
-CREATE TYPE application_state AS ENUM ('initializing', 'running', 'stopping', 'stopped', 'pausing', 'paused', 'destroying');
+CREATE TYPE application_state AS ENUM ('initializing', 'starting', 'running',
+  'partly_running', 'stopping', 'stopped', 'deploying', 'scaling', 'terminating',
+  'terminated', 'deleted');
 
 CREATE TABLE applications (
   id serial NOT NULL,
