@@ -8,11 +8,10 @@ object Dependencies {
     val cats = "0.3.0"
     val circle = "0.1.1"
     // val doobie = "0.2.3"
-    val slick = "3.1.0"
+    val slick = "3.1.1"
     val slickPg = "0.10.2"
     val scalaz = "7.2.0"
-    val scalikeJdbc = "2.2.8"
-    val quill = "0.1.0"
+    val quill = "0.2.0"
     val kamon = "0.5.2"
   }
 
@@ -67,23 +66,15 @@ object Dependencies {
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
     val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
 
-    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1206-jdbc42" exclude("org.slf4j", "slf4j-simple")
+    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4.1207.jre7" exclude("org.slf4j", "slf4j-simple")
     val quillJdbc       = "io.getquill"                   %% "quill-jdbc"                    % V.quill
     val quillAsync      = "io.getquill"                   %% "quill-async"                   % V.quill
-    // val doobieCore      = "org.tpolecat"                  %% "doobie-core"                   % V.doobie
-    // val doobiePostgres  = "org.tpolecat"                  %% "doobie-contrib-postgresql"     % V.doobie
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
     val slickHikariCp   = "com.typesafe.slick"            %% "slick-hikaricp"                % V.slick exclude("com.zaxxer", "HikariCP-java6")
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg exclude("org.postgresql", "postgresql")
     val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % V.slickPg
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.7"
-    // val slickless       = "io.underscore"                 %% "slickless"                     % "0.1.1"
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.1"
-    // val relate          = "com.lucidchart"                %% "relate"                        % "1.7.1"
-    // val scalikeJdbc     = "org.scalikejdbc"               %% "scalikejdbc"                   % V.scalikeJdbc
-    // val scalikeJdbcMacros = "org.scalikejdbc"             %% "scalikejdbc-syntax-support-macro" % V.scalikeJdbc
-    // val scalikeJdbcAsync = "org.scalikejdbc"              %% "scalikejdbc-async"             % "0.5.5"
-    // val postgresAsync    = "com.github.mauricio"          %% "postgresql-async"              % "0.2.15"
 
     // val phantom         = "com.websudos"                  %% "phantom-dsl"                   % V.phantom
     // val phantomUdt      = "com.websudos"                  %% "phantom-udt"                   % V.phantom
