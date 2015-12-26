@@ -12,7 +12,6 @@ object NodeState extends Enumeration {
   val Upgrading = Value("upgrading")
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
-  val Deleted = Value("deleted")
 }
 
 case class Node(

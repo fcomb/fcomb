@@ -16,7 +16,6 @@ object ApplicationState extends Enumeration {
   val Scaling = Value("scaling")
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
-  val Deleted = Value("deleted")
 }
 
 @SerialVersionUID(1L)

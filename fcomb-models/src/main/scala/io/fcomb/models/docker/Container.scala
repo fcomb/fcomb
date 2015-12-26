@@ -13,7 +13,6 @@ object ContainerState extends Enumeration {
   val Stopped = Value("stopped")
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
-  val Deleted = Value("deleted")
 }
 
 sealed trait Container {
