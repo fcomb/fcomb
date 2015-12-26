@@ -20,6 +20,7 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
   def name = column[String]("name")
   def createdAt = column[ZonedDateTime]("created_at")
   def updatedAt = column[ZonedDateTime]("updated_at")
+  def terminatedAt = column[Option[ZonedDateTime]]("terminated_at")
 
   // docker image columns
   def diName = column[String]("di_name")
@@ -37,7 +38,7 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
   def ddoCpuShares = column[Option[Long]]("ddo_cpu_shares")
 
   def * =
-    (id, userId, state, name, createdAt, updatedAt,
+    (id, userId, state, name, createdAt, updatedAt, terminatedAt,
       // docker image tuple
       (diName, diTag, diRegistry),
       // docker deploy options tuple
@@ -46,14 +47,15 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
         ((apply2 _).tupled, unapply2)
 
   def apply2(
-    id:        Option[Long]                                                                                     = None,
-    userId:    Long,
-    state:     ApplicationState.ApplicationState,
-    name:      String,
-    createdAt: ZonedDateTime,
-    updatedAt: ZonedDateTime,
-    diTuple:   (String, Option[String], Option[String]),
-    ddoTuple:  (JsValue, Boolean, Boolean, Boolean, Option[String], Option[String], Option[Long], Option[Long])
+    id:           Option[Long]                                                                                     = None,
+    userId:       Long,
+    state:        ApplicationState.ApplicationState,
+    name:         String,
+    createdAt:    ZonedDateTime,
+    updatedAt:    ZonedDateTime,
+    terminatedAt: Option[ZonedDateTime],
+    diTuple:      (String, Option[String], Option[String]),
+    ddoTuple:     (JsValue, Boolean, Boolean, Boolean, Option[String], Option[String], Option[Long], Option[Long])
   ) = {
     val image = DockerImage.tupled(diTuple)
     val ports = ddoTuple._1.convertTo[Set[DockerDeployPort]] // TODO: handle serialize errors and case class changes
@@ -68,7 +70,8 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
       image = image,
       deployOptions = deployOptions,
       createdAt = createdAt,
-      updatedAt = updatedAt
+      updatedAt = updatedAt,
+      terminatedAt = terminatedAt
     )
   }
 
@@ -79,7 +82,7 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
         .get
         .copy(_1 = ports)
     Some((
-      a.id, a.userId, a.state, a.name, a.createdAt, a.updatedAt,
+      a.id, a.userId, a.state, a.name, a.createdAt, a.updatedAt, a.terminatedAt,
       DockerImage.unapply(a.image).get,
       deployOptionsTuple
     ))

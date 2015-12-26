@@ -27,7 +27,8 @@ case class Application(
     image:         DockerImage,
     deployOptions: DockerDeployOptions,
     createdAt:     ZonedDateTime,
-    updatedAt:     ZonedDateTime
+    updatedAt:     ZonedDateTime,
+    terminatedAt:  Option[ZonedDateTime]             = None
 ) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 }
@@ -55,10 +56,10 @@ object NetworkPort extends Enumeration {
 }
 
 case class DockerDeployPort(
-  port: Int,
-  protocol: NetworkPort.NetworkPort,
-  isPublished: Boolean,
-  bindPort: Option[Int],
+  port:          Int,
+  protocol:      NetworkPort.NetworkPort,
+  isPublished:   Boolean,
+  bindPort:      Option[Int],
   bindInterface: Option[String]
 )
 

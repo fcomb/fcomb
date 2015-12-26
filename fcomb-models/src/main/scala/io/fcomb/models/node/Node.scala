@@ -15,7 +15,7 @@ object NodeState extends Enumeration {
 }
 
 case class Node(
-    id:                Option[Long]        = None,
+    id:                Option[Long]          = None,
     userId:            Long,
     state:             NodeState.NodeState,
     token:             String, // security token specific for node
@@ -23,7 +23,8 @@ case class Node(
     signedCertificate: Array[Byte],
     publicKeyHash:     String,
     createdAt:         ZonedDateTime,
-    updatedAt:         ZonedDateTime
+    updatedAt:         ZonedDateTime,
+    terminatedAt:      Option[ZonedDateTime] = None
 ) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 }

@@ -23,16 +23,18 @@ sealed trait Container {
   val nodeId: Long
   val name: String
   val createdAt: ZonedDateTime
+  val terminatedAt: Option[ZonedDateTime]
 }
 
 case class DockerContainer(
-  id: Option[Long] = None,
-  state: ContainerState.ContainerState,
-  userId: Long,
-  applicationId: Long,
-  nodeId: Long,
-  name: String,
-  createdAt: ZonedDateTime
+    id:            Option[Long]                  = None,
+    state:         ContainerState.ContainerState,
+    userId:        Long,
+    applicationId: Long,
+    nodeId:        Long,
+    name:          String,
+    createdAt:     ZonedDateTime,
+    terminatedAt:  Option[ZonedDateTime]         = None
 ) extends Container with ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 }

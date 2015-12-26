@@ -172,7 +172,7 @@ package object json {
     createStringEnumJsonFormat(ApplicationState)
 
   implicit val applicationJsonProtocol =
-    jsonFormat8(Application)
+    jsonFormat9(Application)
 
   implicit val userTokenJsonProtocol = jsonFormat6(UserToken)
 
