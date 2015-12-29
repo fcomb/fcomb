@@ -23,10 +23,13 @@ case class Node(
     rootCertificateId: Long,
     signedCertificate: Array[Byte],
     publicKeyHash:     String,
-    publicIpAddress:   Option[InetAddress]   = None,
+    publicIpAddress:   Option[String]        = None,
     createdAt:         ZonedDateTime,
     updatedAt:         ZonedDateTime,
     terminatedAt:      Option[ZonedDateTime] = None
 ) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
+
+  def publicIpInetAddress() =
+    publicIpAddress.map(InetAddress.getByName)
 }

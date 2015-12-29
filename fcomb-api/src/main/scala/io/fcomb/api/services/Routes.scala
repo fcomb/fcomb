@@ -58,6 +58,11 @@ object Routes {
           pathPrefix(LongNumber) { nodeId =>
             pathEndOrSingleSlash {
               get(agent.NodeService.show(nodeId))
+            } ~
+            pathPrefix("register") {
+              pathEndOrSingleSlash {
+                post(agent.NodeService.register(nodeId))
+              }
             }
           } ~
           pathPrefix("join") {

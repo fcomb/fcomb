@@ -1,18 +1,18 @@
 package io.fcomb.api.services.agent
 
-import io.fcomb.api.services.Service
+import io.fcomb.api.services._
 import io.fcomb.json._
 import io.fcomb.request._
-import io.fcomb.response._
 import io.fcomb.persist.node.{Node ⇒ PNode}
 import io.fcomb.models.errors.ExpectedAuthorizationToken
 import io.fcomb.models.TokenRole
+import io.fcomb.models.node.{Node ⇒ MNode}
 import io.fcomb.services.node.NodeManager
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scalaz._
 
 object NodeService extends Service {
@@ -51,5 +51,35 @@ object NodeService extends Service {
         case None ⇒
           complete(mapAccessException(ExpectedAuthorizationToken))
       }
+    }
+
+  def register(id: Long)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) =
+    action { implicit ctx ⇒
+      authorizeNode(id) { node =>
+        extractClientIp { ipAddress ⇒
+          completeWithoutContent()
+        }
+      }
+    }
+
+  private def authorizeNode(id: Long)(
+    f: MNode ⇒ ServiceResult
+  )(
+    implicit
+    ctx: ServiceContext,
+    ec:  ExecutionContext
+  ) =
+    getAuthToken("token") match {
+      case Some(token) ⇒
+        complete(PNode.findByIdAndToken(id, token).map {
+          case Some(node) ⇒ f(node)
+          case None       ⇒ completeNotFound()
+        })
+      case None ⇒
+        complete(mapAccessException(ExpectedAuthorizationToken))
     }
 }

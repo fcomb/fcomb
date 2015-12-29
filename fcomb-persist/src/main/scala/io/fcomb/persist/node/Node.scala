@@ -24,7 +24,7 @@ class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWi
   def rootCertificateId = column[Long]("root_certificate_id")
   def signedCertificate = column[Array[Byte]]("signed_certificate")
   def publicKeyHash = column[String]("public_key_hash")
-  def publicIpAddress = column[Option[InetAddress]]("public_ip_address")
+  def publicIpAddress = column[Option[String]]("public_ip_address")
   def createdAt = column[ZonedDateTime]("created_at")
   def updatedAt = column[ZonedDateTime]("updated_at")
   def terminatedAt = column[Option[ZonedDateTime]]("terminated_at")
@@ -101,6 +101,18 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
             createdAt = createdAt,
             updatedAt = updatedAt
           ))
+        else None
+      case None ⇒ None
+    }
+  }
+
+  def findByIdAndToken(id: Long, token: String)(
+    implicit
+    ec: ExecutionContext
+  ) = db.run {
+    findByPkCompiled(id).result.headOption.map {
+      case Some(node) ⇒
+        if (StringUtils.equalSecure(token, node.token)) Some(node)
         else None
       case None ⇒ None
     }

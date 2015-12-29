@@ -11,7 +11,7 @@ object Dependencies {
     val slick = "3.1.1"
     val slickPg = "0.10.2"
     val scalaz = "7.2.0"
-    val quill = "0.2.0"
+    val quill = "0.2.1"
     val kamon = "0.5.2"
   }
 

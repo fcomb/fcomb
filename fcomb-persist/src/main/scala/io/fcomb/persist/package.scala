@@ -2,7 +2,7 @@ package io.fcomb
 
 import io.fcomb.RichPostgresDriver._
 import java.util.UUID
-import java.sql.{ ResultSet, Array => SArray, Timestamp }
+import java.sql.{ResultSet, Array ⇒ SArray, Timestamp}
 import java.time.{LocalDateTime, ZonedDateTime, ZoneId}
 import java.net.InetAddress
 import slick.jdbc.GetResult
@@ -22,29 +22,26 @@ package object persist {
     createEnumJdbcType("token_state", models.TokenState)
 
   implicit val applicationStateColumnType =
-    createEnumJdbcType("application_state",  models.application.ApplicationState)
+    createEnumJdbcType("application_state", models.application.ApplicationState)
 
   implicit val containerStateColumnType =
-    createEnumJdbcType("container_state",  models.docker.ContainerState)
+    createEnumJdbcType("container_state", models.docker.ContainerState)
 
   import io.fcomb.RichPostgresDriver.api._
-
-  implicit val inetAddressType =
-    MappedColumnType.base[InetAddress, String](_.toString, InetAddress.getByName)
 
   implicit val localDateTimeType =
     MappedColumnType.base[LocalDateTime, Timestamp](Timestamp.valueOf, _.toLocalDateTime)
 
   implicit val zonedDateTimeType =
     MappedColumnType.base[ZonedDateTime, Timestamp](
-      d => Timestamp.valueOf(d.toLocalDateTime),
+      d ⇒ Timestamp.valueOf(d.toLocalDateTime),
       _.toLocalDateTime.atZone(ZoneId.systemDefault())
     )
 
-  implicit val uuidResult = GetResult(r => UUID.fromString(r.<<))
+  implicit val uuidResult = GetResult(r ⇒ UUID.fromString(r.<<))
 
   implicit def listResult[T]: GetResult[List[T]] =
-    GetResult { r =>
+    GetResult { r ⇒
       Option(r.rs.getArray(r.skip.currentPos))
         .map(_.getArray
           .asInstanceOf[Array[T]]
@@ -53,7 +50,7 @@ package object persist {
         .getOrElse(List.empty)
     }
 
-  implicit def mapResult: GetResult[Map[String, String]] = GetResult(r => {
+  implicit def mapResult: GetResult[Map[String, String]] = GetResult(r ⇒ {
     r.rs.getObject(r.skip.currentPos)
       .asInstanceOf[java.util.Map[String, String]]
       .toMap

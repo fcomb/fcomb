@@ -496,7 +496,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     (authHeader, authParameter) match {
       case (Some(token), _) ⇒
         val s = token.value.split(' ')
-        if (s.head.toLowerCase == schema) Some(s.last)
+        if (s.head.toLowerCase == schema) Some(s.last.take(256)) // restrict token length
         else None
       case (_, token @ Some(_)) ⇒ token
       case _                    ⇒ None
