@@ -1,5 +1,7 @@
-package io.fcomb.services
+package io.fcomb.services.node
 
+import io.fcomb.services.Exceptions._
+import io.fcomb.services.UserCertificateProcessor
 import io.fcomb.models.node.{Node ⇒ MNode}
 import io.fcomb.utils.{Config, Implicits}
 import io.fcomb.crypto.Certificate
@@ -61,7 +63,7 @@ object NodeJoinProcessor {
         val hash = PNode.getPublicKeyHash(req.getSubjectPublicKeyInfo())
         ask(ref, EntityEnvelope(hash, JoinNode(userId, req)))
           .mapTo[MNode]
-      case None ⇒ Future.failed(EmptyActorRef)
+      case None ⇒ Future.failed(EmptyActorRefException)
     }
   }
 }

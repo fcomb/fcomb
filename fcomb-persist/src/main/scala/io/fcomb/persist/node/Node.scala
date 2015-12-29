@@ -14,6 +14,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import java.time.ZonedDateTime
 import java.security.PublicKey
 import java.util.{Base64, UUID}
+import java.net.InetAddress
 import java.io.StringWriter
 
 class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWithAutoLongPk {
@@ -23,13 +24,14 @@ class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWi
   def rootCertificateId = column[Long]("root_certificate_id")
   def signedCertificate = column[Array[Byte]]("signed_certificate")
   def publicKeyHash = column[String]("public_key_hash")
+  def publicIpAddress = column[Option[InetAddress]]("public_ip_address")
   def createdAt = column[ZonedDateTime]("created_at")
   def updatedAt = column[ZonedDateTime]("updated_at")
   def terminatedAt = column[Option[ZonedDateTime]]("terminated_at")
 
   def * =
     (id, userId, state, token, rootCertificateId, signedCertificate,
-      publicKeyHash, createdAt, updatedAt, terminatedAt) <>
+      publicKeyHash, publicIpAddress, createdAt, updatedAt, terminatedAt) <>
       ((MNode.apply _).tupled, MNode.unapply)
 }
 

@@ -2,6 +2,7 @@ package io.fcomb.models.node
 
 import io.fcomb.models.ModelWithAutoLongPk
 import java.time.ZonedDateTime
+import java.net.InetAddress
 
 object NodeState extends Enumeration {
   type NodeState = Value
@@ -22,6 +23,7 @@ case class Node(
     rootCertificateId: Long,
     signedCertificate: Array[Byte],
     publicKeyHash:     String,
+    publicIpAddress:   Option[InetAddress]   = None,
     createdAt:         ZonedDateTime,
     updatedAt:         ZonedDateTime,
     terminatedAt:      Option[ZonedDateTime] = None

@@ -38,10 +38,10 @@ object Build extends sbt.Build {
 
   val javaRunOptions = Seq(
     "-server",
-    "-Xms2g",
-    "-Xmx2g",
+    "-Xms4g",
+    "-Xmx4g",
     "-Xss6m",
-    "-XX:NewSize=512m",
+    "-XX:NewSize=1024m",
     "-XX:+UseNUMA",
     "-XX:+TieredCompilation",
     "-XX:+UseG1GC",

@@ -2,7 +2,7 @@ package io.fcomb.api.services
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, Location}
+import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, Location, `X-Forwarded-For`, `Remote-Address`}
 import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
@@ -22,6 +22,7 @@ import scalaz._
 import scalaz.Scalaz._
 import spray.json._
 import java.io.File
+import java.net.{InetAddress, UnknownHostException}
 
 sealed trait RequestBody[R] {
   val body: Option[R]
@@ -484,7 +485,8 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     complete(f.map(completeValidationWithoutContent))
 
   def getAuthToken(schema: String)(
-    implicit ctx: ServiceContext
+    implicit
+    ctx: ServiceContext
   ): Option[String] = {
     val r = ctx.requestContext.request
     val authHeader = r.headers.collectFirst {
@@ -602,4 +604,24 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       part.entity.dataBytes.runWith(FileIO.toFile(file))
         .map(_ ⇒ f(file, part.filename, part.entity.contentType))
     }
+
+  def extractClientIp(f: InetAddress ⇒ ServiceResult)(
+    implicit
+    ctx: ServiceContext,
+    mat: Materializer
+  ): ServiceResult = {
+    val ip: Option[Option[InetAddress]] =
+      ctx.requestContext.request.headers.collectFirst {
+        case `X-Forwarded-For`(Seq(address, _*)) ⇒ address.getAddress
+        case `Remote-Address`(address)           ⇒ address.getAddress
+        case h if h.is("x-real-ip") || h.is("cf-connecting-ip") ⇒
+          try Some(InetAddress.getByName(h.value))
+          catch { case _: UnknownHostException ⇒ None }
+      }
+    ip match {
+      case Some(Some(ip)) ⇒ f(ip)
+      case _ ⇒
+        completeError(CantExtractClientIpAddress)(StatusCodes.BadRequest)
+    }
+  }
 }

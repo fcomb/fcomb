@@ -1,4 +1,4 @@
-package io.fcomb.services
+package io.fcomb.services.node
 
 import io.fcomb.request.NodeJoinRequest
 import io.fcomb.models.node.{Node ⇒ MNode}
@@ -23,8 +23,8 @@ object NodeManager {
     } else Future.successful(unknownHeaderError)
   }
 
-  private val beginRequest = "-----BEGIN CERTIFICATE REQUEST-----\n"
-  private val beginNewRequest = "-----BEGIN NEW CERTIFICATE REQUEST-----\n"
+  private val beginRequest = "-----BEGIN CERTIFICATE REQUEST-----"
+  private val beginNewRequest = "-----BEGIN NEW CERTIFICATE REQUEST-----"
   private val unknownHeaderError = PNode.validationError(
     "certificationRequest",
     s"Unknown format: `$beginRequest` or `$beginNewRequest` prefix is not found"

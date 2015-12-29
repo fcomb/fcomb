@@ -204,10 +204,7 @@ object Dependencies {
     postgresJdbc,
     dbMigration,
     quillJdbc, quillAsync,
-    // doobieCore, doobiePostgres,
-    slick, slickHikariCp, slickPg, slickPgSprayJson, slickJdbc, // slickless,
-    // relate,
-    // scalikeJdbc, scalikeJdbcMacros, scalikeJdbcAsync, postgresAsync,
+    slick, slickHikariCp, slickPg, slickPgSprayJson, slickJdbc,
     // phantom, phantomUdt,
     hikariCp, bcrypt, commonsCodec,
     routeTrie

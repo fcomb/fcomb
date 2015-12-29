@@ -79,6 +79,13 @@ package object errors {
     )
   }
 
+  case object CantExtractClientIpAddress extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Can't extract client IP address",
+      ErrorKind.Request
+    )
+  }
+
   case class ValidationException(param: String, message: String) extends DtCemException {
     def toErrorMessage() = ErrorMessage(message, ErrorKind.Validation, Some(param))
   }

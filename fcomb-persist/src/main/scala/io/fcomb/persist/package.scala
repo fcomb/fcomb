@@ -1,34 +1,14 @@
 package io.fcomb
 
 import io.fcomb.RichPostgresDriver._
-// import scalikejdbc._
 import java.util.UUID
 import java.sql.{ ResultSet, Array => SArray, Timestamp }
 import java.time.{LocalDateTime, ZonedDateTime, ZoneId}
+import java.net.InetAddress
 import slick.jdbc.GetResult
 import scala.collection.JavaConversions._
 
 package object persist {
-  // implicit val dateTimeTypeBinder: TypeBinder[LocalDateTime] =
-  //   new TypeBinder[LocalDateTime] {
-  //     def apply(rs: ResultSet, label: String) =
-  //       LocalDateTime.parse(rs.getString(label))
-
-  //     def apply(rs: ResultSet, index: Int) =
-  //       LocalDateTime.parse(rs.getString(index))
-  //   }
-
-  // implicit val uuidLevelTypeBinder: TypeBinder[UUID] =
-  //   new TypeBinder[UUID] {
-  //     def apply(rs: ResultSet, label: String) =
-  //       UUID.fromString(rs.getString(label))
-
-  //     def apply(rs: ResultSet, index: Int) =
-  //       UUID.fromString(rs.getString(index))
-  //   }
-
-  // implicit val methodKindColumnType = createEnumJdbcType("method_kind", models.comb.MethodKind)
-
   implicit val certificateKindColumnType =
     createEnumJdbcType("certificate_kind", models.CertificateKind)
 
@@ -48,6 +28,9 @@ package object persist {
     createEnumJdbcType("container_state",  models.docker.ContainerState)
 
   import io.fcomb.RichPostgresDriver.api._
+
+  implicit val inetAddressType =
+    MappedColumnType.base[InetAddress, String](_.toString, InetAddress.getByName)
 
   implicit val localDateTimeType =
     MappedColumnType.base[LocalDateTime, Timestamp](Timestamp.valueOf, _.toLocalDateTime)

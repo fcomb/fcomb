@@ -7,7 +7,7 @@ import io.fcomb.response._
 import io.fcomb.persist.node.{Node ⇒ PNode}
 import io.fcomb.models.errors.ExpectedAuthorizationToken
 import io.fcomb.models.TokenRole
-import io.fcomb.services.NodeManager
+import io.fcomb.services.node.NodeManager
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes

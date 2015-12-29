@@ -4,7 +4,8 @@ import akka.actor.{ActorSystem, Address}
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.api.services.Routes
-import io.fcomb.services.{UserCertificateProcessor, NodeJoinProcessor}
+import io.fcomb.services.UserCertificateProcessor
+import io.fcomb.services.node.NodeJoinProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await

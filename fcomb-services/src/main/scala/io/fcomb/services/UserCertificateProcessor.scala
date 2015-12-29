@@ -1,5 +1,6 @@
 package io.fcomb.services
 
+import io.fcomb.services.Exceptions._
 import io.fcomb.models
 import io.fcomb.utils.{Config, Implicits}
 import io.fcomb.crypto.Certificate
@@ -20,8 +21,6 @@ import sun.security.pkcs10.PKCS10
 import sun.security.x509.{CertificateExtensions, X500Name, X509CertImpl}
 
 // TODO: add router and distribution by userId
-
-case object EmptyActorRef extends Throwable
 
 object UserCertificateProcessor {
   val extractEntityId: ShardRegion.ExtractEntityId = {
@@ -83,7 +82,7 @@ object UserCertificateProcessor {
       case Some(ref) ⇒
         val req = SignRequest(request, name, extOpt, expireAfterDays)
         ask(ref, EntityEnvelope(userId, req)).mapTo[SignedCertificate]
-      case None ⇒ Future.failed(EmptyActorRef)
+      case None ⇒ Future.failed(EmptyActorRefException)
     }
   }
 }
