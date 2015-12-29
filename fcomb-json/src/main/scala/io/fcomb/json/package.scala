@@ -134,7 +134,7 @@ package object json {
     createStringEnumJsonFormat(NodeState)
 
   implicit val agetnNodeResponseJsonProtocol =
-    jsonFormat5(AgentNodeResponse)
+    jsonFormat6(AgentNodeResponse)
 
   // implicit val combRequestJsonProtocol = jsonFormat2(CombRequest)
 

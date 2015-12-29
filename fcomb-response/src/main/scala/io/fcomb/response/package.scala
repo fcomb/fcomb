@@ -44,6 +44,7 @@ package object response {
   ) extends ServiceModelResponse
 
   case class AgentNodeResponse(
+    id:                Long,
     state:             NodeState.NodeState,
     rootCertificate:   String,
     signedCertificate: String,

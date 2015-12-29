@@ -95,6 +95,7 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
       case Some((nodeToken, state, signedCert, createdAt, updatedAt, rootCert)) ⇒
         if (StringUtils.equalSecure(token, nodeToken))
           Some(response.AgentNodeResponse(
+            id = id,
             state = state,
             rootCertificate = toPemAsCertificate(rootCert),
             signedCertificate = toPemAsCertificate(signedCert),
