@@ -610,19 +610,18 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     mat: Materializer
   ): ServiceResult = {
-    val ip: Option[Option[InetAddress]] =
-      ctx.requestContext.request.headers.collectFirst {
-        case `X-Forwarded-For`(Seq(address, _*)) ⇒ address.getAddress
-        case `Remote-Address`(address)           ⇒ address.getAddress
+      def g(pf: PartialFunction[HttpHeader, Option[InetAddress]]): Option[InetAddress] =
+        ctx.requestContext.request.headers.collectFirst(pf).flatMap(identity)
+
+    (g { case `X-Forwarded-For`(Seq(address, _*)) ⇒ address.getAddress })
+      .orElse(g { case `Remote-Address`(address) ⇒ address.getAddress })
+      .orElse(g {
         case h if h.is("x-real-ip") || h.is("cf-connecting-ip") ⇒
           try Some(InetAddress.getByName(h.value))
           catch { case _: UnknownHostException ⇒ None }
+      }) match {
+        case Some(ip) ⇒ f(ip)
+        case None     ⇒ completeError(CantExtractClientIpAddress)(StatusCodes.BadRequest)
       }
-    ip match {
-      case Some(Some(ip)) ⇒ f(ip)
-      case _ ⇒
-        // TODO: get ip from client request
-        completeError(CantExtractClientIpAddress)(StatusCodes.BadRequest)
-    }
   }
 }

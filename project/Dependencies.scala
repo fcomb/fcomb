@@ -33,6 +33,8 @@ object Dependencies {
     // val akkaPersistenceCassandra = "com.github.krasserm"  %% "akka-persistence-cassandra"    % "0.5-SNAPSHOT" changing()
     // val akkaKryo        = "com.github.romix.akka"         %% "akka-kryo-serialization"       % "0.3.3"
 
+    val atmos           = "io.zman"                       %% "atmos"                         % "2.1"
+
     val dns4s           = "com.github.mkroli"             %% "dns4s-akka"                    % "0.8"
 
     val akkaTracing     = "com.github.levkhomich"         %% "akka-tracing-core"             % "0.5-SNAPSHOT" changing()
@@ -163,9 +165,9 @@ object Dependencies {
     // circleCore, circleGeneric, circleJawn,
     scalazCore, scalazConcurrent, scalazStream,
     cats, catsState,
-    shapeless, shapelessScalaz /*,
-    jamm */
-    , objectsize
+    shapeless, shapelessScalaz,
+    atmos,
+    objectsize
   )
 
   val monitoring = Seq(
