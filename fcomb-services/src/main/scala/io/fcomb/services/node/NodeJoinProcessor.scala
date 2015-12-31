@@ -127,8 +127,10 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
     self ! Failed(e)
   }
 
-  def suicide() =
+  def suicide() = {
+    log.info("suicide!")
     context.parent ! Passivate(stopMessage = PoisonPill)
+  }
 
   def joinNode(userId: Long, req: PKCS10) =
     (for {

@@ -155,8 +155,10 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
     Initialize(cert, key, rootCert.getId)
   }
 
-  def suicide() =
+  def suicide() = {
+    log.info("suicide!")
     context.parent ! Passivate(stopMessage = PoisonPill)
+  }
 
   def generateAndPersistCertificates() = {
     val (rootCert, rootKey) =

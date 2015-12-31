@@ -3,7 +3,7 @@ package io.fcomb.services.node
 import io.fcomb.services.Exceptions._
 import io.fcomb.services.UserCertificateProcessor
 import io.fcomb.models.node.{Node ⇒ MNode}
-import io.fcomb.utils.{Config, Implicits}
+import io.fcomb.utils.{Config, Implicits, Random}
 import io.fcomb.crypto.{Certificate, Tls}
 import io.fcomb.persist.node.{Node ⇒ PNode}
 import io.fcomb.persist.UserCertificate
@@ -71,16 +71,25 @@ object NodeProcessor {
   }
 }
 
+private[this] object NodeProcessorMessages {
+  sealed trait DockerApiCommands
+
+  case object DockerPing extends DockerApiCommands
+}
+
 class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     with Stash with ActorLogging {
   import context.dispatcher
   import context.system
   import NodeProcessor._
+  import NodeProcessorMessages._
   import ShardRegion.Passivate
 
   context.setReceiveTimeout(timeout)
 
   val nodeId = self.path.name.toLong
+  // TODO: val dockerApiTimeout = 1.minute
+  val pingInterval = (25 + Random.random.nextInt(15)).seconds
 
   case class DockerApiCerts(key: Array[Byte], cert: Array[Byte], ca: Array[Byte])
 
@@ -89,6 +98,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   case object Stop
 
   case class Failed(e: Throwable)
+
+  system.scheduler.schedule(pingInterval, pingInterval)(self ! DockerPing)
 
   def receive = {
     case RegisterNode(ip) ⇒
@@ -99,6 +110,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
           val apiClient = createApiClient(node, certs)
           context.become(initialized(apiClient, node, certs), false)
           unstashAll()
+        case _: DockerApiCommands ⇒
         case msg ⇒
           log.warning(s"stash message: $msg")
           stash()
@@ -138,13 +150,13 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     certs:     DockerApiCerts
   ): Receive = {
     case RegisterNode(ip) ⇒
-      if (node.publicIpInetAddress().exists(_ == ip)) {
-        sender.!(())
-        system.scheduler.schedule(1.second, 1.second) {
-          apiClient.ping().onComplete(println)
-        }
-      }
+      if (node.publicIpInetAddress().exists(_ == ip))
+        apiClient.ping.pipeTo(sender())
       else ??? // TODO: stash all messages and update IP address
+    case cmd: DockerApiCommands ⇒ cmd match {
+      case DockerPing ⇒
+        apiClient.ping().onComplete(println)
+    }
     case ReceiveTimeout ⇒ suicide()
   }
 
@@ -164,8 +176,10 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     self ! Failed(e)
   }
 
-  def suicide() =
+  def suicide() = {
+    log.info("suicide!")
     context.parent ! Passivate(stopMessage = PoisonPill)
+  }
 
   def createApiClient(node: MNode, certs: DockerApiCerts) = {
     val sslContext = Tls.context(certs.key, certs.cert, Some(certs.ca))
