@@ -110,8 +110,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
           val apiClient = createApiClient(node, certs)
           context.become(initialized(apiClient, node, certs), false)
           unstashAll()
-        case _: DockerApiCommands ⇒
-        case msg ⇒
+        case msg: Entity ⇒
           log.warning(s"stash message: $msg")
           stash()
       }, false)

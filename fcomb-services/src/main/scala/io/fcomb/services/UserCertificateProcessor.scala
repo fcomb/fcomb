@@ -108,7 +108,7 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
     case Initialize(cert, key, certificateId) ⇒
       context.become(initialized(cert, key, certificateId), false)
       unstashAll()
-    case msg ⇒
+    case msg: Entity ⇒
       log.warning(s"stash message: $msg")
       stash()
   }

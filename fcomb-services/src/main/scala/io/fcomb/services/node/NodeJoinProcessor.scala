@@ -91,7 +91,7 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
         case Initialize(node) ⇒
           context.become(initialized(node), false)
           unstashAll()
-        case msg ⇒
+        case msg: Entity ⇒
           log.warning(s"stash message: $msg")
           stash()
       }, false)
