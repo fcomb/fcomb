@@ -59,9 +59,11 @@ object NodeService extends Service {
     mat: Materializer
   ) =
     action { implicit ctx ⇒
-      authorizeNode(id) { node =>
+      authorizeNode(id) { node ⇒
         extractClientIp { ipAddress ⇒
-          completeWithoutContent()
+          completeValidationWithoutContent(
+            NodeManager.register(id, ipAddress)
+          )
         }
       }
     }

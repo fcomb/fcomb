@@ -56,10 +56,37 @@ object UserCertificate extends PersistModelWithAutoLongPk[models.UserCertificate
   }
 
   private val findRootCertByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
-    table.filter(_.userId === userId).take(1)
+    table.filter { q ⇒
+      q.userId === userId && q.kind === models.CertificateKind.Root
+    }.take(1)
   }
 
   def findRootCertByUserId(userId: Long) = db.run {
     findRootCertByUserIdCompiled(userId).result.headOption
   }
+
+  private val findRootAndClientCertsByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
+    table.filter { q ⇒
+      q.userId === userId && (
+        q.kind === models.CertificateKind.Root ||
+        q.kind === models.CertificateKind.Client
+      )
+    }.take(2)
+  }
+
+  def findRootAndClientCertsByUserId(userId: Long)(
+    implicit
+    ec: ExecutionContext
+  ) =
+    db.run {
+      findRootAndClientCertsByUserIdCompiled(userId).result.map { xs ⇒
+        val root = xs.find(_.kind == models.CertificateKind.Root)
+        val client = xs.find(_.kind == models.CertificateKind.Client)
+        (root, client) match {
+          case (Some(rootCert), Some(clientCert)) ⇒
+            Some((rootCert, clientCert))
+          case _ ⇒ None
+        }
+      }
+    }
 }

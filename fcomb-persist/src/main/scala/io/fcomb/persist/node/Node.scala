@@ -127,6 +127,13 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
     findByPublicKeyHashCompiled(hash).result.headOption
   }
 
+  def updatePublicIpAddress(id: Long, ipAddress: String) = db.run {
+    table
+      .filter(_.id === id)
+      .map(_.publicIpAddress)
+      .update(Some(ipAddress))
+  }
+
   // private val uniqueTitleCompiled = Compiled {
   //   (id: Rep[Option[Long]], kind: Rep[DictionaryKind.DictionaryKind], title: Rep[String]) ⇒
   //     notCurrentPkFilter(id).filter { q ⇒
