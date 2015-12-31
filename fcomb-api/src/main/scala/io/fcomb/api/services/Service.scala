@@ -621,6 +621,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ip match {
       case Some(Some(ip)) ⇒ f(ip)
       case _ ⇒
+        // TODO: get ip from client request
         completeError(CantExtractClientIpAddress)(StatusCodes.BadRequest)
     }
   }
