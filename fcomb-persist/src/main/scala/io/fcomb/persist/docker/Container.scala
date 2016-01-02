@@ -3,7 +3,7 @@ package io.fcomb.persist.docker
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.{DockerContainer ⇒ MDockerContainer, ContainerState}
+import io.fcomb.models.docker.{ContainerState, DockerContainer ⇒ MDockerContainer}
 import io.fcomb.request
 import io.fcomb.response
 import io.fcomb.persist._
@@ -29,6 +29,24 @@ class ContainerTable(tag: Tag) extends Table[MDockerContainer](tag, "containers"
 
 object Container extends PersistModelWithAutoLongPk[MDockerContainer, ContainerTable] {
   val table = TableQuery[ContainerTable]
+
+  def create(
+    userId: Long,
+    applicationId: Long,
+    nodeId: Long,
+    name: String
+  )(
+    implicit
+    ec: ExecutionContext
+  ): Future[ValidationModel] =
+    create(MDockerContainer(
+      state = ContainerState.Initializing,
+      userId = userId,
+      applicationId = applicationId,
+      nodeId = nodeId,
+      name = name,
+      createdAt = ZonedDateTime.now
+    ))
 
   // private val uniqueTitleCompiled = Compiled {
   //   (id: Rep[Option[Long]], kind: Rep[DictionaryKind.DictionaryKind], title: Rep[String]) ⇒

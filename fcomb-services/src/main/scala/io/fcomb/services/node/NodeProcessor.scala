@@ -246,14 +246,20 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       image = app.image.name,
       command = command
     )
-    // TODO: format name as: "n${nodeId}_a${appId}_c${containerId}__${appName}"
-    val appName = s"${app.getId}__${app.name}"
     (for {
+      // TODO: handle Failure
+      scalaz.Success(container) ← PContainer.create(
+        userId = app.userId,
+        applicationId = app.getId,
+        nodeId = nodeId,
+        name = s"${app.name}-1"
+      )
+      // TODO: parse image `tag`
       _ ← state.apiClient.imagePull(app.image.name, Some("latest"))
         .flatMap(_.runForeach(println))
-      _ ← state.apiClient.containerCreate(config, Some(appName))
-      _ ← state.apiClient.containerStart(appName)
-    } yield ()).onComplete(println)
+      _ ← state.apiClient.containerCreate(config, Some(container.dockerName))
+      _ ← state.apiClient.containerStart(container.dockerName)
+    } yield container).onComplete(println)
   }
 
   def failed(e: Throwable): Receive = {
