@@ -16,9 +16,7 @@ object SessionService extends Service {
   ) = action { implicit ctx =>
     requestBodyAs[SessionRequest] { req =>
       completeValidation(
-        persist.Session
-          .create(req)
-          .map(_.map(_.toResponse[SessionResponse])),
+        persist.Session.create(req),
         StatusCodes.OK
       )
     }

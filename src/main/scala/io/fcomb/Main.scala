@@ -5,7 +5,8 @@ import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.api.services.Routes
 import io.fcomb.services.UserCertificateProcessor
-import io.fcomb.services.node._
+import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor}
+import io.fcomb.services.application.ApplicationProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
@@ -43,6 +44,7 @@ object Main extends App {
       UserCertificateProcessor.startRegion(5.minutes)
       NodeJoinProcessor.startRegion(5.minutes)
       NodeProcessor.startRegion(25.minutes)
+      ApplicationProcessor.startRegion(1.hour)
       // HttpProxy.start(config)
       // sys.actorOf(CertificateProcessor.props(), name = CertificateProcessor.actorName)
       // import scala.concurrent.duration._

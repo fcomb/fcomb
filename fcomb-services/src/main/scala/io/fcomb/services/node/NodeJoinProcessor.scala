@@ -26,7 +26,7 @@ object NodeJoinProcessor {
   }
 
   val extractShardId: ShardRegion.ExtractShardId = {
-    case EntityEnvelope(hash, _) ⇒ hash
+    case EntityEnvelope(_, _) ⇒ "0"
   }
 
   val shardName = "NodeJoinProcessor"

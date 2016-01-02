@@ -7,7 +7,7 @@ import io.fcomb.response._
 import io.fcomb.persist.application.{Application ⇒ PApplication}
 import io.fcomb.models.errors.ExpectedAuthorizationToken
 import io.fcomb.models.TokenRole
-import io.fcomb.services.node.NodeManager
+import io.fcomb.services.application.ApplicationManager
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes
@@ -39,7 +39,7 @@ object ApplicationService extends Service {
     authorizeUser { user ⇒
       requestBodyAs[ApplicationRequest] { req ⇒
         completeValidationWithPkAsCreated(
-          PApplication.createByRequest(user.getId, req),
+          ApplicationManager.create(user.getId, req),
           pathPrefix
         )
       }

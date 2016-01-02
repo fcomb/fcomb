@@ -134,6 +134,22 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
       .update(Some(ipAddress))
   }
 
+  private val findAllAvailableByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
+    table.filter { q ⇒
+      q.userId === userId &&
+        q.state === NodeState.Available
+    }
+  }
+
+  def findAllAvailableByUserId(userId: Long) =
+    db.run(findAllAvailableByUserIdCompiled(userId).result)
+
+  def updateState(id: Long, state: NodeState.NodeState) = db.run {
+    table.filter(_.id === id)
+      .map(_.state)
+      .update(state)
+  }
+
   // private val uniqueTitleCompiled = Compiled {
   //   (id: Rep[Option[Long]], kind: Rep[DictionaryKind.DictionaryKind], title: Rep[String]) ⇒
   //     notCurrentPkFilter(id).filter { q ⇒

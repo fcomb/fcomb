@@ -39,10 +39,6 @@ package object response {
   //   updatedAt: LocalDateTime
   // ) extends ServiceModelResponse
 
-  case class SessionResponse(
-    token: String
-  ) extends ServiceModelResponse
-
   case class AgentNodeResponse(
     id:                Long,
     state:             NodeState.NodeState,
@@ -59,9 +55,6 @@ package object response {
       username = u.username,
       fullName = u.fullName
     )
-
-  implicit def session2Response(s: Session): SessionResponse =
-    SessionResponse(s.token)
 
   // implicit def comb2Response(c: comb.Comb): CombResponse =
   //   CombResponse(

@@ -128,7 +128,7 @@ package object json {
 
   implicit val sessionRequestJsonProtocol = jsonFormat2(SessionRequest)
 
-  implicit val sessionResponseJsonProtocol = jsonFormat1(SessionResponse)
+  implicit val sessionJsonProtocol = jsonFormat1(Session)
 
   implicit val nodeStateJsonProtocol =
     createStringEnumJsonFormat(NodeState)

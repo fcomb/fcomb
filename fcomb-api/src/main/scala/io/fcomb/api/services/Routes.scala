@@ -41,15 +41,13 @@ object Routes {
       //   }
       // } ~
       pathPrefix(application.ApplicationService.pathPrefix) {
-        pathPrefix(application.ApplicationService.pathPrefix) {
+        pathEndOrSingleSlash {
+          get(application.ApplicationService.index) ~
+          post(application.ApplicationService.create)
+        }  ~
+        pathPrefix(LongNumber) { applicationId =>
           pathEndOrSingleSlash {
-            get(application.ApplicationService.index) ~
-            post(application.ApplicationService.create)
-          }  ~
-          pathPrefix(LongNumber) { applicationId =>
-            pathEndOrSingleSlash {
-              get(application.ApplicationService.show(applicationId))
-            }
+            get(application.ApplicationService.show(applicationId))
           }
         }
       } ~

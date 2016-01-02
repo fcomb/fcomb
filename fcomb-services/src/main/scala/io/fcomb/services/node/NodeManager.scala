@@ -36,5 +36,6 @@ object NodeManager {
     implicit
     ec: ExecutionContext
   ): Future[ValidationResultUnit] =
-    NodeProcessor.register(nodeId, ipAddress).map(_.success)
+    NodeProcessor.register(nodeId, ipAddress)
+      .map(_.success)
 }

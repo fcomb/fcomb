@@ -2,16 +2,18 @@ package io.fcomb.services.node
 
 import io.fcomb.services.Exceptions._
 import io.fcomb.services.UserCertificateProcessor
-import io.fcomb.models.node.{Node ⇒ MNode}
+import io.fcomb.models.application.{Application ⇒ MApplication}
+import io.fcomb.persist.docker.{Container ⇒ PContainer}
+import io.fcomb.models.node.{NodeState, Node ⇒ MNode}
 import io.fcomb.utils.{Config, Implicits, Random}
 import io.fcomb.crypto.{Certificate, Tls}
 import io.fcomb.persist.node.{Node ⇒ PNode}
 import io.fcomb.persist.UserCertificate
-import io.fcomb.docker.api.Client
+import io.fcomb.docker.api._, methods.ContainerMethods._
 import akka.actor._
 import akka.stream.Materializer
 import akka.cluster.sharding._
-import akka.pattern.{ask, pipe}
+import akka.pattern.{after, ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise}
 import scala.collection.mutable.HashSet
@@ -25,8 +27,10 @@ object NodeProcessor {
     case EntityEnvelope(nodeId, payload) ⇒ (nodeId.toString, payload)
   }
 
+  val numberOfShards = 1
+
   val extractShardId: ShardRegion.ExtractShardId = {
-    case EntityEnvelope(nodeId, _) ⇒ nodeId.toString
+    case EntityEnvelope(nodeId, _) ⇒ (nodeId % numberOfShards).toString
   }
 
   val shardName = "NodeProcessor"
@@ -51,6 +55,8 @@ object NodeProcessor {
 
   case class RegisterNode(ip: InetAddress) extends Entity
 
+  case class CreateContainer(app: MApplication) extends Entity
+
   def props(timeout: Duration)(implicit mat: Materializer) =
     Props(new NodeProcessor(timeout))
 
@@ -66,6 +72,19 @@ object NodeProcessor {
       case Some(ref) ⇒
         ask(ref, EntityEnvelope(nodeId, RegisterNode(ip)))
           .mapTo[Unit]
+      case None ⇒ Future.failed(EmptyActorRefException)
+    }
+  }
+
+  def createContainer(nodeId: Long, app: MApplication)(
+    implicit
+    timeout: Timeout = Timeout(30.seconds)
+  ): Future[PContainer.ValidationModel] = {
+    // TODO: DRY
+    Option(actorRef) match {
+      case Some(ref) ⇒
+        ask(ref, EntityEnvelope(nodeId, CreateContainer(app)))
+          .mapTo[PContainer.ValidationModel]
       case None ⇒ Future.failed(EmptyActorRefException)
     }
   }
@@ -95,6 +114,12 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
 
   case class Initialize(node: MNode, certs: DockerApiCerts)
 
+  case class State(
+    apiClient: Client,
+    node:      MNode,
+    certs:     DockerApiCerts
+  )
+
   case object Stop
 
   case class Failed(e: Throwable)
@@ -102,33 +127,31 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   system.scheduler.schedule(pingInterval, pingInterval)(self ! DockerPing)
 
   def receive = {
-    case RegisterNode(ip) ⇒
+    case msg: Entity ⇒
       stash()
-      initializing(ip)
-      context.become({
-        case Initialize(node, certs) ⇒
-          val apiClient = createApiClient(node, certs)
-          context.become(initialized(apiClient, node, certs), false)
-          unstashAll()
-        case msg: Entity ⇒
-          log.warning(s"stash message: $msg")
-          stash()
-      }, false)
+      context.become(initializingRecieve, false)
+      msg match {
+        case RegisterNode(ip) ⇒
+          initializing(ip)
+        case _ ⇒
+          initializing()
+      }
+  }
+
+  val initializingRecieve: Receive = {
+    case Initialize(node, certs) ⇒
+      val apiClient = createApiClient(node, certs)
+      val state = State(apiClient, node, certs)
+      context.become(initialized(state), false)
+      unstashAll()
+    case msg: Entity ⇒
+      log.warning(s"stash message: $msg")
+      stash()
   }
 
   def initializing(ip: InetAddress) =
-    (for {
-      // TODO: add OptionT
-      Some(node) ← PNode.findByPk(nodeId)
-      Some((rootCert, clientCert)) ← UserCertificate
-        .findRootAndClientCertsByUserId(node.userId)
-    } yield (node, rootCert, clientCert)).onComplete {
-      case Success((node, rootCert, clientCert)) ⇒
-        val certs = DockerApiCerts(
-          clientCert.key,
-          clientCert.certificate,
-          rootCert.certificate
-        )
+    loadNodeAndCerts.onSuccess {
+      case (node, certs) ⇒
         if (node.publicIpInetAddress().exists(_ == ip))
           self ! Initialize(node, certs)
         else {
@@ -140,23 +163,97 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
             case Failure(e) ⇒ handleThrowable(e)
           }
         }
-      case Failure(e) ⇒ handleThrowable(e)
     }
 
-  def initialized(
-    apiClient: Client,
-    node:      MNode,
-    certs:     DockerApiCerts
-  ): Receive = {
-    case RegisterNode(ip) ⇒
-      if (node.publicIpInetAddress().exists(_ == ip))
-        apiClient.ping.pipeTo(sender())
-      else ??? // TODO: stash all messages and update IP address
+  def initializing() =
+    loadNodeAndCerts.onSuccess {
+      case (node, certs) ⇒
+        self ! Initialize(node, certs)
+    }
+
+  def initialized(state: State): Receive = {
+    case msg: Entity ⇒ msg match {
+      case RegisterNode(ip) ⇒
+        if (state.node.publicIpInetAddress().exists(_ == ip)) {
+          state.node.state match {
+            case NodeState.Initializing ⇒
+              checkToAvailableAndUpdateState(state)
+            case NodeState.Available ⇒ sender.!(())
+          }
+        }
+        else ??? // TODO: stash all messages and update IP address
+      case CreateContainer(app) ⇒
+        createContainer(state, app)
+    }
     case cmd: DockerApiCommands ⇒ cmd match {
       case DockerPing ⇒
-        apiClient.ping().onComplete(println)
+        state.apiClient.ping().onComplete(println)
     }
     case ReceiveTimeout ⇒ suicide()
+  }
+
+  def loadNodeAndCerts(): Future[(MNode, DockerApiCerts)] = {
+    val f = for {
+      // TODO: add OptionT
+      Some(node) ← PNode.findByPk(nodeId)
+      Some((rootCert, clientCert)) ← UserCertificate
+        .findRootAndClientCertsByUserId(node.userId)
+    } yield {
+      val certs = DockerApiCerts(
+        clientCert.key,
+        clientCert.certificate,
+        rootCert.certificate
+      )
+      (node, certs)
+    }
+    f.onFailure { case e ⇒ handleThrowable(e) }
+    f
+  }
+
+  def checkToAvailableAndUpdateState(state: State) = {
+    // TODO: DRY
+    context.become({
+      case st: State ⇒
+        context.become(initialized(st), false)
+        unstashAll()
+      case _: Entity ⇒ stash()
+    }, false)
+    val replyTo = sender()
+    system.scheduler.scheduleOnce(2.seconds) {
+      (for {
+        res ← state.apiClient.ping // TODO: add retry with exponential backoff
+        _ ← PNode.updateState(state.node.getId, NodeState.Available)
+      } yield replyTo ! res).onComplete {
+        case Success(_) ⇒
+          self ! state.copy(node = state.node.copy(
+            state = NodeState.Available
+          ))
+        case Failure(e) ⇒ handleThrowable(e)
+      }
+    }
+  }
+
+  def createApiClient(node: MNode, certs: DockerApiCerts) = {
+    val sslContext = Tls.context(certs.key, certs.cert, Some(certs.ca))
+    new Client(node.publicIpAddress.get, 2375, Some(sslContext))
+  }
+
+  def createContainer(state: State, app: MApplication) = {
+    log.debug(s"createContainer: $app")
+    val command = app.deployOptions.command.map(_.split(' ').toList)
+      .getOrElse(List.empty)
+    val config = ContainerCreate(
+      image = app.image.name,
+      command = command
+    )
+    // TODO: format name as: "n${nodeId}_a${appId}_c${containerId}__${appName}"
+    val appName = s"${app.getId}__${app.name}"
+    (for {
+      _ ← state.apiClient.imagePull(app.image.name, Some("latest"))
+        .flatMap(_.runForeach(println))
+      _ ← state.apiClient.containerCreate(config, Some(appName))
+      _ ← state.apiClient.containerStart(appName)
+    } yield ()).onComplete(println)
   }
 
   def failed(e: Throwable): Receive = {
@@ -179,31 +276,4 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     log.info("suicide!")
     context.parent ! Passivate(stopMessage = PoisonPill)
   }
-
-  def createApiClient(node: MNode, certs: DockerApiCerts) = {
-    val sslContext = Tls.context(certs.key, certs.cert, Some(certs.ca))
-    new Client(node.publicIpAddress.get, 2375, Some(sslContext))
-  }
-
-  // def joinNode(userId: Long, req: PKCS10) =
-  //   (for {
-  //     nodeId ← PNode.getNodeIdSequence()
-  //     name = new X500Name(s"CN=node-$nodeId")
-  //     signed ← UserCertificateProcessor
-  //       .generateUserCertificates(userId, req, name)
-  //     res ← PNode.create(
-  //       nodeId,
-  //       userId,
-  //       signed.certificateId,
-  //       signed.certificate.getEncoded(),
-  //       publicKeyHash
-  //     )
-  //   } yield res match {
-  //     case scalaz.Success(node) ⇒
-  //       self ! Initialize(node)
-  //     case scalaz.Failure(e) ⇒
-  //       throw e.head
-  //   }).recover {
-  //     case e: Throwable ⇒ handleThrowable(e)
-  //   }
 }
