@@ -38,6 +38,5 @@ case class DockerContainer(
 ) extends Container with ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 
-  def dockerName() =
-    s"n${nodeId}_a${applicationId}_c${getId()}__$name"
+  def dockerName() = s"${getId()}_$name"
 }

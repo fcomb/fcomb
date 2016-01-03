@@ -256,7 +256,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       )
       // TODO: parse image `tag`
       _ ← state.apiClient.imagePull(app.image.name, Some("latest"))
-        .flatMap(_.runForeach(println))
+        .flatMap(_.runForeach(println)) // TODO: handle result through fold and return Future
       _ ← state.apiClient.containerCreate(config, Some(container.dockerName))
       _ ← state.apiClient.containerStart(container.dockerName)
     } yield container).onComplete(println)

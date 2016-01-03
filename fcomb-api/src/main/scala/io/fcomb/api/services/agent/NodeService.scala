@@ -42,7 +42,7 @@ object NodeService extends Service {
     ec: ExecutionContext
   ) =
     action { implicit ctx ⇒
-      getAuthToken("token") match {
+      getAuthToken match {
         case Some(token) ⇒
           completeOrNotFound(
             PNode.findByIdAndTokenAsAgentResponse(id, token),
@@ -75,7 +75,7 @@ object NodeService extends Service {
     ctx: ServiceContext,
     ec:  ExecutionContext
   ) =
-    getAuthToken("token") match {
+    getAuthToken match {
       case Some(token) ⇒
         complete(PNode.findByIdAndToken(id, token).map {
           case Some(node) ⇒ f(node)

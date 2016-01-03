@@ -484,7 +484,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(f.map(completeValidationWithoutContent))
 
-  def getAuthToken(schema: String)(
+  def getAuthToken(
     implicit
     ctx: ServiceContext
   ): Option[String] = {
@@ -496,7 +496,8 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     (authHeader, authParameter) match {
       case (Some(token), _) ⇒
         val s = token.value.split(' ')
-        if (s.head.toLowerCase == schema) Some(s.last.take(256)) // restrict token length
+        if (s.head.toLowerCase == "token")
+          Some(s.last.take(256)) // restrict token length
         else None
       case (_, token @ Some(_)) ⇒ token
       case _                    ⇒ None
@@ -516,7 +517,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     ec:  ExecutionContext
   ): ServiceResult = {
-    complete(getAuthToken("session") match {
+    complete(getAuthToken match {
       case Some(token) if token.startsWith(persist.Session.prefix) ⇒
         persist.Session.findById(token).flatMap {
           case Some(item) ⇒ flatResult(f(item))
@@ -533,7 +534,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     ec:  ExecutionContext
   ): ServiceResult = {
-    complete(getAuthToken("token") match {
+    complete(getAuthToken match {
       case Some(token) if token.startsWith(persist.UserToken.prefix) ⇒
         persist.User.findByToken(token, role).flatMap {
           case Some(item) ⇒ flatResult(f(item))
@@ -610,8 +611,8 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ctx: ServiceContext,
     mat: Materializer
   ): ServiceResult = {
-      def g(pf: PartialFunction[HttpHeader, Option[InetAddress]]): Option[InetAddress] =
-        ctx.requestContext.request.headers.collectFirst(pf).flatMap(identity)
+    def g(pf: PartialFunction[HttpHeader, Option[InetAddress]]): Option[InetAddress] =
+      ctx.requestContext.request.headers.collectFirst(pf).flatMap(identity)
 
     (g { case `X-Forwarded-For`(Seq(address, _*)) ⇒ address.getAddress })
       .orElse(g { case `Remote-Address`(address) ⇒ address.getAddress })
