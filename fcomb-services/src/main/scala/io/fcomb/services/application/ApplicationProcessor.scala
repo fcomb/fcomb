@@ -1,7 +1,7 @@
 package io.fcomb.services.application
 
 import io.fcomb.services.Exceptions._
-import io.fcomb.services.node.UserNodesProcessor
+import io.fcomb.services.node.{NodeProcessor, UserNodesProcessor}
 import io.fcomb.models.application.{ApplicationState, Application ⇒ MApplication}
 import io.fcomb.models.docker.ContainerState
 import io.fcomb.utils.Config
@@ -72,11 +72,12 @@ object ApplicationProcessor {
 
   private def askRef[T](appId: Long, entity: Entity)(
     implicit
-    timeout: Timeout = Timeout(5.minutes)
+    timeout: Timeout     = Timeout(5.minutes),
+    m:       Manifest[T]
   ): Future[T] =
     Option(actorRef) match {
       case Some(ref) ⇒
-        ask(ref, EntityEnvelope(appId, entity)).mapTo
+        ask(ref, EntityEnvelope(appId, entity)).mapTo[T]
       case None ⇒ Future.failed(EmptyActorRefException)
     }
 
@@ -87,25 +88,25 @@ object ApplicationProcessor {
     implicit
     timeout: Timeout = Timeout(5.minutes)
   ): Future[Unit] =
-    askRef(appId, ApplicationStart)
+    askRef[Unit](appId, ApplicationStart)
 
   def stop(appId: Long)(
     implicit
     timeout: Timeout = Timeout(5.minutes)
   ): Future[Unit] =
-    askRef(appId, ApplicationStop)
+    askRef[Unit](appId, ApplicationStop)
 
   def terminate(appId: Long)(
     implicit
     timeout: Timeout = Timeout(5.minutes)
   ): Future[Unit] =
-    askRef(appId, ApplicationTerminate)
+    askRef[Unit](appId, ApplicationTerminate)
 
   def redeploy(appId: Long)(
     implicit
     timeout: Timeout = Timeout(5.minutes)
   ): Future[Unit] =
-    askRef(appId, ApplicationRedeploy)
+    askRef[Unit](appId, ApplicationRedeploy)
 
   def scale(appId: Long, count: Int)(
     implicit
@@ -174,12 +175,16 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         UserNodesProcessor.createContainers(app)
       case ApplicationStop ⇒
         log.info(s"stop application: $app")
+        sender().!(())
       case ApplicationRedeploy ⇒
         log.info(s"redeploy application: $app")
+        sender().!(())
       case ApplicationScale(count) ⇒
         log.info(s"scale application: $app")
+        sender().!(())
       case ApplicationTerminate ⇒
         log.info(s"terminate application: $app")
+        sender().!(())
       case NewContainerState(containerId, containerState) ⇒
         println(s"NewContainerState($containerId, $containerState)")
         PApplication.updateState(appId, ApplicationState.Running)
