@@ -6,7 +6,7 @@ import java.time.ZonedDateTime
 object ApplicationState extends Enumeration {
   type ApplicationState = Value
 
-  val Initializing = Value("initializing")
+  val Created = Value("created")
   val Starting = Value("starting")
   val Running = Value("running")
   val PartlyRunning = Value("partly_running")

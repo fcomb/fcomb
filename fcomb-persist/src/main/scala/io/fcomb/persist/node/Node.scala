@@ -3,7 +3,7 @@ package io.fcomb.persist.node
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.node.{Node ⇒ MNode, NodeState}
+import io.fcomb.models.node.{NodeState, Node ⇒ MNode}
 import io.fcomb.request
 import io.fcomb.response
 import io.fcomb.persist._

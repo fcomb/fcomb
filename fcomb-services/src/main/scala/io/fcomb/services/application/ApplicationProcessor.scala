@@ -1,8 +1,9 @@
 package io.fcomb.services.application
 
 import io.fcomb.services.Exceptions._
-import io.fcomb.services.docker.ContainerManager
-import io.fcomb.models.application.{Application ⇒ MApplication}
+import io.fcomb.services.node.UserNodesProcessor
+import io.fcomb.models.application.{ApplicationState, Application ⇒ MApplication}
+import io.fcomb.models.docker.ContainerState
 import io.fcomb.utils.Config
 import io.fcomb.persist.application.{Application ⇒ PApplication}
 import akka.actor._
@@ -49,6 +50,11 @@ object ApplicationProcessor {
 
   case object ApplicationStart extends Entity
 
+  case class NewContainerState(
+    id:    Long,
+    state: ContainerState.ContainerState
+  ) extends Entity
+
   def props(timeout: Duration) =
     Props(new ApplicationProcessor(timeout))
 
@@ -64,6 +70,18 @@ object ApplicationProcessor {
       case Some(ref) ⇒
         ask(ref, EntityEnvelope(appId, ApplicationStart))
           .mapTo[Unit]
+      case None ⇒ Future.failed(EmptyActorRefException)
+    }
+  }
+
+  def newContainerState(
+    appId:       Long,
+    containerId: Long,
+    state:       ContainerState.ContainerState
+  ) = {
+    Option(actorRef) match {
+      case Some(ref) ⇒
+        ref ! EntityEnvelope(appId, NewContainerState(containerId, state))
       case None ⇒ Future.failed(EmptyActorRefException)
     }
   }
@@ -116,19 +134,20 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     }
 
   def initialized(app: MApplication): Receive = {
-    case ApplicationStart ⇒
-      log.info(s"start application: $app")
-      ContainerManager.create(app)
-    // case cmd: DockerApiCommands ⇒ cmd match {
-    //   case DockerPing ⇒
-    //     apiClient.ping().onComplete(println)
-    // }
-    // TODO: case ReceiveTimeout ⇒ suicide()
+    case msg: Entity ⇒ msg match {
+      case ApplicationStart ⇒
+        log.info(s"start application: $app")
+        UserNodesProcessor.createContainers(app)
+      case NewContainerState(containerId, containerState) ⇒
+        println(s"NewContainerState($containerId, $containerState)")
+        PApplication.updateState(appId, ApplicationState.Running)
+    }
+    // TODO: case ReceiveTimeout ⇒ annihilation()
   }
 
   def failed(e: Throwable): Receive = {
     case _: Entity ⇒ sender ! Status.Failure(e)
-    case Stop      ⇒ suicide()
+    case Stop      ⇒ annihilation()
   }
 
   def handleThrowable(e: Throwable): Unit = {
@@ -142,8 +161,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     self ! Failed(e)
   }
 
-  def suicide() = {
-    log.info("suicide!")
+  def annihilation() = {
+    log.info("annihilation!")
     context.parent ! Passivate(stopMessage = PoisonPill)
   }
 }

@@ -31,10 +31,10 @@ object Container extends PersistModelWithAutoLongPk[MDockerContainer, ContainerT
   val table = TableQuery[ContainerTable]
 
   def create(
-    userId: Long,
+    userId:        Long,
     applicationId: Long,
-    nodeId: Long,
-    name: String
+    nodeId:        Long,
+    name:          String
   )(
     implicit
     ec: ExecutionContext
@@ -47,6 +47,12 @@ object Container extends PersistModelWithAutoLongPk[MDockerContainer, ContainerT
       name = name,
       createdAt = ZonedDateTime.now
     ))
+
+  def updateState(id: Long, state: ContainerState.ContainerState) = db.run {
+    table.filter(_.id === id)
+      .map(_.state)
+      .update(state)
+  }
 
   // private val uniqueTitleCompiled = Compiled {
   //   (id: Rep[Option[Long]], kind: Rep[DictionaryKind.DictionaryKind], title: Rep[String]) ⇒

@@ -108,12 +108,12 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
 
   def initialized(node: MNode): Receive = {
     case _: JoinNode    ⇒ sender ! node
-    case ReceiveTimeout ⇒ suicide()
+    case ReceiveTimeout ⇒ annihilation()
   }
 
   def failed(e: Throwable): Receive = {
     case _: Entity ⇒ sender ! Status.Failure(e)
-    case Stop      ⇒ suicide()
+    case Stop      ⇒ annihilation()
   }
 
   def handleThrowable(e: Throwable): Unit = {
@@ -127,8 +127,8 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
     self ! Failed(e)
   }
 
-  def suicide() = {
-    log.info("suicide!")
+  def annihilation() = {
+    log.info("annihilation!")
     context.parent ! Passivate(stopMessage = PoisonPill)
   }
 

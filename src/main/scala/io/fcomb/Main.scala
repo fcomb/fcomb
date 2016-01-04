@@ -5,7 +5,7 @@ import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.api.services.Routes
 import io.fcomb.services.UserCertificateProcessor
-import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor}
+import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor, UserNodesProcessor}
 import io.fcomb.services.application.ApplicationProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
@@ -45,19 +45,20 @@ object Main extends App {
       NodeJoinProcessor.startRegion(5.minutes)
       NodeProcessor.startRegion(25.minutes)
       ApplicationProcessor.startRegion(1.hour)
-      // HttpProxy.start(config)
-      // sys.actorOf(CertificateProcessor.props(), name = CertificateProcessor.actorName)
-      // import scala.concurrent.duration._
-      // import akka.pattern.ask
-      // import akka.util.Timeout
-      // import CertificateProcessor._
-      // val certProc = CertificateProcessor.startRegion(5.minutes)
-      // implicit val t = Timeout(5.seconds)
-      // (1 to 2).foreach { i ⇒
-      //   (certProc.ref ? EntityEnvelope(1, GenerateUserCertificates)).map { res ⇒
-      //     println(s"$i#res: $res")
-      //   }
-      // }
+      UserNodesProcessor.startRegion(1.day)
+    // HttpProxy.start(config)
+    // sys.actorOf(CertificateProcessor.props(), name = CertificateProcessor.actorName)
+    // import scala.concurrent.duration._
+    // import akka.pattern.ask
+    // import akka.util.Timeout
+    // import CertificateProcessor._
+    // val certProc = CertificateProcessor.startRegion(5.minutes)
+    // implicit val t = Timeout(5.seconds)
+    // (1 to 2).foreach { i ⇒
+    //   (certProc.ref ? EntityEnvelope(1, GenerateUserCertificates)).map { res ⇒
+    //     println(s"$i#res: $res")
+    //   }
+    // }
     case Failure(e) ⇒
       logger.error(e.getMessage(), e.getCause())
       try {

@@ -128,12 +128,12 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
       val signed = Certificate.signCertificationRequest(cert, key,
         req, name, extOpt, expireAfterDays)
       sender ! SignedCertificate(signed, certificateId)
-    case ReceiveTimeout ⇒ suicide()
+    case ReceiveTimeout ⇒ annihilation()
   }
 
   def failed(e: Throwable): Receive = {
     case _: Entity ⇒ sender ! Status.Failure(e)
-    case Stop      ⇒ suicide()
+    case Stop      ⇒ annihilation()
   }
 
   def handleThrowable(e: Throwable): Unit = {
@@ -155,8 +155,8 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
     Initialize(cert, key, rootCert.getId)
   }
 
-  def suicide() = {
-    log.info("suicide!")
+  def annihilation() = {
+    log.info("annihilation!")
     context.parent ! Passivate(stopMessage = PoisonPill)
   }
 

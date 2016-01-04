@@ -2,8 +2,10 @@ package io.fcomb.services.node
 
 import io.fcomb.services.Exceptions._
 import io.fcomb.services.UserCertificateProcessor
+import io.fcomb.services.application.ApplicationProcessor
 import io.fcomb.models.application.{Application ⇒ MApplication}
 import io.fcomb.persist.docker.{Container ⇒ PContainer}
+import io.fcomb.models.docker.ContainerState
 import io.fcomb.models.node.{NodeState, Node ⇒ MNode}
 import io.fcomb.utils.{Config, Implicits, Random}
 import io.fcomb.crypto.{Certificate, Tls}
@@ -189,7 +191,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       case DockerPing ⇒
         state.apiClient.ping().onComplete(println)
     }
-    case ReceiveTimeout ⇒ suicide()
+    case ReceiveTimeout ⇒ annihilation()
   }
 
   def loadNodeAndCerts(): Future[(MNode, DockerApiCerts)] = {
@@ -219,6 +221,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       case _: Entity ⇒ stash()
     }, false)
     val replyTo = sender()
+    // TODO: retry with fib timeout
     system.scheduler.scheduleOnce(2.seconds) {
       (for {
         res ← state.apiClient.ping // TODO: add retry with exponential backoff
@@ -255,16 +258,27 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         name = s"${app.name}-1"
       )
       // TODO: parse image `tag`
-      _ ← state.apiClient.imagePull(app.image.name, Some("latest"))
-        .flatMap(_.runForeach(println)) // TODO: handle result through fold and return Future
+      // TODO: cache this slow action
+      // _ ← state.apiClient.imagePull(app.image.name, Some("latest"))
+      //   .flatMap(_.runForeach(println)) // TODO: handle result through fold and return Future
       _ ← state.apiClient.containerCreate(config, Some(container.dockerName))
+      _ ← PContainer.updateState(container.getId, ContainerState.Starting)
       _ ← state.apiClient.containerStart(container.dockerName)
-    } yield container).onComplete(println)
+      _ ← PContainer.updateState(container.getId, ContainerState.Running)
+    } yield {
+      val cc = container.copy(state = ContainerState.Running)
+      ApplicationProcessor.newContainerState(
+        cc.applicationId,
+        cc.getId,
+        cc.state
+      )
+      cc
+    }).onComplete(println)
   }
 
   def failed(e: Throwable): Receive = {
     case _: Entity ⇒ sender ! Status.Failure(e)
-    case Stop      ⇒ suicide()
+    case Stop      ⇒ annihilation()
   }
 
   def handleThrowable(e: Throwable): Unit = {
@@ -278,8 +292,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     self ! Failed(e)
   }
 
-  def suicide() = {
-    log.info("suicide!")
+  def annihilation() = {
+    log.info("annihilation!")
     context.parent ! Passivate(stopMessage = PoisonPill)
   }
 }

@@ -3,7 +3,7 @@ package io.fcomb.persist.application
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.application.{Application ⇒ MApplication, _}
+import io.fcomb.models.application.{ApplicationState, Application ⇒ MApplication, _}
 import io.fcomb.request
 import io.fcomb.response
 import io.fcomb.persist._
@@ -99,7 +99,7 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
     val timeNow = ZonedDateTime.now()
     create(MApplication(
       userId = userId,
-      state = ApplicationState.Initializing,
+      state = ApplicationState.Created,
       name = req.name,
       image = req.image,
       deployOptions = req.deployOptions,
@@ -108,16 +108,11 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
     ))
   }
 
-  // def updateByRequest(id: Long, req: request.ApplicationRequest)(
-  //   implicit
-  //   ec: ExecutionContext
-  // ): Future[ValidationModel] =
-  //   update(id)(_.copy(
-  //     name = req.name,
-  //     image = req.image,
-  //     deployOptions = req.deployOptions,
-  //     updatedAt = ZonedDateTime.now()
-  //   ))
+  def updateState(id: Long, state: ApplicationState.ApplicationState) = db.run {
+    table.filter(_.id === id)
+      .map(_.state)
+      .update(state)
+  }
 
   private val findAllByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
     table.filter(_.userId === userId)
