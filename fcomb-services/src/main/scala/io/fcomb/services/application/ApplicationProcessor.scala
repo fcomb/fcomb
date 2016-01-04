@@ -70,14 +70,17 @@ object ApplicationProcessor {
 
   private var actorRef: ActorRef = _
 
-  private def askRef[T](appId: Long, entity: Entity)(
+  private def askRef[T](
+    appId:   Long,
+    entity:  Entity,
+    timeout: Timeout
+  )(
     implicit
-    timeout: Timeout     = Timeout(5.minutes),
-    m:       Manifest[T]
+    m: Manifest[T]
   ): Future[T] =
     Option(actorRef) match {
       case Some(ref) ⇒
-        ask(ref, EntityEnvelope(appId, entity)).mapTo[T]
+        ask(ref, EntityEnvelope(appId, entity))(timeout).mapTo[T]
       case None ⇒ Future.failed(EmptyActorRefException)
     }
 
@@ -88,31 +91,31 @@ object ApplicationProcessor {
     implicit
     timeout: Timeout = Timeout(5.minutes)
   ): Future[Unit] =
-    askRef[Unit](appId, ApplicationStart)
+    askRef[Unit](appId, ApplicationStart, timeout)
 
   def stop(appId: Long)(
     implicit
     timeout: Timeout = Timeout(5.minutes)
   ): Future[Unit] =
-    askRef[Unit](appId, ApplicationStop)
+    askRef[Unit](appId, ApplicationStop, timeout)
 
   def terminate(appId: Long)(
     implicit
     timeout: Timeout = Timeout(5.minutes)
   ): Future[Unit] =
-    askRef[Unit](appId, ApplicationTerminate)
+    askRef[Unit](appId, ApplicationTerminate, timeout)
 
   def redeploy(appId: Long)(
     implicit
     timeout: Timeout = Timeout(5.minutes)
   ): Future[Unit] =
-    askRef[Unit](appId, ApplicationRedeploy)
+    askRef[Unit](appId, ApplicationRedeploy, timeout)
 
   def scale(appId: Long, count: Int)(
     implicit
     timeout: Timeout = Timeout(5.minutes)
   ): Future[Unit] =
-    askRef(appId, ApplicationScale(count))
+    askRef(appId, ApplicationScale(count), timeout)
 
   def newContainerState(
     appId:       Long,
@@ -172,10 +175,24 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
         log.info(s"start application: $app")
-        UserNodesProcessor.createContainers(app)
+        if (app.state == ContainerState.Initializing)
+          UserNodesProcessor.createContainers(app)
+        else {
+          import io.fcomb.persist.docker.Container
+          Container.findAllByApplicationId(appId).flatMap { cs ⇒
+            Future.sequence(cs.map { c ⇒
+              NodeProcessor.startContainer(c.nodeId, c.getId)
+            }).map(_ => ())
+          }.pipeTo(sender())
+        }
       case ApplicationStop ⇒
         log.info(s"stop application: $app")
-        sender().!(())
+        import io.fcomb.persist.docker.Container
+        Container.findAllByApplicationId(appId).flatMap { cs ⇒
+          Future.sequence(cs.map { c ⇒
+            NodeProcessor.stopContainer(c.nodeId, c.getId)
+          }).map(_ => ())
+        }.pipeTo(sender())
       case ApplicationRedeploy ⇒
         log.info(s"redeploy application: $app")
         sender().!(())
@@ -187,7 +204,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         sender().!(())
       case NewContainerState(containerId, containerState) ⇒
         println(s"NewContainerState($containerId, $containerState)")
+        val napp = app.copy(state = ApplicationState.Running)
         PApplication.updateState(appId, ApplicationState.Running)
+        context.become(initialized(napp), false)
     }
     // TODO: case ReceiveTimeout ⇒ annihilation()
   }
