@@ -47,12 +47,32 @@ object Routes {
         }  ~
         pathPrefix(LongNumber) { applicationId =>
           pathEndOrSingleSlash {
-            get(application.ApplicationService.show(applicationId)) ~
-            post(application.ApplicationService.start(applicationId)) ~
-            post(application.ApplicationService.stop(applicationId)) ~
-            post(application.ApplicationService.terminate(applicationId)) ~
-            post(application.ApplicationService.redeploy(applicationId)) ~
-            post(application.ApplicationService.scale(applicationId))
+            get(application.ApplicationService.show(applicationId))
+          } ~
+          pathPrefix("start") {
+            pathEndOrSingleSlash {
+              post(application.ApplicationService.start(applicationId))
+            }
+          } ~
+          pathPrefix("stop") {
+            pathEndOrSingleSlash {
+              post(application.ApplicationService.stop(applicationId))
+            }
+          } ~
+          pathPrefix("terminate") {
+            pathEndOrSingleSlash {
+              post(application.ApplicationService.terminate(applicationId))
+            }
+          } ~
+          pathPrefix("redeploy") {
+            pathEndOrSingleSlash {
+              post(application.ApplicationService.redeploy(applicationId))
+            }
+          } ~
+          pathPrefix("scale") {
+            pathEndOrSingleSlash {
+              post(application.ApplicationService.scale(applicationId))
+            }
           }
         }
       } ~
