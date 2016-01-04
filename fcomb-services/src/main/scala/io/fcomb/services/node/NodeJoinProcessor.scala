@@ -79,7 +79,7 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
 
   case class Initialize(node: MNode)
 
-  case object Stop
+  case object Annihilation
 
   case class Failed(e: Throwable)
 
@@ -112,8 +112,8 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
   }
 
   def failed(e: Throwable): Receive = {
-    case _: Entity ⇒ sender ! Status.Failure(e)
-    case Stop      ⇒ annihilation()
+    case _: Entity    ⇒ sender ! Status.Failure(e)
+    case Annihilation ⇒ annihilation()
   }
 
   def handleThrowable(e: Throwable): Unit = {
@@ -122,7 +122,7 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
       case Failed(e) ⇒
         context.become(failed(e), false)
         unstashAll()
-        self ! Stop
+        self ! Annihilation
     }, false)
     self ! Failed(e)
   }

@@ -15,4 +15,39 @@ object ApplicationManager {
       case scala.util.Success(Success(res)) ⇒
         ApplicationProcessor.start(res.getId)
     }
+
+  @inline
+  def stop(id: Long)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    ApplicationProcessor.stop(id)
+
+  @inline
+  def start(id: Long)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    ApplicationProcessor.start(id)
+
+  @inline
+  def terminate(id: Long)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    ApplicationProcessor.terminate(id)
+
+  @inline
+  def redeploy(id: Long)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    ApplicationProcessor.redeploy(id)
+
+  @inline
+  def scale(id: Long, count: Int)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    ApplicationProcessor.scale(id, count)
 }

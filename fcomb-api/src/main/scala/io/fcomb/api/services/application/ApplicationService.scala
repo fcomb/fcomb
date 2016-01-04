@@ -1,6 +1,6 @@
 package io.fcomb.api.services.application
 
-import io.fcomb.api.services.Service
+import io.fcomb.api.services._
 import io.fcomb.json._
 import io.fcomb.request._
 import io.fcomb.response._
@@ -12,7 +12,7 @@ import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Future, ExecutionContext}
 import scalaz._
 
 object ApplicationService extends Service {
@@ -57,5 +57,67 @@ object ApplicationService extends Service {
           StatusCodes.OK
         )
       }
+    }
+
+  def stop(id: Long)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    checkOwner(id) {
+      completeWithoutContent(ApplicationManager.stop(id))
+    }
+  }
+
+  def start(id: Long)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    checkOwner(id) {
+      completeWithoutContent(ApplicationManager.start(id))
+    }
+  }
+
+  def terminate(id: Long)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    checkOwner(id) {
+      completeWithoutContent(ApplicationManager.terminate(id))
+    }
+  }
+
+  def redeploy(id: Long)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    checkOwner(id) {
+      completeWithoutContent(ApplicationManager.redeploy(id))
+    }
+  }
+
+  def scale(id: Long)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    checkOwner(id) {
+      completeWithoutContent(ApplicationManager.scale(id, ???))
+    }
+  }
+
+  private def checkOwner(id: Long)(f: ⇒ ServiceResult)(
+    implicit
+    ctx: ServiceContext,
+    ec:  ExecutionContext
+  ) =
+    authorizeUser { user ⇒
+      complete(PApplication.isOwner(user.getId, id).map {
+        case true  ⇒ f
+        case false ⇒ completeNotFound()
+      })
     }
 }

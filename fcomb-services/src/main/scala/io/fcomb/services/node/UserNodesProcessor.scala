@@ -92,7 +92,7 @@ class UserNodesProcessor(timeout: Duration)(implicit mat: Materializer) extends 
 
   case class Initialize(nodes: Seq[MNode])
 
-  case object Stop
+  case object Annihilation
 
   case class Failed(e: Throwable)
 
@@ -114,7 +114,7 @@ class UserNodesProcessor(timeout: Duration)(implicit mat: Materializer) extends 
     PNode.findAllAvailableByUserId(userId).onComplete {
       case Success(nodes) ⇒
         self ! Initialize(nodes)
-      case Failure(e)     ⇒ handleThrowable(e)
+      case Failure(e) ⇒ handleThrowable(e)
     }
   }
 
@@ -136,8 +136,8 @@ class UserNodesProcessor(timeout: Duration)(implicit mat: Materializer) extends 
   }
 
   def failed(e: Throwable): Receive = {
-    case _: Entity ⇒ sender ! Status.Failure(e)
-    case Stop      ⇒ annihilation()
+    case _: Entity    ⇒ sender ! Status.Failure(e)
+    case Annihilation ⇒ annihilation()
   }
 
   def handleThrowable(e: Throwable): Unit = {
@@ -146,7 +146,7 @@ class UserNodesProcessor(timeout: Duration)(implicit mat: Materializer) extends 
       case Failed(e) ⇒
         context.become(failed(e), false)
         unstashAll()
-        self ! Stop
+        self ! Annihilation
     }, false)
     self ! Failed(e)
   }

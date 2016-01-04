@@ -98,7 +98,7 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
 
   case class Initialize(cert: X509Certificate, key: PrivateKey, certificateId: Long)
 
-  case object Stop
+  case object Annihilation
 
   case class Failed(e: Throwable)
 
@@ -132,8 +132,8 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
   }
 
   def failed(e: Throwable): Receive = {
-    case _: Entity ⇒ sender ! Status.Failure(e)
-    case Stop      ⇒ annihilation()
+    case _: Entity    ⇒ sender ! Status.Failure(e)
+    case Annihilation ⇒ annihilation()
   }
 
   def handleThrowable(e: Throwable): Unit = {
@@ -142,7 +142,7 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
       case Failed(e) ⇒
         context.become(failed(e), false)
         unstashAll()
-        self ! Stop
+        self ! Annihilation
     }, false)
     self ! Failed(e)
   }

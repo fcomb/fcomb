@@ -114,6 +114,17 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
       .update(state)
   }
 
+  private val isOwnerCompiled = Compiled {
+    (userId: Rep[Long], id: Rep[Long]) ⇒
+      table.filter { q ⇒
+        q.id === id && q.userId === userId
+      }.exists
+  }
+
+  def isOwner(userId: Long, id: Long) = db.run {
+    isOwnerCompiled(userId, id).result
+  }
+
   private val findAllByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
     table.filter(_.userId === userId)
   }

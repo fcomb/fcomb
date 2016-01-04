@@ -50,6 +50,14 @@ object ApplicationProcessor {
 
   case object ApplicationStart extends Entity
 
+  case object ApplicationStop extends Entity
+
+  case object ApplicationRedeploy extends Entity
+
+  case class ApplicationScale(count: Int) extends Entity
+
+  case object ApplicationTerminate extends Entity
+
   case class NewContainerState(
     id:    Long,
     state: ContainerState.ContainerState
@@ -62,29 +70,55 @@ object ApplicationProcessor {
 
   private var actorRef: ActorRef = _
 
+  private def askRef[T](appId: Long, entity: Entity)(
+    implicit
+    timeout: Timeout = Timeout(5.minutes)
+  ): Future[T] =
+    Option(actorRef) match {
+      case Some(ref) ⇒
+        ask(ref, EntityEnvelope(appId, entity)).mapTo
+      case None ⇒ Future.failed(EmptyActorRefException)
+    }
+
+  private def tellRef(appId: Long, entity: Entity) =
+    Option(actorRef).map(_ ! EntityEnvelope(appId, entity))
+
   def start(appId: Long)(
     implicit
     timeout: Timeout = Timeout(5.minutes)
-  ): Future[Unit] = {
-    Option(actorRef) match {
-      case Some(ref) ⇒
-        ask(ref, EntityEnvelope(appId, ApplicationStart))
-          .mapTo[Unit]
-      case None ⇒ Future.failed(EmptyActorRefException)
-    }
-  }
+  ): Future[Unit] =
+    askRef(appId, ApplicationStart)
+
+  def stop(appId: Long)(
+    implicit
+    timeout: Timeout = Timeout(5.minutes)
+  ): Future[Unit] =
+    askRef(appId, ApplicationStop)
+
+  def terminate(appId: Long)(
+    implicit
+    timeout: Timeout = Timeout(5.minutes)
+  ): Future[Unit] =
+    askRef(appId, ApplicationTerminate)
+
+  def redeploy(appId: Long)(
+    implicit
+    timeout: Timeout = Timeout(5.minutes)
+  ): Future[Unit] =
+    askRef(appId, ApplicationRedeploy)
+
+  def scale(appId: Long, count: Int)(
+    implicit
+    timeout: Timeout = Timeout(5.minutes)
+  ): Future[Unit] =
+    askRef(appId, ApplicationScale(count))
 
   def newContainerState(
     appId:       Long,
     containerId: Long,
     state:       ContainerState.ContainerState
-  ) = {
-    Option(actorRef) match {
-      case Some(ref) ⇒
-        ref ! EntityEnvelope(appId, NewContainerState(containerId, state))
-      case None ⇒ Future.failed(EmptyActorRefException)
-    }
-  }
+  ) =
+    tellRef(appId, NewContainerState(containerId, state))
 }
 
 private[this] object ApplicationProcessorMessages {
@@ -105,7 +139,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   case class Initialize(app: MApplication)
 
-  case object Stop
+  case object Annihilation
 
   case class Failed(e: Throwable)
 
@@ -138,6 +172,14 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationStart ⇒
         log.info(s"start application: $app")
         UserNodesProcessor.createContainers(app)
+      case ApplicationStop ⇒
+        log.info(s"stop application: $app")
+      case ApplicationRedeploy ⇒
+        log.info(s"redeploy application: $app")
+      case ApplicationScale(count) ⇒
+        log.info(s"scale application: $app")
+      case ApplicationTerminate ⇒
+        log.info(s"terminate application: $app")
       case NewContainerState(containerId, containerState) ⇒
         println(s"NewContainerState($containerId, $containerState)")
         PApplication.updateState(appId, ApplicationState.Running)
@@ -146,8 +188,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def failed(e: Throwable): Receive = {
-    case _: Entity ⇒ sender ! Status.Failure(e)
-    case Stop      ⇒ annihilation()
+    case _: Entity    ⇒ sender ! Status.Failure(e)
+    case Annihilation ⇒ annihilation()
   }
 
   def handleThrowable(e: Throwable): Unit = {
@@ -156,7 +198,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case Failed(e) ⇒
         context.become(failed(e), false)
         unstashAll()
-        self ! Stop
+        self ! Annihilation
     }, false)
     self ! Failed(e)
   }

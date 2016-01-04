@@ -122,7 +122,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     certs:     DockerApiCerts
   )
 
-  case object Stop
+  case object Annihilation
 
   case class Failed(e: Throwable)
 
@@ -277,8 +277,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   }
 
   def failed(e: Throwable): Receive = {
-    case _: Entity ⇒ sender ! Status.Failure(e)
-    case Stop      ⇒ annihilation()
+    case _: Entity    ⇒ sender ! Status.Failure(e)
+    case Annihilation ⇒ annihilation()
   }
 
   def handleThrowable(e: Throwable): Unit = {
@@ -287,7 +287,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       case Failed(e) ⇒
         context.become(failed(e), false)
         unstashAll()
-        self ! Stop
+        self ! Annihilation
     }, false)
     self ! Failed(e)
   }
