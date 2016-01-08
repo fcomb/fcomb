@@ -17,7 +17,7 @@ import akka.stream.Materializer
 import akka.cluster.sharding._
 import akka.pattern.{after, ask, pipe}
 import akka.util.Timeout
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{Future, Promise, ExecutionContext}
 import scala.collection.mutable.{HashSet, LongMap}
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
@@ -53,7 +53,18 @@ object NodeProcessor {
     ref
   }
 
+  def initialize()(
+    implicit
+    ec: ExecutionContext
+  ) =
+    // TODO: only with avaialable state
+    PNode.all().map(_.foreach { node ⇒
+      actorRef ! EntityEnvelope(node.getId, WakeUp)
+    })
+
   sealed trait Entity
+
+  case object WakeUp extends Entity
 
   case class RegisterNode(ip: InetAddress) extends Entity
 
@@ -109,7 +120,7 @@ object NodeProcessor {
 
   def stopContainer(nodeId: Long, containerId: Long)(
     implicit
-    timeout: Timeout = Timeout(10.minutes)
+    timeout: Timeout = Timeout(1.minute)
   ): Future[Unit] =
     askRef[Unit](nodeId, StopContainer(containerId), timeout)
 }
@@ -120,6 +131,8 @@ private[this] object NodeProcessorMessages {
   case object DockerPing extends NodeProcessorMessage
 
   case class AppendContainer(container: MContainer) extends NodeProcessorMessage
+
+  case class UpdateContainer(container: MContainer) extends NodeProcessorMessage
 }
 
 class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
@@ -224,12 +237,17 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         stopContainer(state, containerId)
       case TerminateContainer(containerId) ⇒
         terminateContainer(state, containerId)
+      case WakeUp ⇒
+        log.debug(s"awake node#$nodeId")
     }
     case cmd: NodeProcessorMessage ⇒ cmd match {
       case DockerPing ⇒
         state.apiClient.ping().onComplete(println)
       case AppendContainer(container) ⇒
         println(s"append container: $container")
+        containersMap += (container.getId(), container)
+      case UpdateContainer(container) =>
+        println(s"update container: $container")
         containersMap += (container.getId(), container)
     }
     case ReceiveTimeout ⇒ annihilation()
@@ -299,27 +317,51 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         nodeId = nodeId,
         name = s"${app.name}-1"
       )
+      // TODO
+      _ = self ! AppendContainer(container)
+      _ = ApplicationProcessor.newContainer(container)
+
       // TODO: parse image `tag`
       // TODO: cache this slow action
       // _ ← state.apiClient.imagePull(app.image.name, Some("latest"))
       //   .flatMap(_.runForeach(println)) // TODO: handle result through fold and return Future
       res ← state.apiClient.containerCreate(config, Some(container.dockerName))
-      _ ← PContainer.updateAsStarting(container.getId, res.id)
-      _ ← state.apiClient.containerStart(container.dockerName)
-      _ ← PContainer.updateState(container.getId, ContainerState.Running)
-    } yield {
-      val cc = container.copy(
-        state = ContainerState.Running,
-        dockerId = Some(res.id)
-      )
-      ApplicationProcessor.newContainerState(
-        cc.applicationId,
-        cc.getId,
-        cc.state
-      )
-      self ! AppendContainer(cc)
-      cc
-    }).onComplete(println)
+      sc ← updateContainerState(container, ContainerState.Starting, Some(res.id))
+
+      _ ← state.apiClient.containerStart(sc.dockerName)
+      rc ← updateContainerState(sc, ContainerState.Running)
+    } yield rc).onComplete(println)
+  }
+
+  def updateContainerState(
+    container: MContainer,
+    state:     ContainerState.ContainerState,
+    dockerId:  Option[String]                = None
+  ): Future[MContainer] = {
+    def sendUpdate(c: MContainer) = {
+      self ! UpdateContainer(c)
+      ApplicationProcessor.containerChangedState(c)
+      c
+    }
+
+    val timeNow = ZonedDateTime.now
+    if (dockerId.isEmpty)
+      PContainer.updateState(container.getId, state, timeNow)
+        .map { _ ⇒
+          sendUpdate(container.copy(
+            state = state,
+            updatedAt = timeNow
+          ))
+        }
+    else
+      PContainer.updateStateAndDockerId(container.getId, state, dockerId, timeNow)
+        .map { _ ⇒
+          sendUpdate(container.copy(
+            state = state,
+            dockerId = dockerId,
+            updatedAt = timeNow
+          ))
+        }
   }
 
   def startContainer(state: State, containerId: Long) = {
@@ -337,7 +379,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     // TODO: DRY
     containersMap.get(containerId).flatMap(_.dockerId) match {
       case Some(dockerId) ⇒
-        state.apiClient.containerStop(dockerId, 10.minutes)
+        state.apiClient.containerStop(dockerId, 30.seconds)
           .pipeTo(sender())
           .onComplete(println)
       case None ⇒ ???

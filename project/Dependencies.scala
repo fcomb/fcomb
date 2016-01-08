@@ -148,8 +148,8 @@ object Dependencies {
   object Test {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.5" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.6.6" % "test"
-    val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.5" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7" % "test"
+    val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
   }
 
   import Compile._, Test._

@@ -8,3 +8,7 @@
 
 * Check `available` node IP address for uniqueness and resolve conflicts
 * Add container messages queue for sequential command applying
+
+## Remote
+
+* Guaranteed delivery of container `state` changes

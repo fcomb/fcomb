@@ -46,19 +46,16 @@ object Main extends App {
       NodeProcessor.startRegion(25.minutes)
       ApplicationProcessor.startRegion(1.hour)
       UserNodesProcessor.startRegion(1.day)
-    // HttpProxy.start(config)
-    // sys.actorOf(CertificateProcessor.props(), name = CertificateProcessor.actorName)
-    // import scala.concurrent.duration._
-    // import akka.pattern.ask
-    // import akka.util.Timeout
-    // import CertificateProcessor._
-    // val certProc = CertificateProcessor.startRegion(5.minutes)
-    // implicit val t = Timeout(5.seconds)
-    // (1 to 2).foreach { i ⇒
-    //   (certProc.ref ? EntityEnvelope(1, GenerateUserCertificates)).map { res ⇒
-    //     println(s"$i#res: $res")
-    //   }
-    // }
+
+      (for {
+        _ ← ApplicationProcessor.initialize()
+        _ ← NodeProcessor.initialize()
+      } yield ()).onComplete {
+        case Success(_) ⇒
+          logger.info("Initialization has been completed")
+        case Failure(e) ⇒
+          logger.error(e.getMessage(), e.getCause())
+      }
     case Failure(e) ⇒
       logger.error(e.getMessage(), e.getCause())
       try {

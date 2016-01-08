@@ -20,11 +20,12 @@ class ContainerTable(tag: Tag) extends Table[MContainer](tag, "containers") with
   def name = column[String]("name")
   def dockerId = column[Option[String]]("docker_id")
   def createdAt = column[ZonedDateTime]("created_at")
+  def updatedAt = column[ZonedDateTime]("updated_at")
   def terminatedAt = column[Option[ZonedDateTime]]("terminated_at")
 
   def * =
     (id, state, userId, applicationId, nodeId, name,
-      dockerId, createdAt, terminatedAt) <>
+      dockerId, createdAt, updatedAt, terminatedAt) <>
       ((MContainer.apply _).tupled, MContainer.unapply)
 }
 
@@ -39,17 +40,20 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
   )(
     implicit
     ec: ExecutionContext
-  ): Future[ValidationModel] =
+  ): Future[ValidationModel] = {
+    val timeNow = ZonedDateTime.now
     create(MContainer(
       state = ContainerState.Initializing,
       userId = userId,
       applicationId = applicationId,
       nodeId = nodeId,
       name = name,
-      createdAt = ZonedDateTime.now
+      createdAt = timeNow,
+      updatedAt = timeNow
     ))
+  }
 
-  private val findAllByApplicationIdCompiled = Compiled { applicationId: Rep[Long] =>
+  private val findAllByApplicationIdCompiled = Compiled { applicationId: Rep[Long] ⇒
     table.filter(_.applicationId === applicationId)
   }
 
@@ -57,7 +61,7 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     findAllByApplicationIdCompiled(applicationId).result
   }
 
-  private val findAllByNodeIdCompiled = Compiled { nodeId: Rep[Long] =>
+  private val findAllByNodeIdCompiled = Compiled { nodeId: Rep[Long] ⇒
     table.filter(_.nodeId === nodeId)
   }
 
@@ -65,16 +69,25 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     findAllByNodeIdCompiled(nodeId).result
   }
 
-  def updateState(id: Long, state: ContainerState.ContainerState) = db.run {
+  def updateState(
+    id:        Long,
+    state:     ContainerState.ContainerState,
+    updatedAt: ZonedDateTime
+  ) = db.run {
     table.filter(_.id === id)
-      .map(_.state)
-      .update(state)
+      .map(t ⇒ (t.state, t.updatedAt))
+      .update((state, updatedAt))
   }
 
-  def updateAsStarting(id: Long, dockerId: String) = db.run {
+  def updateStateAndDockerId(
+    id:        Long,
+    state:     ContainerState.ContainerState,
+    dockerId:  Option[String],
+    updatedAt: ZonedDateTime
+  ) = db.run {
     table.filter(_.id === id)
-      .map(t => (t.state, t.dockerId))
-      .update(ContainerState.Starting, Some(dockerId))
+      .map(t ⇒ (t.state, t.dockerId, t.updatedAt))
+      .update((state, dockerId, updatedAt))
   }
 
   // private val uniqueTitleCompiled = Compiled {

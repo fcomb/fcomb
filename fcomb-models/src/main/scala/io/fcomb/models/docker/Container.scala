@@ -15,17 +15,6 @@ object ContainerState extends Enumeration {
   val Terminated = Value("terminated")
 }
 
-// sealed trait Container {
-//   val id: Option[Long]
-//   val state: ContainerState.ContainerState
-//   val userId: Long
-//   val applicationId: Long
-//   val nodeId: Long
-//   val name: String
-//   val createdAt: ZonedDateTime
-//   val terminatedAt: Option[ZonedDateTime]
-// }
-
 case class Container(
     id:            Option[Long]                  = None,
     state:         ContainerState.ContainerState,
@@ -35,8 +24,9 @@ case class Container(
     name:          String,
     dockerId:      Option[String]                = None,
     createdAt:     ZonedDateTime,
+    updatedAt:     ZonedDateTime,
     terminatedAt:  Option[ZonedDateTime]         = None
-) /*extends Container*/ extends ModelWithAutoLongPk {
+) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 
   def dockerName() = s"$name.${getId()}"
