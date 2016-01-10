@@ -22,6 +22,7 @@ case class Container(
     applicationId: Long,
     nodeId:        Option[Long],
     name:          String,
+    number:        Int,
     dockerId:      Option[String]                = None,
     createdAt:     ZonedDateTime,
     updatedAt:     ZonedDateTime,
@@ -30,4 +31,8 @@ case class Container(
   def withPk(id: Long) = this.copy(id = Some(id))
 
   def dockerName() = s"$name.${getId()}"
+
+  def isTerminated() =
+    state == ContainerState.Terminated ||
+      state == ContainerState.Terminating
 }

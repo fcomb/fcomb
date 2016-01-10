@@ -124,6 +124,15 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
       .update(state)
   }
 
+  def updateScaleStrategyNumberOfContainers(
+    id: Long,
+    numberOfContainers: Int
+  ) = db.run {
+    table.filter(_.id === id)
+      .map(_.ssNumberOfContainers)
+      .update(numberOfContainers)
+  }
+
   private val isOwnerCompiled = Compiled {
     (userId: Rep[Long], id: Rep[Long]) ⇒
       table.filter { q ⇒

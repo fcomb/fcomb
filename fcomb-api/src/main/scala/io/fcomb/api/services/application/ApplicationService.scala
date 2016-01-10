@@ -105,7 +105,8 @@ object ApplicationService extends Service {
     mat: Materializer
   ) = action { implicit ctx ⇒
     checkOwner(id) {
-      completeWithoutContent(ApplicationManager.scale(id, ???))
+      // TODO
+      completeWithoutContent(ApplicationManager.scale(id, 5))
     }
   }
 

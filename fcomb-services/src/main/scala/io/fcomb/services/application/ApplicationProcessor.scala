@@ -129,7 +129,7 @@ object ApplicationProcessor {
     implicit
     timeout: Timeout = Timeout(30.seconds)
   ): Future[Unit] =
-    askRef(appId, ApplicationScale(count), timeout)
+    askRef[Unit](appId, ApplicationScale(count), timeout)
 
   def containerChangedState(container: MContainer) =
     tellRef(
@@ -197,13 +197,14 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
         log.info(s"start application: ${state.app}")
-        if (state.app.state == ApplicationState.Created)
-          UserNodesProcessor.createContainers(state.app)
-        else {
-          Future.sequence(state.containersMap.values.map { c ⇒
-            NodeProcessor.startContainer(c.nodeId.get, c.getId)
-          }).map(_ ⇒ ()).pipeTo(sender())
-        }
+        // if (state.app.state == ApplicationState.Created)
+        //   UserNodesProcessor.createContainers(state.app)
+        // else {
+        //   Future.sequence(state.containersMap.values.map { c ⇒
+        //     NodeProcessor.startContainer(c.nodeId.get, c.getId)
+        //   }).map(_ ⇒ ()).pipeTo(sender())
+        // }
+        scale(state)
       case ApplicationStop ⇒
         log.info(s"stop application: ${state.app}")
         Future.sequence(state.containersMap.values.map { c ⇒
@@ -214,7 +215,20 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         sender().!(())
       case ApplicationScale(count) ⇒
         log.info(s"scale application: ${state.app}")
+        // TODO {
+
+        val total = state.app.scaleStrategy.numberOfContainers + count
+        PApplication.updateScaleStrategyNumberOfContainers(appId, total)
+        val newState = state.copy(app = state.app.copy(
+          scaleStrategy = state.app.scaleStrategy.copy(
+            numberOfContainers = total
+          )
+        ))
+        scale(newState)
+        context.become(initialized(newState), false)
         sender().!(())
+
+      // }
       case ApplicationTerminate ⇒
         log.info(s"terminate application: ${state.app}")
         sender().!(())
@@ -243,7 +257,22 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def scale(state: State) = {
-    
+    // default emptiest node strategy
+    val ss = state.app.scaleStrategy
+    val availableContainers = state.containersMap.values.toList
+      .filterNot(_.isTerminated)
+      .sortBy(_.name)
+    println(s"availableContainers: $availableContainers, ${availableContainers.length} < ${ss.numberOfContainers}")
+    if (availableContainers.length < ss.numberOfContainers) {
+      val existsIds = availableContainers.map(_.number)
+      val newIds = (1 to ss.numberOfContainers).toList.diff(existsIds)
+      PContainer.batchCreate(
+        userId = state.app.userId,
+        applicationId = state.app.getId,
+        name = state.app.name,
+        numbers = newIds
+      )
+    }
   }
 
   def failed(e: Throwable): Receive = {

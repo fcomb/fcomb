@@ -18,6 +18,7 @@ class ContainerTable(tag: Tag) extends Table[MContainer](tag, "containers") with
   def applicationId = column[Long]("application_id")
   def nodeId = column[Option[Long]]("node_id")
   def name = column[String]("name")
+  def number = column[Int]("number")
   def dockerId = column[Option[String]]("docker_id")
   def createdAt = column[ZonedDateTime]("created_at")
   def updatedAt = column[ZonedDateTime]("updated_at")
@@ -25,7 +26,7 @@ class ContainerTable(tag: Tag) extends Table[MContainer](tag, "containers") with
 
   def * =
     (id, state, userId, applicationId, nodeId, name,
-      dockerId, createdAt, updatedAt, terminatedAt) <>
+      number, dockerId, createdAt, updatedAt, terminatedAt) <>
       ((MContainer.apply _).tupled, MContainer.unapply)
 }
 
@@ -35,8 +36,8 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
   def create(
     userId:        Long,
     applicationId: Long,
-    nodeId:        Long,
-    name:          String
+    name:          String,
+    number:        Int
   )(
     implicit
     ec: ExecutionContext
@@ -46,11 +47,37 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
       state = ContainerState.Initializing,
       userId = userId,
       applicationId = applicationId,
-      nodeId = Some(nodeId),
-      name = name,
+      nodeId = None,
+      name = s"$name-$number",
+      number = number,
       createdAt = timeNow,
       updatedAt = timeNow
     ))
+  }
+
+  def batchCreate(
+    userId:        Long,
+    applicationId: Long,
+    name:          String,
+    numbers:       List[Int]
+  )(
+    implicit
+    ec: ExecutionContext
+  ): Future[Seq[MContainer]] = {
+    val timeNow = ZonedDateTime.now
+    val containers = numbers.map { number ⇒
+      MContainer(
+        state = ContainerState.Initializing,
+        userId = userId,
+        applicationId = applicationId,
+        nodeId = None,
+        name = s"$name-$number",
+        number = number,
+        createdAt = timeNow,
+        updatedAt = timeNow
+      )
+    }
+    db.run(createDBIO(containers))
   }
 
   private val findAllByApplicationIdCompiled = Compiled { applicationId: Rep[Long] ⇒

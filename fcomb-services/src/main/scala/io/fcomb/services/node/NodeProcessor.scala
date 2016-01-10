@@ -314,8 +314,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       scalaz.Success(container) ← PContainer.create(
         userId = app.userId,
         applicationId = app.getId,
-        nodeId = nodeId,
-        name = s"${app.name}-1"
+        name = s"${app.name}-1",
+        number = 1
       )
       // TODO
       _ = self ! AppendContainer(container)
