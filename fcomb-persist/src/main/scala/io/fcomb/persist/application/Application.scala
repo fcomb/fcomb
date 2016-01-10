@@ -3,7 +3,7 @@ package io.fcomb.persist.application
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.application.{ApplicationState, Application ⇒ MApplication, _}
+import io.fcomb.models.application.{ApplicationState, ScaleStrategy, ScaleStrategyKind, Application ⇒ MApplication, _}
 import io.fcomb.request
 import io.fcomb.response
 import io.fcomb.persist._
@@ -37,13 +37,18 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
   def ddoMemoryLimit = column[Option[Long]]("ddo_memory_limit")
   def ddoCpuShares = column[Option[Long]]("ddo_cpu_shares")
 
+  // scale strategy
+  def ssKind = column[ScaleStrategyKind.ScaleStrategyKind]("ss_kind")
+  def ssNumberOfContainers = column[Int]("ss_number_of_containers")
+
   def * =
     (id, userId, state, name, createdAt, updatedAt, terminatedAt,
       // docker image tuple
       (diName, diTag, diRegistry),
       // docker deploy options tuple
       (ddoPorts, ddoIsAutoRestart, ddoIsAutoDestroy, ddoIsPrivileged,
-        ddoCommand, ddoEntrypoint, ddoMemoryLimit, ddoCpuShares)) <>
+        ddoCommand, ddoEntrypoint, ddoMemoryLimit, ddoCpuShares),
+        (ssKind, ssNumberOfContainers)) <>
         ((apply2 _).tupled, unapply2)
 
   def apply2(
@@ -55,13 +60,15 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
     updatedAt:    ZonedDateTime,
     terminatedAt: Option[ZonedDateTime],
     diTuple:      (String, Option[String], Option[String]),
-    ddoTuple:     (JsValue, Boolean, Boolean, Boolean, Option[String], Option[String], Option[Long], Option[Long])
+    ddoTuple:     (JsValue, Boolean, Boolean, Boolean, Option[String], Option[String], Option[Long], Option[Long]),
+    ssTuple:      (ScaleStrategyKind.ScaleStrategyKind, Int)
   ) = {
     val image = DockerImage.tupled(diTuple)
     val ports = ddoTuple._1.convertTo[Set[DockerDeployPort]] // TODO: handle serialize errors and case class changes
     val deployOptions = DockerDeployOptions.tupled(
       ddoTuple.copy(_1 = ports)
     )
+    val scaleStrategy = ScaleStrategy.tupled(ssTuple)
     MApplication(
       id = id,
       userId = userId,
@@ -69,6 +76,7 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
       name = name,
       image = image,
       deployOptions = deployOptions,
+      scaleStrategy = scaleStrategy,
       createdAt = createdAt,
       updatedAt = updatedAt,
       terminatedAt = terminatedAt
@@ -84,7 +92,8 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
     Some((
       a.id, a.userId, a.state, a.name, a.createdAt, a.updatedAt, a.terminatedAt,
       DockerImage.unapply(a.image).get,
-      deployOptionsTuple
+      deployOptionsTuple,
+      ScaleStrategy.unapply(a.scaleStrategy).get
     ))
   }
 }
@@ -103,6 +112,7 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
       name = req.name,
       image = req.image,
       deployOptions = req.deployOptions,
+      scaleStrategy = req.scaleStrategy,
       createdAt = timeNow,
       updatedAt = timeNow
     ))

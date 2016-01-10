@@ -16,7 +16,7 @@ class ContainerTable(tag: Tag) extends Table[MContainer](tag, "containers") with
   def state = column[ContainerState.ContainerState]("state")
   def userId = column[Long]("user_id")
   def applicationId = column[Long]("application_id")
-  def nodeId = column[Long]("node_id")
+  def nodeId = column[Option[Long]]("node_id")
   def name = column[String]("name")
   def dockerId = column[Option[String]]("docker_id")
   def createdAt = column[ZonedDateTime]("created_at")
@@ -46,7 +46,7 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
       state = ContainerState.Initializing,
       userId = userId,
       applicationId = applicationId,
-      nodeId = nodeId,
+      nodeId = Some(nodeId),
       name = name,
       createdAt = timeNow,
       updatedAt = timeNow

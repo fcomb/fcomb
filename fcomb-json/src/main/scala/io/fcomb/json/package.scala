@@ -165,14 +165,20 @@ package object json {
   implicit val dockerDeployOptionsJsonProtocol =
     jsonFormat8(DockerDeployOptions)
 
+  implicit val scaleStrategyKindJsonProtocol =
+    createStringEnumJsonFormat(ScaleStrategyKind)
+
+  implicit val scaleStrategyJsonProtocol =
+    jsonFormat2(ScaleStrategy)
+
   implicit val applicationRequestJsonProtocol =
-    jsonFormat3(ApplicationRequest)
+    jsonFormat4(ApplicationRequest)
 
   implicit val applicationStateJsonProtocol =
     createStringEnumJsonFormat(ApplicationState)
 
   implicit val applicationJsonProtocol =
-    jsonFormat9(Application)
+    jsonFormat10(Application)
 
   implicit val userTokenJsonProtocol = jsonFormat6(UserToken)
 

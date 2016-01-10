@@ -20,7 +20,7 @@ case class Container(
     state:         ContainerState.ContainerState,
     userId:        Long,
     applicationId: Long,
-    nodeId:        Long,
+    nodeId:        Option[Long],
     name:          String,
     dockerId:      Option[String]                = None,
     createdAt:     ZonedDateTime,

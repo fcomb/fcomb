@@ -26,6 +26,7 @@ case class Application(
     name:          String,
     image:         DockerImage,
     deployOptions: DockerDeployOptions,
+    scaleStrategy: ScaleStrategy,
     createdAt:     ZonedDateTime,
     updatedAt:     ZonedDateTime,
     terminatedAt:  Option[ZonedDateTime]             = None
@@ -76,3 +77,17 @@ case class DockerDeployOptions(
   memoryLimit: Option[Long],
   cpuShares:   Option[Long]
 ) extends ContainerDeployOptions
+
+object ScaleStrategyKind extends Enumeration {
+  type ScaleStrategyKind = Value
+
+  val EveryNode = Value("every_node")
+  val EmptiestNode = Value("emptiest_node")
+  val HighAvailability = Value("high_availability")
+}
+
+@SerialVersionUID(1L)
+case class ScaleStrategy(
+  kind: ScaleStrategyKind.ScaleStrategyKind,
+  numberOfContainers: Int
+)

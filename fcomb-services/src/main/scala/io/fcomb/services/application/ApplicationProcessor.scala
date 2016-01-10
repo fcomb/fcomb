@@ -13,7 +13,7 @@ import akka.cluster.sharding._
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise, ExecutionContext}
-import scala.collection.mutable.{HashSet, LongMap}
+import scala.collection.immutable.LongMap
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
 import java.time.ZonedDateTime
@@ -157,9 +157,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   val appId = self.path.name.toLong
 
-  private val containersMap = new LongMap[MContainer]()
+  case class State(app: MApplication, containersMap: LongMap[MContainer])
 
-  case class Initialize(app: MApplication, containers: Seq[MContainer])
+  case class Initialize(state: State)
 
   case object Annihilation
 
@@ -171,9 +171,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       stash()
       initializing()
       context.become({
-        case Initialize(app, containers) ⇒
-          containersMap ++= containers.map(c ⇒ (c.getId, c))
-          context.become(initialized(app), false)
+        case Initialize(state) ⇒
+          context.become(initialized(state), false)
           unstashAll()
         case msg: Entity ⇒
           log.warning(s"stash message: $msg")
@@ -188,51 +187,63 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       containers ← PContainer.findAllByApplicationId(appId)
     } yield (app, containers)).onComplete {
       case Success((app, containers)) ⇒
-        self ! Initialize(app, containers)
+        val seq = containers.map(c ⇒ (c.getId, c))
+        val state = State(app, LongMap(seq: _*))
+        self ! Initialize(state)
       case Failure(e) ⇒ handleThrowable(e)
     }
 
-  def initialized(app: MApplication): Receive = {
+  def initialized(state: State): Receive = {
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
-        log.info(s"start application: $app")
-        // TODO: move into FSM receive
-        if (app.state == ApplicationState.Created)
-          UserNodesProcessor.createContainers(app)
+        log.info(s"start application: ${state.app}")
+        if (state.app.state == ApplicationState.Created)
+          UserNodesProcessor.createContainers(state.app)
         else {
-          Future.sequence(containersMap.values.map { c ⇒
-            NodeProcessor.startContainer(c.nodeId, c.getId)
+          Future.sequence(state.containersMap.values.map { c ⇒
+            NodeProcessor.startContainer(c.nodeId.get, c.getId)
           }).map(_ ⇒ ()).pipeTo(sender())
         }
       case ApplicationStop ⇒
-        log.info(s"stop application: $app")
-        Future.sequence(containersMap.values.map { c ⇒
-          NodeProcessor.stopContainer(c.nodeId, c.getId)
+        log.info(s"stop application: ${state.app}")
+        Future.sequence(state.containersMap.values.map { c ⇒
+          NodeProcessor.stopContainer(c.nodeId.get, c.getId)
         }).map(_ ⇒ ()).pipeTo(sender())
       case ApplicationRedeploy ⇒
-        log.info(s"redeploy application: $app")
+        log.info(s"redeploy application: ${state.app}")
         sender().!(())
       case ApplicationScale(count) ⇒
-        log.info(s"scale application: $app")
+        log.info(s"scale application: ${state.app}")
         sender().!(())
       case ApplicationTerminate ⇒
-        log.info(s"terminate application: $app")
+        log.info(s"terminate application: ${state.app}")
         sender().!(())
       case ContainerChangedState(containerId, containerState) ⇒
         println(s"ContainerChangedState($containerId, $containerState)")
-        val napp = app.copy(state = ApplicationState.Running)
         PApplication.updateState(appId, ApplicationState.Running)
-        containersMap.get(containerId).foreach { c ⇒
-          containersMap += (containerId, c.copy(state = containerState))
+        val containerMap = state.containersMap.get(containerId) match {
+          case Some(c) ⇒
+            state.containersMap + ((containerId, c.copy(state = containerState)))
+          case None ⇒ state.containersMap
         }
-        context.become(initialized(napp), false)
-      case NewContainer(container) =>
+        context.become(initialized(state.copy(
+          app = state.app.copy(state = ApplicationState.Running),
+          containersMap = containerMap
+        )), false)
+      case NewContainer(container) ⇒
         println(s"NewContainer($container)")
-        containersMap += (container.getId, container)
+        context.become(initialized(state.copy(
+          containersMap = state.containersMap + ((container.getId, container))
+        )), false)
       case WakeUp ⇒
         log.debug(s"awake application#$appId")
     }
-    // TODO: case ReceiveTimeout ⇒ annihilation()
+    case ReceiveTimeout if (state.app.state == ApplicationState.Terminated) ⇒
+      annihilation()
+  }
+
+  def scale(state: State) = {
+    
   }
 
   def failed(e: Throwable): Receive = {

@@ -18,7 +18,7 @@ import akka.cluster.sharding._
 import akka.pattern.{after, ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise, ExecutionContext}
-import scala.collection.mutable.{HashSet, LongMap}
+import scala.collection.mutable.LongMap
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
 import java.time.ZonedDateTime
@@ -246,7 +246,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       case AppendContainer(container) ⇒
         println(s"append container: $container")
         containersMap += (container.getId(), container)
-      case UpdateContainer(container) =>
+      case UpdateContainer(container) ⇒
         println(s"update container: $container")
         containersMap += (container.getId(), container)
     }

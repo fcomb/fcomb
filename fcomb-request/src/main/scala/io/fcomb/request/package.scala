@@ -56,6 +56,7 @@ package object request {
   case class ApplicationRequest(
     name:          String,
     image:         models.application.DockerImage,
-    deployOptions: models.application.DockerDeployOptions
+    deployOptions: models.application.DockerDeployOptions,
+    scaleStrategy: models.application.ScaleStrategy
   ) extends ServiceModelRequest
 }
