@@ -161,6 +161,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   case class Initialize(state: State)
 
+  case class UpdateState(state: State)
+
   case object Annihilation
 
   case class Failed(e: Throwable)
@@ -197,7 +199,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationStart ⇒
         log.info(s"start application: ${state.app}")
         context.become({
-          case Initialize(newState) ⇒
+          case UpdateState(newState) ⇒
             log.info(s"newState: $newState")
             context.become(initialized(newState), false)
             unstashAll()
@@ -208,13 +210,13 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
         val replyTo = sender()
         scale(state).flatMap(start).foreach { s ⇒
-          self ! Initialize(s)
+          self ! UpdateState(s)
           replyTo.!(())
         }
       case ApplicationStop ⇒
         log.info(s"stop application: ${state.app}")
         context.become({
-          case Initialize(newState) ⇒
+          case UpdateState(newState) ⇒
             context.become(initialized(newState), false)
             unstashAll()
           case msg: Entity ⇒
@@ -224,7 +226,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
         val replyTo = sender()
         stop(state).foreach { s ⇒
-          self ! Initialize(s)
+          self ! UpdateState(s)
           replyTo.!(())
         }
       case ApplicationRedeploy ⇒
@@ -251,7 +253,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationTerminate ⇒
         log.info(s"terminate application: ${state.app}")
         context.become({
-          case Initialize(newState) ⇒
+          case UpdateState(newState) ⇒
             log.info(s"newState: $newState")
             context.become(initialized(newState), false)
             unstashAll()
@@ -262,7 +264,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
         val replyTo = sender()
         terminate(state).foreach { s ⇒
-          self ! Initialize(s)
+          self ! UpdateState(s)
           replyTo.!(())
         }
       case ContainerChangedState(containerId, containerState) ⇒
@@ -297,10 +299,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     val containers = state.containers.toList
       .filter(_.isPresent())
       .sortBy(_.number)
-    println(s"containers: ${containers}")
-    println(s"availableContainers: $containers, ${containers.length} < ${ss.numberOfContainers}")
     if (containers.length < ss.numberOfContainers) {
-      println("containers.length < ss.numberOfContainers")
       val existsIds = containers.map(_.number)
       val newIds = (1 to ss.numberOfContainers).toList.diff(existsIds)
       for {
@@ -314,17 +313,12 @@ class ApplicationProcessor(timeout: Duration) extends Actor
           UserNodesProcessor.createContainer(c, app.image, app.deployOptions)
         })
         updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
-      } yield {
-        println(s"updatedContainers: $updatedContainers")
-        state.copy(
-          containers = state.containers ++ updatedContainers
-        )
-      }
+      } yield state.copy(
+        containers = state.containers ++ updatedContainers
+      )
     }
     else if (containers.length > ss.numberOfContainers) {
-      println("containers.length > ss.numberOfContainers")
       val terminateContainers = containers.drop(ss.numberOfContainers)
-      println(s"terminateContainers: $terminateContainers")
       val ids = terminateContainers.map(_.getId)
       for {
         _ ← PContainer.updateState(ids, ContainerState.Terminating)
@@ -336,10 +330,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         containers = HashSet(containers.take(ss.numberOfContainers): _*)
       )
     }
-    else {
-      println(s"return same state: $state")
-      Future.successful(state)
-    }
+    else Future.successful(state)
   }
 
   def start(state: State) = {
@@ -424,12 +415,10 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Terminated)
         _ ← PApplication.updateState(appId, ApplicationState.Terminated)
-      } yield {
-        state.copy(
-          app = state.app.copy(state = ApplicationState.Terminated),
-          containers = HashSet.empty
-        )
-      }
+      } yield state.copy(
+        app = state.app.copy(state = ApplicationState.Terminated),
+        containers = HashSet.empty
+      )
     }
   }
 
