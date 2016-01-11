@@ -250,7 +250,21 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       // }
       case ApplicationTerminate ⇒
         log.info(s"terminate application: ${state.app}")
-        sender().!(())
+        context.become({
+          case Initialize(newState) ⇒
+            log.info(s"newState: $newState")
+            context.become(initialized(newState), false)
+            unstashAll()
+          case msg: Entity ⇒
+            log.warning(s"stash message: $msg")
+            stash()
+        }, false)
+
+        val replyTo = sender()
+        terminate(state).foreach { s ⇒
+          self ! Initialize(s)
+          replyTo.!(())
+        }
       case ContainerChangedState(containerId, containerState) ⇒
       // println(s"ContainerChangedState($containerId, $containerState)")
       // PApplication.updateState(appId, ApplicationState.Running)
@@ -384,6 +398,36 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         state.copy(
           app = state.app.copy(state = ApplicationState.Stopped),
           containers = stoppedContainers
+        )
+      }
+    }
+  }
+
+  def terminate(state: State) = {
+    val containers = state.containers.filterNot(_.isTerminated())
+    if (containers.isEmpty) {
+      if (state.app.state == ApplicationState.Terminated)
+        Future.successful(state)
+      else
+        PApplication.updateState(appId, ApplicationState.Terminated).map { _ ⇒
+          state.copy(app = state.app.copy(state = ApplicationState.Terminated))
+        }
+    }
+    else {
+      val ids = containers.map(_.getId)
+      val idsSeq = ids.toSeq
+      for {
+        _ ← PApplication.updateState(appId, ApplicationState.Terminating)
+        _ ← PContainer.updateState(idsSeq, ContainerState.Terminating)
+        _ ← Future.sequence(containers.map { c ⇒
+          NodeProcessor.terminateContainer(c.nodeId.get, c.getId)
+        })
+        _ ← PContainer.updateState(idsSeq, ContainerState.Terminated)
+        _ ← PApplication.updateState(appId, ApplicationState.Terminated)
+      } yield {
+        state.copy(
+          app = state.app.copy(state = ApplicationState.Terminated),
+          containers = HashSet.empty
         )
       }
     }
