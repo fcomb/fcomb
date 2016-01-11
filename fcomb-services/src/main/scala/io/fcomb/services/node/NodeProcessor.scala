@@ -246,8 +246,11 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         else ??? // TODO: stash all messages and update IP address
       case CreateContainer(container, image, deployOptions) ⇒
         println(s"CreateContainer($container, $image, $deployOptions)")
-        createContainer(state, container, image, deployOptions)
-          .pipeTo(sender())
+        val replyTo = sender()
+        createContainer(state, container, image, deployOptions).foreach { c =>
+          self ! AppendContainer(c)
+          replyTo ! c
+        }
       case StartContainer(containerId) ⇒
         startContainer(state, containerId)
       case StopContainer(containerId) ⇒
@@ -343,35 +346,6 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       dockerId = Some(res.id),
       nodeId = Some(nodeId)
     )
-  }
-
-  def startContainer(state: State, container: MContainer) = {
-    for {
-      sc ← updateContainerState(container, ContainerState.Starting)
-      _ ← state.apiClient.containerStart(sc.dockerName)
-      rc ← updateContainerState(sc, ContainerState.Running)
-    } yield rc
-  }
-
-  // TODO
-  def updateContainerState(
-    container: MContainer,
-    state:     ContainerState.ContainerState
-  ): Future[MContainer] = {
-    def sendUpdate(c: MContainer) = {
-      self ! UpdateContainer(c)
-      ApplicationProcessor.containerChangedState(c)
-      c
-    }
-
-    val timeNow = ZonedDateTime.now
-    PContainer.updateState(container.getId, state, timeNow)
-      .map { _ ⇒
-        sendUpdate(container.copy(
-          state = state,
-          updatedAt = timeNow
-        ))
-      }
   }
 
   def startContainer(state: State, containerId: Long) = {

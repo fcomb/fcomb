@@ -10,9 +10,9 @@
   </root>
 
   <logger name="slick" level="INFO" />
-  <logger name="slick.jdbc.JdbcBackend.statement" level="DEBUG" />
-  <logger name="slick.jdbc.StatementInvoker.result" level="DEBUG" />
-  <logger name="slick.compiler.QueryCompilerBenchmark" level="DEBUG" />
+  <!-- <logger name="slick.jdbc.JdbcBackend.statement" level="DEBUG" /> -->
+  <!-- <logger name="slick.jdbc.StatementInvoker.result" level="DEBUG" /> -->
+  <!-- <logger name="slick.compiler.QueryCompilerBenchmark" level="DEBUG" /> -->
 
   <logger name="com.github.dwhjames.awswrap.s3.FutureTransfer" level="INFO" />
   <logger name="scredis" level="INFO" />

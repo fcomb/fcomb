@@ -38,7 +38,7 @@ case class Container(
       state == ContainerState.Terminating
 
   def isPresent() =
-    state != ContainerState.Initializing ||
+    state != ContainerState.Initializing &&
       !isTerminated() &&
       nodeId.nonEmpty &&
       dockerId.nonEmpty

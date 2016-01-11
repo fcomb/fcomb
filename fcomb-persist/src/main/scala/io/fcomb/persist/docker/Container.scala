@@ -59,7 +59,7 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     userId:        Long,
     applicationId: Long,
     name:          String,
-    numbers:       List[Int]
+    numbers:       Seq[Int]
   )(
     implicit
     ec: ExecutionContext
@@ -97,9 +97,10 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
   }
 
   def updateState(
-    ids:   List[Long],
+    ids:   Seq[Long],
     state: ContainerState.ContainerState
   ) = db.run {
+    println(s"updateState $state ids: $ids")
     table.filter(_.id inSetBind ids)
       .map(_.state)
       .update(state)

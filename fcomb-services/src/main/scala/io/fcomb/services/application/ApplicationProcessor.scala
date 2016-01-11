@@ -13,7 +13,7 @@ import akka.cluster.sharding._
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise, ExecutionContext}
-import scala.collection.immutable.LongMap
+import scala.collection.immutable.HashSet
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
 import java.time.ZonedDateTime
@@ -157,10 +157,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   val appId = self.path.name.toLong
 
-  case class State(app: MApplication, containersMap: LongMap[MContainer]) {
-    def containers() =
-      containersMap.values.toList.sortBy(_.number)
-  }
+  case class State(app: MApplication, containers: HashSet[MContainer])
 
   case class Initialize(state: State)
 
@@ -190,8 +187,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       containers ← PContainer.findAllByApplicationId(appId)
     } yield (app, containers)).onComplete {
       case Success((app, containers)) ⇒
-        val seq = containers.map(c ⇒ (c.getId, c))
-        val state = State(app, LongMap(seq: _*))
+        val state = State(app, HashSet(containers: _*))
         self ! Initialize(state)
       case Failure(e) ⇒ handleThrowable(e)
     }
@@ -200,57 +196,78 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
         log.info(s"start application: ${state.app}")
-        // if (state.app.state == ApplicationState.Created)
-        //   UserNodesProcessor.createContainers(state.app)
-        // else {
-        //   Future.sequence(state.containersMap.values.map { c ⇒
-        //     NodeProcessor.startContainer(c.nodeId.get, c.getId)
-        //   }).map(_ ⇒ ()).pipeTo(sender())
-        // }
-        scale(state)
+        context.become({
+          case Initialize(newState) ⇒
+            log.info(s"newState: $newState")
+            context.become(initialized(newState), false)
+            unstashAll()
+          case msg: Entity ⇒
+            log.warning(s"stash message: $msg")
+            stash()
+        }, false)
+
+        val replyTo = sender()
+        scale(state).flatMap(start).foreach { s ⇒
+          self ! Initialize(s)
+          replyTo.!(())
+        }
       case ApplicationStop ⇒
         log.info(s"stop application: ${state.app}")
-        Future.sequence(state.containersMap.values.map { c ⇒
-          NodeProcessor.stopContainer(c.nodeId.get, c.getId)
-        }).map(_ ⇒ ()).pipeTo(sender())
+        context.become({
+          case Initialize(newState) ⇒
+            context.become(initialized(newState), false)
+            unstashAll()
+          case msg: Entity ⇒
+            log.warning(s"stash message: $msg")
+            stash()
+        }, false)
+
+        val replyTo = sender()
+        stop(state).foreach { s ⇒
+          self ! Initialize(s)
+          replyTo.!(())
+        }
       case ApplicationRedeploy ⇒
         log.info(s"redeploy application: ${state.app}")
         sender().!(())
       case ApplicationScale(count) ⇒
         log.info(s"scale application: ${state.app}")
-        // TODO {
+      // TODO {
 
-        val total = state.app.scaleStrategy.numberOfContainers - count
-        PApplication.updateScaleStrategyNumberOfContainers(appId, total)
-        val newState = state.copy(app = state.app.copy(
-          scaleStrategy = state.app.scaleStrategy.copy(
-            numberOfContainers = total
-          )
-        ))
-        scale(newState).pipeTo(sender())
-        context.become(initialized(newState), false)
+      // val total = state.app.scaleStrategy.numberOfContainers - count
+      // PApplication.updateScaleStrategyNumberOfContainers(appId, total)
+      // val newState = state.copy(app = state.app.copy(
+      //   scaleStrategy = state.app.scaleStrategy.copy(
+      //     numberOfContainers = total
+      //   )
+      // ))
+      // val replyTo = sender()
+      // scale(newState).foreach { s ⇒
+      //   context.become(initialized(s), false)
+      //   replyTo.!(())
+      // }
 
       // }
       case ApplicationTerminate ⇒
         log.info(s"terminate application: ${state.app}")
         sender().!(())
       case ContainerChangedState(containerId, containerState) ⇒
-        println(s"ContainerChangedState($containerId, $containerState)")
-        PApplication.updateState(appId, ApplicationState.Running)
-        val containerMap = state.containersMap.get(containerId) match {
-          case Some(c) ⇒
-            state.containersMap + ((containerId, c.copy(state = containerState)))
-          case None ⇒ state.containersMap
-        }
-        context.become(initialized(state.copy(
-          app = state.app.copy(state = ApplicationState.Running),
-          containersMap = containerMap
-        )), false)
-      case NewContainer(container) ⇒
-        println(s"NewContainer($container)")
-        context.become(initialized(state.copy(
-          containersMap = state.containersMap + ((container.getId, container))
-        )), false)
+      // println(s"ContainerChangedState($containerId, $containerState)")
+      // PApplication.updateState(appId, ApplicationState.Running)
+      // val container = state.containers.find(_.getId == containerId) match {
+      //   case Some(c) ⇒
+      //     state.containers + c.copy(state = containerState)
+      //   case None ⇒ state.containers
+      // }
+      // context.become(initialized(state.copy(
+      //   app = state.app.copy(state = ApplicationState.Running),
+      //   containers = container
+      // )), false)
+      case NewContainer(container)                            ⇒
+      // println(s"NewContainer($container)")
+      // context.become(initialized(state.copy(
+      //   containers = state.containers + container
+      // )), false)
       case WakeUp ⇒
         log.debug(s"awake application#$appId")
     }
@@ -259,12 +276,17 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def scale(state: State) = {
+    println(s"scale $state")
     // default emptiest node strategy
     val ss = state.app.scaleStrategy
     val app = state.app
-    val containers = state.containers().filter(_.isPresent())
+    val containers = state.containers.toList
+      .filter(_.isPresent())
+      .sortBy(_.number)
+    println(s"containers: ${containers}")
     println(s"availableContainers: $containers, ${containers.length} < ${ss.numberOfContainers}")
     if (containers.length < ss.numberOfContainers) {
+      println("containers.length < ss.numberOfContainers")
       val existsIds = containers.map(_.number)
       val newIds = (1 to ss.numberOfContainers).toList.diff(existsIds)
       for {
@@ -280,10 +302,13 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
       } yield {
         println(s"updatedContainers: $updatedContainers")
-        updatedContainers
+        state.copy(
+          containers = state.containers ++ updatedContainers
+        )
       }
     }
     else if (containers.length > ss.numberOfContainers) {
+      println("containers.length > ss.numberOfContainers")
       val terminateContainers = containers.drop(ss.numberOfContainers)
       println(s"terminateContainers: $terminateContainers")
       val ids = terminateContainers.map(_.getId)
@@ -293,39 +318,75 @@ class ApplicationProcessor(timeout: Duration) extends Actor
           NodeProcessor.terminateContainer(c.nodeId.get, c.getId)
         })
         _ ← PContainer.updateState(ids, ContainerState.Terminated)
-      } yield containers.take(ss.numberOfContainers)
+      } yield state.copy(
+        containers = HashSet(containers.take(ss.numberOfContainers): _*)
+      )
     }
-    else Future.successful(containers)
+    else {
+      println(s"return same state: $state")
+      Future.successful(state)
+    }
   }
 
   def start(state: State) = {
-    val containers = state.containers().filter(_.isPresent())
-      .filterNot { c ⇒
-        c.state == ContainerState.Starting || c.state == ContainerState.Running
+    println(s"start $state")
+    val containers = state.containers.filter { c ⇒
+      c.isPresent() &&
+        (c.state != ContainerState.Starting && c.state != ContainerState.Running)
+    }
+    if (containers.isEmpty) Future.successful(state)
+    else {
+      val ids = containers.map(_.getId)
+      val idsSeq = ids.toSeq
+      for {
+        _ ← PApplication.updateState(appId, ApplicationState.Starting)
+        _ ← PContainer.updateState(idsSeq, ContainerState.Starting)
+        _ ← Future.sequence(containers.map { c ⇒
+          NodeProcessor.startContainer(c.nodeId.get, c.getId)
+        })
+        _ ← PContainer.updateState(idsSeq, ContainerState.Running)
+        _ ← PApplication.updateState(appId, ApplicationState.Running)
+      } yield {
+        val runningContainers = state.containers.map { c ⇒
+          if (ids.contains(c.getId)) c.copy(state = ContainerState.Running)
+          else c
+        }
+        state.copy(
+          app = state.app.copy(state = ApplicationState.Running),
+          containers = runningContainers
+        )
       }
-    val ids = containers.map(_.getId)
-    for {
-      _ ← PContainer.updateState(ids, ContainerState.Starting)
-      _ ← Future.sequence(containers.map { c ⇒
-        NodeProcessor.startContainer(c.nodeId.get, c.getId)
-      })
-      _ ← PContainer.updateState(ids, ContainerState.Running)
-    } yield containers.map(_.copy(state = ContainerState.Running))
+    }
   }
 
   def stop(state: State) = {
-    val containers = state.containers().filter(_.isPresent())
-      .filterNot { c ⇒
-        c.state == ContainerState.Stopping || c.state == ContainerState.Stopped
+    val containers = state.containers.filter { c ⇒
+      c.isPresent() &&
+        (c.state != ContainerState.Stopping && c.state != ContainerState.Stopped)
+    }
+    if (containers.isEmpty) Future.successful(state)
+    else {
+      val ids = containers.map(_.getId)
+      val idsSeq = ids.toSeq
+      for {
+        _ ← PApplication.updateState(appId, ApplicationState.Stopping)
+        _ ← PContainer.updateState(idsSeq, ContainerState.Stopping)
+        _ ← Future.sequence(containers.map { c ⇒
+          NodeProcessor.stopContainer(c.nodeId.get, c.getId)
+        })
+        _ ← PContainer.updateState(idsSeq, ContainerState.Stopped)
+        _ ← PApplication.updateState(appId, ApplicationState.Stopped)
+      } yield {
+        val stoppedContainers = state.containers.map { c ⇒
+          if (ids.contains(c.getId)) c.copy(state = ContainerState.Stopped)
+          else c
+        }
+        state.copy(
+          app = state.app.copy(state = ApplicationState.Stopped),
+          containers = stoppedContainers
+        )
       }
-    val ids = containers.map(_.getId)
-    for {
-      _ ← PContainer.updateState(ids, ContainerState.Stopping)
-      _ ← Future.sequence(containers.map { c ⇒
-        NodeProcessor.stopContainer(c.nodeId.get, c.getId)
-      })
-      _ ← PContainer.updateState(ids, ContainerState.Stopped)
-    } yield containers.map(_.copy(state = ContainerState.Stopped))
+    }
   }
 
   def failed(e: Throwable): Receive = {
