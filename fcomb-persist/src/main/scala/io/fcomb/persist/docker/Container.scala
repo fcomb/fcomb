@@ -131,18 +131,6 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
       .update((state, updatedAt))
   }
 
-  def updateStateAndNodeIdAndDockerId(
-    id:        Long,
-    state:     ContainerState.ContainerState,
-    nodeId:    Long,
-    dockerId:  String,
-    updatedAt: ZonedDateTime
-  ) = db.run {
-    table.filter(_.id === id)
-      .map(t ⇒ (t.state, t.nodeId, t.dockerId, t.updatedAt))
-      .update((state, Some(nodeId), Some(dockerId), updatedAt))
-  }
-
   // private val uniqueTitleCompiled = Compiled {
   //   (id: Rep[Option[Long]], kind: Rep[DictionaryKind.DictionaryKind], title: Rep[String]) ⇒
   //     notCurrentPkFilter(id).filter { q ⇒

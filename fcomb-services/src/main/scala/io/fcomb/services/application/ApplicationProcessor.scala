@@ -157,7 +157,10 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   val appId = self.path.name.toLong
 
-  case class State(app: MApplication, containersMap: LongMap[MContainer])
+  case class State(app: MApplication, containersMap: LongMap[MContainer]) {
+    def containers() =
+      containersMap.values.toList.sortBy(_.number)
+  }
 
   case class Initialize(state: State)
 
@@ -259,18 +262,16 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     // default emptiest node strategy
     val ss = state.app.scaleStrategy
     val app = state.app
-    val availableContainers = state.containersMap.values.toList
-      .filterNot(_.isTerminated)
-      .sortBy(_.number)
-    println(s"availableContainers: $availableContainers, ${availableContainers.length} < ${ss.numberOfContainers}")
-    if (availableContainers.length < ss.numberOfContainers) {
-      val existsIds = availableContainers.map(_.number)
+    val containers = state.containers().filter(_.isPresent())
+    println(s"availableContainers: $containers, ${containers.length} < ${ss.numberOfContainers}")
+    if (containers.length < ss.numberOfContainers) {
+      val existsIds = containers.map(_.number)
       val newIds = (1 to ss.numberOfContainers).toList.diff(existsIds)
       for {
         containers ← PContainer.batchCreate(
-          userId = state.app.userId,
-          applicationId = state.app.getId,
-          name = state.app.name,
+          userId = app.userId,
+          applicationId = app.getId,
+          name = app.name,
           numbers = newIds
         )
         createdContainers ← Future.sequence(containers.map { c ⇒
@@ -282,19 +283,49 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         updatedContainers
       }
     }
-    else if (availableContainers.length > ss.numberOfContainers) {
-      val terminateContainers = availableContainers.drop(ss.numberOfContainers)
+    else if (containers.length > ss.numberOfContainers) {
+      val terminateContainers = containers.drop(ss.numberOfContainers)
       println(s"terminateContainers: $terminateContainers")
       val ids = terminateContainers.map(_.getId)
       for {
         _ ← PContainer.updateState(ids, ContainerState.Terminating)
-        _ ← Future.sequence(terminateContainers.filter(_.isPresent).map { c ⇒
+        _ ← Future.sequence(terminateContainers.map { c ⇒
           NodeProcessor.terminateContainer(c.nodeId.get, c.getId)
         })
         _ ← PContainer.updateState(ids, ContainerState.Terminated)
-      } yield ()
+      } yield containers.take(ss.numberOfContainers)
     }
-    else Future.successful(())
+    else Future.successful(containers)
+  }
+
+  def start(state: State) = {
+    val containers = state.containers().filter(_.isPresent())
+      .filterNot { c ⇒
+        c.state == ContainerState.Starting || c.state == ContainerState.Running
+      }
+    val ids = containers.map(_.getId)
+    for {
+      _ ← PContainer.updateState(ids, ContainerState.Starting)
+      _ ← Future.sequence(containers.map { c ⇒
+        NodeProcessor.startContainer(c.nodeId.get, c.getId)
+      })
+      _ ← PContainer.updateState(ids, ContainerState.Running)
+    } yield containers.map(_.copy(state = ContainerState.Running))
+  }
+
+  def stop(state: State) = {
+    val containers = state.containers().filter(_.isPresent())
+      .filterNot { c ⇒
+        c.state == ContainerState.Stopping || c.state == ContainerState.Stopped
+      }
+    val ids = containers.map(_.getId)
+    for {
+      _ ← PContainer.updateState(ids, ContainerState.Stopping)
+      _ ← Future.sequence(containers.map { c ⇒
+        NodeProcessor.stopContainer(c.nodeId.get, c.getId)
+      })
+      _ ← PContainer.updateState(ids, ContainerState.Stopped)
+    } yield containers.map(_.copy(state = ContainerState.Stopped))
   }
 
   def failed(e: Throwable): Receive = {
