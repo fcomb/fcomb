@@ -80,6 +80,22 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     db.run(createDBIO(containers))
   }
 
+  def batchPartialUpdate(containers: Seq[MContainer])(
+    implicit
+    ec: ExecutionContext
+  ): Future[Seq[MContainer]] = {
+    def f(container: MContainer) =
+      table.filter(_.id === container.getId)
+        .map(t ⇒ (t.state, t.nodeId, t.dockerId))
+        .update((container.state, container.nodeId, container.dockerId))
+
+    val timeNow = ZonedDateTime.now
+    val updated = containers.map(_.copy(updatedAt = timeNow))
+    db.run {
+      DBIO.seq(updated.map(f): _*).map(_ ⇒ updated)
+    }
+  }
+
   def updateState(
     ids:   List[Long],
     state: ContainerState.ContainerState

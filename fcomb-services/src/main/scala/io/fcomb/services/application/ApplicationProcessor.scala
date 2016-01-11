@@ -276,9 +276,10 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         createdContainers ← Future.sequence(containers.map { c ⇒
           UserNodesProcessor.createContainer(c, app.image, app.deployOptions)
         })
+        updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
       } yield {
-        println(s"createdContainers: $createdContainers")
-        createdContainers
+        println(s"updatedContainers: $updatedContainers")
+        updatedContainers
       }
     }
     else if (availableContainers.length > ss.numberOfContainers) {
