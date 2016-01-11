@@ -7,6 +7,7 @@ object ContainerState extends Enumeration {
   type ContainerState = Value
 
   val Initializing = Value("initializing")
+  val Created = Value("created")
   val Starting = Value("starting")
   val Running = Value("running")
   val Stopping = Value("stopping")
@@ -35,4 +36,10 @@ case class Container(
   def isTerminated() =
     state == ContainerState.Terminated ||
       state == ContainerState.Terminating
+
+  def isPresent() =
+    state != ContainerState.Initializing ||
+      !isTerminated() &&
+      nodeId.nonEmpty &&
+      dockerId.nonEmpty
 }

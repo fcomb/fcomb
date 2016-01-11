@@ -2,9 +2,10 @@ package io.fcomb.services.node
 
 import io.fcomb.services.Exceptions._
 import io.fcomb.services.UserCertificateProcessor
-import io.fcomb.models.application.{Application ⇒ MApplication}
-import io.fcomb.persist.docker.{Container ⇒ PContainer}
+import io.fcomb.models.application.{DockerImage, DockerDeployOptions, Application ⇒ MApplication}
+import io.fcomb.models.docker.{Container ⇒ MContainer}
 import io.fcomb.models.node.{NodeState, Node ⇒ MNode}
+import io.fcomb.persist.docker.{Container ⇒ PContainer}
 import io.fcomb.utils.{Config, Implicits, Random}
 import io.fcomb.crypto.{Certificate, Tls}
 import io.fcomb.persist.node.{Node ⇒ PNode}
@@ -52,7 +53,11 @@ object UserNodesProcessor {
 
   sealed trait Entity
 
-  case class CreateContainer(app: MApplication) extends Entity
+  case class CreateContainer(
+    container:     MContainer,
+    image:         DockerImage,
+    deployOptions: DockerDeployOptions
+  ) extends Entity
 
   def props(timeout: Duration)(implicit mat: Materializer) =
     Props(new UserNodesProcessor(timeout))
@@ -61,15 +66,22 @@ object UserNodesProcessor {
 
   private var actorRef: ActorRef = _
 
-  def createContainers(app: MApplication)(
+  def createContainer(
+    container:     MContainer,
+    image:         DockerImage,
+    deployOptions: DockerDeployOptions
+  )(
     implicit
     timeout: Timeout = Timeout(30.seconds)
-  ): Future[PContainer.ValidationModel] = {
+  ): Future[MContainer] = {
     // TODO: DRY
     Option(actorRef) match {
       case Some(ref) ⇒
-        ask(ref, EntityEnvelope(app.userId, CreateContainer(app)))
-          .mapTo[PContainer.ValidationModel]
+        val entity = EntityEnvelope(
+          container.userId,
+          CreateContainer(container, image, deployOptions)
+        )
+        ask(ref, entity).mapTo[MContainer]
       case None ⇒ Future.failed(EmptyActorRefException)
     }
   }
@@ -120,11 +132,13 @@ class UserNodesProcessor(timeout: Duration)(implicit mat: Materializer) extends 
 
   def initialized(nodes: Seq[MNode]): Receive = {
     case msg: Entity ⇒ msg match {
-      case CreateContainer(app) ⇒
+      case CreateContainer(container, image, deployOptions) ⇒
         // TODO: ask nodes for ability to run this container
+        println(s"nodes: $nodes")
         nodes.headOption match {
           case Some(node) ⇒
-            NodeProcessor.createContainer(node.getId, app)
+            println(s"NodeProcessor.createContainer: ${node.getId}")
+            NodeProcessor.createContainer(node.getId, container, image, deployOptions)
               .pipeTo(sender())
           case None ⇒
             val e = new Throwable("No available nodes for running this container")

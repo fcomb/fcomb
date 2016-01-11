@@ -80,6 +80,15 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     db.run(createDBIO(containers))
   }
 
+  def updateState(
+    ids:   List[Long],
+    state: ContainerState.ContainerState
+  ) = db.run {
+    table.filter(_.id inSetBind ids)
+      .map(_.state)
+      .update(state)
+  }
+
   private val findAllByApplicationIdCompiled = Compiled { applicationId: Rep[Long] ⇒
     table.filter(_.applicationId === applicationId)
   }
@@ -106,15 +115,16 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
       .update((state, updatedAt))
   }
 
-  def updateStateAndDockerId(
+  def updateStateAndNodeIdAndDockerId(
     id:        Long,
     state:     ContainerState.ContainerState,
-    dockerId:  Option[String],
+    nodeId:    Long,
+    dockerId:  String,
     updatedAt: ZonedDateTime
   ) = db.run {
     table.filter(_.id === id)
-      .map(t ⇒ (t.state, t.dockerId, t.updatedAt))
-      .update((state, dockerId, updatedAt))
+      .map(t ⇒ (t.state, t.nodeId, t.dockerId, t.updatedAt))
+      .update((state, Some(nodeId), Some(dockerId), updatedAt))
   }
 
   // private val uniqueTitleCompiled = Compiled {
