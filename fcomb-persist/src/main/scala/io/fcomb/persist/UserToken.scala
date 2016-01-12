@@ -3,7 +3,7 @@ package io.fcomb.persist
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models
+import io.fcomb.models, models.{TokenRole, TokenState}
 import io.fcomb.request
 import io.fcomb.persist._
 import io.fcomb.validations._
@@ -15,8 +15,8 @@ import java.util.UUID
 
 class UserTokenTable(tag: Tag) extends Table[models.UserToken](tag, "user_tokens") {
   def token = column[String]("token")
-  def role = column[models.TokenRole.TokenRole]("role")
-  def state = column[models.TokenState.TokenState]("state")
+  def role = column[TokenRole.TokenRole]("role")
+  def state = column[TokenState.TokenState]("state")
   def userId = column[Long]("user_id")
   def createdAt = column[ZonedDateTime]("created_at")
   def updatedAt = column[ZonedDateTime]("updated_at")
@@ -57,7 +57,7 @@ object UserToken extends PersistModel[models.UserToken, UserTokenTable] {
   private def generateToken() =
     s"$prefix${random.alphanumeric.take(defaultLength).mkString}"
 
-  private val findAllByUserIdCompiled = Compiled { userId: Rep[Long] =>
+  private val findAllByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
     table.filter(_.userId === userId)
   }
 

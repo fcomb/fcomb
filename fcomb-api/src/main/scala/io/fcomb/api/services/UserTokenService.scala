@@ -15,10 +15,10 @@ object UserTokenService extends Service {
 
   def index(
     implicit
-    ec: ExecutionContext,
+    ec:  ExecutionContext,
     mat: Materializer
-  ) = action { implicit ctx =>
-    authorizeUser { user =>
+  ) = action { implicit ctx ⇒
+    authorizeUser { user ⇒
       completeItems(
         persist.UserToken.findAllByUserId(user.getId),
         StatusCodes.OK

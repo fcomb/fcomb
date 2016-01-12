@@ -200,24 +200,14 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationStart ⇒
         val replyTo = sender()
         applyState(scale(state).flatMap(start)) {
-          case ApplicationState.Running ⇒
-            replyTo.!(())
-          case s ⇒
-            // TODO
-            log.error(s.toString)
-            ???
+          replyTo.!(())
         }
       case ApplicationStop ⇒
         log.error("Can't be stopped")
       case ApplicationTerminate ⇒
         val replyTo = sender()
         applyState(terminate(state)) {
-          case ApplicationState.Terminated ⇒
-            replyTo.!(())
-          case s ⇒
-            // TODO
-            log.error(s.toString)
-            ???
+          replyTo.!(())
         }
       case ApplicationRedeploy ⇒
         log.error("Can't be redeployed")
@@ -239,22 +229,12 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationStop ⇒
         val replyTo = sender()
         applyState(stop(state)) {
-          case ApplicationState.Stopped ⇒
-            replyTo.!(())
-          case s ⇒
-            // TODO
-            log.error(s.toString)
-            ???
+          replyTo.!(())
         }
       case ApplicationTerminate ⇒
         val replyTo = sender()
         applyState(terminate(state)) {
-          case ApplicationState.Terminated ⇒
-            replyTo.!(())
-          case s ⇒
-            // TODO
-            log.error(s.toString)
-            ???
+          replyTo.!(())
         }
       case ApplicationRedeploy ⇒
         ???
@@ -272,12 +252,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationStart ⇒
         val replyTo = sender()
         applyState(start(state)) {
-          case ApplicationState.Running ⇒
-            replyTo.!(())
-          case s ⇒
-            // TODO
-            log.error(s.toString)
-            ???
+          replyTo.!(())
         }
       case ApplicationStop ⇒
         log.debug("Already stopped")
@@ -285,12 +260,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationTerminate ⇒
         val replyTo = sender()
         applyState(terminate(state)) {
-          case ApplicationState.Terminated ⇒
-            replyTo.!(())
-          case s ⇒
-            // TODO
-            log.error(s.toString)
-            ???
+          replyTo.!(())
         }
       case ApplicationRedeploy ⇒
         ???
@@ -339,7 +309,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def applyState(stateF: ⇒ Future[State])(
-    f: ApplicationState.ApplicationState ⇒ Unit
+    f: ⇒ Unit
   ) = {
     context.become({
       case UpdateState(newState) ⇒
@@ -354,7 +324,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     // TODO: handle failure state
     stateF.foreach { state ⇒
       self ! UpdateState(state)
-      f(state.app.state)
+      f
     }
   }
 
