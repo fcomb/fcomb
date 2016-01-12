@@ -64,7 +64,7 @@ object NodeProcessor {
 
   sealed trait Entity
 
-  case object WakeUp extends Entity
+  case object WakeUp
 
   case class RegisterNode(ip: InetAddress) extends Entity
 
@@ -83,7 +83,7 @@ object NodeProcessor {
   def props(timeout: Duration)(implicit mat: Materializer) =
     Props(new NodeProcessor(timeout))
 
-  case class EntityEnvelope(nodeId: Long, payload: Entity)
+  case class EntityEnvelope(nodeId: Long, payload: Any)
 
   private var actorRef: ActorRef = _
 
@@ -258,8 +258,6 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       case TerminateContainer(containerId) ⇒
         log.debug(s"TerminateContainer($containerId)")
         terminateContainer(state, containerId)
-      case WakeUp ⇒
-        log.debug(s"awake node#$nodeId")
     }
     case cmd: NodeProcessorMessage ⇒ cmd match {
       case DockerPing ⇒

@@ -58,7 +58,7 @@ object ApplicationProcessor {
 
   sealed trait Entity
 
-  case object WakeUp extends Entity
+  case object WakeUp
 
   case object ApplicationStart extends Entity
 
@@ -80,7 +80,7 @@ object ApplicationProcessor {
   def props(timeout: Duration) =
     Props(new ApplicationProcessor(timeout))
 
-  case class EntityEnvelope(appId: Long, payload: Entity)
+  case class EntityEnvelope(appId: Long, payload: Any)
 
   private var actorRef: ActorRef = _
 
@@ -174,8 +174,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       initializing()
       context.become({
         case Initialize(state) ⇒
-          context.become(initialized(state), false)
-          unstashAll()
+          switchReceiveByCompletedState(state) {
+            case s ⇒ log.error("Can't be `in progress` state")
+          }
         case msg: Entity ⇒
           log.warning(s"stash message: $msg")
           stash()
@@ -194,105 +195,145 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case Failure(e) ⇒ handleThrowable(e)
     }
 
-  def initialized(state: State): Receive = {
+  def createdReceive(state: State): Receive = {
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
-        log.info(s"start application: ${state.app}")
-        context.become({
-          case UpdateState(newState) ⇒
-            log.info(s"newState: $newState")
-            context.become(initialized(newState), false)
-            unstashAll()
-          case msg: Entity ⇒
-            log.warning(s"stash message: $msg")
-            stash()
-        }, false)
-
         val replyTo = sender()
-        scale(state).flatMap(start).foreach { s ⇒
-          self ! UpdateState(s)
-          replyTo.!(())
+        applyState(scale(state).flatMap(start)) {
+          case ApplicationState.Running ⇒
+            replyTo.!(())
+          case _ ⇒
+            // TODO
+            ???
         }
       case ApplicationStop ⇒
-        log.info(s"stop application: ${state.app}")
-        context.become({
-          case UpdateState(newState) ⇒
-            context.become(initialized(newState), false)
-            unstashAll()
-          case msg: Entity ⇒
-            log.warning(s"stash message: $msg")
-            stash()
-        }, false)
-
+        log.error("Can't be stopped")
+      case ApplicationTerminate ⇒
         val replyTo = sender()
-        stop(state).foreach { s ⇒
-          self ! UpdateState(s)
-          replyTo.!(())
+        applyState(terminate(state)) {
+          case ApplicationState.Terminated ⇒
+            replyTo.!(())
+          case _ ⇒
+            // TODO
+            ???
         }
       case ApplicationRedeploy ⇒
-        log.info(s"redeploy application: ${state.app}")
-        sender().!(())
-      case ApplicationScale(count) ⇒
-        log.info(s"scale application: ${state.app}")
-      // TODO {
-
-      // val total = state.app.scaleStrategy.numberOfContainers - count
-      // PApplication.updateScaleStrategyNumberOfContainers(appId, total)
-      // val newState = state.copy(app = state.app.copy(
-      //   scaleStrategy = state.app.scaleStrategy.copy(
-      //     numberOfContainers = total
-      //   )
-      // ))
-      // val replyTo = sender()
-      // scale(newState).foreach { s ⇒
-      //   context.become(initialized(s), false)
-      //   replyTo.!(())
-      // }
-
-      // }
-      case ApplicationTerminate ⇒
-        log.info(s"terminate application: ${state.app}")
-        context.become({
-          case UpdateState(newState) ⇒
-            log.info(s"newState: $newState")
-            context.become(initialized(newState), false)
-            unstashAll()
-          case msg: Entity ⇒
-            log.warning(s"stash message: $msg")
-            stash()
-        }, false)
-
-        val replyTo = sender()
-        terminate(state).foreach { s ⇒
-          self ! UpdateState(s)
-          replyTo.!(())
-        }
-      case ContainerChangedState(containerId, containerState) ⇒
-      // println(s"ContainerChangedState($containerId, $containerState)")
-      // PApplication.updateState(appId, ApplicationState.Running)
-      // val container = state.containers.find(_.getId == containerId) match {
-      //   case Some(c) ⇒
-      //     state.containers + c.copy(state = containerState)
-      //   case None ⇒ state.containers
-      // }
-      // context.become(initialized(state.copy(
-      //   app = state.app.copy(state = ApplicationState.Running),
-      //   containers = container
-      // )), false)
-      case NewContainer(container)                            ⇒
-      // println(s"NewContainer($container)")
-      // context.become(initialized(state.copy(
-      //   containers = state.containers + container
-      // )), false)
-      case WakeUp ⇒
-        log.debug(s"awake application#$appId")
+        log.error("Can't be redeployed")
+      case _: ApplicationScale ⇒
+        log.error("Can't be scaled")
+      case s: ContainerChangedState ⇒
+        log.error(s"Cannot change container when `created` state: $s")
+      // TODO: reply with error
+      case s: NewContainer ⇒
+        log.error(s"Cannot add new container when `created` state: $s")
     }
-    case ReceiveTimeout if (state.app.state == ApplicationState.Terminated) ⇒
-      annihilation()
+  }
+
+  def runningReceive(state: State): Receive = {
+    case msg: Entity ⇒ msg match {
+      case ApplicationStart ⇒
+        log.debug("Already started")
+        sender.!(())
+      case ApplicationStop ⇒
+        val replyTo = sender()
+        applyState(stop(state)) {
+          case ApplicationState.Stopped ⇒
+            replyTo.!(())
+          case _ ⇒
+            // TODO
+            ???
+        }
+      case ApplicationTerminate ⇒
+        ???
+      case ApplicationRedeploy ⇒
+        ???
+      case ApplicationScale(count) ⇒
+        ???
+      case ContainerChangedState(containerId, containerState) ⇒
+        ???
+      case NewContainer(container) ⇒
+        ???
+    }
+  }
+
+  def stoppedReceive(state: State): Receive = {
+    case msg: Entity ⇒ msg match {
+      case ApplicationStart ⇒
+        val replyTo = sender()
+        applyState(start(state)) {
+          case ApplicationState.Running ⇒
+            replyTo.!(())
+          case _ ⇒
+            // TODO
+            ???
+        }
+      case ApplicationStop ⇒
+        log.debug("Already stopped")
+        sender.!(())
+      case ApplicationTerminate ⇒
+        ???
+      case ApplicationRedeploy ⇒
+        ???
+      case ApplicationScale(count) ⇒
+        ???
+      case ContainerChangedState(containerId, containerState) ⇒
+        ???
+      case NewContainer(container) ⇒
+        ???
+    }
+  }
+
+  val terminatedReceive: Receive = {
+    case msg: Entity ⇒ msg match {
+      case ApplicationTerminate ⇒
+        log.debug("Already terminated")
+        sender.!(())
+      case _: ContainerChangedState | _: NewContainer ⇒
+      case s ⇒
+        log.error(s"Cannot `s` when terminated state")
+    }
+    case ReceiveTimeout ⇒ annihilation()
+  }
+
+  def switchReceiveByCompletedState(state: State)(
+    handleUncompleted: ApplicationState.ApplicationState ⇒ Unit
+  ) = {
+    def becomeAndUnstash(r: Receive) = {
+      context.become(r, false)
+      unstashAll()
+    }
+
+    state.app.state match {
+      case ApplicationState.Created ⇒
+        becomeAndUnstash(createdReceive(state))
+      case ApplicationState.Running ⇒
+        becomeAndUnstash(runningReceive(state))
+      case ApplicationState.Stopped ⇒
+        becomeAndUnstash(stoppedReceive(state))
+      case ApplicationState.Terminated ⇒
+        becomeAndUnstash(terminatedReceive)
+      case s ⇒ handleUncompleted(s)
+    }
+  }
+
+  def applyState(stateF: ⇒ Future[State])(f: State ⇒ Unit) = {
+    context.become({
+      case UpdateState(newState) ⇒
+        log.info(s"newState: $newState")
+        switchReceiveByCompletedState(newState) {
+          case s ⇒ log.error("Can't be `in progress` state")
+        }
+      case msg: Entity ⇒
+        log.warning(s"stash message: $msg")
+        stash()
+    }, false)
+    stateF.foreach { state ⇒
+      self ! UpdateState(state)
+      f(state)
+    }
   }
 
   def scale(state: State) = {
-    println(s"scale $state")
     // default emptiest node strategy
     val ss = state.app.scaleStrategy
     val app = state.app
@@ -334,7 +375,6 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def start(state: State) = {
-    println(s"start $state")
     val containers = state.containers.filter { c ⇒
       c.isPresent() &&
         (c.state != ContainerState.Starting && c.state != ContainerState.Running)
