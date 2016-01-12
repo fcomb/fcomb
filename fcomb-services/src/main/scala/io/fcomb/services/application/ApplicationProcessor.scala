@@ -1,7 +1,7 @@
 package io.fcomb.services.application
 
 import io.fcomb.services.Exceptions._
-import io.fcomb.services.node.{NodeProcessor, UserNodesProcessor}
+import io.fcomb.services.node.{NodeProcessor, UserNodeProcessor}
 import io.fcomb.models.application.{ApplicationState, Application ⇒ MApplication}
 import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
 import io.fcomb.utils.Config
@@ -30,7 +30,7 @@ object ApplicationProcessor {
     case EntityEnvelope(appId, _) ⇒ (appId % numberOfShards).toString
   }
 
-  val shardName = "ApplicationProcessor"
+  val shardName = "application-processor"
 
   def startRegion(timeout: Duration)(
     implicit
@@ -202,8 +202,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         applyState(scale(state).flatMap(start)) {
           case ApplicationState.Running ⇒
             replyTo.!(())
-          case _ ⇒
+          case s ⇒
             // TODO
+            log.error(s.toString)
             ???
         }
       case ApplicationStop ⇒
@@ -213,8 +214,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         applyState(terminate(state)) {
           case ApplicationState.Terminated ⇒
             replyTo.!(())
-          case _ ⇒
+          case s ⇒
             // TODO
+            log.error(s.toString)
             ???
         }
       case ApplicationRedeploy ⇒
@@ -239,12 +241,21 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         applyState(stop(state)) {
           case ApplicationState.Stopped ⇒
             replyTo.!(())
-          case _ ⇒
+          case s ⇒
             // TODO
+            log.error(s.toString)
             ???
         }
       case ApplicationTerminate ⇒
-        ???
+        val replyTo = sender()
+        applyState(terminate(state)) {
+          case ApplicationState.Terminated ⇒
+            replyTo.!(())
+          case s ⇒
+            // TODO
+            log.error(s.toString)
+            ???
+        }
       case ApplicationRedeploy ⇒
         ???
       case ApplicationScale(count) ⇒
@@ -263,15 +274,24 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         applyState(start(state)) {
           case ApplicationState.Running ⇒
             replyTo.!(())
-          case _ ⇒
+          case s ⇒
             // TODO
+            log.error(s.toString)
             ???
         }
       case ApplicationStop ⇒
         log.debug("Already stopped")
         sender.!(())
       case ApplicationTerminate ⇒
-        ???
+        val replyTo = sender()
+        applyState(terminate(state)) {
+          case ApplicationState.Terminated ⇒
+            replyTo.!(())
+          case s ⇒
+            // TODO
+            log.error(s.toString)
+            ???
+        }
       case ApplicationRedeploy ⇒
         ???
       case ApplicationScale(count) ⇒
@@ -290,7 +310,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         sender.!(())
       case _: ContainerChangedState | _: NewContainer ⇒
       case s ⇒
-        log.error(s"Cannot `s` when terminated state")
+        log.error(s"Cannot `$s` when terminated state")
+        // TODO: reply with error
+        sender() ! Status.Failure(new Throwable(s"Cannot `$s` when terminated state"))
     }
     case ReceiveTimeout ⇒ annihilation()
   }
@@ -316,7 +338,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     }
   }
 
-  def applyState(stateF: ⇒ Future[State])(f: State ⇒ Unit) = {
+  def applyState(stateF: ⇒ Future[State])(
+    f: ApplicationState.ApplicationState ⇒ Unit
+  ) = {
     context.become({
       case UpdateState(newState) ⇒
         log.info(s"newState: $newState")
@@ -327,9 +351,10 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         log.warning(s"stash message: $msg")
         stash()
     }, false)
+    // TODO: handle failure state
     stateF.foreach { state ⇒
       self ! UpdateState(state)
-      f(state)
+      f(state.app.state)
     }
   }
 
@@ -351,7 +376,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
           numbers = newIds
         )
         createdContainers ← Future.sequence(containers.map { c ⇒
-          UserNodesProcessor.createContainer(c, app.image, app.deployOptions)
+          UserNodeProcessor.createContainer(c, app.image, app.deployOptions)
         })
         updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
       } yield state.copy(

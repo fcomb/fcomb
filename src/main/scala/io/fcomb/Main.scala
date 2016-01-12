@@ -5,7 +5,7 @@ import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.api.services.Routes
 import io.fcomb.services.UserCertificateProcessor
-import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor, UserNodesProcessor}
+import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor, UserNodeProcessor}
 import io.fcomb.services.application.ApplicationProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
@@ -45,7 +45,7 @@ object Main extends App {
       NodeJoinProcessor.startRegion(5.minutes)
       NodeProcessor.startRegion(25.minutes)
       ApplicationProcessor.startRegion(1.hour)
-      UserNodesProcessor.startRegion(1.day)
+      UserNodeProcessor.startRegion(1.day)
 
       (for {
         _ ← ApplicationProcessor.initialize()

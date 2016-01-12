@@ -29,7 +29,7 @@ object NodeJoinProcessor {
     case EntityEnvelope(_, _) ⇒ "0"
   }
 
-  val shardName = "NodeJoinProcessor"
+  val shardName = "node-join-processor"
 
   def startRegion(timeout: Duration)(implicit sys: ActorSystem) = {
     val ref = ClusterSharding(sys).start(

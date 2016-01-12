@@ -35,7 +35,7 @@ object NodeProcessor {
     case EntityEnvelope(nodeId, _) ⇒ (nodeId % numberOfShards).toString
   }
 
-  val shardName = "NodeProcessor"
+  val shardName = "node-processor"
 
   def startRegion(timeout: Duration)(
     implicit
@@ -247,7 +247,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       case CreateContainer(container, image, deployOptions) ⇒
         println(s"CreateContainer($container, $image, $deployOptions)")
         val replyTo = sender()
-        createContainer(state, container, image, deployOptions).foreach { c =>
+        createContainer(state, container, image, deployOptions).foreach { c ⇒
           self ! AppendContainer(c)
           replyTo ! c
         }

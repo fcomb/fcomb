@@ -33,7 +33,7 @@ object UserCertificateProcessor {
     case EntityEnvelope(userId, _) ⇒ (userId % numberOfShards).toString
   }
 
-  val shardName = "UserCertificateProcessor"
+  val shardName = "user-certificate-processor"
 
   def startRegion(timeout: Duration)(implicit sys: ActorSystem) = {
     val ref = ClusterSharding(sys).start(

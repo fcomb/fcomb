@@ -22,7 +22,7 @@ import scala.util.{Success, Failure}
 import java.time.ZonedDateTime
 import java.net.InetAddress
 
-object UserNodesProcessor {
+object UserNodeProcessor {
   val extractEntityId: ShardRegion.ExtractEntityId = {
     case EntityEnvelope(userId, payload) ⇒ (userId.toString, payload)
   }
@@ -33,7 +33,7 @@ object UserNodesProcessor {
     case EntityEnvelope(userId, _) ⇒ (userId % numberOfShards).toString
   }
 
-  val shardName = "UserNodesProcessor"
+  val shardName = "user-node-processor"
 
   def startRegion(timeout: Duration)(
     implicit
@@ -60,7 +60,7 @@ object UserNodesProcessor {
   ) extends Entity
 
   def props(timeout: Duration)(implicit mat: Materializer) =
-    Props(new UserNodesProcessor(timeout))
+    Props(new UserNodeProcessor(timeout))
 
   case class EntityEnvelope(nodeId: Long, payload: Entity)
 
@@ -87,15 +87,15 @@ object UserNodesProcessor {
   }
 }
 
-private[this] object UserNodesMessages {
+private[this] object UserNodeMessages {
 }
 
-class UserNodesProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
+class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     with Stash with ActorLogging {
   import context.dispatcher
   import context.system
-  import UserNodesProcessor._
-  import UserNodesMessages._
+  import UserNodeProcessor._
+  import UserNodeMessages._
   import ShardRegion.Passivate
 
   context.setReceiveTimeout(timeout)
