@@ -1,6 +1,6 @@
 package io.fcomb
 
-import io.fcomb.models._, errors._, node._, application._
+import io.fcomb.models._, errors._, node._, application._, docker._
 import io.fcomb.request._
 import io.fcomb.response._
 import java.time._
@@ -156,6 +156,9 @@ package object json {
   implicit val networkPortJsonProtocol =
     createStringEnumJsonFormat(NetworkPort)
 
+  implicit val userTokenJsonProtocol =
+    jsonFormat6(UserToken)
+
   implicit val dockerDeployPortJsonProtocol =
     jsonFormat5(DockerDeployPort)
 
@@ -180,7 +183,14 @@ package object json {
   implicit val applicationJsonProtocol =
     jsonFormat10(Application)
 
-  implicit val userTokenJsonProtocol = jsonFormat6(UserToken)
+  implicit val containerStateJsonProtocol =
+    createStringEnumJsonFormat(ContainerState)
+
+  implicit val containerJsonProtocol =
+    jsonFormat11(Container)
+
+  implicit val nodeResponseJsonProtocol =
+    jsonFormat6(NodeResponse)
 
   object errors {
     implicit val errorKindFormat = createStringEnumJsonFormat(ErrorKind)

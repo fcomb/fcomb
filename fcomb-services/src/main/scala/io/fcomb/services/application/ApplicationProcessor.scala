@@ -75,8 +75,6 @@ object ApplicationProcessor {
     state: ContainerState.ContainerState
   ) extends Entity
 
-  case class NewContainer(container: MContainer) extends Entity
-
   def props(timeout: Duration) =
     Props(new ApplicationProcessor(timeout))
 
@@ -136,9 +134,6 @@ object ApplicationProcessor {
       container.applicationId,
       ContainerChangedState(container.getId, container.state)
     )
-
-  def newContainer(container: MContainer) =
-    tellRef(container.applicationId, NewContainer(container))
 }
 
 private[this] object ApplicationProcessorMessages {
@@ -216,8 +211,6 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case s: ContainerChangedState ⇒
         log.error(s"Cannot change container when `created` state: $s")
       // TODO: reply with error
-      case s: NewContainer ⇒
-        log.error(s"Cannot add new container when `created` state: $s")
     }
   }
 
@@ -241,8 +234,6 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationScale(count) ⇒
         ???
       case ContainerChangedState(containerId, containerState) ⇒
-        ???
-      case NewContainer(container) ⇒
         ???
     }
   }
@@ -268,8 +259,6 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         ???
       case ContainerChangedState(containerId, containerState) ⇒
         ???
-      case NewContainer(container) ⇒
-        ???
     }
   }
 
@@ -278,7 +267,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationTerminate ⇒
         log.debug("Already terminated")
         sender.!(())
-      case _: ContainerChangedState | _: NewContainer ⇒
+      case _: ContainerChangedState ⇒ // TODO: send failure back?
       case s ⇒
         log.error(s"Cannot `$s` when terminated state")
         // TODO: reply with error

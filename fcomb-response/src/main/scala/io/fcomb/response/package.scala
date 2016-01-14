@@ -48,6 +48,15 @@ package object response {
     updatedAt:         ZonedDateTime
   )
 
+  case class NodeResponse(
+    id:                Option[Long],
+    state:             NodeState.NodeState,
+    publicIpAddress:   Option[String],
+    createdAt:         ZonedDateTime,
+    updatedAt:         ZonedDateTime,
+    terminatedAt:      Option[ZonedDateTime]
+  )
+
   implicit def user2ProfileResponse(u: User): UserProfileResponse =
     UserProfileResponse(
       id = u.id,

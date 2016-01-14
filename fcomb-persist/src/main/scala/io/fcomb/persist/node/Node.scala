@@ -144,6 +144,25 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
   def findAllAvailableByUserId(userId: Long) =
     db.run(findAllAvailableByUserIdCompiled(userId).result)
 
+  private val findAllByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
+    table.filter(_.userId === userId)
+  }
+
+  def findAllByUserIdAsResponse(userId: Long)(
+    implicit ec: ExecutionContext
+  ) = db.run {
+    findAllByUserIdCompiled(userId).result.map(_.map { node =>
+      response.NodeResponse(
+        id = node.id,
+        state = node.state,
+        publicIpAddress = node.publicIpAddress,
+        createdAt = node.createdAt,
+        updatedAt = node.updatedAt,
+        terminatedAt = node.terminatedAt
+      )
+    })
+  }
+
   def updateState(id: Long, state: NodeState.NodeState) = db.run {
     table.filter(_.id === id)
       .map(_.state)

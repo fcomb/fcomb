@@ -122,6 +122,17 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     findAllByNodeIdCompiled(nodeId).result
   }
 
+  private val findByApplicationIdAndIdCompiled = Compiled {
+    (appId: Rep[Long], id: Rep[Long]) ⇒
+      table.filter { q ⇒
+        q.id === id && q.applicationId === appId
+      }
+  }
+
+  def findByApplicationIdAndId(appId: Long, id: Long) = db.run {
+    findByApplicationIdAndIdCompiled(appId, id).result.headOption
+  }
+
   def updateState(
     id:        Long,
     state:     ContainerState.ContainerState,

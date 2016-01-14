@@ -15,7 +15,7 @@ import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials}
 import scala.concurrent.{Future, ExecutionContext}
 import scalaz._
 
-object ApplicationService extends Service {
+object ApplicationService extends Service with ApplicationAuth {
   val pathPrefix = "applications"
 
   def index(
@@ -109,16 +109,4 @@ object ApplicationService extends Service {
       completeWithoutContent(ApplicationManager.scale(id, 5))
     }
   }
-
-  private def checkOwner(id: Long)(f: ⇒ ServiceResult)(
-    implicit
-    ctx: ServiceContext,
-    ec:  ExecutionContext
-  ) =
-    authorizeUser { user ⇒
-      complete(PApplication.isOwner(user.getId, id).map {
-        case true  ⇒ f
-        case false ⇒ completeNotFound()
-      })
-    }
 }

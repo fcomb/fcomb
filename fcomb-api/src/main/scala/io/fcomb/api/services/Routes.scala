@@ -73,6 +73,16 @@ object Routes {
             pathEndOrSingleSlash {
               post(application.ApplicationService.scale(applicationId))
             }
+          } ~
+          pathPrefix(application.ApplicationContainersService.pathPrefix) {
+            pathEndOrSingleSlash {
+              get(application.ApplicationContainersService.index(applicationId))
+            } ~
+            pathPrefix(LongNumber) { containerId =>
+              pathEndOrSingleSlash {
+                get(application.ApplicationContainersService.show(applicationId, containerId))
+              }
+            }
           }
         }
       } ~
@@ -100,6 +110,11 @@ object Routes {
           pathEndOrSingleSlash {
             get(UserTokenService.index)
           }
+        }
+      } ~
+      pathPrefix(node.NodeService.pathPrefix) {
+        pathEndOrSingleSlash {
+          get(node.NodeService.index)
         }
       } ~
       pathPrefix(UserService.pathPrefix) {
