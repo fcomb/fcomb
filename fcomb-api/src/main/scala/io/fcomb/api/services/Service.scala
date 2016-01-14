@@ -1,5 +1,6 @@
 package io.fcomb.api.services
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, Location, `X-Forwarded-For`, `Remote-Address`}
@@ -173,9 +174,10 @@ trait CompleteResultMethods {
   def complete(
     bs:          ByteString,
     statusCode:  StatusCode,
-    contentType: ContentType
+    contentType: ContentType,
+    headers:     List[HttpHeader] = List.empty
   ): ServiceResult =
-    CompleteResult(bs, statusCode, contentType)
+    CompleteResult(bs, statusCode, contentType, headers)
 
   def complete(
     f:           Future[ByteString],
@@ -484,10 +486,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(f.map(completeValidationWithoutContent))
 
-  def getAuthToken(
-    implicit
-    ctx: ServiceContext
-  ): Option[String] = {
+  def getAuthToken()(implicit ctx: ServiceContext): Option[String] = {
     val r = ctx.requestContext.request
     val authHeader = r.headers.collectFirst {
       case a: Authorization ⇒ a
@@ -544,7 +543,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     })
   }
 
-  def requestAsBodyParts[T](
+  def requestAsBodyParts(
     f: Source[Multipart.FormData.BodyPart, Any] ⇒ Future[ServiceResult]
   )(
     implicit
@@ -556,7 +555,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       .to[Multipart.FormData]
       .flatMap(body ⇒ f(body.parts)))
 
-  def requestAsBodyPart[T](
+  def requestAsBodyPart(
     f: Multipart.FormData.BodyPart ⇒ Future[ServiceResult]
   )(
     implicit
@@ -566,7 +565,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     requestAsBodyParts(_.runWith(Sink.head).flatMap(f))
 
-  def requestAsFileParts[T](
+  def requestAsFileParts(
     f: Source[Multipart.FormData.BodyPart, Any] ⇒ Future[ServiceResult]
   )(
     implicit
@@ -578,7 +577,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       f(parts.filter(_.additionalDispositionParams.contains("filename")))
     }
 
-  def requestAsFilePart[T](
+  def requestAsFilePart(
     f: Multipart.FormData.BodyPart ⇒ Future[ServiceResult]
   )(
     implicit
@@ -588,20 +587,24 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     requestAsFileParts(_.runWith(Sink.head).flatMap(f))
 
-  def requestAsFile[T](f: (File, Option[String], ContentType) ⇒ ServiceResult)(
+  def makeTemporaryFile(extension: Option[String] = None) = {
+    val prefix = Random.random.alphanumeric.take(15).mkString
+    val filename = s"/tmp/file_${prefix}${extension.getOrElse("")}"
+    val file = new File(filename)
+    file.deleteOnExit()
+    file
+  }
+
+  def requestAsFile(f: (File, Option[String], ContentType) ⇒ ServiceResult)(
     implicit
     ctx: ServiceContext,
     ec:  ExecutionContext,
     mat: Materializer
   ): ServiceResult =
     requestAsFilePart { part ⇒
-      val extension = part.filename.flatMap { n ⇒
+      val file = makeTemporaryFile(part.filename.flatMap { n ⇒
         n.split('.').tail.lastOption.map(e ⇒ s".$e")
-      }.getOrElse("")
-      val prefix = Random.random.alphanumeric.take(15).mkString
-      val filename = s"/tmp/file_${prefix}$extension"
-      val file = new File(filename)
-      file.deleteOnExit()
+      })
       part.entity.dataBytes.runWith(FileIO.toFile(file))
         .map(_ ⇒ f(file, part.filename, part.entity.contentType))
     }
