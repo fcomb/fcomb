@@ -196,7 +196,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
         val replyTo = sender()
-        applyState(scale(state).flatMap(start)) {
+        applyState(scale(state)) {
           replyTo.!(())
         }
       case ApplicationStop ⇒
@@ -324,46 +324,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     }
   }
 
-  def scale(state: State) = {
-    // default emptiest node strategy
-    val ss = state.app.scaleStrategy
-    val app = state.app
-    val containers = state.containers.toList
-      .filter(_.isPresent)
-      .sortBy(_.number)
-    if (containers.length < ss.numberOfContainers) {
-      val existsIds = containers.map(_.number)
-      val newIds = (1 to ss.numberOfContainers).toList.diff(existsIds)
-      for {
-        containers ← PContainer.batchCreate(
-          userId = app.userId,
-          applicationId = app.getId,
-          name = app.name,
-          numbers = newIds
-        )
-        createdContainers ← Future.sequence(containers.map { c ⇒
-          UserNodeProcessor.containerCreate(c, app.image, app.deployOptions)
-        })
-        updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
-      } yield state.copy(
-        containers = state.containers ++ updatedContainers
-      )
-    }
-    else if (containers.length > ss.numberOfContainers) {
-      val terminateContainers = containers.drop(ss.numberOfContainers)
-      val ids = terminateContainers.map(_.getId)
-      for {
-        _ ← PContainer.updateState(ids, ContainerState.Terminating)
-        _ ← Future.sequence(terminateContainers.map { c ⇒
-          NodeProcessor.containerTerminate(c.nodeId.get, c.getId)
-        })
-        _ ← PContainer.updateState(ids, ContainerState.Terminated)
-      } yield state.copy(
-        containers = HashSet(containers.take(ss.numberOfContainers): _*)
-      )
-    }
-    else Future.successful(state)
-  }
+  def scale(state: State) =
+    scaleContainers(state).flatMap(start)
 
   def redeploy(state: State) = {
     val containers = state.containers
@@ -433,21 +395,20 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def terminate(state: State) = {
-    val containers = state.containers.filterNot(_.isTerminated)
-    if (containers.isEmpty) {
+    if (state.containers.exists(!_.isTerminated)) {
+      for {
+        _ ← PApplication.updateState(appId, ApplicationState.Terminating)
+        ns ← terminateContainers(state)
+        _ ← PApplication.updateState(appId, ApplicationState.Terminated)
+      } yield ns.copy(app = ns.app.copy(state = ApplicationState.Terminated))
+    }
+    else {
       if (state.app.state == ApplicationState.Terminated)
         Future.successful(state)
       else
         PApplication.updateState(appId, ApplicationState.Terminated).map { _ ⇒
           state.copy(app = state.app.copy(state = ApplicationState.Terminated))
         }
-    }
-    else {
-      for {
-        _ ← PApplication.updateState(appId, ApplicationState.Terminating)
-        ns ← terminateContainers(state)
-        _ ← PApplication.updateState(appId, ApplicationState.Terminated)
-      } yield ns.copy(app = ns.app.copy(state = ApplicationState.Terminated))
     }
   }
 
@@ -493,6 +454,44 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         state.copy(containers = stoppedContainers)
       }
     }
+  }
+
+  def scaleContainers(state: State) = {
+    // default emptiest node strategy
+    val ss = state.app.scaleStrategy
+    val app = state.app
+    val containers = state.containers.toList
+      .filter(_.isPresent)
+      .sortBy(_.number)
+    if (containers.length < ss.numberOfContainers) {
+      val existsIds = containers.map(_.number)
+      val newIds = (1 to ss.numberOfContainers).toList.diff(existsIds)
+      for {
+        containers ← PContainer.batchCreate(
+          userId = app.userId,
+          applicationId = app.getId,
+          name = app.name,
+          numbers = newIds
+        )
+        createdContainers ← Future.sequence(containers.map { c ⇒
+          UserNodeProcessor.containerCreate(c, app.image, app.deployOptions)
+        })
+        updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
+      } yield state.copy(containers = state.containers ++ updatedContainers)
+    }
+    else if (containers.length > ss.numberOfContainers) {
+      val terminateContainers = containers.drop(ss.numberOfContainers)
+      val aliveContainers = containers.take(ss.numberOfContainers)
+      val ids = terminateContainers.map(_.getId)
+      for {
+        _ ← PContainer.updateState(ids, ContainerState.Terminating)
+        _ ← Future.sequence(terminateContainers.map { c ⇒
+          NodeProcessor.containerTerminate(c.nodeId.get, c.getId)
+        })
+        _ ← PContainer.updateState(ids, ContainerState.Terminated)
+      } yield state.copy(containers = HashSet(aliveContainers: _*))
+    }
+    else Future.successful(state)
   }
 
   def terminateContainers(state: State) = {
