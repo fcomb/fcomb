@@ -13,6 +13,7 @@ object ContainerState extends Enumeration {
   val Stopping = Value("stopping")
   val Stopped = Value("stopped")
   val Restarting = Value("restarting")
+  val Unreachable = Value("unreachable")
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
 }
@@ -32,15 +33,31 @@ case class Container(
 ) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 
-  def dockerName() = s"$name.${getId()}"
+  def dockerName = s"$name.${getId()}"
 
-  def isTerminated() =
+  def isTerminated =
     state == ContainerState.Terminated ||
       state == ContainerState.Terminating
 
-  def isPresent() =
+  def isUnreachable =
+    state == ContainerState.Unreachable
+
+  def isPresent =
     state != ContainerState.Initializing &&
-      !isTerminated() &&
+      state != ContainerState.Created &&
+      !isTerminated &&
+      !isUnreachable &&
       nodeId.nonEmpty &&
       dockerId.nonEmpty
+
+  def isRunning =
+    isPresent &&
+      (state == ContainerState.Starting ||
+        state == ContainerState.Running)
+
+  def isNotRunning =
+    isPresent &&
+      (state == ContainerState.Stopping ||
+        state == ContainerState.Stopped ||
+        state == ContainerState.Restarting)
 }
