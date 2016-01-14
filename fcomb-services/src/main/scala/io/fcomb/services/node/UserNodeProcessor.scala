@@ -53,7 +53,7 @@ object UserNodeProcessor {
 
   sealed trait Entity
 
-  case class CreateContainer(
+  case class ContainerCreate(
     container:     MContainer,
     image:         DockerImage,
     deployOptions: DockerDeployOptions
@@ -66,7 +66,7 @@ object UserNodeProcessor {
 
   private var actorRef: ActorRef = _
 
-  def createContainer(
+  def containerCreate(
     container:     MContainer,
     image:         DockerImage,
     deployOptions: DockerDeployOptions
@@ -79,7 +79,7 @@ object UserNodeProcessor {
       case Some(ref) ⇒
         val entity = EntityEnvelope(
           container.userId,
-          CreateContainer(container, image, deployOptions)
+          ContainerCreate(container, image, deployOptions)
         )
         ask(ref, entity).mapTo[MContainer]
       case None ⇒ Future.failed(EmptyActorRefException)
@@ -132,13 +132,13 @@ class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends A
 
   def initialized(nodes: Seq[MNode]): Receive = {
     case msg: Entity ⇒ msg match {
-      case CreateContainer(container, image, deployOptions) ⇒
+      case ContainerCreate(container, image, deployOptions) ⇒
         // TODO: ask nodes for ability to run this container
         println(s"nodes: $nodes")
         nodes.headOption match {
           case Some(node) ⇒
             println(s"NodeProcessor.createContainer: ${node.getId}")
-            NodeProcessor.createContainer(node.getId, container, image, deployOptions)
+            NodeProcessor.containerCreate(node.getId, container, image, deployOptions)
               .pipeTo(sender())
           case None ⇒
             val e = new Throwable("No available nodes for running this container")

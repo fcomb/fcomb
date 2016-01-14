@@ -12,6 +12,7 @@ object ContainerState extends Enumeration {
   val Running = Value("running")
   val Stopping = Value("stopping")
   val Stopped = Value("stopped")
+  val Restarting = Value("restarting")
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
 }

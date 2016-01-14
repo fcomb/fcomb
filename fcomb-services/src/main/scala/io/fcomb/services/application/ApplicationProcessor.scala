@@ -70,6 +70,8 @@ object ApplicationProcessor {
 
   case object ApplicationTerminate extends Entity
 
+  case object ApplicationRestart extends Entity
+
   case class ContainerChangedState(
     id:    Long,
     state: ContainerState.ContainerState
@@ -224,6 +226,11 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         applyState(stop(state)) {
           replyTo.!(())
         }
+      case ApplicationRestart ⇒
+        val replyTo = sender()
+        applyState(restart(state)) {
+          replyTo.!(())
+        }
       case ApplicationTerminate ⇒
         val replyTo = sender()
         applyState(terminate(state)) {
@@ -335,7 +342,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
           numbers = newIds
         )
         createdContainers ← Future.sequence(containers.map { c ⇒
-          UserNodeProcessor.createContainer(c, app.image, app.deployOptions)
+          UserNodeProcessor.containerCreate(c, app.image, app.deployOptions)
         })
         updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
       } yield state.copy(
@@ -348,7 +355,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       for {
         _ ← PContainer.updateState(ids, ContainerState.Terminating)
         _ ← Future.sequence(terminateContainers.map { c ⇒
-          NodeProcessor.terminateContainer(c.nodeId.get, c.getId)
+          NodeProcessor.containerTerminate(c.nodeId.get, c.getId)
         })
         _ ← PContainer.updateState(ids, ContainerState.Terminated)
       } yield state.copy(
@@ -371,7 +378,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         _ ← PApplication.updateState(appId, ApplicationState.Starting)
         _ ← PContainer.updateState(idsSeq, ContainerState.Starting)
         _ ← Future.sequence(containers.map { c ⇒
-          NodeProcessor.startContainer(c.nodeId.get, c.getId)
+          NodeProcessor.containerStart(c.nodeId.get, c.getId)
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Running)
         _ ← PApplication.updateState(appId, ApplicationState.Running)
@@ -401,7 +408,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         _ ← PApplication.updateState(appId, ApplicationState.Stopping)
         _ ← PContainer.updateState(idsSeq, ContainerState.Stopping)
         _ ← Future.sequence(containers.map { c ⇒
-          NodeProcessor.stopContainer(c.nodeId.get, c.getId)
+          NodeProcessor.containerStop(c.nodeId.get, c.getId)
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Stopped)
         _ ← PApplication.updateState(appId, ApplicationState.Stopped)
@@ -413,6 +420,33 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         state.copy(
           app = state.app.copy(state = ApplicationState.Stopped),
           containers = stoppedContainers
+        )
+      }
+    }
+  }
+
+  def restart(state: State) = {
+    val containers = state.containers.filter(_.isPresent())
+    if (containers.isEmpty) Future.successful(state)
+    else {
+      val ids = containers.map(_.getId)
+      val idsSeq = ids.toSeq
+      for {
+        _ ← PApplication.updateState(appId, ApplicationState.Restarting)
+        _ ← PContainer.updateState(idsSeq, ContainerState.Restarting)
+        _ ← Future.sequence(containers.map { c ⇒
+          NodeProcessor.containerRestart(c.nodeId.get, c.getId)
+        })
+        _ ← PContainer.updateState(idsSeq, ContainerState.Running)
+        _ ← PApplication.updateState(appId, ApplicationState.Running)
+      } yield {
+        val restartedContainers = state.containers.map { c ⇒
+          if (ids.contains(c.getId)) c.copy(state = ContainerState.Running)
+          else c
+        }
+        state.copy(
+          app = state.app.copy(state = ApplicationState.Running),
+          containers = restartedContainers
         )
       }
     }
@@ -435,7 +469,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         _ ← PApplication.updateState(appId, ApplicationState.Terminating)
         _ ← PContainer.updateState(idsSeq, ContainerState.Terminating)
         _ ← Future.sequence(containers.map { c ⇒
-          NodeProcessor.terminateContainer(c.nodeId.get, c.getId)
+          NodeProcessor.containerTerminate(c.nodeId.get, c.getId)
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Terminated)
         _ ← PApplication.updateState(appId, ApplicationState.Terminated)
