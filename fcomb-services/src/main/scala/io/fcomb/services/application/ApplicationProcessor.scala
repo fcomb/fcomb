@@ -324,8 +324,18 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     }
   }
 
-  def scale(state: State) =
-    scaleContainers(state).flatMap(start)
+  def scale(state: State) = {
+    val containers = state.containers.filter(_.isPresent)
+    if (containers.size == state.app.scaleStrategy.numberOfContainers)
+      Future.successful(state)
+    else
+      for {
+        _ ← PApplication.updateState(appId, ApplicationState.Scaling)
+        ns <- scaleContainers(state)
+        ss <- start(ns)
+        _ ← PApplication.updateState(appId, ApplicationState.Running)
+      } yield ss.copy(app = ss.app.copy(state = ApplicationState.Running))
+  }
 
   def redeploy(state: State) = {
     val containers = state.containers
@@ -333,15 +343,11 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     else {
       for {
         _ ← PApplication.updateState(appId, ApplicationState.Redeploying)
-        newState ← terminateContainers(state)
+        ns ← terminateContainers(state)
         // scale/create containers
         // start containers
         _ ← PApplication.updateState(appId, ApplicationState.Running) // TODO: change state by states of containers
-      } yield {
-        newState.copy(
-          app = newState.app.copy(state = ApplicationState.Running)
-        )
-      }
+      } yield ns.copy(app = ns.app.copy(state = ApplicationState.Running))
     }
 
     ???
