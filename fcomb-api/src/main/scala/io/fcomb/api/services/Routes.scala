@@ -115,6 +115,11 @@ object Routes {
       pathPrefix(node.NodeService.pathPrefix) {
         pathEndOrSingleSlash {
           get(node.NodeService.index)
+        } ~
+        pathPrefix(LongNumber) { nodeId =>
+          pathEndOrSingleSlash {
+            get(node.NodeService.show(nodeId))
+          }
         }
       } ~
       pathPrefix(UserService.pathPrefix) {

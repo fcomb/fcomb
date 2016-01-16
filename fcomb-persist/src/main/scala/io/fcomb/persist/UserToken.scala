@@ -29,13 +29,12 @@ class UserTokenTable(tag: Tag) extends Table[models.UserToken](tag, "user_tokens
 object UserToken extends PersistModel[models.UserToken, UserTokenTable] {
   val table = TableQuery[UserTokenTable]
   val prefix = "tkn_"
-  val defaultLength = 96
 
   def createDefaults(userId: Long) = {
     val timeNow = ZonedDateTime.now()
     val tokens = Seq(
       models.UserToken(
-        token = generateToken(),
+        token = generateToken(64),
         role = models.TokenRole.Api,
         state = models.TokenState.Enabled,
         userId = userId,
@@ -43,7 +42,7 @@ object UserToken extends PersistModel[models.UserToken, UserTokenTable] {
         updatedAt = timeNow
       ),
       models.UserToken(
-        token = generateToken(),
+        token = generateToken(32),
         role = models.TokenRole.JoinCluster,
         state = models.TokenState.Enabled,
         userId = userId,
@@ -54,8 +53,8 @@ object UserToken extends PersistModel[models.UserToken, UserTokenTable] {
     db.run(createDBIO(tokens))
   }
 
-  private def generateToken() =
-    s"$prefix${random.alphanumeric.take(defaultLength).mkString}"
+  private def generateToken(length: Int) =
+    s"$prefix${random.alphanumeric.take(length).mkString}"
 
   private val findAllByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
     table.filter(_.userId === userId)

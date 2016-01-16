@@ -25,4 +25,17 @@ object NodeService extends Service {
       )
     }
   }
+
+  def show(id: Long)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    authorizeUser { user ⇒
+      completeOrNotFound(
+        PNode.findByIdAndUserIdAsResponse(id, user.getId),
+        StatusCodes.OK
+      )
+    }
+  }
 }

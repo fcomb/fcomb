@@ -144,23 +144,40 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
   def findAllAvailableByUserId(userId: Long) =
     db.run(findAllAvailableByUserIdCompiled(userId).result)
 
-  private val findAllByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
+  private val findByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
     table.filter(_.userId === userId)
   }
 
+  private def mapResponse(node: MNode) =
+    response.NodeResponse(
+      id = node.id,
+      state = node.state,
+      publicIpAddress = node.publicIpAddress,
+      createdAt = node.createdAt,
+      updatedAt = node.updatedAt,
+      terminatedAt = node.terminatedAt
+    )
+
   def findAllByUserIdAsResponse(userId: Long)(
-    implicit ec: ExecutionContext
+    implicit
+    ec: ExecutionContext
   ) = db.run {
-    findAllByUserIdCompiled(userId).result.map(_.map { node =>
-      response.NodeResponse(
-        id = node.id,
-        state = node.state,
-        publicIpAddress = node.publicIpAddress,
-        createdAt = node.createdAt,
-        updatedAt = node.updatedAt,
-        terminatedAt = node.terminatedAt
-      )
-    })
+    findByUserIdCompiled(userId).result.map(_.map(mapResponse))
+  }
+
+  private val findByIdAndUserIdCompiled = Compiled {
+    (id: Rep[Long], userId: Rep[Long]) ⇒
+      table.filter { q ⇒
+        q.id === id && q.userId === userId
+      }
+  }
+
+  def findByIdAndUserIdAsResponse(id: Long, userId: Long)(
+    implicit
+    ec: ExecutionContext
+  ) = db.run {
+    findByIdAndUserIdCompiled(id, userId).result.headOption
+      .map(_.map(mapResponse))
   }
 
   def updateState(id: Long, state: NodeState.NodeState) = db.run {
