@@ -309,7 +309,13 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         case ApplicationState.Starting    ⇒ start(state)
         case ApplicationState.Stopping    ⇒ stop(state)
         case ApplicationState.Restarting  ⇒ restart(state)
+        case ApplicationState.Redeploying ⇒ redeploy(state)
+        case ApplicationState.Scaling     ⇒ scale(state)
         case ApplicationState.Terminating ⇒ terminate(state)
+        case s ⇒
+          val msg = s"This is cannot happen: unknown incompleted `$s` state"
+          log.error(msg)
+          throw new Throwable(msg)
       }
       newState.map(Initialize(_, retryCount - 1)).pipeTo(self)
     }
