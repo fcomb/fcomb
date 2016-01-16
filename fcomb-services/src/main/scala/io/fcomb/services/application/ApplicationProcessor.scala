@@ -138,16 +138,11 @@ object ApplicationProcessor {
     )
 }
 
-private[this] object ApplicationProcessorMessages {
-  sealed trait ApplicationCommands
-}
-
 class ApplicationProcessor(timeout: Duration) extends Actor
     with Stash with ActorLogging {
   import context.dispatcher
   import context.system
   import ApplicationProcessor._
-  import ApplicationProcessorMessages._
   import ShardRegion.Passivate
 
   context.setReceiveTimeout(timeout)
@@ -156,7 +151,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   case class State(app: MApplication, containers: HashSet[MContainer])
 
-  case class Initialize(state: State)
+  case class Initialize(state: State, retryCount: Int)
 
   case class UpdateState(state: State)
 
@@ -170,10 +165,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       stash()
       initializing()
       context.become({
-        case Initialize(state) ⇒
-          switchReceiveByCompletedState(state) {
-            case s ⇒ log.error("Can't be `in progress` state")
-          }
+        case Initialize(state, retryCount) ⇒
+          initializeWithState(state, retryCount)
         case msg: Entity ⇒
           log.warning(s"stash message: $msg")
           stash()
@@ -188,7 +181,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     } yield (app, containers)).onComplete {
       case Success((app, containers)) ⇒
         val state = State(app, HashSet(containers: _*))
-        self ! Initialize(state)
+        self ! Initialize(state, 1)
       case Failure(e) ⇒ handleThrowable(e)
     }
 
@@ -196,23 +189,25 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
         val replyTo = sender()
-        applyState(scale(state)) {
+        applyState(scale(state)) { _ ⇒
           replyTo.!(())
         }
       case ApplicationStop ⇒
         log.error("Can't be stopped")
+        sender() ! Status.Failure(new Throwable("Cannot be stopped"))
       case ApplicationTerminate ⇒
         val replyTo = sender()
-        applyState(terminate(state)) {
+        applyState(terminate(state)) { _ ⇒
           replyTo.!(())
         }
       case ApplicationRedeploy ⇒
         log.error("Can't be redeployed")
+        sender() ! Status.Failure(new Throwable("Cannot be redeployed"))
       case _: ApplicationScale ⇒
         log.error("Can't be scaled")
+        sender() ! Status.Failure(new Throwable("Cannot be scaled"))
       case s: ContainerChangedState ⇒
         log.error(s"Cannot change container when `created` state: $s")
-      // TODO: reply with error
     }
   }
 
@@ -223,17 +218,17 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         sender.!(())
       case ApplicationStop ⇒
         val replyTo = sender()
-        applyState(stop(state)) {
+        applyState(stop(state)) { _ ⇒
           replyTo.!(())
         }
       case ApplicationRestart ⇒
         val replyTo = sender()
-        applyState(restart(state)) {
+        applyState(restart(state)) { _ ⇒
           replyTo.!(())
         }
       case ApplicationTerminate ⇒
         val replyTo = sender()
-        applyState(terminate(state)) {
+        applyState(terminate(state)) { _ ⇒
           replyTo.!(())
         }
       case ApplicationRedeploy ⇒
@@ -249,7 +244,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
         val replyTo = sender()
-        applyState(start(state)) {
+        applyState(start(state)) { _ ⇒
           replyTo.!(())
         }
       case ApplicationStop ⇒
@@ -257,7 +252,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         sender.!(())
       case ApplicationTerminate ⇒
         val replyTo = sender()
-        applyState(terminate(state)) {
+        applyState(terminate(state)) { _ ⇒
           replyTo.!(())
         }
       case ApplicationRedeploy ⇒
@@ -283,18 +278,14 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case ReceiveTimeout ⇒ annihilation()
   }
 
-  val unreachableReceive: Receive = {
-    case _ ⇒ ??? // TODO
+  def becomeAndUnstash(r: Receive) = {
+    context.become(r, false)
+    unstashAll()
   }
 
   def switchReceiveByCompletedState(state: State)(
-    handleUncompleted: ApplicationState.ApplicationState ⇒ Unit
-  ) = {
-    def becomeAndUnstash(r: Receive) = {
-      context.become(r, false)
-      unstashAll()
-    }
-
+    handleIncompleted: ApplicationState.ApplicationState ⇒ Unit
+  ) =
     state.app.state match {
       case ApplicationState.Created ⇒
         becomeAndUnstash(createdReceive(state))
@@ -304,18 +295,35 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         becomeAndUnstash(stoppedReceive(state))
       case ApplicationState.Terminated ⇒
         becomeAndUnstash(terminatedReceive)
-      case s ⇒ handleUncompleted(s)
+      case incompletedState ⇒
+        handleIncompleted(incompletedState)
+    }
+
+  def initializeWithState(state: State, retryCount: Int) = {
+    if (retryCount <= 0) {
+      log.error(s"No retries")
+      annihilation()
+    }
+    else switchReceiveByCompletedState(state) { incompletedState ⇒
+      val newState = incompletedState match {
+        case ApplicationState.Starting    ⇒ start(state)
+        case ApplicationState.Stopping    ⇒ stop(state)
+        case ApplicationState.Restarting  ⇒ restart(state)
+        case ApplicationState.Terminating ⇒ terminate(state)
+      }
+      newState.map(Initialize(_, retryCount - 1)).pipeTo(self)
     }
   }
 
   def applyState(stateF: ⇒ Future[State])(
-    f: ⇒ Unit
+    f: ApplicationState.ApplicationState ⇒ Unit
   ) = {
     context.become({
       case UpdateState(newState) ⇒
         log.info(s"newState: $newState")
-        switchReceiveByCompletedState(newState) {
-          case s ⇒ log.error("Can't be `in progress` state")
+        switchReceiveByCompletedState(newState) { incompletedState ⇒
+          log.error(s"Cannot apply transition state: $incompletedState")
+          annihilation()
         }
       case msg: Entity ⇒
         log.warning(s"stash message: $msg")
@@ -324,7 +332,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     // TODO: handle failure state
     stateF.foreach { state ⇒
       self ! UpdateState(state)
-      f
+      f(state.app.state)
     }
   }
 
