@@ -36,8 +36,7 @@ case class Container(
   def dockerName = s"$name.${getId()}"
 
   def isTerminated =
-    state == ContainerState.Terminated ||
-      state == ContainerState.Terminating
+    state == ContainerState.Terminated
 
   def isUnreachable =
     state == ContainerState.Unreachable
@@ -51,13 +50,8 @@ case class Container(
       dockerId.nonEmpty
 
   def isRunning =
-    isPresent &&
-      (state == ContainerState.Starting ||
-        state == ContainerState.Running)
+    isPresent && state == ContainerState.Running
 
   def isNotRunning =
-    isPresent &&
-      (state == ContainerState.Stopping ||
-        state == ContainerState.Stopped ||
-        state == ContainerState.Restarting)
+    isPresent && state == ContainerState.Stopped
 }

@@ -283,6 +283,10 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case ReceiveTimeout ⇒ annihilation()
   }
 
+  val unreachableReceive: Receive = {
+    case _ ⇒ ??? // TODO
+  }
+
   def switchReceiveByCompletedState(state: State)(
     handleUncompleted: ApplicationState.ApplicationState ⇒ Unit
   ) = {
@@ -324,95 +328,117 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     }
   }
 
+  def getStateByContainers(state: State) = {
+    val containers = state.containers.filter(_.isPresent)
+    val rl = containers.filter(_.isRunning).size
+    val nc = state.app.scaleStrategy.numberOfContainers
+    val appState =
+      if (rl == nc && nc == containers.size) ApplicationState.Running
+      else if (rl > 1) ApplicationState.PartlyRunning
+      else ApplicationState.Stopped
+    state.copy(app = state.app.copy(state = appState))
+  }
+
+  def persistState(state: ApplicationState.ApplicationState) =
+    PApplication.updateState(appId, state)
+
   def scale(state: State) = {
     val containers = state.containers.filter(_.isPresent)
-    if (containers.size == state.app.scaleStrategy.numberOfContainers)
+    if (containers.size == state.app.scaleStrategy.numberOfContainers &&
+      state.app.state != ApplicationState.Scaling)
       Future.successful(state)
     else
       for {
-        _ ← PApplication.updateState(appId, ApplicationState.Scaling)
-        ns <- scaleContainers(state)
-        ss <- start(ns)
-        _ ← PApplication.updateState(appId, ApplicationState.Running)
-      } yield ss.copy(app = ss.app.copy(state = ApplicationState.Running))
+        _ ← persistState(ApplicationState.Scaling)
+        ns ← scaleContainers(state)
+        ss ← start(ns)
+        newState = getStateByContainers(ss)
+        _ ← persistState(newState.app.state)
+      } yield newState
   }
 
   def redeploy(state: State) = {
     val containers = state.containers
-    if (containers.isEmpty) Future.successful(state)
+    if (containers.isEmpty && state.app.state != ApplicationState.Redeploying)
+      Future.successful(state)
     else {
       for {
-        _ ← PApplication.updateState(appId, ApplicationState.Redeploying)
+        _ ← persistState(ApplicationState.Redeploying)
         ns ← terminateContainers(state)
         // scale/create containers
         // start containers
-        _ ← PApplication.updateState(appId, ApplicationState.Running) // TODO: change state by states of containers
-      } yield ns.copy(app = ns.app.copy(state = ApplicationState.Running))
+        newState = getStateByContainers(ns)
+        _ ← persistState(newState.app.state)
+      } yield newState
     }
 
     ???
   }
 
   def start(state: State) = {
-    if (state.containers.exists(_.isNotRunning))
+    if (!state.containers.exists(_.isNotRunning) &&
+      state.app.state != ApplicationState.Starting)
+      Future.successful(state)
+    else
       for {
-        _ ← PApplication.updateState(appId, ApplicationState.Starting)
+        _ ← persistState(ApplicationState.Starting)
         ns ← startContainers(state)
-        _ ← PApplication.updateState(appId, ApplicationState.Running)
-      } yield ns.copy(app = ns.app.copy(state = ApplicationState.Running))
-    else Future.successful(state)
+        newState = getStateByContainers(ns)
+        _ ← persistState(newState.app.state)
+      } yield newState
   }
 
   def stop(state: State) = {
-    if (state.containers.exists(_.isRunning))
+    if (!state.containers.exists(_.isRunning) &&
+      state.app.state != ApplicationState.Stopping)
+      Future.successful(state)
+    else
       for {
-        _ ← PApplication.updateState(appId, ApplicationState.Stopping)
+        _ ← persistState(ApplicationState.Stopping)
         ns ← stopContainers(state)
-        _ ← PApplication.updateState(appId, ApplicationState.Stopped)
-      } yield ns.copy(app = ns.app.copy(state = ApplicationState.Stopped))
-    else Future.successful(state)
+        newState = getStateByContainers(ns)
+        _ ← persistState(newState.app.state)
+      } yield newState
   }
 
   def restart(state: State) = {
     val containers = state.containers.filter(_.isPresent)
-    if (containers.isEmpty) Future.successful(state)
+    if (containers.isEmpty && state.app.state != ApplicationState.Restarting)
+      Future.successful(state)
     else {
       val ids = containers.map(_.getId)
       val idsSeq = ids.toSeq
       for {
-        _ ← PApplication.updateState(appId, ApplicationState.Restarting)
+        _ ← persistState(ApplicationState.Restarting)
         _ ← PContainer.updateState(idsSeq, ContainerState.Restarting)
         _ ← Future.sequence(containers.map { c ⇒
           NodeProcessor.containerRestart(c.nodeId.get, c.getId)
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Running)
-        _ ← PApplication.updateState(appId, ApplicationState.Running)
-      } yield {
-        val restartedContainers = state.containers.map { c ⇒
-          if (ids.contains(c.getId)) c.copy(state = ContainerState.Running)
-          else c
-        }
-        state.copy(
-          app = state.app.copy(state = ApplicationState.Running),
-          containers = restartedContainers
-        )
-      }
+        newState = getStateByContainers(state.copy(
+          containers = state.containers.map { c ⇒
+            if (ids.contains(c.getId)) c.copy(state = ContainerState.Running)
+            else c
+          }
+        ))
+        _ ← persistState(newState.app.state)
+      } yield newState
     }
   }
 
   def terminate(state: State) = {
     if (state.containers.exists(!_.isTerminated)) {
       for {
-        _ ← PApplication.updateState(appId, ApplicationState.Terminating)
+        _ ← persistState(ApplicationState.Terminating)
         ns ← terminateContainers(state)
-        _ ← PApplication.updateState(appId, ApplicationState.Terminated)
+        _ ← persistState(ApplicationState.Terminated)
       } yield ns.copy(app = ns.app.copy(state = ApplicationState.Terminated))
     }
     else {
       if (state.app.state == ApplicationState.Terminated)
         Future.successful(state)
       else
-        PApplication.updateState(appId, ApplicationState.Terminated).map { _ ⇒
+        persistState(ApplicationState.Terminated).map { _ ⇒
           state.copy(app = state.app.copy(state = ApplicationState.Terminated))
         }
     }
