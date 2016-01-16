@@ -183,6 +183,12 @@ package object json {
   implicit val applicationJsonProtocol =
     jsonFormat10(Application)
 
+  implicit val ApplicationRedeployRequestJsonProtocol =
+    jsonFormat1(ApplicationRedeployRequest)
+
+  implicit val ApplicationScaleRequestJsonProtocol =
+    jsonFormat1(ApplicationScaleRequest)
+
   implicit val containerStateJsonProtocol =
     createStringEnumJsonFormat(ContainerState)
 

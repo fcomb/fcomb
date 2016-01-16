@@ -59,4 +59,12 @@ package object request {
     deployOptions: DockerDeployOptions,
     scaleStrategy: ScaleStrategy
   ) extends ServiceModelRequest
+
+  case class ApplicationRedeployRequest(
+    scaleStrategy: ScaleStrategy
+  ) extends ServiceModelRequest
+
+  case class ApplicationScaleRequest(
+    numberOfContainers: Int
+  ) extends ServiceModelRequest
 }

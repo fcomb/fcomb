@@ -59,6 +59,11 @@ object Routes {
               post(application.ApplicationService.stop(applicationId))
             }
           } ~
+          pathPrefix("restart") {
+            pathEndOrSingleSlash {
+              post(application.ApplicationService.restart(applicationId))
+            }
+          } ~
           pathPrefix("terminate") {
             pathEndOrSingleSlash {
               post(application.ApplicationService.terminate(applicationId))

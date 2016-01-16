@@ -31,6 +31,13 @@ object ApplicationManager {
     ApplicationProcessor.start(id)
 
   @inline
+  def restart(id: Long)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    ApplicationProcessor.restart(id)
+
+  @inline
   def terminate(id: Long)(
     implicit
     ec: ExecutionContext

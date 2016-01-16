@@ -113,6 +113,12 @@ object ApplicationProcessor {
   ): Future[Unit] =
     askRef[Unit](appId, ApplicationStop, timeout)
 
+  def restart(appId: Long)(
+    implicit
+    timeout: Timeout = Timeout(1.minute)
+  ): Future[Unit] =
+    askRef[Unit](appId, ApplicationRestart, timeout)
+
   def terminate(appId: Long)(
     implicit
     timeout: Timeout = Timeout(30.seconds)

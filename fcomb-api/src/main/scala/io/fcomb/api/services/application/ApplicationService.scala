@@ -79,6 +79,16 @@ object ApplicationService extends Service with ApplicationAuth {
     }
   }
 
+  def restart(id: Long)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    checkOwner(id) {
+      completeWithoutContent(ApplicationManager.restart(id))
+    }
+  }
+
   def terminate(id: Long)(
     implicit
     ec:  ExecutionContext,
