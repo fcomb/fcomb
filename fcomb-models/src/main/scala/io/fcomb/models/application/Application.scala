@@ -82,6 +82,7 @@ case class DockerDeployOptions(
 object ScaleStrategyKind extends Enumeration {
   type ScaleStrategyKind = Value
 
+  val Default = Value("default")
   val EveryNode = Value("every_node")
   val EmptiestNode = Value("emptiest_node")
   val HighAvailability = Value("high_availability")

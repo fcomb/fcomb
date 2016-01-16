@@ -1,6 +1,6 @@
 package io.fcomb
 
-// import io.fcomb.models.comb._
+import io.fcomb.models._, application._, node._, docker._
 
 package object request {
   trait ServiceModelRequest extends models.ServiceModel
@@ -55,8 +55,8 @@ package object request {
 
   case class ApplicationRequest(
     name:          String,
-    image:         models.application.DockerImage,
-    deployOptions: models.application.DockerDeployOptions,
-    scaleStrategy: models.application.ScaleStrategy
+    image:         DockerImage,
+    deployOptions: DockerDeployOptions,
+    scaleStrategy: ScaleStrategy
   ) extends ServiceModelRequest
 }
