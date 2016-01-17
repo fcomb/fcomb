@@ -379,15 +379,15 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def redeploy(state: State) = {
-    val containers = state.containers
-    if (containers.isEmpty && state.app.state != ApplicationState.Redeploying)
+    if (state.containers.isEmpty &&
+      state.app.state != ApplicationState.Redeploying)
       Future.successful(state)
     else {
       for {
         _ ← persistState(ApplicationState.Redeploying)
         ts ← terminateContainers(state)
         ss ← scaleContainers(ts)
-        ns ← start(ss)
+        ns ← startContainers(ss)
         newState = getStateByContainers(ns)
         _ ← persistState(newState.app.state)
       } yield newState
