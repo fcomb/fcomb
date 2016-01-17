@@ -369,7 +369,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       Future.successful(state)
     else
       for {
-        _ <- PApplication.updateNumberOfContainers(appId, nc)
+        _ ← PApplication.updateNumberOfContainers(appId, nc)
         _ ← persistState(ApplicationState.Scaling)
         ns ← scaleContainers(state)
         ss ← start(ns)
@@ -385,15 +385,13 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     else {
       for {
         _ ← persistState(ApplicationState.Redeploying)
-        ns ← terminateContainers(state)
-        // scale/create containers
-        // start containers
+        ts ← terminateContainers(state)
+        ss ← scaleContainers(ts)
+        ns ← start(ss)
         newState = getStateByContainers(ns)
         _ ← persistState(newState.app.state)
       } yield newState
     }
-
-    ???
   }
 
   def start(state: State) = {

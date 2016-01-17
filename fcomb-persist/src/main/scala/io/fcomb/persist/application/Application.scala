@@ -118,14 +118,17 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
     ))
   }
 
-  def updateState(id: Long, state: ApplicationState.ApplicationState) = db.run {
+  def updateState(
+    id:    Long,
+    state: ApplicationState.ApplicationState
+  ) = db.run {
     table.filter(_.id === id)
       .map(_.state)
       .update(state)
   }
 
   def updateNumberOfContainers(
-    id: Long,
+    id:                 Long,
     numberOfContainers: Int
   ) = db.run {
     table.filter(_.id === id)
