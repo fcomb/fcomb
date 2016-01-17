@@ -2,7 +2,7 @@ package io.fcomb.services.application
 
 import io.fcomb.services.Exceptions._
 import io.fcomb.services.node.{NodeProcessor, UserNodeProcessor}
-import io.fcomb.models.application.{ApplicationState, Application ⇒ MApplication}
+import io.fcomb.models.application.{ApplicationState, ScaleStrategy, Application ⇒ MApplication}
 import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
 import io.fcomb.utils.Config
 import io.fcomb.persist.application.{Application ⇒ PApplication}
@@ -64,9 +64,9 @@ object ApplicationProcessor {
 
   case object ApplicationStop extends Entity
 
-  case object ApplicationRedeploy extends Entity
+  case class ApplicationRedeploy(scaleStrategy: Option[ScaleStrategy]) extends Entity
 
-  case class ApplicationScale(count: Int) extends Entity
+  case class ApplicationScale(numberOfContainers: Int) extends Entity
 
   case object ApplicationTerminate extends Entity
 
@@ -125,17 +125,17 @@ object ApplicationProcessor {
   ): Future[Unit] =
     askRef[Unit](appId, ApplicationTerminate, timeout)
 
-  def redeploy(appId: Long)(
+  def redeploy(appId: Long, scaleStrategy: Option[ScaleStrategy])(
     implicit
     timeout: Timeout = Timeout(30.seconds)
   ): Future[Unit] =
-    askRef[Unit](appId, ApplicationRedeploy, timeout)
+    askRef[Unit](appId, ApplicationRedeploy(scaleStrategy), timeout)
 
-  def scale(appId: Long, count: Int)(
+  def scale(appId: Long, numberOfContainers: Int)(
     implicit
     timeout: Timeout = Timeout(30.seconds)
   ): Future[Unit] =
-    askRef[Unit](appId, ApplicationScale(count), timeout)
+    askRef[Unit](appId, ApplicationScale(numberOfContainers), timeout)
 
   def containerChangedState(container: MContainer) =
     tellRef(
@@ -206,7 +206,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         applyState(terminate(state)) { _ ⇒
           replyTo.!(())
         }
-      case ApplicationRedeploy ⇒
+      case _: ApplicationRedeploy ⇒
         log.error("Can't be redeployed")
         sender() ! Status.Failure(new Throwable("Cannot be redeployed"))
       case _: ApplicationScale ⇒
@@ -237,9 +237,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         applyState(terminate(state)) { _ ⇒
           replyTo.!(())
         }
-      case ApplicationRedeploy ⇒
+      case ApplicationRedeploy(scaleStrategy) ⇒
         ???
-      case ApplicationScale(count) ⇒
+      case ApplicationScale(numberOfContainers) ⇒
         ???
       case ContainerChangedState(containerId, containerState) ⇒
         ???
@@ -261,9 +261,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         applyState(terminate(state)) { _ ⇒
           replyTo.!(())
         }
-      case ApplicationRedeploy ⇒
+      case ApplicationRedeploy(scaleStrategy) ⇒
         ???
-      case ApplicationScale(count) ⇒
+      case ApplicationScale(numberOfContainers) ⇒
         ???
       case ContainerChangedState(containerId, containerState) ⇒
         ???

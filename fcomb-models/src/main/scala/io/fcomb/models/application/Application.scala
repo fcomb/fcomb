@@ -83,9 +83,10 @@ object ScaleStrategyKind extends Enumeration {
   type ScaleStrategyKind = Value
 
   val Default = Value("default")
-  val EveryNode = Value("every_node")
-  val EmptiestNode = Value("emptiest_node")
-  val HighAvailability = Value("high_availability")
+  // TODO
+  // val EveryNode = Value("every_node")
+  // val EmptiestNode = Value("emptiest_node")
+  // val HighAvailability = Value("high_availability")
 }
 
 @SerialVersionUID(1L)

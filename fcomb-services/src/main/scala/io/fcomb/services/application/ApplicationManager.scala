@@ -1,6 +1,6 @@
 package io.fcomb.services.application
 
-import io.fcomb.models.application.{Application ⇒ MApplication}
+import io.fcomb.models.application.{ScaleStrategy, Application ⇒ MApplication}
 import io.fcomb.persist.application.{Application ⇒ PApplication}
 import io.fcomb.request.ApplicationRequest
 import scala.concurrent.{ExecutionContext, Future}
@@ -45,16 +45,16 @@ object ApplicationManager {
     ApplicationProcessor.terminate(id)
 
   @inline
-  def redeploy(id: Long)(
+  def redeploy(id: Long, scaleStrategy: Option[ScaleStrategy])(
     implicit
     ec: ExecutionContext
   ): Future[Unit] =
-    ApplicationProcessor.redeploy(id)
+    ApplicationProcessor.redeploy(id, scaleStrategy)
 
   @inline
-  def scale(id: Long, count: Int)(
+  def scale(id: Long, numberOfContainers: Int)(
     implicit
     ec: ExecutionContext
   ): Future[Unit] =
-    ApplicationProcessor.scale(id, count)
+    ApplicationProcessor.scale(id, numberOfContainers)
 }

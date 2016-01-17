@@ -104,8 +104,12 @@ object ApplicationService extends Service with ApplicationAuth {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    checkOwner(id) {
-      completeWithoutContent(ApplicationManager.redeploy(id))
+    requestBodyAsOpt[ApplicationRedeployRequest] { req ⇒
+      checkOwner(id) {
+        completeWithoutContent {
+          ApplicationManager.redeploy(id, req.map(_.scaleStrategy))
+        }
+      }
     }
   }
 
@@ -114,9 +118,12 @@ object ApplicationService extends Service with ApplicationAuth {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    checkOwner(id) {
-      // TODO
-      completeWithoutContent(ApplicationManager.scale(id, 5))
+    requestBodyAs[ApplicationScaleRequest] { req ⇒
+      checkOwner(id) {
+        completeWithoutContent {
+          ApplicationManager.scale(id, req.numberOfContainers)
+        }
+      }
     }
   }
 }

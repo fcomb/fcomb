@@ -294,7 +294,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     CompleteFutureResult(recoverThrowable(f.flatMap(flatResult)))
 
-  def requestBodyAs[T](f: T ⇒ ServiceResult)(
+  def requestBodyAsOpt[T](f: Option[T] ⇒ ServiceResult)(
     implicit
     ctx: ServiceContext,
     ec:  ExecutionContext,
@@ -303,12 +303,22 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     jr:  JsonReader[T]
   ): ServiceResult =
     complete(requestBodyTryAs[T]().map {
-      case \/-(o) ⇒ o match {
-        case Some(res) ⇒ f(res)
-        case _         ⇒ completeError(JsonBodyCantBeEmpty)(StatusCodes.BadRequest)
-      }
-      case -\/(e) ⇒ completeThrowable(e)
+      case \/-(res) ⇒ f(res)
+      case -\/(e)   ⇒ completeThrowable(e)
     })
+
+  def requestBodyAs[T](f: T ⇒ ServiceResult)(
+    implicit
+    ctx: ServiceContext,
+    ec:  ExecutionContext,
+    mat: Materializer,
+    tm:  Manifest[T],
+    jr:  JsonReader[T]
+  ): ServiceResult =
+    requestBodyAsOpt[T] {
+      case Some(res) ⇒ f(res)
+      case _         ⇒ completeError(JsonBodyCantBeEmpty)(StatusCodes.BadRequest)
+    }
 
   def completeErrors(errors: Seq[DtCemException])(statusCode: StatusCode)(
     implicit
