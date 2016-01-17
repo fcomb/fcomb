@@ -124,7 +124,7 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
       .update(state)
   }
 
-  def updateScaleStrategyNumberOfContainers(
+  def updateNumberOfContainers(
     id: Long,
     numberOfContainers: Int
   ) = db.run {

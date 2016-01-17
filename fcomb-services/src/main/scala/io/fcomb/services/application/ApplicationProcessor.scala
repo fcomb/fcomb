@@ -364,11 +364,12 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   def scale(state: State) = {
     val containers = state.containers.filter(_.isPresent)
-    if (containers.size == state.app.scaleStrategy.numberOfContainers &&
-      state.app.state != ApplicationState.Scaling)
+    val nc = state.app.scaleStrategy.numberOfContainers
+    if (containers.size == nc && state.app.state != ApplicationState.Scaling)
       Future.successful(state)
     else
       for {
+        _ <- PApplication.updateNumberOfContainers(appId, nc)
         _ ← persistState(ApplicationState.Scaling)
         ns ← scaleContainers(state)
         ss ← start(ns)
