@@ -195,7 +195,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
         val replyTo = sender()
-        applyState(scale(state)) { _ ⇒
+        applyState(scale(state, None)) { _ ⇒
           replyTo.!(())
         }
       case ApplicationStop ⇒
@@ -238,10 +238,17 @@ class ApplicationProcessor(timeout: Duration) extends Actor
           replyTo.!(())
         }
       case ApplicationRedeploy(scaleStrategy) ⇒
-        ???
+        val replyTo = sender()
+        applyState(redeploy(state, scaleStrategy)) { _ ⇒
+          replyTo.!(())
+        }
       case ApplicationScale(numberOfContainers) ⇒
-        ???
+        val replyTo = sender()
+        applyState(scale(state, Some(numberOfContainers))) { _ ⇒
+          replyTo.!(())
+        }
       case ContainerChangedState(containerId, containerState) ⇒
+        // TODO
         ???
     }
   }
@@ -315,8 +322,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         case ApplicationState.Starting    ⇒ start(state)
         case ApplicationState.Stopping    ⇒ stop(state)
         case ApplicationState.Restarting  ⇒ restart(state)
-        case ApplicationState.Redeploying ⇒ redeploy(state)
-        case ApplicationState.Scaling     ⇒ scale(state)
+        case ApplicationState.Redeploying ⇒ redeploy(state, None)
+        case ApplicationState.Scaling     ⇒ scale(state, None)
         case ApplicationState.Terminating ⇒ terminate(state)
         case s ⇒
           val msg = s"This is cannot happen: unknown incompleted `$s` state"
@@ -362,30 +369,64 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def persistState(state: ApplicationState.ApplicationState) =
     PApplication.updateState(appId, state)
 
-  def scale(state: State) = {
-    val containers = state.containers.filter(_.isPresent)
-    val nc = state.app.scaleStrategy.numberOfContainers
-    if (containers.size == nc && state.app.state != ApplicationState.Scaling)
-      Future.successful(state)
+  def updateNumberOfContainers(app: MApplication, numberOfContainers: Int) =
+    if (app.scaleStrategy.numberOfContainers == numberOfContainers)
+      Future.successful(())
     else
+      PApplication.updateNumberOfContainers(appId, numberOfContainers)
+
+  def scale(state: State, numberOpt: Option[Int]) = {
+    val containers = state.containers.filter(_.isPresent)
+    val numberOfContainers = numberOpt.getOrElse(state.app.scaleStrategy.numberOfContainers)
+    if (containers.size == numberOfContainers &&
+      state.app.state != ApplicationState.Scaling &&
+      state.app.scaleStrategy.numberOfContainers == numberOfContainers)
+      Future.successful(state)
+    else {
+      val updatedState =
+        if (state.app.scaleStrategy.numberOfContainers == numberOfContainers)
+          state
+        else
+          state.copy( // TODO: lens
+            app = state.app.copy(
+              scaleStrategy = state.app.scaleStrategy.copy(
+                numberOfContainers = numberOfContainers
+              )
+            )
+          )
       for {
-        _ ← PApplication.updateNumberOfContainers(appId, nc)
+        _ ← updateNumberOfContainers(state.app, numberOfContainers)
         _ ← persistState(ApplicationState.Scaling)
-        ns ← scaleContainers(state)
+        ns ← scaleContainers(updatedState)
         ss ← start(ns)
         newState = getStateByContainers(ss)
         _ ← persistState(newState.app.state)
       } yield newState
+    }
   }
 
-  def redeploy(state: State) = {
+  def updateScaleStrategy(scaleStrategy: Option[ScaleStrategy]) =
+    scaleStrategy match {
+      case Some(ss) ⇒ PApplication.updateScaleStrategy(appId, ss)
+      case None     ⇒ Future.successful(())
+    }
+
+  def redeploy(state: State, scaleStrategy: Option[ScaleStrategy]) = {
     if (state.containers.isEmpty &&
-      state.app.state != ApplicationState.Redeploying)
+      state.app.state != ApplicationState.Redeploying &&
+      !scaleStrategy.exists(_ == state.app.scaleStrategy))
       Future.successful(state)
     else {
+      val updatedState = scaleStrategy match {
+        case Some(ss) ⇒ state.copy( // TODO: lens
+          app = state.app.copy(scaleStrategy = ss)
+        )
+        case None ⇒ state
+      }
       for {
+        _ ← updateScaleStrategy(scaleStrategy)
         _ ← persistState(ApplicationState.Redeploying)
-        ts ← terminateContainers(state)
+        ts ← terminateContainers(updatedState)
         ss ← scaleContainers(ts)
         ns ← startContainers(ss)
         newState = getStateByContainers(ns)
