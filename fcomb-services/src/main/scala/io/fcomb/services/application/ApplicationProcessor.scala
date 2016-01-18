@@ -201,6 +201,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationStop ⇒
         log.error("Can't be stopped")
         sender() ! Status.Failure(new Throwable("Cannot be stopped"))
+      case ApplicationRestart ⇒
+        log.error("Can't be restarted")
+        sender() ! Status.Failure(new Throwable("Cannot be restarted"))
       case ApplicationTerminate ⇒
         val replyTo = sender()
         applyState(terminate(state)) { _ ⇒
@@ -249,7 +252,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         }
       case ContainerChangedState(containerId, containerState) ⇒
         // TODO
-        ???
+        sender().!(())
     }
   }
 
@@ -263,17 +266,29 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationStop ⇒
         log.debug("Already stopped")
         sender.!(())
+      case ApplicationRestart ⇒
+        val replyTo = sender()
+        applyState(restart(state)) { _ ⇒
+          replyTo.!(())
+        }
       case ApplicationTerminate ⇒
         val replyTo = sender()
         applyState(terminate(state)) { _ ⇒
           replyTo.!(())
         }
       case ApplicationRedeploy(scaleStrategy) ⇒
-        ???
+        val replyTo = sender()
+        applyState(redeploy(state, scaleStrategy)) { _ ⇒
+          replyTo.!(())
+        }
       case ApplicationScale(numberOfContainers) ⇒
-        ???
+        val replyTo = sender()
+        applyState(scale(state, Some(numberOfContainers))) { _ ⇒
+          replyTo.!(())
+        }
       case ContainerChangedState(containerId, containerState) ⇒
-        ???
+        // TODO
+        sender().!(())
     }
   }
 
@@ -281,11 +296,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case msg: Entity ⇒ msg match {
       case ApplicationTerminate ⇒
         log.debug("Already terminated")
-        sender.!(())
-      case _: ContainerChangedState ⇒ // TODO: send failure back?
+        sender().!(())
       case s ⇒
         log.error(s"Cannot `$s` when terminated state")
-        // TODO: reply with error
         sender() ! Status.Failure(new Throwable(s"Cannot `$s` when terminated state"))
     }
     case ReceiveTimeout ⇒ annihilation()
