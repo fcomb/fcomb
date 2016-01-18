@@ -4,6 +4,7 @@ import io.fcomb.services.Exceptions._
 import io.fcomb.services.node.{NodeProcessor, UserNodeProcessor}
 import io.fcomb.models.application.{ApplicationState, ScaleStrategy, Application ⇒ MApplication}
 import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
+import io.fcomb.models.errors.UnexpectedState
 import io.fcomb.utils.Config
 import io.fcomb.persist.application.{Application ⇒ PApplication}
 import io.fcomb.persist.docker.{Container ⇒ PContainer}
@@ -194,10 +195,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def createdReceive(state: State): Receive = {
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
-        val replyTo = sender()
-        applyState(scale(state, None)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(scale(state, None), ApplicationState.Running)
       case ApplicationStop ⇒
         log.error("Can't be stopped")
         sender() ! Status.Failure(new Throwable("Cannot be stopped"))
@@ -205,10 +203,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         log.error("Can't be restarted")
         sender() ! Status.Failure(new Throwable("Cannot be restarted"))
       case ApplicationTerminate ⇒
-        val replyTo = sender()
-        applyState(terminate(state)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(terminate(state), ApplicationState.Terminated)
       case _: ApplicationRedeploy ⇒
         log.error("Can't be redeployed")
         sender() ! Status.Failure(new Throwable("Cannot be redeployed"))
@@ -226,30 +221,21 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         log.debug("Already started")
         sender.!(())
       case ApplicationStop ⇒
-        val replyTo = sender()
-        applyState(stop(state)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(stop(state), ApplicationState.Stopped)
       case ApplicationRestart ⇒
-        val replyTo = sender()
-        applyState(restart(state)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(restart(state), ApplicationState.Running)
       case ApplicationTerminate ⇒
-        val replyTo = sender()
-        applyState(terminate(state)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(terminate(state), ApplicationState.Terminated)
       case ApplicationRedeploy(scaleStrategy) ⇒
-        val replyTo = sender()
-        applyState(redeploy(state, scaleStrategy)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(
+          redeploy(state, scaleStrategy),
+          ApplicationState.Running
+        )
       case ApplicationScale(numberOfContainers) ⇒
-        val replyTo = sender()
-        applyState(scale(state, Some(numberOfContainers))) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(
+          scale(state, Some(numberOfContainers)),
+          ApplicationState.Running
+        )
       case ContainerChangedState(containerId, containerState) ⇒
         // TODO
         sender().!(())
@@ -259,33 +245,24 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def stoppedReceive(state: State): Receive = {
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
-        val replyTo = sender()
-        applyState(start(state)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(start(state), ApplicationState.Running)
       case ApplicationStop ⇒
         log.debug("Already stopped")
         sender.!(())
       case ApplicationRestart ⇒
-        val replyTo = sender()
-        applyState(restart(state)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(restart(state), ApplicationState.Running)
       case ApplicationTerminate ⇒
-        val replyTo = sender()
-        applyState(terminate(state)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(terminate(state), ApplicationState.Terminated)
       case ApplicationRedeploy(scaleStrategy) ⇒
-        val replyTo = sender()
-        applyState(redeploy(state, scaleStrategy)) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(
+          redeploy(state, scaleStrategy),
+          ApplicationState.Running
+        )
       case ApplicationScale(numberOfContainers) ⇒
-        val replyTo = sender()
-        applyState(scale(state, Some(numberOfContainers))) { _ ⇒
-          replyTo.!(())
-        }
+        applyStateTransition(
+          scale(state, Some(numberOfContainers)),
+          ApplicationState.Running
+        )
       case ContainerChangedState(containerId, containerState) ⇒
         // TODO
         sender().!(())
@@ -347,9 +324,11 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     }
   }
 
-  def applyState(stateF: ⇒ Future[State])(
-    f: ApplicationState.ApplicationState ⇒ Unit
+  def applyStateTransition(
+    transition:    ⇒ Future[State],
+    extectedState: ApplicationState.ApplicationState
   ) = {
+    val replyTo = sender()
     context.become({
       case UpdateState(newState) ⇒
         log.info(s"newState: $newState")
@@ -361,10 +340,13 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         log.warning(s"stash message: $msg")
         stash()
     }, false)
-    // TODO: handle failure state
-    stateF.foreach { state ⇒
-      self ! UpdateState(state)
-      f(state.app.state)
+    transition.onComplete {
+      case Success(state) ⇒
+        self ! UpdateState(state)
+        if (state.app.state == extectedState)
+          replyTo.!(()) // TODO: reply with state
+        else replyTo ! Status.Failure(UnexpectedState(state.app.state))
+      case Failure(e) ⇒ handleThrowable(e)
     }
   }
 

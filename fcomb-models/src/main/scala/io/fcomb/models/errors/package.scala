@@ -1,5 +1,7 @@
 package io.fcomb.models
 
+import application.ApplicationState
+
 package object errors {
   object ErrorKind extends Enumeration {
     type ErrorKind = Value
@@ -12,9 +14,9 @@ package object errors {
 
   case class ErrorMessage(
     message: String,
-    kind: ErrorKind.ErrorKind,
-    param: Option[String] = None,
-    code: Option[Int] = None
+    kind:    ErrorKind.ErrorKind,
+    param:   Option[String]      = None,
+    code:    Option[Int]         = None
   )
 
   case class FailureResponse(
@@ -83,6 +85,14 @@ package object errors {
     def toErrorMessage() = ErrorMessage(
       "Can't extract client IP address",
       ErrorKind.Request
+    )
+  }
+
+  case class UnexpectedState(state: ApplicationState.ApplicationState) extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Unxpected state",
+      ErrorKind.Internal,
+      Some(state.toString)
     )
   }
 
