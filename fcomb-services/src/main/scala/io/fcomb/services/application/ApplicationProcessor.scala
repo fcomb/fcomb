@@ -4,7 +4,7 @@ import io.fcomb.services.Exceptions._
 import io.fcomb.services.node.{NodeProcessor, UserNodeProcessor}
 import io.fcomb.models.application.{ApplicationState, ScaleStrategy, Application ⇒ MApplication}
 import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
-import io.fcomb.models.errors.UnexpectedState
+import io.fcomb.models.errors._
 import io.fcomb.utils.Config
 import io.fcomb.persist.application.{Application ⇒ PApplication}
 import io.fcomb.persist.docker.{Container ⇒ PContainer}
@@ -182,7 +182,6 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   def initializing() =
     (for {
-      // TODO: add OptionT
       Some(app) ← PApplication.findByPk(appId)
       containers ← PContainer.findAllByApplicationId(appId)
     } yield (app, containers)).onComplete {
@@ -197,19 +196,19 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationStart ⇒
         applyStateTransition(scale(state, None), ApplicationState.Running)
       case ApplicationStop ⇒
-        log.error("Can't be stopped")
-        sender() ! Status.Failure(new Throwable("Cannot be stopped"))
+        log.error("cannot stop")
+        sender() ! Status.Failure(CannotStop)
       case ApplicationRestart ⇒
-        log.error("Can't be restarted")
-        sender() ! Status.Failure(new Throwable("Cannot be restarted"))
+        log.error("cannot restart")
+        sender() ! Status.Failure(CannotRestart)
       case ApplicationTerminate ⇒
         applyStateTransition(terminate(state), ApplicationState.Terminated)
       case _: ApplicationRedeploy ⇒
-        log.error("Can't be redeployed")
-        sender() ! Status.Failure(new Throwable("Cannot be redeployed"))
+        log.error("cannot redeploy")
+        sender() ! Status.Failure(CannotRedeploy)
       case _: ApplicationScale ⇒
-        log.error("Can't be scaled")
-        sender() ! Status.Failure(new Throwable("Cannot be scaled"))
+        log.error("cannot scale")
+        sender() ! Status.Failure(CannotScale)
       case s: ContainerChangedState ⇒
         log.error(s"Cannot change container when `created` state: $s")
     }
@@ -276,7 +275,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         sender().!(())
       case s ⇒
         log.error(s"Cannot `$s` when terminated state")
-        sender() ! Status.Failure(new Throwable(s"Cannot `$s` when terminated state"))
+        sender() ! Status.Failure(CannotDoAnythingWhenTerminated)
     }
     case ReceiveTimeout ⇒ annihilation()
   }

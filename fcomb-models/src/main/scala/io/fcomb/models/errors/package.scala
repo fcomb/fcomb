@@ -96,6 +96,46 @@ package object errors {
     )
   }
 
+  case object CannotStop extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Cannot stop",
+      ErrorKind.Request,
+      Some("state")
+    )
+  }
+
+  case object CannotRestart extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Cannot restart",
+      ErrorKind.Request,
+      Some("state")
+    )
+  }
+
+  case object CannotRedeploy extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Cannot redeploy",
+      ErrorKind.Request,
+      Some("state")
+    )
+  }
+
+  case object CannotScale extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Cannot scale",
+      ErrorKind.Request,
+      Some("state")
+    )
+  }
+
+  case object CannotDoAnythingWhenTerminated extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Cannot do anything in terminated state",
+      ErrorKind.Request,
+      Some("state")
+    )
+  }
+
   case class ValidationException(param: String, message: String) extends DtCemException {
     def toErrorMessage() = ErrorMessage(message, ErrorKind.Validation, Some(param))
   }
