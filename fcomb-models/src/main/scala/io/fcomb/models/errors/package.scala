@@ -136,7 +136,14 @@ package object errors {
     )
   }
 
-  case class ValidationException(param: String, message: String) extends DtCemException {
-    def toErrorMessage() = ErrorMessage(message, ErrorKind.Validation, Some(param))
+  case class ValidationException(
+      param:   String,
+      message: String
+  ) extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      message,
+      ErrorKind.Validation,
+      Some(param)
+    )
   }
 }

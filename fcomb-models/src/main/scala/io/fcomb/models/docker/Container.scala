@@ -33,7 +33,7 @@ case class Container(
 ) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 
-  def dockerName = s"$name.${getId()}"
+  def dockerName = s"${name}_${getId()}"
 
   def isTerminated =
     state == ContainerState.Terminated
