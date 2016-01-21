@@ -19,6 +19,7 @@ import scala.concurrent.duration._
 import scala.util.{Success, Failure}
 import java.time.ZonedDateTime
 import java.net.InetAddress
+import java.util.concurrent.TimeoutException
 
 object ApplicationProcessor {
   val extractEntityId: ShardRegion.ExtractEntityId = {
@@ -567,29 +568,36 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     else if (containers.length > ss.numberOfContainers) {
       val terminateContainers = containers.drop(ss.numberOfContainers)
       val aliveContainers = containers.take(ss.numberOfContainers)
-      val ids = terminateContainers.map(_.getId)
-      for {
-        _ ← PContainer.updateState(ids, ContainerState.Terminating)
-        _ ← Future.sequence(terminateContainers.map { c ⇒
-          NodeProcessor.containerTerminate(c.nodeId.get, c.getId)
-        })
-        _ ← PContainer.updateState(ids, ContainerState.Terminated)
-      } yield state.copy(containers = HashSet(aliveContainers: _*))
+      forceTerminateContainers(
+        terminateContainers,
+        state.copy(containers = HashSet(aliveContainers: _*))
+      )
     }
     else Future.successful(state)
   }
 
   def terminateContainers(state: State) = {
-    val containers = state.containers.filterNot(_.isTerminated)
-    val ids = containers.map(_.getId)
-    val idsSeq = ids.toSeq
+    val containers = state.containers.filterNot(_.isTerminated).toList
+    forceTerminateContainers(
+      containers,
+      state.copy(containers = HashSet.empty)
+    )
+  }
+
+  def forceTerminateContainers(
+    containers: List[MContainer],
+    state:      State
+  ) = {
+    val idsSeq = containers.map(_.getId).toSeq
     for {
       _ ← PContainer.updateState(idsSeq, ContainerState.Terminating)
       _ ← Future.sequence(containers.map { c ⇒
         NodeProcessor.containerTerminate(c.nodeId.get, c.getId)
-      })
+      }).recoverWith {
+        case e: TimeoutException ⇒ Future.successful(())
+      }
       _ ← PContainer.updateState(idsSeq, ContainerState.Terminated)
-    } yield state.copy(containers = HashSet.empty)
+    } yield state
   }
 
   def failed(e: Throwable): Receive = {
