@@ -52,8 +52,7 @@ object ApplicationProcessor {
     implicit
     ec: ExecutionContext
   ) =
-    // TODO: only with avaialable state
-    PApplication.all().map(_.foreach { app ⇒
+    PApplication.findAllNonTerminated().map(_.foreach { app ⇒
       actorRef ! EntityEnvelope(app.getId, WakeUp)
     })
 

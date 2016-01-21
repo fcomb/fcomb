@@ -57,8 +57,7 @@ object NodeProcessor {
     implicit
     ec: ExecutionContext
   ) =
-    // TODO: only with avaialable state
-    PNode.all().map(_.foreach { node ⇒
+    PNode.findAllNonTerminated().map(_.foreach { node ⇒
       actorRef ! EntityEnvelope(node.getId, WakeUp)
     })
 

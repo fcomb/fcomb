@@ -186,22 +186,10 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
       .update(state)
   }
 
-  // private val uniqueTitleCompiled = Compiled {
-  //   (id: Rep[Option[Long]], kind: Rep[DictionaryKind.DictionaryKind], title: Rep[String]) ⇒
-  //     notCurrentPkFilter(id).filter { q ⇒
-  //       q.kind === kind && q.title.toLowerCase === title.toLowerCase
-  //     }.exists
-  // }
+  private val findAllNonTerminatedCompiled = Compiled {
+    table.filter(_.state =!= NodeState.Terminated)
+  }
 
-  // import Validations._
-
-  // override def validate(d: models.DictionaryItem)(implicit ec: ExecutionContext): ValidationDBIOResult = {
-  //   val plainValidations = validatePlain(
-  //     "title" → List(lengthRange(d.title, 1, 255))
-  //   )
-  //   val dbioValidations = validateDBIO(
-  //     "title" → List(unique(uniqueTitleCompiled(d.id, d.kind, d.title)))
-  //   )
-  //   validate(plainValidations, dbioValidations)
-  // }
+  def findAllNonTerminated() =
+    db.run(findAllNonTerminatedCompiled.result)
 }

@@ -180,6 +180,13 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
       }.exists
   }
 
+  private val findAllNonTerminatedCompiled = Compiled {
+    table.filter(_.state =!= ApplicationState.Terminated)
+  }
+
+  def findAllNonTerminated() =
+    db.run(findAllNonTerminatedCompiled.result)
+
   import Validations._
 
   override def validate(a: MApplication)(
