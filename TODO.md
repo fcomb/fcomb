@@ -43,3 +43,14 @@ http://microservices.io/patterns/apigateway.html:
 ## Pros
 
 * GPL library as a microservice (cryptolib for example) can be used in closed source product without sharing the code!
+
+## Container scheduler
+
+Optimistic:
+
+Ask to reserve for deploy options (for 1 min)
+Create pending containers with node ids
+Create containers on nodes (terminate if node can't create container)
+
+Rule:
+Ask node for container action and if it returns exception (UnknownContainer) then terminate it.

@@ -16,7 +16,7 @@ class ContainerTable(tag: Tag) extends Table[MContainer](tag, "containers") with
   def state = column[ContainerState.ContainerState]("state")
   def userId = column[Long]("user_id")
   def applicationId = column[Long]("application_id")
-  def nodeId = column[Option[Long]]("node_id")
+  def nodeId = column[Long]("node_id")
   def name = column[String]("name")
   def number = column[Int]("number")
   def dockerId = column[Option[String]]("docker_id")
@@ -36,6 +36,7 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
   def create(
     userId:        Long,
     applicationId: Long,
+    nodeId:        Long,
     name:          String,
     number:        Int
   )(
@@ -44,10 +45,10 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
   ): Future[ValidationModel] = {
     val timeNow = ZonedDateTime.now
     create(MContainer(
-      state = ContainerState.Initializing,
+      state = ContainerState.Pending,
       userId = userId,
       applicationId = applicationId,
-      nodeId = None,
+      nodeId = nodeId,
       name = s"$name-$number",
       number = number,
       createdAt = timeNow,
@@ -55,27 +56,28 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     ))
   }
 
-  def batchCreate(
-    userId:        Long,
-    applicationId: Long,
-    name:          String,
-    numbers:       Seq[Int]
+  def batchCreatePending(
+    userId:          Long,
+    applicationId:   Long,
+    name:            String,
+    assignedNumbers: List[(Long, Int)]
   )(
     implicit
     ec: ExecutionContext
   ): Future[Seq[MContainer]] = {
     val timeNow = ZonedDateTime.now
-    val containers = numbers.map { number ⇒
-      MContainer(
-        state = ContainerState.Initializing,
-        userId = userId,
-        applicationId = applicationId,
-        nodeId = None,
-        name = s"$name-$number",
-        number = number,
-        createdAt = timeNow,
-        updatedAt = timeNow
-      )
+    val containers = assignedNumbers.map {
+      case (nodeId, number) ⇒
+        MContainer(
+          state = ContainerState.Pending,
+          userId = userId,
+          applicationId = applicationId,
+          nodeId = nodeId,
+          name = s"$name-$number",
+          number = number,
+          createdAt = timeNow,
+          updatedAt = timeNow
+        )
     }
     db.run(createDBIO(containers))
   }

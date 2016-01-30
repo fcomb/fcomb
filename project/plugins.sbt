@@ -36,3 +36,5 @@ addSbtPlugin("org.brianmckenna" % "sbt-wartremover" % "0.14")
 addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")
 
 addSbtPlugin("com.trueaccord.scalapb" % "sbt-scalapb" % "0.4.19")
+
+// addCompilerPlugin("com.softwaremill.clippy" % "plugin" % "0.1" cross CrossVersion.full)

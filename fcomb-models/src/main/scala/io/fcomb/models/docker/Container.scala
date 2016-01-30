@@ -6,7 +6,7 @@ import java.time.ZonedDateTime
 object ContainerState extends Enumeration {
   type ContainerState = Value
 
-  val Initializing = Value("initializing")
+  val Pending = Value("pending")
   val Created = Value("created")
   val Starting = Value("starting")
   val Running = Value("running")
@@ -23,7 +23,7 @@ case class Container(
     state:         ContainerState.ContainerState,
     userId:        Long,
     applicationId: Long,
-    nodeId:        Option[Long],
+    nodeId:        Long,
     name:          String,
     number:        Int,
     dockerId:      Option[String]                = None,
@@ -33,7 +33,7 @@ case class Container(
 ) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 
-  def dockerName = s"${name}_${getId()}"
+  def dockerName() = s"${name}_${getId()}"
 
   def isTerminated =
     state == ContainerState.Terminated
@@ -42,11 +42,9 @@ case class Container(
     state == ContainerState.Unreachable
 
   def isPresent =
-    state != ContainerState.Initializing &&
-      state != ContainerState.Created &&
+    state != ContainerState.Pending &&
       !isTerminated &&
       !isUnreachable &&
-      nodeId.nonEmpty &&
       dockerId.nonEmpty
 
   def isRunning =
@@ -54,4 +52,7 @@ case class Container(
 
   def isNotRunning =
     isPresent && state == ContainerState.Stopped
+
+  def isPending =
+    isPresent && state == ContainerState.Pending
 }

@@ -66,7 +66,7 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
     super.create(MNode(
       id = Some(id),
       userId = userId,
-      state = NodeState.Initializing,
+      state = NodeState.Pending,
       token = Random.random.alphanumeric.take(128).mkString,
       rootCertificateId = rootCertificateId,
       signedCertificate = signedCertificate,

@@ -136,6 +136,13 @@ package object errors {
     )
   }
 
+  case object NoNodesAvailable extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "No nodes available",
+      ErrorKind.Internal
+    )
+  }
+
   case class ValidationException(
       param:   String,
       message: String

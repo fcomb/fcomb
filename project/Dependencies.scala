@@ -2,16 +2,16 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.1"
-    val akkaExperimental = "2.0.2"
+    val akka = "2.4.2-RC1"
     val bouncyCastle = "1.53"
     val cats = "0.3.0"
     val circle = "0.1.1"
     // val doobie = "0.2.3"
     val slick = "3.1.1"
-    val slickPg = "0.10.2"
+    val slickPg = "0.11.0"
+    val shims = "0.2"
     val scalaz = "7.2.0"
-    val quill = "0.2.1"
+    val quill = "0.3.0"
     val kamon = "0.5.2"
   }
 
@@ -25,11 +25,13 @@ object Dependencies {
     val akkaClusterSharding = "com.typesafe.akka"         %% "akka-cluster-sharding"         % V.akka
     val akkaDistributedData = "com.typesafe.akka"         %% "akka-distributed-data-experimental" % V.akka
     val akkaContrib     = "com.typesafe.akka"             %% "akka-contrib"                  % V.akka
-    val akkaStream      = "com.typesafe.akka"             %% "akka-stream-experimental"      % V.akkaExperimental
-    val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akkaExperimental
+    val akkaStream      = "com.typesafe.akka"             %% "akka-stream"                   % V.akka
+    val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akka
+    val akkaHttpSpray   = "com.typesafe.akka"             %% "akka-http-spray-json-experimental" % V.akka exclude("io.spray", "spray-json_2.11")
+    val akkaHttpJson    = "de.heikoseeberger"             %% "akka-http-json4s"              % "1.5.0"
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
-    val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "1.2.2"
+    val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "2.1.2"
     // val akkaPersistenceCassandra = "com.github.krasserm"  %% "akka-persistence-cassandra"    % "0.5-SNAPSHOT" changing()
     // val akkaKryo        = "com.github.romix.akka"         %% "akka-kryo-serialization"       % "0.3.3"
 
@@ -98,19 +100,17 @@ object Dependencies {
 
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
-    val scalazStream    = "org.scalaz.stream"             %% "scalaz-stream"                 % "0.8"
+    val scalazShims     = "com.codecommit"                %% "shims-scalaz-72"               % V.shims
     val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.5"
+    val scalazStream    = "org.scalaz.stream"             %% "scalaz-stream"                 % "0.8"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
+    val cats            = "org.spire-math"                %% "cats"                          % V.cats
+    val catsState       = "org.spire-math"                %% "cats-state"                    % V.cats
+    val catsShims       = "com.codecommit"                %% "shims-cats"                    % V.shims
 
     // val raptureCore     = "com.propensive"                %% "rapture-core"                  % "1.1.0"
     // val raptureIo       = "com.propensive"                %% "rapture-io"                    % "0.9.0"
-    //
-    // val algebra         = "org.spire-math"                %% "algebra"                       % V.algebra
-    // val algebraStd      = "org.spire-math"                %% "algebra-std"                   % V.algebra
-    //
-    val cats            = "org.spire-math"                %% "cats-core"                     % V.cats
-    val catsState       = "org.spire-math"                %% "cats-state"                    % V.cats
-    //
+
     // val monocleCore     = "com.github.julien-truffaut"    %%  "monocle-core"                 % V.monocle
     // val monocleGeneric  = "com.github.julien-truffaut"    %%  "monocle-generic"              % V.monocle
     // val monocleMacro    = "com.github.julien-truffaut"    %%  "monocle-macro"                % V.monocle
@@ -180,7 +180,7 @@ object Dependencies {
   val akka = Seq(
     akkaActor, akkaClusterSharding, akkaContrib,
     akkaDistributedData,
-    akkaStream, akkaHttp,
+    akkaStream, akkaHttp, akkaHttpJson,
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc /*akkaStreamExtensions, akkaPersistenceCassandra*/
   )

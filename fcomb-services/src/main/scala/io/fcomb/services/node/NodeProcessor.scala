@@ -112,7 +112,6 @@ object NodeProcessor {
     askRef[Unit](nodeId, NodeRegister(ip), timeout)
 
   def containerCreate(
-    nodeId:        Long,
     container:     MContainer,
     image:         DockerImage,
     deployOptions: DockerDeployOptions
@@ -120,7 +119,7 @@ object NodeProcessor {
     implicit
     timeout: Timeout = Timeout(30.seconds)
   ): Future[MContainer] =
-    askRef[MContainer](nodeId, ContainerCreate(container, image, deployOptions), timeout)
+    askRef[MContainer](container.nodeId, ContainerCreate(container, image, deployOptions), timeout)
 
   def containerStart(nodeId: Long, containerId: Long)(
     implicit
@@ -245,7 +244,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       case NodeRegister(ip) ⇒
         if (state.node.publicIpInetAddress().exists(_ == ip)) {
           state.node.state match {
-            case NodeState.Initializing ⇒
+            case NodeState.Pending ⇒
               checkToAvailableAndUpdateState(state)
             case NodeState.Available ⇒ sender.!(())
           }
@@ -351,7 +350,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     } yield container.copy(
       state = ContainerState.Created,
       dockerId = Some(res.id),
-      nodeId = Some(nodeId)
+      nodeId = nodeId
     )
   }
 

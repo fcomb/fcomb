@@ -1,0 +1,1 @@
+ALTER TABLE containers ALTER COLUMN node_id SET NOT NULL;

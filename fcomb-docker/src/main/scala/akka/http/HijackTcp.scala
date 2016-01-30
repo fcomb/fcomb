@@ -6,7 +6,8 @@ import akka.http.impl.engine.parsing.HttpMessageParser.StateResult
 import akka.http.impl.engine.parsing.ParserOutput._
 import akka.http.impl.engine.rendering._
 import akka.http.impl.util._
-import akka.http.scaladsl.HttpsContext
+import akka.http.scaladsl.settings.ClientConnectionSettings
+import akka.http.scaladsl.ConnectionContext
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.stream._
@@ -23,12 +24,12 @@ object HijackTcp {
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   def outgoingConnection(
-    hostname: String,
-    port: Int,
-    settings: ClientConnectionSettings,
-    request: HttpRequest,
+    hostname:     String,
+    port:         Int,
+    settings:     ClientConnectionSettings,
+    request:      HttpRequest,
     responseFlow: Flow[HttpResponse, Any, Any] = Flow[HttpResponse],
-    sslEngine: Option[SSLContext] = None
+    sslEngine:    Option[SSLContext]           = None
   )(
     implicit
     sys: ActorSystem,
@@ -40,7 +41,7 @@ object HijackTcp {
 
     val valve = StreamUtils.OneTimeValve()
     val httpResponseResult = Promise[HttpResponse]()
-    val httpResponseFlow = responseFlow.map(_ => ByteString.empty)
+    val httpResponseFlow = responseFlow.map(_ ⇒ ByteString.empty)
 
     val renderedInitialRequest = HttpRequestRendererFactory.renderStrict(
       RequestRenderingContext(request, Host(serverAddress)), settings, sys.log
@@ -49,7 +50,7 @@ object HijackTcp {
     logger.debug(s"Hijack request: ${renderedInitialRequest.utf8String}")
 
     val g =
-      BidiFlow.fromGraph(GraphDSL.create(httpResponseFlow) { implicit b => responseFlow =>
+      BidiFlow.fromGraph(GraphDSL.create(httpResponseFlow) { implicit b ⇒ responseFlow ⇒
         import GraphDSL.Implicits._
 
         val networkIn = b.add(Flow[ByteString].transform(() ⇒
@@ -82,17 +83,17 @@ object HijackTcp {
       settings.idleTimeout
     )
     val connectionFlow = sslEngine match {
-      case Some(ctx) =>
-        val hctx = HttpsContext(ctx)
-        val hostInfo = Some(hostname -> port)
+      case Some(ctx) ⇒
+        val hctx = ConnectionContext.https(ctx)
+        val hostInfo = Some(hostname → port)
         SslTls(ctx, hctx.firstSession, Client, hostInfo = hostInfo)
           .joinMat(transportFlow)(Keep.right)
           .join(tlsFlow)
-      case _ => transportFlow
+      case _ ⇒ transportFlow
     }
 
     g.joinMat(connectionFlow)(Keep.right)
-      .mapMaterializedValue(_.map(_ => ()))
+      .mapMaterializedValue(_.map(_ ⇒ ()))
   }
 
   private val tlsFlow = {
@@ -104,10 +105,10 @@ object HijackTcp {
   }
 
   private class HijackStage(
-    req: HttpRequest,
-    httpResponseResult: Promise[HttpResponse],
-    valve: StreamUtils.OneTimeValve,
-    settings: ClientConnectionSettings
+      req:                HttpRequest,
+      httpResponseResult: Promise[HttpResponse],
+      valve:              StreamUtils.OneTimeValve,
+      settings:           ClientConnectionSettings
   ) extends StatefulStage[ByteString, ByteString] {
     type State = StageState[ByteString, ByteString]
 
@@ -121,7 +122,8 @@ object HijackTcp {
           if (first) {
             first = false
             super.parseMessage(input, offset)
-          } else {
+          }
+          else {
             emit(RemainingBytes(input.drop(offset)))
             terminate()
           }
@@ -130,7 +132,7 @@ object HijackTcp {
       parser.setRequestMethodForNextResponse(req.method)
 
       def onPush(elem: ByteString, ctx: Context[ByteString]): SyncDirective = {
-        parser.onPush(elem) match {
+        parser.parseBytes(elem) match {
           case NeedMoreData ⇒ ctx.pull()
           case ResponseStart(status, protocol, headers, entity, close) ⇒
             val response = HttpResponse(status, headers, protocol = protocol)
@@ -146,7 +148,13 @@ object HijackTcp {
               case RemainingBytes(bytes) ⇒
                 if (bytes.nonEmpty) ctx.push(bytes)
                 else ctx.pull()
+              case m ⇒
+                logger.error(s"Unexpected message: $m")
+                throw new IllegalStateException(s"Unexpected message: $m")
             }
+          case m ⇒
+            logger.error(s"Unexpected message: $m")
+            throw new IllegalStateException(s"Unexpected message: $m")
         }
       }
     }

@@ -7,7 +7,7 @@ import java.net.InetAddress
 object NodeState extends Enumeration {
   type NodeState = Value
 
-  val Initializing = Value("initializing")
+  val Pending = Value("pending")
   val Available = Value("available")
   val Unreachable = Value("unreachable")
   val Upgrading = Value("upgrading")

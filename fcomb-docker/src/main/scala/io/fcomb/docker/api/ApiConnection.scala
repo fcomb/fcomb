@@ -1,8 +1,10 @@
 package io.fcomb.docker.api
 
 import akka.actor.ActorSystem
-import akka.http.{ClientConnectionSettings, HijackTcp}
-import akka.http.scaladsl.{Http, HttpsContext}
+import akka.http.HijackTcp
+import akka.http.settings.clientSettingsWithIdleTimeout
+import akka.http.scaladsl.settings.ClientConnectionSettings
+import akka.http.scaladsl.{Http, ConnectionContext}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.MediaTypes.`application/x-tar`
@@ -32,27 +34,30 @@ private[api] trait ApiConnection {
   protected val clientConnectionSettings =
     ClientConnectionSettings(sys)
 
-  protected def clientSettings(duration: Option[Duration]) =
-    duration.foldLeft(clientConnectionSettings) {
-      (s, d) ⇒ s.copy(idleTimeout = d)
-    }
-
   private def httpConnectionFlow(duration: Option[Duration]) = {
+    val settings = clientSettingsWithIdleTimeout(
+      clientConnectionSettings,
+      duration
+    )
     val connection = sslContext match {
-      case Some(ctx) ⇒ Http().outgoingConnectionTls(
-        hostname,
-        port,
-        settings = clientSettings(duration),
-        httpsContext = Some(HttpsContext(ctx))
-      )
+      case Some(ctx) ⇒
+        Http().outgoingConnectionHttps(
+          hostname,
+          port,
+          settings = settings,
+          connectionContext = ConnectionContext.https(ctx)
+        )
       case _ ⇒
-        Http().outgoingConnection(hostname, port, settings = clientSettings(duration))
+        Http().outgoingConnection(hostname, port, settings = settings)
     }
     connection.buffer(10, OverflowStrategy.backpressure)
   }
 
   protected def hijackConnectionFlow(req: HttpRequest, idleTimeout: Duration) = {
-    val settings = clientConnectionSettings.copy(idleTimeout = idleTimeout)
+    val settings = clientSettingsWithIdleTimeout(
+      clientConnectionSettings,
+      Some(idleTimeout)
+    )
     HijackTcp.outgoingConnection(hostname, port, settings, req, responseFlow, sslContext)
   }
 

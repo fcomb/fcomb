@@ -1,7 +1,7 @@
 package io.fcomb.services.application
 
 import io.fcomb.services.Exceptions._
-import io.fcomb.services.node.{NodeProcessor, UserNodeProcessor}
+import io.fcomb.services.node.{NodeProcessor, UserNodeProcessor, ReserveResult}
 import io.fcomb.models.application.{ApplicationState, ScaleStrategy, Application ⇒ MApplication}
 import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
 import io.fcomb.models.errors._
@@ -156,7 +156,10 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   val appId = self.path.name.toLong
 
-  case class State(app: MApplication, containers: HashSet[MContainer])
+  case class State(
+    app:        MApplication,
+    containers: HashSet[MContainer]
+  )
 
   case class Initialize(state: State, retryCount: Int)
 
@@ -194,6 +197,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def createdReceive(state: State): Receive = {
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
+        // TODO: avoid scaling state by creating containers and then start them
         applyStateTransition(scale(state, None), ApplicationState.Running)
       case ApplicationStop ⇒
         log.error("cannot stop")
@@ -291,7 +295,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     state.app.state match {
       case ApplicationState.Created ⇒
         becomeAndUnstash(createdReceive(state))
-      case ApplicationState.Running ⇒
+      case ApplicationState.Running | ApplicationState.PartlyRunning ⇒
         becomeAndUnstash(runningReceive(state))
       case ApplicationState.Stopped ⇒
         becomeAndUnstash(stoppedReceive(state))
@@ -466,7 +470,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         _ ← persistState(ApplicationState.Restarting)
         _ ← PContainer.updateState(idsSeq, ContainerState.Restarting)
         _ ← Future.sequence(containers.map { c ⇒
-          NodeProcessor.containerRestart(c.nodeId.get, c.getId)
+          NodeProcessor.containerRestart(c.nodeId, c.getId)
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Running)
         newState = getStateByContainers(state.copy(
@@ -507,7 +511,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       for {
         _ ← PContainer.updateState(idsSeq, ContainerState.Starting)
         _ ← Future.sequence(containers.map { c ⇒
-          NodeProcessor.containerStart(c.nodeId.get, c.getId)
+          NodeProcessor.containerStart(c.nodeId, c.getId)
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Running)
       } yield {
@@ -529,7 +533,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       for {
         _ ← PContainer.updateState(idsSeq, ContainerState.Stopping)
         _ ← Future.sequence(containers.map { c ⇒
-          NodeProcessor.containerStop(c.nodeId.get, c.getId)
+          NodeProcessor.containerStop(c.nodeId, c.getId)
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Stopped)
       } yield {
@@ -542,6 +546,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     }
   }
 
+  // TODO: reuse or drop pending containers
   def scaleContainers(state: State) = {
     // default emptiest node strategy
     val ss = state.app.scaleStrategy
@@ -552,18 +557,32 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     if (containers.length < ss.numberOfContainers) {
       val existsIds = containers.map(_.number)
       val newIds = (1 to ss.numberOfContainers).toList.diff(existsIds)
-      for {
-        containers ← PContainer.batchCreate(
-          userId = app.userId,
-          applicationId = app.getId,
-          name = app.name,
-          numbers = newIds
-        )
-        createdContainers ← Future.sequence(containers.map { c ⇒
-          UserNodeProcessor.containerCreate(c, app.image, app.deployOptions)
-        })
-        updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
-      } yield state.copy(containers = state.containers ++ updatedContainers)
+      val scaleStrategy = state.app.scaleStrategy.copy(
+        numberOfContainers = newIds.length
+      )
+      UserNodeProcessor.reserve(state.app.userId, scaleStrategy).flatMap {
+        case ReserveResult.Reserved(nodes) ⇒
+          val assigned = nodes.foldLeft((newIds, List.empty[(Long, Int)])) {
+            case ((ids, acc), r) ⇒
+              (ids.drop(r.numberOfContainers),
+                ids.take(r.numberOfContainers).map(id ⇒ (r.id, id)) ::: acc)
+          }._2
+          for {
+            containers ← PContainer.batchCreatePending(
+              userId = app.userId,
+              applicationId = app.getId,
+              name = app.name,
+              assignedNumbers = assigned
+            )
+            createdContainers ← Future.sequence(containers.map { c ⇒
+              NodeProcessor.containerCreate(c, app.image, app.deployOptions)
+            })
+            updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
+          } yield state.copy(containers = state.containers ++ updatedContainers)
+        case ReserveResult.NoNodesAvailable ⇒
+          log.error("ReserveResult.NoNodesAvailable")
+          ???
+      }
     }
     else if (containers.length > ss.numberOfContainers) {
       val terminateContainers = containers.drop(ss.numberOfContainers)
@@ -592,7 +611,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     for {
       _ ← PContainer.updateState(idsSeq, ContainerState.Terminating)
       _ ← Future.sequence(containers.map { c ⇒
-        NodeProcessor.containerTerminate(c.nodeId.get, c.getId)
+        NodeProcessor.containerTerminate(c.nodeId, c.getId)
       }).recoverWith {
         case e: TimeoutException ⇒ Future.successful(())
       }

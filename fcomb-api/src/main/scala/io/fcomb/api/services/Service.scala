@@ -627,8 +627,8 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     def g(pf: PartialFunction[HttpHeader, Option[InetAddress]]): Option[InetAddress] =
       ctx.requestContext.request.headers.collectFirst(pf).flatMap(identity)
 
-    (g { case `X-Forwarded-For`(Seq(address, _*)) ⇒ address.getAddress })
-      .orElse(g { case `Remote-Address`(address) ⇒ address.getAddress })
+    (g { case `X-Forwarded-For`(Seq(address, _*)) ⇒ address.toIP.map(_.ip) })
+      .orElse(g { case `Remote-Address`(address) ⇒ address.toIP.map(_.ip) })
       .orElse(g {
         case h if h.is("x-real-ip") || h.is("cf-connecting-ip") ⇒
           try Some(InetAddress.getByName(h.value))
