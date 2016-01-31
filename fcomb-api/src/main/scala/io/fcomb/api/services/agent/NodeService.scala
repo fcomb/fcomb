@@ -11,7 +11,7 @@ import io.fcomb.services.node.NodeManager
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials}
+import akka.http.scaladsl.model.headers.RawHeader
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz._
 
@@ -29,7 +29,7 @@ object NodeService extends Service {
           case Success(node) ⇒
             completeAsCreated(
               s"$apiPrefix/${AgentService.pathPrefix}/$pathPrefix/${node.getId}",
-              List(Authorization(GenericHttpCredentials("Token", node.token)))
+              List(RawHeader("Token", node.token))
             )
           case Failure(e) ⇒ complete(e)
         })

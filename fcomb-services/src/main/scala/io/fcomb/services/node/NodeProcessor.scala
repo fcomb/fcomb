@@ -212,6 +212,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   }
 
   def nodeRegister(state: State, ip: InetAddress) = {
+    log.info(s"register $ip")
     if (state.node.publicIpInetAddress().contains(ip)) {
       state.node.state match {
         case NodeState.Pending ⇒
@@ -227,6 +228,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         apiClient = apiClient,
         node = node
       )
+      // TODO: notify dns proxy about ip changes
       updateStateSync(for {
         _ ← PNode.updatePublicIpAddress(nodeId, ipAddress)
         s ← checkAndUpdateState(ns)
