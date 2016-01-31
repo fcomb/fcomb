@@ -252,8 +252,11 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     }
   }
 
-  def checkAndUpdateState(state: State) =
+  def checkAndUpdateState(state: State) = {
+    val p = Promise[Unit]()
+    system.scheduler.scheduleOnce(2.seconds)(p.complete(Success(())))
     for {
+      _ <- p.future
       res ← apiCall(state)(_.ping) // TODO: add retry with exponential backoff
       ns = res match {
         case \/-(_) ⇒ NodeState.Available
@@ -261,6 +264,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       }
       _ ← PNode.updateState(state.node.getId, ns)
     } yield state.copy(node = state.node.copy(state = ns))
+  }
 
   def createApiClient(node: MNode, certs: DockerApiCerts) =
     node.publicIpAddress.map { ip ⇒
