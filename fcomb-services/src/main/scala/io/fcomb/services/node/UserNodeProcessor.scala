@@ -15,7 +15,7 @@ import akka.stream.Materializer
 import akka.cluster.sharding._
 import akka.pattern.{after, ask, pipe}
 import akka.util.Timeout
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.collection.mutable.HashSet
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
@@ -55,6 +55,7 @@ object UserNodeProcessor extends Processor[Long] {
 
   def reserve(userId: Long, scaleStrategy: ScaleStrategy)(
     implicit
+    ec: ExecutionContext,
     timeout: Timeout = Timeout(30.seconds)
   ): Future[ReserveResult] =
     askRef[ReserveResult](userId, Reserve(scaleStrategy), timeout)

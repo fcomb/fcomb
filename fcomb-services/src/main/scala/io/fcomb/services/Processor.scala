@@ -6,8 +6,9 @@ import akka.cluster.sharding._
 import akka.pattern.ask
 import akka.util.Timeout
 import io.fcomb.services.Exceptions._
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Success, Failure}
+import org.slf4j.LoggerFactory
 
 object ProcessorMessages {
 
@@ -16,6 +17,8 @@ object ProcessorMessages {
 sealed trait EntityMessage
 
 trait Processor[Id] {
+  lazy val logger = LoggerFactory.getLogger(getClass)
+
   val extractEntityId: ShardRegion.ExtractEntityId = {
     case EntityEnvelope(id, payload) ⇒ (id.toString, payload)
   }
@@ -54,11 +57,18 @@ trait Processor[Id] {
     timeout: Timeout
   )(
     implicit
-    m: Manifest[T]
+    ec: ExecutionContext,
+    m:  Manifest[T]
   ): Future[T] =
     Option(actorRef) match {
       case Some(ref) ⇒
-        ask(ref, EntityEnvelope(id, entity))(timeout).mapTo[T]
+        ask(ref, EntityEnvelope(id, entity))(timeout)
+          .mapTo[T]
+          .recover {
+            case e: Throwable ⇒
+              logger.error(s"ask ref $id#$entity error: $e")
+              throw e
+          }
       case None ⇒ Future.failed(EmptyActorRefException)
     }
 
@@ -103,11 +113,14 @@ trait ProcessorActor[S] {
       initializing()
   }
 
-  def updateStateSync[T](fut: Future[T])(f: T ⇒ S) = {
+  def updateStateSync[T](fut: Future[T])(f: T ⇒ S): Future[S] = {
+    val p = Promise[S]()
     context.become({
       case Initialize(res) ⇒
-        context.become(stateReceive(f(res.asInstanceOf[T])), false)
+        val state = f(res.asInstanceOf[T])
+        context.become(stateReceive(state), false)
         unstashAll()
+        p.complete(Success(state))
       case msg: EntityMessage ⇒
         log.warning(s"stash message: $msg")
         stash()
@@ -116,6 +129,7 @@ trait ProcessorActor[S] {
       case Success(res) ⇒ self ! Initialize(res)
       case Failure(e)   ⇒ handleThrowable(e)
     }
+    p.future
   }
 
   def failed(e: Throwable): Receive = {

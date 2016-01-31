@@ -74,7 +74,8 @@ object NodeProcessor extends Processor[Long] {
 
   def register(nodeId: Long, ip: InetAddress)(
     implicit
-    timeout: Timeout = Timeout(30.seconds)
+    ec:      ExecutionContext,
+    timeout: Timeout          = Timeout(30.seconds)
   ): Future[Unit] =
     askRef[Unit](nodeId, NodeRegister(ip), timeout)
 
@@ -84,31 +85,36 @@ object NodeProcessor extends Processor[Long] {
     deployOptions: DockerDeployOptions
   )(
     implicit
-    timeout: Timeout = Timeout(30.seconds)
+    ec:      ExecutionContext,
+    timeout: Timeout          = Timeout(30.seconds)
   ): Future[MContainer] =
     askRef[MContainer](container.nodeId, ContainerCreate(container, image, deployOptions), timeout)
 
   def containerStart(nodeId: Long, containerId: Long)(
     implicit
-    timeout: Timeout = Timeout(30.seconds)
+    ec:      ExecutionContext,
+    timeout: Timeout          = Timeout(30.seconds)
   ): Future[Unit] =
     askRef[Unit](nodeId, ContainerStart(containerId), timeout)
 
   def containerStop(nodeId: Long, containerId: Long)(
     implicit
-    timeout: Timeout = Timeout(1.minute)
+    ec:      ExecutionContext,
+    timeout: Timeout          = Timeout(1.minute)
   ): Future[Unit] =
     askRef[Unit](nodeId, ContainerStop(containerId), timeout)
 
   def containerRestart(nodeId: Long, containerId: Long)(
     implicit
-    timeout: Timeout = Timeout(1.minute)
+    ec:      ExecutionContext,
+    timeout: Timeout          = Timeout(1.minute)
   ): Future[Unit] =
     askRef[Unit](nodeId, ContainerRestart(containerId), timeout)
 
   def containerTerminate(nodeId: Long, containerId: Long)(
     implicit
-    timeout: Timeout = Timeout(1.minute)
+    ec:      ExecutionContext,
+    timeout: Timeout          = Timeout(1.minute)
   ): Future[Unit] =
     askRef[Unit](nodeId, ContainerTerminate(containerId), timeout)
 }
@@ -179,25 +185,27 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   }
 
   def stateReceive(state: State): Receive = {
-    case msg: Entity ⇒ msg match {
-      case NodeRegister(ip) ⇒ nodeRegister(state, ip)
-      case ContainerCreate(container, image, deployOptions) ⇒
-        println(s"CreateContainer($container, $image, $deployOptions)")
-        val replyTo = sender()
-        containerCreate(state, container, image, deployOptions).foreach { c ⇒
-          self ! ContainerAppend(c)
-          replyTo ! c
-        }
-      case ContainerStart(containerId) ⇒
-        containerStart(state, containerId)
-      case ContainerStop(containerId) ⇒
-        containerStop(state, containerId)
-      case ContainerRestart(containerId) ⇒
-        containerRestart(state, containerId)
-      case ContainerTerminate(containerId) ⇒
-        log.debug(s"TerminateContainer($containerId)")
-        containerTerminate(state, containerId)
-    }
+    case msg: Entity ⇒
+      val replyTo = sender()
+      msg match {
+        case NodeRegister(ip) ⇒
+          nodeRegister(state, ip).map(sendReplyByState(_, replyTo))
+        case ContainerCreate(container, image, deployOptions) ⇒
+          println(s"CreateContainer($container, $image, $deployOptions)")
+          containerCreate(state, container, image, deployOptions).foreach { c ⇒
+            self ! ContainerAppend(c)
+            replyTo ! c
+          }
+        case ContainerStart(containerId) ⇒
+          containerStart(state, containerId)
+        case ContainerStop(containerId) ⇒
+          containerStop(state, containerId)
+        case ContainerRestart(containerId) ⇒
+          containerRestart(state, containerId)
+        case ContainerTerminate(containerId) ⇒
+          log.debug(s"TerminateContainer($containerId)")
+          containerTerminate(state, containerId)
+      }
     case cmd: NodeProcessorMessage ⇒ cmd match {
       case DockerPing ⇒
         apiCall(state)(_.ping()).onComplete(println)
@@ -214,11 +222,9 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   def nodeRegister(state: State, ip: InetAddress) = {
     log.info(s"register $ip")
     if (state.node.publicIpInetAddress().contains(ip)) {
-      state.node.state match {
-        case NodeState.Pending ⇒
-          updateStateSync(checkAndUpdateState(state))(identity)
-        case NodeState.Available ⇒ sender.!(())
-      }
+      if (state.node.state == NodeState.Pending)
+        updateStateSync(checkAndUpdateState(state))(identity)
+      else Future.successful(state)
     }
     else {
       val ipAddress = ip.getHostAddress
@@ -235,6 +241,14 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       } yield s)(identity)
     }
   }
+
+  def sendReplyByState(state: State, replyTo: ActorRef) =
+    state.node.state match {
+      case NodeState.Available ⇒
+        replyTo.!(())
+      case _ ⇒
+        replyTo ! Status.Failure(NodeIsNotAvailable)
+    }
 
   private val apiClientNotInitialized =
     Future.successful(DockerApiClientIsNotInitialized.left)
@@ -256,7 +270,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     val p = Promise[Unit]()
     system.scheduler.scheduleOnce(2.seconds)(p.complete(Success(())))
     for {
-      _ <- p.future
+      _ ← p.future
       res ← apiCall(state)(_.ping) // TODO: add retry with exponential backoff
       ns = res match {
         case \/-(_) ⇒ NodeState.Available

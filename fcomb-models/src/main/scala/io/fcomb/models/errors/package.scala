@@ -143,6 +143,13 @@ package object errors {
     )
   }
 
+  case object NodeIsNotAvailable extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Node is not available",
+      ErrorKind.Internal
+    )
+  }
+
   case object DockerApiClientIsNotInitialized extends DtCemException {
     def toErrorMessage() = ErrorMessage(
       "Docker API client is not initialized",
