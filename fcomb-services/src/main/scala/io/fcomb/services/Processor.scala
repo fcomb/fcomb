@@ -7,6 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.fcomb.services.Exceptions._
 import scala.concurrent.Future
+import scala.util.{Success, Failure}
 
 object ProcessorMessages {
 
@@ -27,7 +28,7 @@ trait Processor[Id] {
 
   trait Entity extends EntityMessage
 
-  case class EntityEnvelope(id: Id, payload: Entity)
+  case class EntityEnvelope(id: Id, payload: Any)
 
   private var actorRef: ActorRef = _
 
@@ -60,6 +61,9 @@ trait Processor[Id] {
         ask(ref, EntityEnvelope(id, entity))(timeout).mapTo[T]
       case None ⇒ Future.failed(EmptyActorRefException)
     }
+
+  protected def tellRef(id: Id, entity: Any) =
+    Option(actorRef).map(_ ! EntityEnvelope(id, entity))
 }
 
 object ProcessorActorMessages {
@@ -73,12 +77,13 @@ object ProcessorActorMessages {
 trait ProcessorActor[S] {
   this: Actor with Stash with ActorLogging ⇒
 
+  import context.dispatcher
   import ProcessorActorMessages._
   import ShardRegion.Passivate
 
   def initializing(): Unit
 
-  def initialized(state: S): Receive
+  def stateReceive(state: S): Receive
 
   def initialize(state: S) = {
     self ! Initialize(state)
@@ -89,13 +94,28 @@ trait ProcessorActor[S] {
       stash()
       context.become({
         case Initialize(state) ⇒
-          context.become(initialized(state.asInstanceOf[S]), false)
+          context.become(stateReceive(state.asInstanceOf[S]), false)
           unstashAll()
         case msg: EntityMessage ⇒
           log.warning(s"stash message: $msg")
           stash()
       }, false)
       initializing()
+  }
+
+  def updateStateSync[T](fut: Future[T])(f: T ⇒ S) = {
+    context.become({
+      case Initialize(res) ⇒
+        context.become(stateReceive(f(res.asInstanceOf[T])), false)
+        unstashAll()
+      case msg: EntityMessage ⇒
+        log.warning(s"stash message: $msg")
+        stash()
+    }, false)
+    fut.onComplete {
+      case Success(res) ⇒ self ! Initialize(res)
+      case Failure(e)   ⇒ handleThrowable(e)
+    }
   }
 
   def failed(e: Throwable): Receive = {

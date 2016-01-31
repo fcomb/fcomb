@@ -64,13 +64,12 @@ object UserNodeMessages {
   case class State(nodes: HashSet[MNode])
 }
 
-import UserNodeMessages._
-
 class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
-    with Stash with ActorLogging with ProcessorActor[State] {
+    with Stash with ActorLogging with ProcessorActor[UserNodeMessages.State] {
   import context.dispatcher
   import context.system
   import UserNodeProcessor._
+  import UserNodeMessages._
 
   context.setReceiveTimeout(timeout)
 
@@ -83,7 +82,7 @@ class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends A
     }
   }
 
-  def initialized(state: State): Receive = {
+  def stateReceive(state: State): Receive = {
     case msg: Entity ⇒ msg match {
       case _ ⇒
         sender() ! ReserveResult.NoNodesAvailable

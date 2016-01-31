@@ -34,6 +34,7 @@ object Dependencies {
     val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "2.1.2"
     // val akkaPersistenceCassandra = "com.github.krasserm"  %% "akka-persistence-cassandra"    % "0.5-SNAPSHOT" changing()
     // val akkaKryo        = "com.github.romix.akka"         %% "akka-kryo-serialization"       % "0.3.3"
+    val akkaSse         = "de.heikoseeberger"             %% "akka-sse"                      % "1.6.1"
 
     val atmos           = "io.zman"                       %% "atmos"                         % "2.1"
 
@@ -182,7 +183,8 @@ object Dependencies {
     akkaDistributedData,
     akkaStream, akkaHttp, akkaHttpJson,
     akkaSlf4j,
-    akkaPersistence, akkaPersistenceJdbc /*akkaStreamExtensions, akkaPersistenceCassandra*/
+    akkaPersistence, akkaPersistenceJdbc,
+    akkaSse
   )
 
   val scodec = Seq(

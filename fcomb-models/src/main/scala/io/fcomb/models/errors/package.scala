@@ -143,6 +143,13 @@ package object errors {
     )
   }
 
+  case object DockerApiClientIsNotInitialized extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Docker API client is not initialized",
+      ErrorKind.Internal
+    )
+  }
+
   case class ValidationException(
       param:   String,
       message: String
