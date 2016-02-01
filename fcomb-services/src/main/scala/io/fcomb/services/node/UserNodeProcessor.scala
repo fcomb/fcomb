@@ -18,7 +18,7 @@ import akka.util.Timeout
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.collection.mutable.HashSet
 import scala.concurrent.duration._
-import scala.util.{Success, Failure}
+import scala.util.{Success, Failure, Random}
 import java.time.ZonedDateTime
 import java.net.InetAddress
 
@@ -55,8 +55,8 @@ object UserNodeProcessor extends Processor[Long] {
 
   def reserve(userId: Long, scaleStrategy: ScaleStrategy)(
     implicit
-    ec: ExecutionContext,
-    timeout: Timeout = Timeout(30.seconds)
+    ec:      ExecutionContext,
+    timeout: Timeout          = Timeout(30.seconds)
   ): Future[ReserveResult] =
     askRef[ReserveResult](userId, Reserve(scaleStrategy), timeout)
 }
@@ -76,6 +76,8 @@ class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends A
 
   val userId = self.path.name.toLong
 
+  lazy val rand = new Random()
+
   def initializing() = {
     PNode.findAllAvailableByUserId(userId).onComplete {
       case Success(nodes) ⇒ initialize(State(HashSet(nodes: _*)))
@@ -85,21 +87,18 @@ class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends A
 
   def stateReceive(state: State): Receive = {
     case msg: Entity ⇒ msg match {
-      case _ ⇒
-        sender() ! ReserveResult.NoNodesAvailable
-      // case ContainerCreate(container, image, deployOptions) ⇒
-      //   // TODO: ask nodes for ability to run this container
-      //   println(s"nodes: $nodes")
-      //   nodes.headOption match {
-      //     case Some(node) ⇒
-      //       println(s"NodeProcessor.createContainer: ${node.getId}")
-      //       NodeProcessor.containerCreate(node.getId, container, image, deployOptions)
-      //         .pipeTo(sender())
-      //     case None ⇒
-      //       val e = new Throwable("No available nodes for running this container")
-      //       log.error(e.getMessage)
-      //       sender() ! Status.Failure(e)
-      //   }
+      case Reserve(scaleStrategy) ⇒
+        if (state.nodes.isEmpty)
+          sender() ! ReserveResult.NoNodesAvailable
+        else {
+          val idx = rand.nextInt(state.nodes.size)
+          val node = state.nodes.iterator.drop(idx).next
+          val reserved = ReserveResult.NodeReserve(
+            node.getId,
+            scaleStrategy.numberOfContainers
+          )
+          sender() ! ReserveResult.Reserved(List(reserved))
+        }
     }
     case ReceiveTimeout ⇒
       if (state.nodes.isEmpty) annihilation()

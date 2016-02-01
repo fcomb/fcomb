@@ -127,7 +127,9 @@ trait ProcessorActor[S] {
     }, false)
     fut.onComplete {
       case Success(res) ⇒ self ! Initialize(res)
-      case Failure(e)   ⇒ handleThrowable(e)
+      case Failure(e) ⇒
+        p.failure(e)
+        handleThrowable(e)
     }
     p.future
   }

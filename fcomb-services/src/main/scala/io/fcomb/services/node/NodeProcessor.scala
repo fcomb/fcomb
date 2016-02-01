@@ -176,9 +176,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         rootCert.certificate
       )
       val apiClient = createApiClient(node, certs)
-      initialize(State(
-        apiClient, node, HashSet(containers: _*), certs
-      ))
+      val cs = HashSet(containers: _*)
+      initialize(State(apiClient, node, cs, certs))
     }).onFailure {
       case e ⇒ handleThrowable(e)
     }
@@ -216,7 +215,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         println(s"update container: $container")
       // containersMap += (container.getId(), container)
     }
-    case ReceiveTimeout ⇒ annihilation()
+    case ReceiveTimeout ⇒
+      if (state.containers.isEmpty) annihilation()
   }
 
   def nodeRegister(state: State, ip: InetAddress) = {
@@ -299,12 +299,13 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       image = image.name,
       command = command
     )
+    val name = Some(container.dockerName)
     for {
       // TODO: parse image `tag`
       // TODO: cache this slow action
       // _ ← state.apiClient.imagePull(app.image.name, Some("latest"))
       //   .flatMap(_.runForeach(println)) // TODO: handle result through fold and return Future
-      \/-(res) ← apiCall(state)(_.containerCreate(config, Some(container.dockerName)))
+      \/-(res) ← apiCall(state)(_.containerCreate(config, name))
     } yield container.copy(
       state = ContainerState.Created,
       dockerId = Some(res.id),

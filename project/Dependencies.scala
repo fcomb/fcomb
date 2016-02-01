@@ -127,6 +127,8 @@ object Dependencies {
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.3"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
 
+    val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.8"
+
     val bridj           = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
 
     val xml             = "org.scala-lang.modules"        %% "scala-xml"                     % "1.0.3"
@@ -167,6 +169,7 @@ object Dependencies {
     scalazCore, scalazConcurrent, scalazStream,
     cats, catsState,
     shapeless, shapelessScalaz,
+    pprint,
     atmos,
     objectsize
   )
