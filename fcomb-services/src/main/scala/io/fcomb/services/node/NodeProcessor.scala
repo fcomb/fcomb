@@ -15,15 +15,16 @@ import io.fcomb.persist.UserCertificate
 import io.fcomb.docker.api._, methods.ContainerMethods
 import akka.actor._
 import akka.stream.Materializer
+import akka.stream.scaladsl.Sink
 import akka.cluster.sharding._
 import akka.pattern.{after, ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise, ExecutionContext}
-import scala.collection.immutable.HashSet
+import scala.collection.immutable.{HashSet, HashMap}
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
 import scalaz._, Scalaz._
-import java.time.ZonedDateTime
+import java.time.{LocalDateTime, ZonedDateTime}
 import java.net.InetAddress
 
 object NodeProcessor extends Processor[Long] {
@@ -126,10 +127,15 @@ object NodeProcessorMessages {
     ca:   Array[Byte]
   )
 
+  case class NodeImages(
+    pullingCache: HashMap[String, (LocalDateTime, Promise[Unit])]
+  )
+
   case class State(
     apiClient:  Option[Client],
     node:       MNode,
     containers: HashSet[MContainer],
+    images:     NodeImages,
     certs:      DockerApiCerts
   )
 
@@ -160,6 +166,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   // TODO: val dockerApiTimeout = 1.minute
   val pingInterval = (25 + Random.random.nextInt(15)).seconds
 
+  val imagePullingCacheTtl = 5.minutes // TODO: drop TTL and check images locally or remote
+
   system.scheduler.schedule(pingInterval, pingInterval)(self ! DockerPing)
 
   def initializing() = {
@@ -177,7 +185,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       )
       val apiClient = createApiClient(node, certs)
       val cs = HashSet(containers: _*)
-      initialize(State(apiClient, node, cs, certs))
+      val images = NodeImages(HashMap.empty)
+      initialize(State(apiClient, node, cs, images, certs))
     }).onFailure {
       case e ⇒ handleThrowable(e)
     }
@@ -285,6 +294,46 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       val sslContext = Tls.context(certs.key, certs.cert, Some(certs.ca))
       new Client(ip, 2375, Some(sslContext))
     }
+
+  def imagePull(state: State, image: DockerImage) = {
+    val expireTime = LocalDateTime.now()
+      .minusSeconds(imagePullingCacheTtl.toSeconds)
+    val cache = state.images.pullingCache.filter(_._2._1.isAfter(expireTime))
+    val tag = image.tag.getOrElse("latest")
+    val key = s"${image.name}:$tag"
+    cache.get(key) match {
+      case Some((_, p)) ⇒
+        val ns = state.copy(images = state.images.copy(
+          pullingCache = cache
+        ))
+        (ns, p.future)
+      case None ⇒
+        val p = Promise[Unit]
+        val ns = state.copy(images = state.images.copy(
+          pullingCache = cache + ((key, (LocalDateTime.now, p)))
+        ))
+        apiCall(state) { c ⇒
+          c.imagePull(image.name, image.tag)
+            .flatMap(_.runWith(Sink.lastOption))
+        }.onComplete {
+          case Success(opt) ⇒ opt match {
+            case \/-(Some(evt)) ⇒
+              if (evt.isFailure) {
+                val msg = evt.errorDetail.map(_.message)
+                  .orElse(evt.errorMessage)
+                  .getOrElse("Unknown docker error")
+                p.failure(new Throwable(msg)) // TODO
+              }
+              else p.complete(Success(()))
+            case \/-(None) ⇒
+              p.failure(new Throwable("Unknown docker error")) // TODO
+            case -\/(e) ⇒ p.failure(e)
+          }
+          case Failure(e) ⇒ p.failure(e)
+        }
+        (ns, p.future)
+    }
+  }
 
   def containerCreate(
     state:         State,
