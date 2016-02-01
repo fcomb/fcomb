@@ -145,6 +145,10 @@ object ApplicationProcessor {
     )
 }
 
+case object Annihilation
+
+case class Failed(e: Throwable)
+
 class ApplicationProcessor(timeout: Duration) extends Actor
     with Stash with ActorLogging {
   import context.dispatcher
@@ -164,10 +168,6 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   case class Initialize(state: State, retryCount: Int)
 
   case class UpdateState(state: State)
-
-  case object Annihilation
-
-  case class Failed(e: Throwable)
 
   def receive = {
     case msg: Entity ⇒
