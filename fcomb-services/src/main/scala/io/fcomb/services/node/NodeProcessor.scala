@@ -20,7 +20,7 @@ import akka.cluster.sharding._
 import akka.pattern.{after, ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise, ExecutionContext}
-import scala.collection.immutable.{HashSet, HashMap}
+import scala.collection.immutable.{LongMap, HashMap}
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
 import scalaz._, Scalaz._
@@ -134,7 +134,7 @@ object NodeProcessorMessages {
   case class State(
     apiClient:  Option[Client],
     node:       MNode,
-    containers: HashSet[MContainer],
+    containers: HashMap[Long, MContainer],
     images:     NodeImages,
     certs:      DockerApiCerts
   )
@@ -143,11 +143,7 @@ object NodeProcessorMessages {
 
   private[node] case object DockerPing extends NodeProcessorMessage
 
-  private[node] case class ContainerAppend(
-    container: MContainer
-  ) extends NodeProcessorMessage
-
-  private[node] case class ContainerUpdate(
+  private[node] case class UpdateContainer(
     container: MContainer
   ) extends NodeProcessorMessage
 }
@@ -166,7 +162,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   // TODO: val dockerApiTimeout = 1.minute
   val pingInterval = (25 + Random.random.nextInt(15)).seconds
 
-  val imagePullingCacheTtl = 5.minutes // TODO: drop TTL and check images locally or remote
+  val pullingCacheTtl = 5.minutes.toSeconds // TODO: drop TTL and check images locally or remote
 
   system.scheduler.schedule(pingInterval, pingInterval)(self ! DockerPing)
 
@@ -184,7 +180,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         rootCert.certificate
       )
       val apiClient = createApiClient(node, certs)
-      val cs = HashSet(containers: _*)
+      val cs = HashMap(containers.map(c ⇒ (c.getId, c)): _*)
       val images = NodeImages(HashMap.empty)
       initialize(State(apiClient, node, cs, images, certs))
     }).onFailure {
@@ -200,10 +196,18 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
           nodeRegister(state, ip).map(sendReplyByState(_, replyTo))
         case ContainerCreate(container, image, deployOptions) ⇒
           println(s"CreateContainer($container, $image, $deployOptions)")
-          containerCreate(state, container, image, deployOptions).foreach { c ⇒
-            self ! ContainerAppend(c)
-            replyTo ! c
+          val (ns, resFut) = containerCreate(state, container, image, deployOptions)
+          // TODO
+          resFut.onComplete {
+            case Success(c) ⇒
+              self ! UpdateContainer(c)
+              replyTo ! c
+            case Failure(e) ⇒
+              val c = container.copy(state = ContainerState.Terminated)
+              self ! UpdateContainer(c)
+              replyTo ! c
           }
+          updateContextByState(ns)
         case ContainerStart(containerId) ⇒
           containerStart(state, containerId)
         case ContainerStop(containerId) ⇒
@@ -217,16 +221,21 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     case cmd: NodeProcessorMessage ⇒ cmd match {
       case DockerPing ⇒
         apiCall(state)(_.ping()).onComplete(println)
-      case ContainerAppend(container) ⇒
-        println(s"append container: $container")
-      // containersMap += (container.getId(), container)
-      case ContainerUpdate(container) ⇒
+      case UpdateContainer(container) ⇒
         println(s"update container: $container")
-      // containersMap += (container.getId(), container)
+        updateContextByState(updateStateContainer(state, container))
     }
     case ReceiveTimeout ⇒
       if (state.containers.isEmpty) annihilation()
   }
+
+  def updateStateContainer(state: State, container: MContainer) =
+    state.copy(
+      containers = state.containers + ((container.getId, container))
+    )
+
+  def updateContextByState(state: State) =
+    context.become(stateReceive(state), false)
 
   def nodeRegister(state: State, ip: InetAddress) = {
     log.info(s"register $ip")
@@ -296,8 +305,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     }
 
   def imagePull(state: State, image: DockerImage) = {
-    val expireTime = LocalDateTime.now()
-      .minusSeconds(imagePullingCacheTtl.toSeconds)
+    val expireTime = LocalDateTime.now().minusSeconds(pullingCacheTtl)
     val cache = state.images.pullingCache.filter(_._2._1.isAfter(expireTime))
     val tag = image.tag.getOrElse("latest")
     val key = s"${image.name}:$tag"
@@ -312,10 +320,9 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         val ns = state.copy(images = state.images.copy(
           pullingCache = cache + ((key, (LocalDateTime.now, p)))
         ))
-        apiCall(state) { c ⇒
-          c.imagePull(image.name, image.tag)
-            .flatMap(_.runWith(Sink.lastOption))
-        }.onComplete {
+        (apiCall(state) { c ⇒
+          c.imagePull(image.name, image.tag).flatMap(_.runWith(Sink.lastOption))
+        }).onComplete {
           case Success(opt) ⇒ opt match {
             case \/-(Some(evt)) ⇒
               if (evt.isFailure) {
@@ -349,17 +356,15 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       command = command
     )
     val name = Some(container.dockerName)
-    for {
-      // TODO: parse image `tag`
-      // TODO: cache this slow action
-      // _ ← state.apiClient.imagePull(app.image.name, Some("latest"))
-      //   .flatMap(_.runForeach(println)) // TODO: handle result through fold and return Future
+    val (ns, pullFut) = imagePull(state, image)
+    val resFut = for {
+      _ ← pullFut
       \/-(res) ← apiCall(state)(_.containerCreate(config, name))
     } yield container.copy(
       state = ContainerState.Created,
-      dockerId = Some(res.id),
-      nodeId = nodeId
+      dockerId = Some(res.id)
     )
+    (updateStateContainer(ns, container), resFut)
   }
 
   def containerStart(state: State, containerId: Long) = {
