@@ -581,7 +581,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
           } yield state.copy(containers = state.containers ++ updatedContainers)
         case ReserveResult.NoNodesAvailable ⇒
           log.error("ReserveResult.NoNodesAvailable")
-          ???
+          // TODO: add errors to state messages
+          Future.successful(state)
       }
     }
     else if (containers.length > ss.numberOfContainers) {
