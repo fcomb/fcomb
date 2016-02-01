@@ -87,7 +87,7 @@ object NodeProcessor extends Processor[Long] {
   )(
     implicit
     ec:      ExecutionContext,
-    timeout: Timeout          = Timeout(30.seconds)
+    timeout: Timeout          = Timeout(15.minutes)
   ): Future[MContainer] =
     askRef[MContainer](container.nodeId, ContainerCreate(container, image, deployOptions), timeout)
 
