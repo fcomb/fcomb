@@ -146,7 +146,7 @@ final class Client(
     since:          Option[ZonedDateTime]    = None,
     showTimestamps: Boolean                  = false,
     tail:           Option[Int]              = None,
-    idleTimeout:    FiniteDuration                 = defaultIdleTimeout
+    idleTimeout:    FiniteDuration           = defaultIdleTimeout
   ) = containerLogsAsSource(
     id = id,
     streams = streams,
@@ -254,7 +254,7 @@ final class Client(
     id:          String,
     streams:     Set[StdStream.StdStream],
     flow:        Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
-    idleTimeout: FiniteDuration                                             = defaultIdleTimeout
+    idleTimeout: FiniteDuration                                       = defaultIdleTimeout
   ) =
     containerAttachAsSource(id, streams, idleTimeout)
       .join(stdStreamFrameCodec.join(flow))
@@ -264,7 +264,7 @@ final class Client(
     id:          String,
     streams:     Set[StdStream.StdStream],
     flow:        Flow[ByteString, ByteString, Any],
-    idleTimeout: FiniteDuration                          = defaultIdleTimeout
+    idleTimeout: FiniteDuration                    = defaultIdleTimeout
   ) =
     containerAttachAsSource(id, streams, idleTimeout)
       .join(flow)
@@ -302,11 +302,11 @@ final class Client(
 
   def containerArchiveInformation(id: String, path: String) =
     apiRequestAsSource(HttpMethods.HEAD, s"/containers/$id/archive", Map("path" → path))
-      .map(res ⇒ parseContainerPathStat(res._2.headers))
+      .map(res ⇒ parseContainerPathStat(res._2))
 
   def containerArchive(id: String, path: String) =
     apiRequestAsSource(HttpMethods.GET, s"/containers/$id/archive", Map("path" → path)).map { res ⇒
-      (res._1, parseContainerPathStat(res._2.headers))
+      (res._1, parseContainerPathStat(res._2))
     }
 
   def containerArchiveExtract(
@@ -381,7 +381,7 @@ final class Client(
     tag:            Option[String]     = None,
     registry:       Option[Registry]   = None,
     registryAuth:   Option[AuthConfig] = None,
-    idleTimeout:    FiniteDuration           = defaultIdleTimeout
+    idleTimeout:    FiniteDuration     = defaultIdleTimeout
   ) = {
     val params = Map(
       "fromImage" → name,
@@ -405,7 +405,7 @@ final class Client(
     tag:            Option[String]     = None,
     registry:       Option[Registry]   = None,
     registryAuth:   Option[AuthConfig] = None,
-    idleTimeout:    FiniteDuration           = defaultIdleTimeout
+    idleTimeout:    FiniteDuration     = defaultIdleTimeout
   ) = {
     val params = Map(
       "fromSrc" → url.toString,
@@ -429,7 +429,7 @@ final class Client(
     tag:            Option[String]          = None,
     registry:       Option[Registry]        = None,
     registryAuth:   Option[AuthConfig]      = None,
-    idleTimeout:    FiniteDuration                = defaultIdleTimeout
+    idleTimeout:    FiniteDuration          = defaultIdleTimeout
   ) = {
     val params = Map(
       "fromSrc" → "-",
@@ -571,7 +571,7 @@ final class Client(
     since:       Option[ZonedDateTime] = None,
     until:       Option[ZonedDateTime] = None,
     filters:     EventsFilter          = Map.empty,
-    idleTimeout: FiniteDuration              = defaultIdleTimeout
+    idleTimeout: FiniteDuration        = defaultIdleTimeout
   ) = {
     val params = Map(
       "since" → since.toParamAsTimestamp(),
@@ -639,7 +639,7 @@ final class Client(
   def execAttachAsStream(
     id:          String,
     flow:        Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
-    idleTimeout: FiniteDuration                                             = defaultIdleTimeout
+    idleTimeout: FiniteDuration                                       = defaultIdleTimeout
   ) =
     execStartAsSource(id, false, idleTimeout)
       .join(stdStreamFrameCodec.join(flow))
@@ -648,7 +648,7 @@ final class Client(
   def execAttachAsTtyStream(
     id:          String,
     flow:        Flow[ByteString, ByteString, Any],
-    idleTimeout: FiniteDuration                          = defaultIdleTimeout
+    idleTimeout: FiniteDuration                    = defaultIdleTimeout
   ) =
     execStartAsSource(id, true, idleTimeout)
       .join(flow)

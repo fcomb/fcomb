@@ -200,26 +200,26 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     case msg: Entity ⇒
       log.info(s"created receive: $msg")
       msg match {
-      case ApplicationStart ⇒
-        // TODO: avoid scaling state by creating containers and then start them
-        applyStateTransition(scale(state, None), ApplicationState.Running)
-      case ApplicationStop ⇒
-        log.error("cannot stop")
-        sender() ! Status.Failure(CannotStop)
-      case ApplicationRestart ⇒
-        log.error("cannot restart")
-        sender() ! Status.Failure(CannotRestart)
-      case ApplicationTerminate ⇒
-        applyStateTransition(terminate(state), ApplicationState.Terminated)
-      case _: ApplicationRedeploy ⇒
-        log.error("cannot redeploy")
-        sender() ! Status.Failure(CannotRedeploy)
-      case _: ApplicationScale ⇒
-        log.error("cannot scale")
-        sender() ! Status.Failure(CannotScale)
-      case s: ContainerChangedState ⇒
-        log.error(s"Cannot change container when `created` state: $s")
-    }
+        case ApplicationStart ⇒
+          // TODO: avoid scaling state by creating containers and then start them
+          applyStateTransition(scale(state, None), ApplicationState.Running)
+        case ApplicationStop ⇒
+          log.error("cannot stop")
+          sender() ! Status.Failure(CannotStop)
+        case ApplicationRestart ⇒
+          log.error("cannot restart")
+          sender() ! Status.Failure(CannotRestart)
+        case ApplicationTerminate ⇒
+          applyStateTransition(terminate(state), ApplicationState.Terminated)
+        case _: ApplicationRedeploy ⇒
+          log.error("cannot redeploy")
+          sender() ! Status.Failure(CannotRedeploy)
+        case _: ApplicationScale ⇒
+          log.error("cannot scale")
+          sender() ! Status.Failure(CannotScale)
+        case s: ContainerChangedState ⇒
+          log.error(s"Cannot change container when `created` state: $s")
+      }
   }
 
   def runningReceive(state: State): Receive = {

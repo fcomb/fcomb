@@ -95,7 +95,7 @@ private[api] trait ApiConnection {
     queryParams: Map[String, String]       = Map.empty,
     entity:      RequestEntity             = HttpEntity.Empty,
     headers:     immutable.Seq[HttpHeader] = immutable.Seq.empty,
-    idleTimeout: Option[FiniteDuration]          = None
+    idleTimeout: Option[FiniteDuration]    = None
   ) = {
     Source
       .single(HttpRequest(
@@ -107,9 +107,9 @@ private[api] trait ApiConnection {
       .via(httpConnectionFlow(idleTimeout))
       .runWith(Sink.head)
       .flatMap(mapHttpResponse)
-      .map { res =>
+      .map { res ⇒
         val bs = idleTimeout.foldLeft(res.entity.dataBytes)(_.idleTimeout(_))
-        (bs, res)
+        (bs, res.headers)
       }
   }
 
@@ -128,7 +128,7 @@ private[api] trait ApiConnection {
     queryParams: Map[String, String]       = Map.empty,
     entity:      RequestEntity             = HttpEntity.Empty,
     headers:     immutable.Seq[HttpHeader] = immutable.Seq.empty,
-    idleTimeout: Option[FiniteDuration]          = None
+    idleTimeout: Option[FiniteDuration]    = None
   ) =
     apiRequestAsSource(method, uri, queryParams, entity, headers, idleTimeout)
       .map(_._1.map(_.utf8String.parseJson))
@@ -139,7 +139,7 @@ private[api] trait ApiConnection {
     queryParams: Map[String, String]       = Map.empty,
     entity:      RequestEntity             = HttpEntity.Empty,
     headers:     immutable.Seq[HttpHeader] = immutable.Seq.empty,
-    idleTimeout: Option[FiniteDuration]          = None
+    idleTimeout: Option[FiniteDuration]    = None
   ) =
     apiRequestAsSource(method, uri, queryParams, entity, headers, idleTimeout)
       .flatMap(_._1.runFold(ByteString.empty)(_ ++ _))

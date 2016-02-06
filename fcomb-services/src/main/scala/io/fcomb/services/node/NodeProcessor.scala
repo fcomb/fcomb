@@ -215,7 +215,6 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         case ContainerRestart(containerId) ⇒
           containerRestart(state, containerId)
         case ContainerTerminate(containerId) ⇒
-          log.debug(s"TerminateContainer($containerId)")
           containerTerminate(state, containerId)
       }
     case cmd: NodeProcessorMessage ⇒ cmd match {
@@ -320,25 +319,24 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         val ns = state.copy(images = state.images.copy(
           pullingCache = cache + ((key, (LocalDateTime.now, p)))
         ))
-        // (apiCall(state) { c ⇒
-        //   c.imagePull(image.name, image.tag).flatMap(_.runWith(Sink.lastOption))
-        // }).onComplete {
-        //   case Success(opt) ⇒ opt match {
-        //     case \/-(Some(evt)) ⇒
-        //       if (evt.isFailure) {
-        //         val msg = evt.errorDetail.map(_.message)
-        //           .orElse(evt.errorMessage)
-        //           .getOrElse("Unknown docker error")
-        //         p.failure(new Throwable(msg)) // TODO
-        //       }
-        //       else p.complete(Success(()))
-        //     case \/-(None) ⇒
-        //       p.failure(new Throwable("Unknown docker error")) // TODO
-        //     case -\/(e) ⇒ p.failure(e)
-        //   }
-        //   case Failure(e) ⇒ p.failure(e)
-        // }
-        p.complete(Success(()))
+        (apiCall(state) { c ⇒
+          c.imagePull(image.name, image.tag).flatMap(_.runWith(Sink.lastOption))
+        }).onComplete {
+          case Success(opt) ⇒ opt match {
+            case \/-(Some(evt)) ⇒
+              if (evt.isFailure) {
+                val msg = evt.errorDetail.map(_.message)
+                  .orElse(evt.errorMessage)
+                  .getOrElse("Unknown docker error")
+                p.failure(new Throwable(msg)) // TODO
+              }
+              else p.complete(Success(()))
+            case \/-(None) ⇒
+              p.failure(new Throwable("Unknown docker error")) // TODO
+            case -\/(e) ⇒ p.failure(e)
+          }
+          case Failure(e) ⇒ p.failure(e)
+        }
         (ns, p.future)
     }
   }
@@ -369,51 +367,47 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   }
 
   def containerStart(state: State, containerId: Long) = {
-    log.debug("container start: $containerId")
-
+    log.debug(s"container start: $containerId")
     state.containers.get(containerId).flatMap(_.dockerId) match {
-      case Some(dockerId) =>
+      case Some(dockerId) ⇒
         apiCall(state)(_.containerStart(dockerId))
         sender().!(())
-      case _ => ???
+      case _ ⇒ ???
     }
   }
 
   def containerStop(state: State, containerId: Long) = {
-    // TODO: DRY
-    // containersMap.get(containerId).flatMap(_.dockerId) match {
-    //   case Some(dockerId) ⇒
-    //     state.apiClient.containerStop(dockerId, 30.seconds)
-    //       .pipeTo(sender())
-    //       .onComplete(println)
-    //   case None ⇒ ???
-    // }
+    log.debug(s"container stop: $containerId")
+    state.containers.get(containerId).flatMap(_.dockerId) match {
+      case Some(dockerId) ⇒
+        apiCall(state)(_.containerStop(dockerId, 30.seconds))
+        sender().!(())
+      case _ ⇒ ???
+    }
   }
 
   def containerRestart(state: State, containerId: Long) = {
-    // TODO: DRY
-    // containersMap.get(containerId).flatMap(_.dockerId) match {
-    //   case Some(dockerId) ⇒
-    //     (for {
-    //       _ ← state.apiClient.containerStop(dockerId, 30.seconds)
-    //       _ ← state.apiClient.containerStart(dockerId)
-    //     } yield ())
-    //       .pipeTo(sender())
-    //       .onComplete(println)
-    //   case None ⇒ ???
-    // }
+    log.debug(s"container restart: $containerId")
+    state.containers.get(containerId).flatMap(_.dockerId) match {
+      case Some(dockerId) ⇒
+        apiCall(state) { c =>
+          for {
+            _ <- c.containerStop(dockerId, 30.seconds)
+            _ <- c.containerStart(dockerId)
+          } yield ()
+        }
+        sender().!(())
+      case _ ⇒ ???
+    }
   }
 
   def containerTerminate(state: State, containerId: Long) = {
-    // TODO: DRY
-    println(s"terminateContainer: $containerId")
-    //   containersMap.get(containerId).flatMap(_.dockerId) match {
-    //     case Some(dockerId) ⇒
-    //       println(s"dockerId: $dockerId")
-    //       state.apiClient.containerRemove(dockerId, true, true) // TODO: volumes
-    //         .pipeTo(sender())
-    //         .onComplete(println)
-    //     case None ⇒ ???
-    //   }
+    log.debug(s"container terminate: $containerId")
+    state.containers.get(containerId).flatMap(_.dockerId) match {
+      case Some(dockerId) ⇒
+        apiCall(state)(_.containerRemove(dockerId, true, true))
+        sender().!(())
+      case _ ⇒ ???
+    }
   }
 }

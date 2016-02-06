@@ -163,9 +163,9 @@ object Dependencies {
     // pickling, upickle,
     // pprint,
     sprayJson, sprayJsonShapeless,
-    circeCore, circeGeneric, circeJawn,
+    // circeCore, circeGeneric, circeJawn,
     scalazCore, scalazConcurrent, scalazStream,
-    cats,
+    // cats,
     shapeless, shapelessScalaz,
     pprint,
     atmos,
@@ -183,16 +183,16 @@ object Dependencies {
     akkaActor, akkaClusterSharding, akkaContrib,
     akkaDistributedData,
     akkaStream, akkaHttp, akkaHttpJson,
-    akkaHttpSwagger,
+    // akkaHttpSwagger,
     akkaSlf4j,
-    akkaPersistence, akkaPersistenceJdbc,
-    akkaSse
+    akkaPersistence, akkaPersistenceJdbc //,
+    // akkaSse
   )
 
-  val scodec = Seq(
-    scodecCore, scodecBits, scodecScalaz, scodecStream,
-    scodecProtocols, scodecAkka
-  )
+  // val scodec = Seq(
+  //   scodecCore, scodecBits, scodecScalaz, scodecStream,
+  //   scodecProtocols, scodecAkka
+  // )
 
   val root = common // ++ monitoring
 
