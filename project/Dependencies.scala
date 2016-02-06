@@ -4,9 +4,8 @@ object Dependencies {
   object V {
     val akka = "2.4.2-RC2"
     val bouncyCastle = "1.53"
-    val cats = "0.3.0"
+    val cats = "0.4.1"
     val circe = "0.3.0-SNAPSHOT"
-    // val doobie = "0.2.3"
     val slick = "3.1.1"
     val slickPg = "0.11.0"
     val shims = "0.2"
@@ -105,8 +104,7 @@ object Dependencies {
     val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.5"
     val scalazStream    = "org.scalaz.stream"             %% "scalaz-stream"                 % "0.8"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
-    val cats            = "org.spire-math"                %% "cats"                          % V.cats
-    val catsState       = "org.spire-math"                %% "cats-state"                    % V.cats
+    val cats            = "org.typelevel"                 %% "cats"                          % V.cats
     val catsShims       = "com.codecommit"                %% "shims-cats"                    % V.shims
 
     // val raptureCore     = "com.propensive"                %% "rapture-core"                  % "1.1.0"
@@ -167,7 +165,7 @@ object Dependencies {
     sprayJson, sprayJsonShapeless,
     circeCore, circeGeneric, circeJawn,
     scalazCore, scalazConcurrent, scalazStream,
-    cats, catsState,
+    cats,
     shapeless, shapelessScalaz,
     pprint,
     atmos,
