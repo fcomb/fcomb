@@ -38,6 +38,8 @@ final class Client(
 
   protected val logger = LoggerFactory.getLogger(this.getClass)
 
+  val defaultIdleTimeout = 1.hour
+
   def information() =
     apiJsonRequest(HttpMethods.GET, "/info")
       .map(_.convertTo[Information])
@@ -103,7 +105,7 @@ final class Client(
     since:          Option[ZonedDateTime],
     showTimestamps: Boolean,
     tail:           Option[Int],
-    idleTimeout:    Option[Duration]
+    idleTimeout:    Option[FiniteDuration]
   ) = {
     require(streams.nonEmpty, "Streams cannot be empty")
     val params = Map(
@@ -119,7 +121,7 @@ final class Client(
       s"/containers/$id/logs",
       queryParams = params,
       idleTimeout = idleTimeout
-    ).map(_.entity.dataBytes)
+    ).map(_._1)
   }
 
   def containerLogs(
@@ -144,7 +146,7 @@ final class Client(
     since:          Option[ZonedDateTime]    = None,
     showTimestamps: Boolean                  = false,
     tail:           Option[Int]              = None,
-    idleTimeout:    Duration                 = Duration.Inf
+    idleTimeout:    FiniteDuration                 = defaultIdleTimeout
   ) = containerLogsAsSource(
     id = id,
     streams = streams,
@@ -161,7 +163,7 @@ final class Client(
 
   def containerExport(id: String) =
     apiRequestAsSource(HttpMethods.GET, s"/containers/$id/export")
-      .map(_.entity.dataBytes)
+      .map(_._1)
 
   def containerStats(id: String) =
     apiJsonRequest(HttpMethods.GET, s"/containers/$id/stats", Map("stream" → "false"))
@@ -169,7 +171,7 @@ final class Client(
 
   def containerStatsAsStream(
     id:          String,
-    idleTimeout: Duration = Duration.Inf
+    idleTimeout: FiniteDuration = defaultIdleTimeout
   ) =
     apiJsonRequestAsSource(
       HttpMethods.GET,
@@ -232,7 +234,7 @@ final class Client(
   private def containerAttachAsSource(
     id:          String,
     streams:     Set[StdStream.StdStream],
-    idleTimeout: Duration
+    idleTimeout: FiniteDuration
   ) = {
     val params = Map(
       "stream" → "true",
@@ -252,7 +254,7 @@ final class Client(
     id:          String,
     streams:     Set[StdStream.StdStream],
     flow:        Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
-    idleTimeout: Duration                                             = Duration.Inf
+    idleTimeout: FiniteDuration                                             = defaultIdleTimeout
   ) =
     containerAttachAsSource(id, streams, idleTimeout)
       .join(stdStreamFrameCodec.join(flow))
@@ -262,7 +264,7 @@ final class Client(
     id:          String,
     streams:     Set[StdStream.StdStream],
     flow:        Flow[ByteString, ByteString, Any],
-    idleTimeout: Duration                          = Duration.Inf
+    idleTimeout: FiniteDuration                          = defaultIdleTimeout
   ) =
     containerAttachAsSource(id, streams, idleTimeout)
       .join(flow)
@@ -288,7 +290,7 @@ final class Client(
   def containerCopy(id: String, path: String) = {
     val entity = requestJsonEntity(CopyConfig(path))
     apiRequestAsSource(HttpMethods.POST, s"/containers/$id/copy", entity = entity)
-      .map(_.entity.dataBytes)
+      .map(_._1)
   }
 
   private def parseContainerPathStat(headers: Seq[HttpHeader]) = {
@@ -300,11 +302,11 @@ final class Client(
 
   def containerArchiveInformation(id: String, path: String) =
     apiRequestAsSource(HttpMethods.HEAD, s"/containers/$id/archive", Map("path" → path))
-      .map(res ⇒ parseContainerPathStat(res.headers))
+      .map(res ⇒ parseContainerPathStat(res._2.headers))
 
   def containerArchive(id: String, path: String) =
     apiRequestAsSource(HttpMethods.GET, s"/containers/$id/archive", Map("path" → path)).map { res ⇒
-      (res.entity.dataBytes, parseContainerPathStat(res.headers))
+      (res._1, parseContainerPathStat(res._2.headers))
     }
 
   def containerArchiveExtract(
@@ -378,7 +380,8 @@ final class Client(
     repositoryName: Option[String]     = None,
     tag:            Option[String]     = None,
     registry:       Option[Registry]   = None,
-    registryAuth:   Option[AuthConfig] = None
+    registryAuth:   Option[AuthConfig] = None,
+    idleTimeout:    FiniteDuration           = defaultIdleTimeout
   ) = {
     val params = Map(
       "fromImage" → name,
@@ -387,8 +390,13 @@ final class Client(
       "registry" → registry.toParam()
     )
     val headers = AuthConfig.mapToHeaders(registryAuth)
-    apiJsonRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
-      .map(_.map(_.convertTo[EventMessage]))
+    apiJsonRequestAsSource(
+      HttpMethods.POST,
+      s"/images/create",
+      params,
+      headers = headers,
+      idleTimeout = Some(idleTimeout)
+    ).map(_.map(_.convertTo[EventMessage]))
   }
 
   def imagePullWithUrl(
@@ -396,7 +404,8 @@ final class Client(
     repositoryName: Option[String]     = None,
     tag:            Option[String]     = None,
     registry:       Option[Registry]   = None,
-    registryAuth:   Option[AuthConfig] = None
+    registryAuth:   Option[AuthConfig] = None,
+    idleTimeout:    FiniteDuration           = defaultIdleTimeout
   ) = {
     val params = Map(
       "fromSrc" → url.toString,
@@ -405,8 +414,13 @@ final class Client(
       "registry" → registry.toParam()
     )
     val headers = AuthConfig.mapToHeaders(registryAuth)
-    apiJsonRequestAsSource(HttpMethods.POST, s"/images/create", params, headers = headers)
-      .map(_.map(_.convertTo[EventMessage]))
+    apiJsonRequestAsSource(
+      HttpMethods.POST,
+      s"/images/create",
+      params,
+      headers = headers,
+      idleTimeout = Some(idleTimeout)
+    ).map(_.map(_.convertTo[EventMessage]))
   }
 
   def imagePullWithStream(
@@ -414,7 +428,8 @@ final class Client(
     repositoryName: Option[String]          = None,
     tag:            Option[String]          = None,
     registry:       Option[Registry]        = None,
-    registryAuth:   Option[AuthConfig]      = None
+    registryAuth:   Option[AuthConfig]      = None,
+    idleTimeout:    FiniteDuration                = defaultIdleTimeout
   ) = {
     val params = Map(
       "fromSrc" → "-",
@@ -424,8 +439,14 @@ final class Client(
     )
     val entity = requestTarEntity(source)
     val headers = AuthConfig.mapToHeaders(registryAuth)
-    apiJsonRequestAsSource(HttpMethods.POST, "/images/create", params, entity, headers = headers)
-      .map(_.map(_.convertTo[EventMessage]))
+    apiJsonRequestAsSource(
+      HttpMethods.POST,
+      "/images/create",
+      params,
+      entity,
+      headers = headers,
+      idleTimeout = Some(idleTimeout)
+    ).map(_.map(_.convertTo[EventMessage]))
   }
 
   def imageInspect(id: String) =
@@ -520,7 +541,7 @@ final class Client(
       case None    ⇒ id
     }
     apiRequestAsSource(HttpMethods.GET, s"/images/$name/get")
-      .map(_.entity.dataBytes)
+      .map(_._1)
   }
 
   def imagesGet(names: List[String]) = {
@@ -529,7 +550,7 @@ final class Client(
     }
     val uri = Uri("/images/get").withQuery(Uri.Query(q: _*))
     apiRequestAsSource(HttpMethods.GET, uri)
-      .map(_.entity.dataBytes)
+      .map(_._1)
   }
 
   def imagesLoad(source: Source[ByteString, Any]) = {
@@ -550,7 +571,7 @@ final class Client(
     since:       Option[ZonedDateTime] = None,
     until:       Option[ZonedDateTime] = None,
     filters:     EventsFilter          = Map.empty,
-    idleTimeout: Duration              = Duration.Inf
+    idleTimeout: FiniteDuration              = defaultIdleTimeout
   ) = {
     val params = Map(
       "since" → since.toParamAsTimestamp(),
@@ -600,7 +621,7 @@ final class Client(
   private def execStartAsSource(
     id:          String,
     isTty:       Boolean,
-    idleTimeout: Duration
+    idleTimeout: FiniteDuration
   ) = {
     val entity = requestJsonEntity(ExecStartCheck(
       isDetach = false,
@@ -618,7 +639,7 @@ final class Client(
   def execAttachAsStream(
     id:          String,
     flow:        Flow[StdStreamFrame.StdStreamFrame, ByteString, Any],
-    idleTimeout: Duration                                             = Duration.Inf
+    idleTimeout: FiniteDuration                                             = defaultIdleTimeout
   ) =
     execStartAsSource(id, false, idleTimeout)
       .join(stdStreamFrameCodec.join(flow))
@@ -627,7 +648,7 @@ final class Client(
   def execAttachAsTtyStream(
     id:          String,
     flow:        Flow[ByteString, ByteString, Any],
-    idleTimeout: Duration                          = Duration.Inf
+    idleTimeout: FiniteDuration                          = defaultIdleTimeout
   ) =
     execStartAsSource(id, true, idleTimeout)
       .join(flow)

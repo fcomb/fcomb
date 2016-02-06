@@ -2,10 +2,10 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.2-RC1"
+    val akka = "2.4.2-RC2"
     val bouncyCastle = "1.53"
     val cats = "0.3.0"
-    val circle = "0.1.1"
+    val circe = "0.3.0-SNAPSHOT"
     // val doobie = "0.2.3"
     val slick = "3.1.1"
     val slickPg = "0.11.0"
@@ -27,7 +27,7 @@ object Dependencies {
     val akkaContrib     = "com.typesafe.akka"             %% "akka-contrib"                  % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream"                   % V.akka
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akka
-    val akkaHttpSpray   = "com.typesafe.akka"             %% "akka-http-spray-json-experimental" % V.akka exclude("io.spray", "spray-json_2.11")
+    val akkaHttpSwagger = "com.github.swagger-akka-http"  %% "swagger-akka-http"             % "0.6.2"
     val akkaHttpJson    = "de.heikoseeberger"             %% "akka-http-json4s"              % "1.5.0"
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
@@ -59,9 +59,9 @@ object Dependencies {
     // val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.5"
     val sprayJson       = "io.spray"                      %% "spray-json"                   % "1.3.2"
     val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.1.0"
-    // val circleCore      = "io.circe"                      %% "circe-core"                    % V.circle
-    // val circleGeneric   = "io.circe"                      %% "circe-generic"                 % V.circle
-    // val circleJawn      = "io.circe"                      %% "circe-jawn"                    % V.circle
+    val circeCore       = "io.circe"                      %% "circe-core"                    % V.circe
+    val circeGeneric    = "io.circe"                      %% "circe-generic"                 % V.circe
+    val circeJawn       = "io.circe"                      %% "circe-jawn"                    % V.circe
 
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
@@ -150,7 +150,7 @@ object Dependencies {
 
   object Test {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
-    val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.12.5" % "test"
+    val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.0" % "test"
     val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
   }
@@ -165,7 +165,7 @@ object Dependencies {
     // pickling, upickle,
     // pprint,
     sprayJson, sprayJsonShapeless,
-    // circleCore, circleGeneric, circleJawn,
+    circeCore, circeGeneric, circeJawn,
     scalazCore, scalazConcurrent, scalazStream,
     cats, catsState,
     shapeless, shapelessScalaz,
@@ -185,6 +185,7 @@ object Dependencies {
     akkaActor, akkaClusterSharding, akkaContrib,
     akkaDistributedData,
     akkaStream, akkaHttp, akkaHttpJson,
+    akkaHttpSwagger,
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc,
     akkaSse

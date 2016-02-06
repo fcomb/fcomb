@@ -34,7 +34,7 @@ private[api] trait ApiConnection {
   protected val clientConnectionSettings =
     ClientConnectionSettings(sys)
 
-  private def httpConnectionFlow(duration: Option[Duration]) = {
+  private def httpConnectionFlow(duration: Option[FiniteDuration]) = {
     val settings = clientSettingsWithIdleTimeout(
       clientConnectionSettings,
       duration
@@ -53,7 +53,7 @@ private[api] trait ApiConnection {
     connection.buffer(10, OverflowStrategy.backpressure)
   }
 
-  protected def hijackConnectionFlow(req: HttpRequest, idleTimeout: Duration) = {
+  protected def hijackConnectionFlow(req: HttpRequest, idleTimeout: FiniteDuration) = {
     val settings = clientSettingsWithIdleTimeout(
       clientConnectionSettings,
       Some(idleTimeout)
@@ -95,7 +95,7 @@ private[api] trait ApiConnection {
     queryParams: Map[String, String]       = Map.empty,
     entity:      RequestEntity             = HttpEntity.Empty,
     headers:     immutable.Seq[HttpHeader] = immutable.Seq.empty,
-    idleTimeout: Option[Duration]          = None
+    idleTimeout: Option[FiniteDuration]          = None
   ) = {
     Source
       .single(HttpRequest(
@@ -107,6 +107,10 @@ private[api] trait ApiConnection {
       .via(httpConnectionFlow(idleTimeout))
       .runWith(Sink.head)
       .flatMap(mapHttpResponse)
+      .map { res =>
+        val bs = idleTimeout.foldLeft(res.entity.dataBytes)(_.idleTimeout(_))
+        (bs, res)
+      }
   }
 
   protected def requestJsonEntity[T](body: T)(
@@ -124,10 +128,10 @@ private[api] trait ApiConnection {
     queryParams: Map[String, String]       = Map.empty,
     entity:      RequestEntity             = HttpEntity.Empty,
     headers:     immutable.Seq[HttpHeader] = immutable.Seq.empty,
-    idleTimeout: Option[Duration]          = None
+    idleTimeout: Option[FiniteDuration]          = None
   ) =
     apiRequestAsSource(method, uri, queryParams, entity, headers, idleTimeout)
-      .map(_.entity.dataBytes.map(_.utf8String.parseJson))
+      .map(_._1.map(_.utf8String.parseJson))
 
   protected def apiJsonRequest(
     method:      HttpMethod,
@@ -135,10 +139,10 @@ private[api] trait ApiConnection {
     queryParams: Map[String, String]       = Map.empty,
     entity:      RequestEntity             = HttpEntity.Empty,
     headers:     immutable.Seq[HttpHeader] = immutable.Seq.empty,
-    idleTimeout: Option[Duration]          = None
+    idleTimeout: Option[FiniteDuration]          = None
   ) =
     apiRequestAsSource(method, uri, queryParams, entity, headers, idleTimeout)
-      .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _))
+      .flatMap(_._1.runFold(ByteString.empty)(_ ++ _))
       .map { res ⇒
         val s = res.utf8String
         logger.debug(s"Docker API response: $s")

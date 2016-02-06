@@ -105,8 +105,10 @@ object ApplicationProcessor {
   def start(appId: Long)(
     implicit
     timeout: Timeout = Timeout(30.seconds)
-  ): Future[Unit] =
+  ): Future[Unit] = {
+    println(s"start: $appId")
     askRef[Unit](appId, ApplicationStart, timeout)
+  }
 
   def stop(appId: Long)(
     implicit
@@ -171,7 +173,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   def receive = {
     case msg: Entity ⇒
-      log.debug(s"msg: $msg")
+      log.info(s"msg: $msg")
       stash()
       initializing()
       context.become({
@@ -195,7 +197,9 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     }
 
   def createdReceive(state: State): Receive = {
-    case msg: Entity ⇒ msg match {
+    case msg: Entity ⇒
+      log.info(s"created receive: $msg")
+      msg match {
       case ApplicationStart ⇒
         // TODO: avoid scaling state by creating containers and then start them
         applyStateTransition(scale(state, None), ApplicationState.Running)
@@ -221,7 +225,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def runningReceive(state: State): Receive = {
     case msg: Entity ⇒ msg match {
       case ApplicationStart ⇒
-        log.debug("Already started")
+        log.info("Already started")
         sender.!(())
       case ApplicationStop ⇒
         applyStateTransition(stop(state), ApplicationState.Stopped)
@@ -250,7 +254,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case ApplicationStart ⇒
         applyStateTransition(start(state), ApplicationState.Running)
       case ApplicationStop ⇒
-        log.debug("Already stopped")
+        log.info("Already stopped")
         sender.!(())
       case ApplicationRestart ⇒
         applyStateTransition(restart(state), ApplicationState.Running)
@@ -275,7 +279,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   val terminatedReceive: Receive = {
     case msg: Entity ⇒ msg match {
       case ApplicationTerminate ⇒
-        log.debug("Already terminated")
+        log.info("Already terminated")
         sender().!(())
       case s ⇒
         log.error(s"Cannot `$s` when terminated state")
@@ -291,7 +295,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   def switchReceiveByCompletedState(state: State)(
     handleIncompleted: ApplicationState.ApplicationState ⇒ Unit
-  ) =
+  ) = {
+    log.info(s"switchReceiveByCompletedState: ${state.app.state}")
     state.app.state match {
       case ApplicationState.Created ⇒
         becomeAndUnstash(createdReceive(state))
@@ -304,6 +309,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       case incompletedState ⇒
         handleIncompleted(incompletedState)
     }
+  }
 
   def initializeWithState(state: State, retryCount: Int) = {
     if (retryCount <= 0) {
@@ -374,6 +380,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       PApplication.updateNumberOfContainers(appId, numberOfContainers)
 
   def scale(state: State, numberOpt: Option[Int]) = {
+    log.info(s"scale: $state")
     val containers = state.containers.filter(_.isPresent)
     val numberOfContainers = numberOpt.getOrElse(state.app.scaleStrategy.numberOfContainers)
     if (containers.size == numberOfContainers &&
@@ -434,7 +441,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def start(state: State) = {
-    if (!state.containers.exists(_.isNotRunning) &&
+    if (!state.containers.exists(!_.isRunning) &&
       state.app.state != ApplicationState.Starting)
       Future.successful(state)
     else
@@ -503,7 +510,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def startContainers(state: State) = {
-    val containers = state.containers.filter(_.isNotRunning)
+    val containers = state.containers.filterNot(_.isRunning)
+    log.info(s"start containers $state")
     if (containers.isEmpty) Future.successful(state)
     else {
       val ids = containers.map(_.getId)
@@ -511,6 +519,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       for {
         _ ← PContainer.updateState(idsSeq, ContainerState.Starting)
         _ ← Future.sequence(containers.map { c ⇒
+          log.info(s"start container: $c")
           NodeProcessor.containerStart(c.nodeId, c.getId)
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Running)

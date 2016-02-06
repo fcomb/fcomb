@@ -50,9 +50,6 @@ case class Container(
   def isRunning =
     isPresent && state == ContainerState.Running
 
-  def isNotRunning =
-    isPresent && state == ContainerState.Stopped
-
   def isPending =
     isPresent && state == ContainerState.Pending
 }
