@@ -12,7 +12,7 @@ import io.fcomb.utils.{Config, Implicits, Random}
 import io.fcomb.crypto.{Certificate, Tls}
 import io.fcomb.persist.node.{Node ⇒ PNode}
 import io.fcomb.persist.UserCertificate
-import io.fcomb.docker.api._, methods.ContainerMethods
+import io.fcomb.docker.api._, methods.{ContainerMethods, ResouceOrContainerNotFoundException}
 import akka.actor._
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
@@ -128,7 +128,7 @@ object NodeProcessorMessages {
   )
 
   case class NodeImages(
-    pullingCache: HashMap[String, (LocalDateTime, Promise[Unit])]
+    pullingCache: HashMap[String, (LocalDateTime, Promise[Unit])] // TODO: fail promise when actor die to avoid leak
   )
 
   case class State(
@@ -196,32 +196,23 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
           nodeRegister(state, ip).map(sendReplyByState(_, replyTo))
         case ContainerCreate(container, image, deployOptions) ⇒
           println(s"CreateContainer($container, $image, $deployOptions)")
-          val (ns, resFut) = containerCreate(state, container, image, deployOptions)
-          // TODO
-          resFut.onComplete {
-            case Success(c) ⇒
-              self ! UpdateContainer(c)
-              replyTo ! c
-            case Failure(e) ⇒
-              val c = container.copy(state = ContainerState.Terminated)
-              self ! UpdateContainer(c)
-              replyTo ! c
-          }
-          updateContextByState(ns)
+          containerCreate(state, container, image, deployOptions, replyTo)
         case ContainerStart(containerId) ⇒
-          containerStart(state, containerId)
+          // check state with previous and ignore to switch context receive
+          containerStart(state, containerId, replyTo)
         case ContainerStop(containerId) ⇒
-          containerStop(state, containerId)
+          containerStop(state, containerId, replyTo)
         case ContainerRestart(containerId) ⇒
-          containerRestart(state, containerId)
+          containerRestart(state, containerId, replyTo)
         case ContainerTerminate(containerId) ⇒
-          containerTerminate(state, containerId)
+          containerTerminate(state, containerId, replyTo)
       }
     case cmd: NodeProcessorMessage ⇒ cmd match {
       case DockerPing ⇒
         apiCall(state)(_.ping()).onComplete(println)
       case UpdateContainer(container) ⇒
         println(s"update container: $container")
+        // TODO: remove terminated container from state `containers`
         updateContextByState(updateStateContainer(state, container))
     }
     case ReceiveTimeout ⇒
@@ -345,7 +336,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     state:         State,
     container:     MContainer,
     image:         DockerImage,
-    deployOptions: DockerDeployOptions
+    deployOptions: DockerDeployOptions,
+    replyTo:       ActorRef
   ) = {
     log.debug(s"createContainer: $container")
     val command = deployOptions.command.map(_.split(' ').toList)
@@ -356,58 +348,91 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     )
     val name = Some(container.dockerName)
     val (ns, pullFut) = imagePull(state, image)
-    val resFut = for {
+    (for {
       _ ← pullFut
       \/-(res) ← apiCall(state)(_.containerCreate(config, name))
     } yield container.copy(
       state = ContainerState.Created,
       dockerId = Some(res.id)
-    )
-    (updateStateContainer(ns, container), resFut)
+    )).onComplete {
+      case Success(c) ⇒
+        self ! UpdateContainer(c)
+        replyTo ! c
+      case Failure(e) ⇒
+        val c = container.copy(state = ContainerState.Terminated)
+        self ! UpdateContainer(c)
+        replyTo ! c
+    }
+    val newState = updateStateContainer(ns, container)
+    updateContextByState(newState)
   }
 
-  def containerStart(state: State, containerId: Long) = {
+  def containerStart(state: State, containerId: Long, replyTo: ActorRef) = {
     log.debug(s"container start: $containerId")
-    state.containers.get(containerId).flatMap(_.dockerId) match {
-      case Some(dockerId) ⇒
-        apiCall(state)(_.containerStart(dockerId))
-        sender().!(())
-      case _ ⇒ ???
+    applyStateToContainer(state, containerId, ContainerState.Running, replyTo) {
+      (client, dockerId) ⇒
+        client.containerStart(dockerId)
     }
+    // TODO: update state to starting
   }
 
-  def containerStop(state: State, containerId: Long) = {
+  def containerStop(state: State, containerId: Long, replyTo: ActorRef) = {
     log.debug(s"container stop: $containerId")
-    state.containers.get(containerId).flatMap(_.dockerId) match {
-      case Some(dockerId) ⇒
-        apiCall(state)(_.containerStop(dockerId, 30.seconds))
-        sender().!(())
-      case _ ⇒ ???
+    applyStateToContainer(state, containerId, ContainerState.Stopped, replyTo) {
+      (client, dockerId) ⇒
+        client.containerStop(dockerId, 30.seconds)
     }
   }
 
-  def containerRestart(state: State, containerId: Long) = {
+  def containerRestart(state: State, containerId: Long, replyTo: ActorRef) = {
     log.debug(s"container restart: $containerId")
-    state.containers.get(containerId).flatMap(_.dockerId) match {
-      case Some(dockerId) ⇒
-        apiCall(state) { c =>
-          for {
-            _ <- c.containerStop(dockerId, 30.seconds)
-            _ <- c.containerStart(dockerId)
-          } yield ()
-        }
-        sender().!(())
-      case _ ⇒ ???
+    applyStateToContainer(state, containerId, ContainerState.Running, replyTo) {
+      (client, dockerId) ⇒
+        for {
+          _ ← client.containerStop(dockerId, 30.seconds)
+          _ ← client.containerStart(dockerId)
+        } yield ()
     }
   }
 
-  def containerTerminate(state: State, containerId: Long) = {
+  def containerTerminate(state: State, containerId: Long, replyTo: ActorRef) = {
     log.debug(s"container terminate: $containerId")
-    state.containers.get(containerId).flatMap(_.dockerId) match {
-      case Some(dockerId) ⇒
-        apiCall(state)(_.containerRemove(dockerId, true, true))
-        sender().!(())
-      case _ ⇒ ???
+    applyStateToContainer(state, containerId, ContainerState.Terminated, replyTo) {
+      (client, dockerId) ⇒
+        client.containerRemove(dockerId, true, true)
+    }
+  }
+
+  def applyStateToContainer(
+    state:          State,
+    containerId:    Long,
+    containerState: ContainerState.ContainerState,
+    replyTo:        ActorRef
+  )(
+    f: (Client, String) ⇒ Future[Unit]
+  ) = {
+    state.containers.get(containerId) match {
+      case Some(c) ⇒
+        if (c.state == state) replyTo.!(())
+        else c.dockerId match {
+          case Some(dockerId) ⇒
+            apiCall(state)(f(_, dockerId)).foreach {
+              case \/-(_) ⇒
+                self ! UpdateContainer(c.copy(state = containerState))
+                replyTo.!(())
+              case -\/(e) ⇒ e match {
+                case _: ResouceOrContainerNotFoundException ⇒
+                  self ! UpdateContainer(c.copy(state = ContainerState.Terminated))
+                  replyTo ! Status.Failure(ContainerNotFoundOrTerminated)
+                case ex ⇒
+                  replyTo ! Status.Failure(ex)
+              }
+            }
+          case None ⇒
+            replyTo ! Status.Failure(ContainerDockerIdCantBeEmpty)
+        }
+      case None ⇒
+        replyTo ! Status.Failure(ContainerNotFoundOrTerminated)
     }
   }
 }

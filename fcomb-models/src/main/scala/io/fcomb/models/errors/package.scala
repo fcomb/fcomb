@@ -157,6 +157,20 @@ package object errors {
     )
   }
 
+  case object ContainerNotFoundOrTerminated extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Container not found or terminated",
+      ErrorKind.Internal
+    )
+  }
+
+  case object ContainerDockerIdCantBeEmpty extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Container docker id cannot be empty",
+      ErrorKind.Internal
+    )
+  }
+
   case class ValidationException(
       param:   String,
       message: String
