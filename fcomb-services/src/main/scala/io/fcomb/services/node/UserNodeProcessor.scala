@@ -16,7 +16,7 @@ import akka.cluster.sharding._
 import akka.pattern.{after, ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.collection.mutable.HashSet
+import scala.collection.immutable
 import scala.concurrent.duration._
 import scala.util.{Success, Failure, Random}
 import java.time.ZonedDateTime
@@ -62,7 +62,7 @@ object UserNodeProcessor extends Processor[Long] {
 }
 
 object UserNodeMessages {
-  case class State(nodes: HashSet[MNode])
+  case class State()
 }
 
 class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
@@ -78,21 +78,28 @@ class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends A
 
   lazy val rand = new Random()
 
-  def initializing() = {
-    PNode.findAllAvailableByUserId(userId).onComplete {
-      case Success(nodes) ⇒ initialize(State(HashSet(nodes: _*)))
-      case Failure(e)     ⇒ handleThrowable(e)
-    }
-  }
+  private[this] var nodes: immutable.HashSet[MNode] = immutable.HashSet.empty
 
-  def stateReceive(state: State): Receive = {
+  protected def getInitialState = State()
+
+  def initializing() =
+    putStateAsync {
+      PNode.findAllAvailableByUserId(userId).map { nodes ⇒
+        this.nodes = immutable.HashSet(nodes: _*)
+        State()
+      }
+    }
+
+  initializing()
+
+  def receive: Receive = {
     case msg: Entity ⇒ msg match {
       case Reserve(scaleStrategy) ⇒
-        if (state.nodes.isEmpty)
+        if (this.nodes.isEmpty)
           sender() ! ReserveResult.NoNodesAvailable
         else {
-          val idx = rand.nextInt(state.nodes.size)
-          val node = state.nodes.iterator.drop(idx).next
+          val idx = rand.nextInt(this.nodes.size)
+          val node = this.nodes.iterator.drop(idx).next
           val reserved = ReserveResult.NodeReserve(
             node.getId,
             scaleStrategy.numberOfContainers
@@ -101,6 +108,6 @@ class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends A
         }
     }
     case ReceiveTimeout ⇒
-      if (state.nodes.isEmpty) annihilation()
+      if (this.nodes.isEmpty) annihilation()
   }
 }

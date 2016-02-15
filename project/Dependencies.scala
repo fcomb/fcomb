@@ -2,10 +2,10 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.2-RC2"
+    val akka = "2.4.2-RC3"
     val bouncyCastle = "1.53"
     val cats = "0.4.1"
-    val circe = "0.3.0-SNAPSHOT"
+    val circe = "0.3.0"
     val slick = "3.1.1"
     val slickPg = "0.11.0"
     val shims = "0.2"
@@ -15,7 +15,7 @@ object Dependencies {
   }
 
   object Compile {
-    val std             = "org.improving"                 %% "psp-std"                       % "0.5.6"
+    val std             = "org.improving"                 %% "psp-std"                       % "0.6.1"
 
     val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.4.0"
     val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.2.2"
@@ -61,6 +61,8 @@ object Dependencies {
     val circeCore       = "io.circe"                      %% "circe-core"                    % V.circe
     val circeGeneric    = "io.circe"                      %% "circe-generic"                 % V.circe
     val circeJawn       = "io.circe"                      %% "circe-jawn"                    % V.circe
+    val circeJava8      = "io.circe"                      %% "circe-java8"                   % V.circe
+    val circeOptics     = "io.circe"                      %% "circe-optics"                  % V.circe
 
     val pickling        = "org.scala-lang.modules"        %% "scala-pickling"                % "0.10.1"
 
@@ -122,7 +124,7 @@ object Dependencies {
     val scodecProtocols = "org.scodec"                    %% "scodec-protocols"              % "0.7.0"
     val scodecAkka      = "org.scodec"                    %% "scodec-akka"                   % "0.1.0-SNAPSHOT" changing()
 
-    val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.3"
+    val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.4"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
 
     val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.8"
@@ -149,21 +151,22 @@ object Dependencies {
   object Test {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.0" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7.1" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
+    val slickTestkit    = "com.typesafe.slick"            %% "slick-testkit"                 % V.slick % "test"
   }
 
   import Compile._, Test._
 
   val common = Seq(
-    std,
-    javaCompat,
+    // std,
+    // javaCompat,
     logbackClassic, scalaLogging,
     config, configs,
     // pickling, upickle,
     // pprint,
     sprayJson, sprayJsonShapeless,
-    // circeCore, circeGeneric, circeJawn,
+    // circeCore, circeGeneric, circeJawn, circeOptics, circeJava8,
     scalazCore, scalazConcurrent, scalazStream,
     // cats,
     shapeless, shapelessScalaz,
@@ -198,7 +201,7 @@ object Dependencies {
 
   val api = common ++ akka ++ Seq(oauth)
 
-  val tests = common ++ Seq(akkaTestkit, scalacheck, specs2, scalatest)
+  val tests = common ++ Seq(akkaTestkit, scalacheck, specs2, scalatest, slickTestkit)
 
   val data = common ++ Seq(xml, scalazCore, shapeless, shapelessScalaz)
 

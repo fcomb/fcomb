@@ -16,6 +16,15 @@ object ContainerState extends Enumeration {
   val Unreachable = Value("unreachable")
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
+
+  def parseDockerStatus(status: String): ContainerState.ContainerState =
+    status.toLowerCase match {
+      case s if s.startsWith("up")         ⇒ Running
+      case s if s.startsWith("restarting") ⇒ Restarting
+      case s if s.startsWith("removal")    ⇒ Terminating
+      case s if s.startsWith("created")    ⇒ Created
+      case _                               ⇒ Stopped
+    }
 }
 
 case class Container(

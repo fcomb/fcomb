@@ -79,9 +79,11 @@ trait Processor[Id] {
 object ProcessorActorMessages {
   case object Annihilation
 
+  case object Unstash
+
   case class Failed(e: Throwable)
 
-  case class Initialize[S](state: S)
+  case class UpdateState[S](state: S)
 }
 
 trait ProcessorActor[S] {
@@ -91,42 +93,67 @@ trait ProcessorActor[S] {
   import ProcessorActorMessages._
   import ShardRegion.Passivate
 
-  def initializing(): Unit
+  private[this] var _state: S = getInitialState
 
-  def stateReceive(state: S): Receive
+  protected def getInitialState: S
 
-  def initialize(state: S) = {
-    self ! Initialize(state)
+  protected final def getState: S = this._state
+
+  def modifyState(f: S ⇒ S): S = {
+    val state = f(getState)
+    putState(state)
+    state
   }
 
-  def receive: Receive = {
-    case msg: EntityMessage ⇒
+  def putState(state: S) = {
+    this._state = state
+  }
+
+  val stashReceive: Receive = {
+    case Unstash ⇒
+      context.unbecome()
+      unstashAll()
+    case msg ⇒
+      log.warning(s"stash message: $msg")
       stash()
-      context.become({
-        case Initialize(state) ⇒
-          context.become(stateReceive(state.asInstanceOf[S]), false)
-          unstashAll()
-        case msg: EntityMessage ⇒
-          log.warning(s"stash message: $msg")
-          stash()
-      }, false)
-      initializing()
   }
 
-  def updateStateSync[T](fut: Future[T])(f: T ⇒ S): Future[S] = {
+  def becomeStashing() = {
+    context.become(stashReceive, true)
+  }
+
+  def unstashReceive() = {
+    self ! Unstash
+  }
+
+  def putStateAsync(fut: Future[S]): Future[S] =
+    putStateWithReceiveAsyncFunc(fut)(None)
+
+  def putStateWithReceiveAsync(fut: Future[S])(rf: S ⇒ Receive): Future[S] =
+    putStateWithReceiveAsyncFunc(fut)(Some(rf))
+
+  private def putStateWithReceiveAsyncFunc(fut: Future[S])(
+    rfOpt: Option[S ⇒ Receive]
+  ) = {
     val p = Promise[S]()
     context.become({
-      case Initialize(res) ⇒
-        val state = f(res.asInstanceOf[T])
-        context.become(stateReceive(state), false)
+      case UpdateState(res) ⇒
+        val state = res.asInstanceOf[S]
+        putState(state)
+        rfOpt match {
+          case Some(receiveF) ⇒
+            context.become(receiveF(state))
+          case None ⇒
+            context.unbecome()
+        }
         unstashAll()
         p.complete(Success(state))
-      case msg: EntityMessage ⇒
+      case msg ⇒
         log.warning(s"stash message: $msg")
         stash()
-    }, false)
+    }, rfOpt.isEmpty)
     fut.onComplete {
-      case Success(res) ⇒ self ! Initialize(res)
+      case Success(s) ⇒ self ! UpdateState(s)
       case Failure(e) ⇒
         p.failure(e)
         handleThrowable(e)
@@ -134,9 +161,22 @@ trait ProcessorActor[S] {
     p.future
   }
 
+  def stashAsync[T](fut: Future[T]): Future[T] = {
+    becomeStashing()
+    fut.onComplete {
+      case Success(res) ⇒ unstashReceive()
+      case Failure(e)   ⇒ handleThrowable(e)
+    }
+    fut
+  }
+
   def failed(e: Throwable): Receive = {
     case _: EntityMessage ⇒ sender ! Status.Failure(e)
     case Annihilation     ⇒ annihilation()
+  }
+
+  val handleFailure: PartialFunction[Throwable, Any] = {
+    case e: Throwable ⇒ handleThrowable(e)
   }
 
   def handleThrowable(e: Throwable): Unit = {
