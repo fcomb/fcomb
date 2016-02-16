@@ -6,7 +6,7 @@ import io.fcomb.response._
 import java.time._
 import java.util.UUID
 import scala.collection.mutable.OpenHashMap
-import scala.collection.immutable.IntMap
+import scala.collection.immutable
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -91,7 +91,7 @@ package object json {
     new JsonFormat[T#Value] {
       def write(obj: T#Value) = JsNumber(obj.id)
 
-      private val values = IntMap(
+      private val values = immutable.IntMap(
         obj.values.toSeq.map(v ⇒ (v.id, v)): _*
       )
 

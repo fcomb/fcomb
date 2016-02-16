@@ -14,7 +14,7 @@ import akka.cluster.sharding._
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise, ExecutionContext}
-import scala.collection.immutable.HashSet
+import scala.collection.immutable
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
 import java.time.ZonedDateTime
@@ -164,7 +164,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   case class State(
     app:        MApplication,
-    containers: HashSet[MContainer]
+    containers: immutable.HashSet[MContainer]
   )
 
   case class Initialize(state: State, retryCount: Int)
@@ -191,7 +191,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       containers ← PContainer.findAllByApplicationId(appId)
     } yield (app, containers)).onComplete {
       case Success((app, containers)) ⇒
-        val state = State(app, HashSet(containers: _*))
+        val state = State(app, immutable.HashSet(containers: _*))
         self ! Initialize(state, 1)
       case Failure(e) ⇒ handleThrowable(e)
     }
@@ -599,7 +599,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       val aliveContainers = containers.take(ss.numberOfContainers)
       forceTerminateContainers(
         terminateContainers,
-        state.copy(containers = HashSet(aliveContainers: _*))
+        state.copy(containers = immutable.HashSet(aliveContainers: _*))
       )
     }
     else Future.successful(state)
@@ -609,7 +609,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     val containers = state.containers.filterNot(_.isTerminated).toList
     forceTerminateContainers(
       containers,
-      state.copy(containers = HashSet.empty)
+      state.copy(containers = immutable.HashSet.empty)
     )
   }
 

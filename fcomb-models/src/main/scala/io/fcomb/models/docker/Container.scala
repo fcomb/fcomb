@@ -17,7 +17,7 @@ object ContainerState extends Enumeration {
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
 
-  def parseDockerStatus(status: String): ContainerState.ContainerState =
+  def parseDockerStatus(status: String): ContainerState =
     status.toLowerCase match {
       case s if s.startsWith("up")         ⇒ Running
       case s if s.startsWith("restarting") ⇒ Restarting

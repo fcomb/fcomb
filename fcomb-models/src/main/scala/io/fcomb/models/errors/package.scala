@@ -1,6 +1,7 @@
 package io.fcomb.models
 
 import application.ApplicationState
+import scala.util.control.NoStackTrace
 
 package object errors {
   object ErrorKind extends Enumeration {
@@ -31,7 +32,7 @@ package object errors {
       fromExceptions(List(error))
   }
 
-  sealed trait DtCemException extends Throwable {
+  sealed trait DtCemException extends NoStackTrace {
     def toErrorMessage(): ErrorMessage
   }
 

@@ -20,7 +20,7 @@ import akka.cluster.sharding._
 import akka.pattern.{after, ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise, ExecutionContext}
-import scala.collection.immutable.{HashSet, HashMap, LongMap}
+import scala.collection.immutable
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
 import scalaz._, Scalaz._
@@ -159,8 +159,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   private var apiClient: Option[Client] = None
   private var publicIpAddress: Option[InetAddress] = None
   private var sslContext: Option[SSLContext] = None
-  private var containers: LongMap[MContainer] = LongMap.empty
-  private var imagesPullingCache: HashMap[String, (LocalDateTime, Promise[Unit])] = HashMap.empty
+  private var containers: immutable.LongMap[MContainer] = immutable.LongMap.empty
+  private var imagesPullingCache: immutable.HashMap[String, (LocalDateTime, Promise[Unit])] = immutable.HashMap.empty
   private var lastPingAt: Long = 0L
 
   val nodeId = self.path.name.toLong
@@ -271,8 +271,10 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       case DockerPing  ⇒ nodePing()
       case Unreachable ⇒
       case Available ⇒
-        // TODO: update containers state
-        val futState = updateNodeState(getState, NodeState.Available)
+        val futState = for {
+          _ ← syncContainers()
+          state ← updateNodeState(getState, NodeState.Available)
+        } yield state
         putStateWithReceiveAsync(futState)(_ ⇒ unreachableReceive)
       case UpdateContainer(container) ⇒
       // TODO
@@ -311,8 +313,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         this.imagesPullingCache.values.foreach {
           case (_, p) if !p.isCompleted ⇒ p.failure(NodeIsNotAvailable)
         }
-        this.containers = LongMap.empty
-        this.imagesPullingCache = HashMap.empty
+        this.containers = immutable.LongMap.empty
+        this.imagesPullingCache = immutable.HashMap.empty
         this.apiClient = None
         this.sslContext = None
         updateNodeState(s, NodeState.Terminated)
@@ -477,13 +479,12 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     modifyContainers(_ + ((container.getId, container)))
   }
 
-  def modifyContainer(id: Long)(f: MContainer ⇒ MContainer) = {
+  def modifyContainer(id: Long)(f: MContainer ⇒ MContainer) =
     this.containers.get(id).foreach { c ⇒
       this.containers = this.containers + (c.getId, f(c))
     }
-  }
 
-  def modifyContainers(f: LongMap[MContainer] ⇒ LongMap[MContainer]) =
+  def modifyContainers(f: immutable.LongMap[MContainer] ⇒ immutable.LongMap[MContainer]) =
     this.containers = f(this.containers)
 
   def containerStart(state: State, containerId: Long, replyTo: ActorRef) = {
@@ -562,5 +563,5 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   }
 
   def wrapContainers(containers: Seq[MContainer]) =
-    LongMap(containers.map(c ⇒ (c.getId, c)): _*)
+    immutable.LongMap(containers.map(c ⇒ (c.getId, c)): _*)
 }
