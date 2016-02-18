@@ -252,7 +252,8 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
 
   def completeThrowable(e: Throwable)(implicit ctx: ServiceContext) =
     mapThrowable(e) match {
-      case (e, status) ⇒ complete(e.toErrorMessage(), status)
+      case (e, status) ⇒
+        complete(FailureResponse.fromException(e), status)
     }
 
   def recoverThrowable(f: Future[ServiceResult])(

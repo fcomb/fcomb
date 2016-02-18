@@ -141,6 +141,10 @@ object NodeProcessorMessages {
 
   private[node] case object Available extends NodeProcessorMessage
 
+  private[node] sealed trait ContainerAction
+
+  private[node] case object ContainerStopAction extends ContainerAction
+
   private[node] case class UpdateContainer(
     container: MContainer
   ) extends NodeProcessorMessage
@@ -160,6 +164,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   private var publicIpAddress: Option[InetAddress] = None
   private var sslContext: Option[SSLContext] = None
   private var containers: immutable.LongMap[MContainer] = immutable.LongMap.empty
+  private var containersActionQueue: immutable.LongMap[List[(ContainerAction, ActorRef)]] = immutable.LongMap.empty
   private var imagesPullingCache: immutable.HashMap[String, (LocalDateTime, Promise[Unit])] = immutable.HashMap.empty
   private var lastPingAt: Long = 0L
 

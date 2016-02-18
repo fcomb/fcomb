@@ -1,6 +1,7 @@
 package io.fcomb.models.docker
 
 import io.fcomb.models.ModelWithAutoLongPk
+import scala.collection.immutable
 import java.time.ZonedDateTime
 
 object ContainerState extends Enumeration {
@@ -61,4 +62,12 @@ case class Container(
 
   def isPending =
     isPresent && state == ContainerState.Pending
+
+  private val inProgressSet = immutable.HashSet(
+    ContainerState.Pending, ContainerState.Starting, ContainerState.Stopping,
+    ContainerState.Restarting, ContainerState.Terminating
+  )
+
+  def isInProgress =
+    inProgressSet.contains(this.state)
 }

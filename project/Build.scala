@@ -6,6 +6,7 @@ import com.typesafe.sbt.SbtNativePackager, SbtNativePackager._
 import com.typesafe.sbt.packager.Keys._
 import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
 import play.twirl.sbt._, Import._
+import com.sksamuel.scapegoat.sbt.ScapegoatSbtPlugin.autoImport.scapegoatVersion
 import net.virtualvoid.sbt.graph.DependencyGraphSettings
 // import io.ino.sbtpillar.Plugin.PillarKeys._
 
@@ -25,7 +26,8 @@ object Build extends sbt.Build {
         organizationHomepage := Some(url("https://fcomb.io")),
         ivyScala := ivyScala.value.map(_.copy(
           overrideScalaVersion = true
-        ))
+        )),
+        scapegoatVersion := "1.1.1"
       )
 
   val compilerFlags = Seq(

@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.2-RC3"
+    val akka = "2.4.2"
     val bouncyCastle = "1.53"
     val cats = "0.4.1"
     val circe = "0.3.0"
@@ -30,7 +30,7 @@ object Dependencies {
     val akkaHttpJson    = "de.heikoseeberger"             %% "akka-http-json4s"              % "1.5.0"
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
-    val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "2.1.2"
+    val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "2.2.7"
     // val akkaPersistenceCassandra = "com.github.krasserm"  %% "akka-persistence-cassandra"    % "0.5-SNAPSHOT" changing()
     // val akkaKryo        = "com.github.romix.akka"         %% "akka-kryo-serialization"       % "0.3.3"
     val akkaSse         = "de.heikoseeberger"             %% "akka-sse"                      % "1.6.1"
@@ -124,7 +124,7 @@ object Dependencies {
     val scodecProtocols = "org.scodec"                    %% "scodec-protocols"              % "0.7.0"
     val scodecAkka      = "org.scodec"                    %% "scodec-akka"                   % "0.1.0-SNAPSHOT" changing()
 
-    val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.4"
+    val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.5"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
 
     val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.8"
