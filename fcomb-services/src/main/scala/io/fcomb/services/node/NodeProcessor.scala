@@ -143,7 +143,13 @@ object NodeProcessorMessages {
 
   private[node] sealed trait ContainerAction
 
+  private[node] case object ContainerStartAction extends ContainerAction
+
   private[node] case object ContainerStopAction extends ContainerAction
+
+  private[node] case object ContainerRestartAction extends ContainerAction
+
+  private[node] case object ContainerTerminateAction extends ContainerAction
 
   private[node] case class UpdateContainer(
     container: MContainer

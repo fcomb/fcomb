@@ -11,7 +11,7 @@ import akka.http.scaladsl.ConnectionContext
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.stream._
-import akka.stream.io.{Client, SendBytes, SessionBytes, SslTls, SslTlsInbound}
+import akka.stream.TLSProtocol._
 import akka.stream.scaladsl._
 import akka.stream.stage.{Context, Stage, StageState, StatefulStage, SyncDirective}
 import akka.util.ByteString
@@ -86,7 +86,7 @@ object HijackTcp {
       case Some(ctx) ⇒
         val hctx = ConnectionContext.https(ctx)
         val hostInfo = Some(hostname → port)
-        SslTls(ctx, hctx.firstSession, Client, hostInfo = hostInfo)
+        TLS(ctx, hctx.firstSession, Client, hostInfo = hostInfo)
           .joinMat(transportFlow)(Keep.right)
           .join(tlsFlow)
       case _ ⇒ transportFlow
