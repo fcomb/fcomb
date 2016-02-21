@@ -155,6 +155,12 @@ object NodeProcessorMessages {
     containerId:    Long,
     containerState: ContainerState.ContainerState
   ) extends NodeProcessorMessage
+
+  private[node] case class UpdateContainerStateAndDockerId(
+    containerId:    Long,
+    containerState: ContainerState.ContainerState,
+    dockerId:       Option[String]
+  ) extends NodeProcessorMessage
 }
 
 class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
@@ -262,6 +268,9 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         putStateWithReceiveAsync(futState)(_ ⇒ unreachableReceive)
       case UpdateContainerState(containerId, containerState) ⇒
         putContainerState(containerId, containerState)
+        unqueueContainersAction(getState, containerId)
+      case UpdateContainerStateAndDockerId(containerId, containerState, dockerId) ⇒
+        putContainerStateAndDockerId(containerId, containerState, dockerId)
         unqueueContainersAction(getState, containerId)
       case _ ⇒
     }
@@ -380,27 +389,33 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   }
 
   def syncContainers() = {
-    val containersMap = this.containers.values.collect {
-      case c if c.dockerId.nonEmpty ⇒ (c.dockerId.get, c.getId)
-    }.toMap
-    for {
-      \/-(items) ← apiCall(_.containers(showAll = true))
-      dropIds = items.foldLeft(List.empty[String]) {
-        case (ids, item) ⇒
-          containersMap.get(item.id) match {
-            case Some(containerId) ⇒
-              val cs = ContainerState.parseDockerStatus(item.status)
-              putContainerState(containerId, cs)
-              ids
-            case None ⇒ item.id :: ids
-          }
-      }
-      _ ← dropIds.foldLeft(Future.successful(().right[Throwable])) {
-        case (f, id) ⇒ f.flatMap { _ ⇒
-          apiCall(_.containerRemove(id, withForce = true, withVolumes = true))
+    apiCall(_.containers(showAll = true)).flatMap {
+      case \/-(items) ⇒
+        val itemsMap = items.map { item ⇒
+          (item.id, ContainerState.parseDockerStatus(item.status))
+        }.toMap
+        val dropIds = this.containers.foldLeft(List.empty[String]) {
+          case (ids, (containerId, container)) ⇒
+            container.dockerId match {
+              case Some(dockerId) ⇒
+                itemsMap.get(dockerId) match {
+                  case Some(containerState) ⇒
+                    putContainerState(containerId, containerState)
+                    ids
+                  case None ⇒ dockerId :: ids
+                }
+              case None ⇒
+                putContainerState(containerId, ContainerState.Terminated)
+                ids
+            }
         }
-      }
-    } yield ()
+        dropIds.foldLeft(Future.successful(().right[Throwable])) {
+          case (f, id) ⇒ f.flatMap { _ ⇒
+            apiCall(_.containerRemove(id, withForce = true, withVolumes = true))
+          }
+        }
+      case -\/(e) ⇒ Future.failed(e)
+    }
   }
 
   def sendReplyByState(state: State, nodeState: NodeState.NodeState, replyTo: ActorRef) =
@@ -491,7 +506,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       dockerId = Some(res.id)
     )).onComplete {
       case Success(c) ⇒
-        updateContainerState(c.getId, c.state)
+        self ! UpdateContainerStateAndDockerId(c.getId, c.state, c.dockerId)
         replyTo ! c
       case Failure(e) ⇒
         val c = container.copy(state = ContainerState.Terminated)
@@ -501,6 +516,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     modifyContainers(_ + ((container.getId, container)))
   }
 
+  // TODO: notify application about container state changes
   def putContainerState(
     containerId:    Long,
     containerState: ContainerState.ContainerState
@@ -512,6 +528,19 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         val nc = c.copy(state = containerState)
         this.containers = this.containers + ((containerId, nc))
       }
+    }
+
+  def putContainerStateAndDockerId(
+    containerId:    Long,
+    containerState: ContainerState.ContainerState,
+    dockerId:       Option[String]
+  ) =
+    this.containers.get(containerId).foreach { c ⇒
+      val nc = c.copy(
+        state = containerState,
+        dockerId = dockerId
+      )
+      this.containers = this.containers + ((containerId, nc))
     }
 
   def modifyContainers(f: immutable.LongMap[MContainer] ⇒ immutable.LongMap[MContainer]) =
@@ -551,10 +580,18 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   }
 
   private def unqueueContainersAction(state: State, containerId: Long) = {
-    this.containersActionQueue.get(containerId).foreach { vec ⇒
-      this.containersActionQueue = this.containersActionQueue + ((containerId, vec.tail))
-      val (action, actorRef) = vec.head
-      applyActionToContainer(state, containerId, action, actorRef)
+    if (this.containers.contains(containerId))
+      this.containersActionQueue.get(containerId).foreach { vec ⇒
+        this.containersActionQueue = this.containersActionQueue + ((containerId, vec.tail))
+        val (action, actorRef) = vec.head
+        applyActionToContainer(state, containerId, action, actorRef)
+      }
+    else {
+      this.containersActionQueue.get(containerId).foreach(_.foreach {
+        case (_, replyTo) ⇒
+          replyTo ! Status.Failure(ContainerNotFoundOrTerminated)
+      })
+      this.containersActionQueue = this.containersActionQueue - containerId
     }
   }
 
