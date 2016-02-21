@@ -153,7 +153,8 @@ object NodeProcessorMessages {
 
   private[node] case class UpdateContainerState(
     containerId:    Long,
-    containerState: ContainerState.ContainerState
+    containerState: ContainerState.ContainerState,
+    updateEvent:    Boolean
   ) extends NodeProcessorMessage
 
   private[node] case class UpdateContainerStateAndDockerId(
@@ -266,8 +267,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         cleanContainersAction()
         val futState = updateNodeState(getState, NodeState.Unreachable)
         putStateWithReceiveAsync(futState)(_ ⇒ unreachableReceive)
-      case UpdateContainerState(containerId, containerState) ⇒
-        putContainerState(containerId, containerState)
+      case UpdateContainerState(containerId, containerState, updateEvent) ⇒
+        putContainerState(containerId, containerState, updateEvent)
         unqueueContainersAction(getState, containerId)
       case UpdateContainerStateAndDockerId(containerId, containerState, dockerId) ⇒
         putContainerStateAndDockerId(containerId, containerState, dockerId)
@@ -400,12 +401,12 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
               case Some(dockerId) ⇒
                 itemsMap.get(dockerId) match {
                   case Some(containerState) ⇒
-                    putContainerState(containerId, containerState)
+                    putContainerState(containerId, containerState, updateEvent = true)
                     ids
                   case None ⇒ dockerId :: ids
                 }
               case None ⇒
-                putContainerState(containerId, ContainerState.Terminated)
+                putContainerState(containerId, ContainerState.Terminated, updateEvent = true)
                 ids
             }
         }
@@ -510,18 +511,20 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         replyTo ! c
       case Failure(e) ⇒
         val c = container.copy(state = ContainerState.Terminated)
-        updateContainerState(c.getId, c.state)
+        updateContainerState(c.getId, c.state, updateEvent = false)
         replyTo ! c
     }
     modifyContainers(_ + ((container.getId, container)))
   }
 
-  // TODO: notify application about container state changes
   def putContainerState(
     containerId:    Long,
-    containerState: ContainerState.ContainerState
+    containerState: ContainerState.ContainerState,
+    updateEvent:    Boolean
   ) =
     this.containers.get(containerId).foreach { c ⇒
+      if (updateEvent)
+        ApplicationProcessor.containerChangedState(c.copy(state = containerState))
       if (containerState == ContainerState.Terminated)
         this.containers = this.containers - containerId
       else {
@@ -620,22 +623,22 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
         (ContainerState.Terminating, ContainerState.Terminated)
     }
     val containerId = container.getId
-    putContainerState(containerId, startState)
+    putContainerState(containerId, startState, updateEvent = false)
     containerApiCallByAction(action, dockerId).foreach {
       case \/-(_) ⇒
-        updateContainerState(containerId, finalState)
+        updateContainerState(containerId, finalState, updateEvent = false)
         replyTo.!(())
       case -\/(e) ⇒
         if (action == ContainerTerminateAction) {
-          updateContainerState(containerId, ContainerState.Terminated)
+          updateContainerState(containerId, ContainerState.Terminated, updateEvent = false)
           replyTo.!(())
         }
         else e match {
           case _: ResouceOrContainerNotFoundException ⇒
-            updateContainerState(containerId, ContainerState.Terminated)
+            updateContainerState(containerId, ContainerState.Terminated, updateEvent = false)
             replyTo ! Status.Failure(ContainerNotFoundOrTerminated)
           case ex ⇒
-            updateContainerState(containerId, ContainerState.Unreachable)
+            updateContainerState(containerId, ContainerState.Unreachable, updateEvent = false)
             replyTo ! Status.Failure(ex)
         }
     }
@@ -657,9 +660,10 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
 
   def updateContainerState(
     containerId:    Long,
-    containerState: ContainerState.ContainerState
+    containerState: ContainerState.ContainerState,
+    updateEvent:    Boolean
   ) =
-    self ! UpdateContainerState(containerId, containerState)
+    self ! UpdateContainerState(containerId, containerState, updateEvent)
 
   private def wrapContainers(containers: Seq[MContainer]) =
     immutable.LongMap(containers.map(c ⇒ (c.getId, c)): _*)
