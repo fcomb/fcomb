@@ -63,11 +63,13 @@ case class Container(
   def isPending =
     isPresent && state == ContainerState.Pending
 
-  private val inProgressSet = immutable.HashSet(
+  def isInProgress =
+    ContainerConstants.inProgressSet.contains(this.state)
+}
+
+private[this] object ContainerConstants {
+  val inProgressSet = immutable.HashSet(
     ContainerState.Pending, ContainerState.Starting, ContainerState.Stopping,
     ContainerState.Restarting, ContainerState.Terminating
   )
-
-  def isInProgress =
-    inProgressSet.contains(this.state)
 }
