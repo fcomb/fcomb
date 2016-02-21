@@ -151,6 +151,13 @@ package object errors {
     )
   }
 
+  case object NodeIsTerminated extends DtCemException {
+    def toErrorMessage() = ErrorMessage(
+      "Node is terminated",
+      ErrorKind.Internal
+    )
+  }
+
   case object DockerApiClientIsNotInitialized extends DtCemException {
     def toErrorMessage() = ErrorMessage(
       "Docker API client is not initialized",

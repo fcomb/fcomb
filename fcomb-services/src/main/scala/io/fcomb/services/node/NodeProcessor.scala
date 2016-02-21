@@ -151,8 +151,9 @@ object NodeProcessorMessages {
 
   private[node] case object ContainerTerminateAction extends ContainerAction
 
-  private[node] case class UpdateContainer(
-    container: MContainer
+  private[node] case class UpdateContainerState(
+    containerId:    Long,
+    containerState: ContainerState.ContainerState
   ) extends NodeProcessorMessage
 }
 
@@ -170,7 +171,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   private var publicIpAddress: Option[InetAddress] = None
   private var sslContext: Option[SSLContext] = None
   private var containers: immutable.LongMap[MContainer] = immutable.LongMap.empty
-  private var containersActionQueue: immutable.LongMap[List[(ContainerAction, ActorRef)]] = immutable.LongMap.empty
+  private var containersActionQueue: immutable.LongMap[immutable.Vector[(ContainerAction, ActorRef)]] = immutable.LongMap.empty
   private var imagesPullingCache: immutable.HashMap[String, (LocalDateTime, Promise[Unit])] = immutable.HashMap.empty
   private var lastPingAt: Long = 0L
 
@@ -181,7 +182,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
 
   val pullingCacheTtl = 5.minutes.toSeconds // TODO: drop TTL and check images locally or remote
 
-  system.scheduler.schedule(pingInterval, pingInterval)(self ! DockerPing)
+  val pingTimer = system.scheduler.schedule(pingInterval, pingInterval)(self ! DockerPing)
 
   def getInitialState = State(NodeState.Pending)
 
@@ -238,62 +239,72 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   val availableReceive: Receive = {
     case msg: Entity ⇒
       msg match {
-        case NodeRegister(ip) ⇒ nodeRegister(ip)
-        // case ContainerCreate(container, image, deployOptions) ⇒
-        //   containerCreate(state, container, image, deployOptions, replyTo)
-        // case ContainerStart(containerId) ⇒
-        //   containerStart(state, containerId, replyTo)
-        // case ContainerStop(containerId) ⇒
-        //   containerStop(state, containerId, replyTo)
-        // case ContainerRestart(containerId) ⇒
-        //   containerRestart(state, containerId, replyTo)
-        // case ContainerTerminate(containerId) ⇒
-        //   containerTerminate(state, containerId, replyTo)
+        case NodeRegister(ip) ⇒
+          nodeRegister(ip)
+        case ContainerCreate(container, image, deployOptions) ⇒
+          containerCreate(getState, container, image, deployOptions)
+        case ContainerStart(containerId) ⇒
+          applyActionToContainer(getState, containerId, ContainerStartAction, sender())
+        case ContainerStop(containerId) ⇒
+          applyActionToContainer(getState, containerId, ContainerStopAction, sender())
+        case ContainerRestart(containerId) ⇒
+          applyActionToContainer(getState, containerId, ContainerRestartAction, sender())
+        case ContainerTerminate(containerId) ⇒
+          applyActionToContainer(getState, containerId, ContainerTerminateAction, sender())
       }
     case cmd: NodeProcessorMessage ⇒ cmd match {
-      case DockerPing ⇒ nodePing()
+      case DockerPing ⇒
+        nodePing()
       case Unreachable ⇒
         modifyContainersState(ContainerState.Unreachable)
+        cleanContainersAction()
         val futState = updateNodeState(getState, NodeState.Unreachable)
         putStateWithReceiveAsync(futState)(_ ⇒ unreachableReceive)
-      case Available                  ⇒
-      case UpdateContainer(container) ⇒
-      // TODO: remove terminated container from state `containers`
-      // updateStateContainer(container)
+      case UpdateContainerState(containerId, containerState) ⇒
+        putContainerState(containerId, containerState)
+        unqueueContainersAction(getState, containerId)
+      case _ ⇒
     }
     case ReceiveTimeout ⇒
       if (this.containers.isEmpty) annihilation()
   }
 
   val pendingReceive: Receive = {
-    case msg: Entity ⇒
-      val replyTo = sender()
-      msg match {
-        case NodeRegister(ip) ⇒ nodeRegister(ip)
-        case _                ⇒ replyTo ! Status.Failure(NodeIsNotAvailable)
-      }
+    case msg: Entity ⇒ msg match {
+      case NodeRegister(ip) ⇒ nodeRegister(ip)
+      case _                ⇒ sender() ! Status.Failure(NodeIsNotAvailable)
+    }
     case _: NodeProcessorMessage ⇒
     case ReceiveTimeout ⇒
       if (this.containers.isEmpty) annihilation()
   }
 
   val unreachableReceive: Receive = {
+    case msg: Entity ⇒ msg match {
+      case NodeRegister(ip) ⇒ nodeRegister(ip)
+      case _                ⇒ sender() ! Status.Failure(NodeIsNotAvailable)
+    }
     case cmd: NodeProcessorMessage ⇒ cmd match {
-      case DockerPing  ⇒ nodePing()
-      case Unreachable ⇒
+      case DockerPing ⇒ nodePing()
       case Available ⇒
         val futState = for {
           _ ← syncContainers()
           state ← updateNodeState(getState, NodeState.Available)
         } yield state
         putStateWithReceiveAsync(futState)(_ ⇒ unreachableReceive)
-      case UpdateContainer(container) ⇒
-      // TODO
+      case _ ⇒
     }
+    case ReceiveTimeout ⇒
+      if (this.containers.isEmpty) annihilation()
   }
 
   val terminatedReceive: Receive = {
-    case _ ⇒
+    case _: Entity ⇒ sender() ! Status.Failure(NodeIsTerminated)
+    case cmd: NodeProcessorMessage ⇒ cmd match {
+      case DockerPing ⇒ pingTimer.cancel()
+      case _          ⇒ sender() ! Status.Failure(NodeIsTerminated)
+    }
+    case ReceiveTimeout ⇒ annihilation()
   }
 
   def nodePing() = {
@@ -379,7 +390,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
           containersMap.get(item.id) match {
             case Some(containerId) ⇒
               val cs = ContainerState.parseDockerStatus(item.status)
-              modifyContainer(containerId)(_.copy(state = cs))
+              putContainerState(containerId, cs)
               ids
             case None ⇒ item.id :: ids
           }
@@ -461,10 +472,10 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     state:         State,
     container:     MContainer,
     image:         DockerImage,
-    deployOptions: DockerDeployOptions,
-    replyTo:       ActorRef
+    deployOptions: DockerDeployOptions
   ) = {
     log.debug(s"createContainer: $container")
+    val replyTo = sender()
     val command = deployOptions.command.map(_.split(' ').toList)
       .getOrElse(List.empty)
     val config = ContainerMethods.ContainerCreate(
@@ -480,99 +491,139 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       dockerId = Some(res.id)
     )).onComplete {
       case Success(c) ⇒
-        self ! UpdateContainer(c)
+        updateContainerState(c.getId, c.state)
         replyTo ! c
       case Failure(e) ⇒
         val c = container.copy(state = ContainerState.Terminated)
-        self ! UpdateContainer(c)
+        updateContainerState(c.getId, c.state)
         replyTo ! c
     }
     modifyContainers(_ + ((container.getId, container)))
   }
 
-  def modifyContainer(id: Long)(f: MContainer ⇒ MContainer) =
-    this.containers.get(id).foreach { c ⇒
-      this.containers = this.containers + (c.getId, f(c))
+  def putContainerState(
+    containerId:    Long,
+    containerState: ContainerState.ContainerState
+  ) =
+    this.containers.get(containerId).foreach { c ⇒
+      if (containerState == ContainerState.Terminated)
+        this.containers = this.containers - containerId
+      else {
+        val nc = c.copy(state = containerState)
+        this.containers = this.containers + ((containerId, nc))
+      }
     }
 
   def modifyContainers(f: immutable.LongMap[MContainer] ⇒ immutable.LongMap[MContainer]) =
     this.containers = f(this.containers)
 
-  def containerStart(state: State, containerId: Long, replyTo: ActorRef) = {
-    log.debug(s"container start: $containerId")
-    applyStateToContainer(state, containerId, ContainerState.Running, replyTo) {
-      (client, dockerId) ⇒
-        client.containerStart(dockerId)
-    }
-    // TODO: update state to starting
-  }
-
-  def containerStop(state: State, containerId: Long, replyTo: ActorRef) = {
-    log.debug(s"container stop: $containerId")
-    applyStateToContainer(state, containerId, ContainerState.Stopped, replyTo) {
-      (client, dockerId) ⇒
-        client.containerStop(dockerId, 30.seconds)
-    }
-  }
-
-  def containerRestart(state: State, containerId: Long, replyTo: ActorRef) = {
-    log.debug(s"container restart: $containerId")
-    applyStateToContainer(state, containerId, ContainerState.Running, replyTo) {
-      (client, dockerId) ⇒
-        for {
-          _ ← client.containerStop(dockerId, 30.seconds)
-          _ ← client.containerStart(dockerId)
-        } yield ()
-    }
-  }
-
-  def containerTerminate(state: State, containerId: Long, replyTo: ActorRef) = {
-    log.debug(s"container terminate: $containerId")
-    applyStateToContainer(state, containerId, ContainerState.Terminated, replyTo) {
-      (client, dockerId) ⇒
-        client.containerRemove(dockerId, withForce = true, withVolumes = true)
-    }
-  }
-
-  def applyStateToContainer(
-    state:          State,
-    containerId:    Long,
-    containerState: ContainerState.ContainerState,
-    replyTo:        ActorRef
-  )(
-    f: (Client, String) ⇒ Future[Unit]
+  def applyActionToContainer(
+    state:       State,
+    containerId: Long,
+    action:      ContainerAction,
+    replyTo:     ActorRef
   ) = {
+    log.debug(s"apply action $action to container $containerId")
     this.containers.get(containerId) match {
-      case Some(c) ⇒
-        def updateContainerStateAndReply() = {
-          self ! UpdateContainer(c.copy(state = containerState))
-          replyTo.!(())
-        }
-
-        if (c.state == state) replyTo.!(())
-        else c.dockerId match {
-          case Some(dockerId) ⇒
-            apiCall(f(_, dockerId)).foreach {
-              case \/-(_) ⇒ updateContainerStateAndReply()
-              case -\/(e) ⇒
-                if (containerState == ContainerState.Terminated)
-                  updateContainerStateAndReply()
-                else e match {
-                  case _: ResouceOrContainerNotFoundException ⇒
-                    self ! UpdateContainer(c.copy(state = ContainerState.Terminated))
-                    replyTo ! Status.Failure(ContainerNotFoundOrTerminated)
-                  case ex ⇒
-                    replyTo ! Status.Failure(ex)
-                }
-            }
-          case None ⇒
-            replyTo ! Status.Failure(ContainerDockerIdCantBeEmpty)
-        }
+      case Some(container) ⇒ container.dockerId match {
+        case Some(dockerId) ⇒
+          if (container.isInProgress) queueContainersAction(container, action, replyTo)
+          else handleContainerAction(state, container, dockerId, action, replyTo)
+        case None ⇒
+          replyTo ! Status.Failure(ContainerDockerIdCantBeEmpty)
+      }
       case None ⇒
         replyTo ! Status.Failure(ContainerNotFoundOrTerminated)
     }
   }
 
-  def wrapContainers(containers: Seq[MContainer]) =
+  private def queueContainersAction(
+    container: MContainer,
+    action:    ContainerAction,
+    replyTo:   ActorRef
+  ) = {
+    val containerId = container.getId
+    val vec = this.containersActionQueue.get(containerId) match {
+      case Some(v) ⇒ v :+ ((action, replyTo))
+      case None    ⇒ immutable.Vector((action, replyTo))
+    }
+    this.containersActionQueue = this.containersActionQueue + ((containerId, vec))
+  }
+
+  private def unqueueContainersAction(state: State, containerId: Long) = {
+    this.containersActionQueue.get(containerId).foreach { vec ⇒
+      this.containersActionQueue = this.containersActionQueue + ((containerId, vec.tail))
+      val (action, actorRef) = vec.head
+      applyActionToContainer(state, containerId, action, actorRef)
+    }
+  }
+
+  private def cleanContainersAction() = {
+    this.containersActionQueue.values.flatMap(_.map(_._2)).foreach { replyTo ⇒
+      replyTo ! Status.Failure(NodeIsNotAvailable)
+    }
+    this.containersActionQueue = immutable.LongMap.empty
+  }
+
+  private def handleContainerAction(
+    state:     State,
+    container: MContainer,
+    dockerId:  String,
+    action:    ContainerAction,
+    replyTo:   ActorRef
+  ) = {
+    val (startState, finalState) = action match {
+      case ContainerStartAction ⇒
+        (ContainerState.Starting, ContainerState.Running)
+      case ContainerRestartAction ⇒
+        (ContainerState.Stopping, ContainerState.Running)
+      case ContainerStopAction ⇒
+        (ContainerState.Stopping, ContainerState.Stopped)
+      case ContainerTerminateAction ⇒
+        (ContainerState.Terminating, ContainerState.Terminated)
+    }
+    val containerId = container.getId
+    putContainerState(containerId, startState)
+    containerApiCallByAction(action, dockerId).foreach {
+      case \/-(_) ⇒
+        updateContainerState(containerId, finalState)
+        replyTo.!(())
+      case -\/(e) ⇒
+        if (action == ContainerTerminateAction) {
+          updateContainerState(containerId, ContainerState.Terminated)
+          replyTo.!(())
+        }
+        else e match {
+          case _: ResouceOrContainerNotFoundException ⇒
+            updateContainerState(containerId, ContainerState.Terminated)
+            replyTo ! Status.Failure(ContainerNotFoundOrTerminated)
+          case ex ⇒
+            updateContainerState(containerId, ContainerState.Unreachable)
+            replyTo ! Status.Failure(ex)
+        }
+    }
+  }
+
+  private def containerApiCallByAction(action: ContainerAction, dockerId: String) =
+    action match {
+      case ContainerStartAction ⇒ apiCall(_.containerStart(dockerId))
+      case ContainerStopAction  ⇒ apiCall(_.containerStop(dockerId, 30.seconds))
+      case ContainerRestartAction ⇒ apiCall { client ⇒
+        for {
+          _ ← client.containerStop(dockerId, 30.seconds)
+          _ ← client.containerStart(dockerId)
+        } yield ()
+      }
+      case ContainerTerminateAction ⇒
+        apiCall(_.containerRemove(dockerId, withForce = true, withVolumes = true))
+    }
+
+  def updateContainerState(
+    containerId:    Long,
+    containerState: ContainerState.ContainerState
+  ) =
+    self ! UpdateContainerState(containerId, containerState)
+
+  private def wrapContainers(containers: Seq[MContainer]) =
     immutable.LongMap(containers.map(c ⇒ (c.getId, c)): _*)
 }

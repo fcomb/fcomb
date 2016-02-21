@@ -16,7 +16,7 @@ object Build extends sbt.Build {
   val ScalaVersion = "2.11.7"
 
   lazy val buildSettings =
-    Defaults.defaultSettings ++
+    super.settings ++
       Seq(
         organization := Organization,
         version := Version,
