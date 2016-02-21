@@ -201,10 +201,9 @@ object Build extends sbt.Build {
     id = "templates",
     base = file("fcomb-templates"),
     settings = defaultSettings ++
-      SbtTwirl.projectSettings ++
-        Seq(
-          TwirlKeys.templateImports += "io.fcomb.templates._, io.fcomb.utils._"
-        )
+      Seq(
+        TwirlKeys.templateImports += "io.fcomb.templates._, io.fcomb.utils._"
+      )
   )
     .dependsOn(utils)
     .enablePlugins(SbtTwirl)
