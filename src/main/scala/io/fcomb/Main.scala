@@ -7,7 +7,7 @@ import io.fcomb.api.services.{Routes => ApiRoutes}
 import io.fcomb.services.UserCertificateProcessor
 import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor, UserNodeProcessor}
 import io.fcomb.services.application.ApplicationProcessor
-import io.fcomb.docker.registry.api.services.{Routes => DockerRegistryRoutes}
+import io.fcomb.docker.distribution.api.services.{Routes => DockerRegistryRoutes}
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await

@@ -107,7 +107,7 @@ object Build extends sbt.Build {
           fork in run := true,
           fork in reStart := true
         )
-  ).dependsOn(api/*, proxy*/, dockerRegistry)
+  ).dependsOn(api/*, proxy*/, dockerDistribution)
     .enablePlugins(SbtNativePackager)
     .aggregate(tests)
 
@@ -230,12 +230,12 @@ object Build extends sbt.Build {
       )
   ).dependsOn(json, utils, crypto)
 
-  lazy val dockerRegistry = Project(
-    id = "docker-registry",
-    base = file("fcomb-docker-registry"),
+  lazy val dockerDistribution = Project(
+    id = "docker-distribution",
+    base = file("fcomb-docker-distribution"),
     settings =
       defaultSettings ++ Seq(
-        libraryDependencies ++= Dependencies.dockerRegistry
+        libraryDependencies ++= Dependencies.dockerDistribution
       )
   ).dependsOn(api)
 

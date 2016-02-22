@@ -238,7 +238,7 @@ object Dependencies {
     commonsCodec
   )
 
-  val dockerRegistry = docker
+  val dockerDistribution = docker
 
   val crypto = common ++ Seq(bcProvider, bcPkix)
 
