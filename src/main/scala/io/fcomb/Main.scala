@@ -42,25 +42,25 @@ object Main extends App {
 
   (for {
     _ ← Db.migrate()
-    _ ← server.HttpApiService.start(port, interface, ApiRoutes())
+    // _ ← server.HttpApiService.start(port, interface, ApiRoutes())
     _ ← server.HttpApiService.start(drPort, drInterface, DockerDistributionRoutes())
   } yield ()).onComplete {
     case Success(_) ⇒
-      UserCertificateProcessor.startRegion(5.minutes)
-      NodeJoinProcessor.startRegion(5.minutes)
-      NodeProcessor.startRegion(25.minutes)
-      ApplicationProcessor.startRegion(1.hour)
-      UserNodeProcessor.startRegion(1.day)
+      // UserCertificateProcessor.startRegion(5.minutes)
+      // NodeJoinProcessor.startRegion(5.minutes)
+      // NodeProcessor.startRegion(25.minutes)
+      // ApplicationProcessor.startRegion(1.hour)
+      // UserNodeProcessor.startRegion(1.day)
 
-      (for {
-        _ ← ApplicationProcessor.initialize()
-        _ ← NodeProcessor.initialize()
-      } yield ()).onComplete {
-        case Success(_) ⇒
-          logger.info("Initialization has been completed")
-        case Failure(e) ⇒
-          logger.error(e.getMessage(), e.getCause())
-      }
+      // (for {
+      //   _ ← ApplicationProcessor.initialize()
+      //   _ ← NodeProcessor.initialize()
+      // } yield ()).onComplete {
+      //   case Success(_) ⇒
+      //     logger.info("Initialization has been completed")
+      //   case Failure(e) ⇒
+      //     logger.error(e.getMessage(), e.getCause())
+      // }
     case Failure(e) ⇒
       logger.error(e.getMessage(), e.getCause())
       try {
