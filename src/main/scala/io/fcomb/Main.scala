@@ -7,7 +7,7 @@ import io.fcomb.api.services.{Routes => ApiRoutes}
 import io.fcomb.services.UserCertificateProcessor
 import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor, UserNodeProcessor}
 import io.fcomb.services.application.ApplicationProcessor
-import io.fcomb.docker.distribution.api.services.{Routes => DockerRegistryRoutes}
+import io.fcomb.docker.distribution.api.services.{Routes => DockerDistributionRoutes}
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
@@ -43,7 +43,7 @@ object Main extends App {
   (for {
     _ ← Db.migrate()
     _ ← server.HttpApiService.start(port, interface, ApiRoutes())
-    _ ← server.HttpApiService.start(drPort, drInterface, DockerRegistryRoutes())
+    _ ← server.HttpApiService.start(drPort, drInterface, DockerDistributionRoutes())
   } yield ()).onComplete {
     case Success(_) ⇒
       UserCertificateProcessor.startRegion(5.minutes)
