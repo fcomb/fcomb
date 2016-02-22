@@ -238,6 +238,8 @@ object Dependencies {
     commonsCodec
   )
 
+  val dockerRegistry = docker
+
   val crypto = common ++ Seq(bcProvider, bcPkix)
 
   val validations = common ++ Seq(slick)

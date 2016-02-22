@@ -3,10 +3,11 @@ package io.fcomb
 import akka.actor.{ActorSystem, Address}
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
-import io.fcomb.api.services.Routes
+import io.fcomb.api.services.{Routes => ApiRoutes}
 import io.fcomb.services.UserCertificateProcessor
 import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor, UserNodeProcessor}
 import io.fcomb.services.application.ApplicationProcessor
+import io.fcomb.docker.registry.api.services.{Routes => DockerRegistryRoutes}
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
@@ -36,9 +37,13 @@ object Main extends App {
   val interface = Config.config.getString("rest-api.interface")
   val port = Config.config.getInt("rest-api.port")
 
+  val drInterface = Config.config.getString("docker-registry.interface")
+  val drPort = Config.config.getInt("docker-registry.port")
+
   (for {
     _ ← Db.migrate()
-    _ ← server.HttpApiService.start(port, interface, Routes())
+    _ ← server.HttpApiService.start(port, interface, ApiRoutes())
+    _ ← server.HttpApiService.start(drPort, drInterface, DockerRegistryRoutes())
   } yield ()).onComplete {
     case Success(_) ⇒
       UserCertificateProcessor.startRegion(5.minutes)
