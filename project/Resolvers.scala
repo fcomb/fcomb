@@ -14,6 +14,7 @@ object Resolvers {
     Resolver.bintrayRepo("pathikrit", "maven"),
     Resolver.bintrayRepo("etaty", "maven"),
     Resolver.bintrayRepo("non", "maven"),
+    Resolver.bintrayRepo("dnvriend", "maven"),
     // Resolver.bintrayRepo("oncue", "releases"),
     // "Kamon Repository" at "http://repo.kamon.io",
     "Akka Snapshot Repository" at "http://repo.akka.io/snapshots/",

@@ -72,7 +72,7 @@ object Dependencies {
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
     val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
 
-    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4.1207.jre7" exclude("org.slf4j", "slf4j-simple")
+    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4.1208" exclude("org.slf4j", "slf4j-simple")
     val quillJdbc       = "io.getquill"                   %% "quill-jdbc"                    % V.quill
     val quillAsync      = "io.getquill"                   %% "quill-async"                   % V.quill
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick

@@ -5,6 +5,8 @@ resolvers ++= Seq(
   Classpaths.sbtPluginReleases
 )
 
+addSbtPlugin("com.github.alexarchambault" % "coursier-sbt-plugin" % "1.0.0-M8")
+
 addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.0.6")
 
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
@@ -21,20 +23,10 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.4")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-twirl" % "1.1.1")
 
-// addSbtPlugin("io.ino" %% "sbt-pillar-plugin" % "1.0.4")
-
-addCompilerPlugin("org.scalamacros" %% "paradise" % "2.0.1" cross CrossVersion.full)
-
 addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.2.4")
-
-addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.7.0")
 
 addSbtPlugin("org.brianmckenna" % "sbt-wartremover" % "0.14")
 
-// addSbtPlugin("com.typesafe" % "sbt-abide" % "0.1-SNAPSHOT")
-
 addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")
 
-addSbtPlugin("com.trueaccord.scalapb" % "sbt-scalapb" % "0.4.19")
-
-// addCompilerPlugin("com.softwaremill.clippy" % "plugin" % "0.1" cross CrossVersion.full)
+addSbtPlugin("com.softwaremill.clippy" % "plugin-sbt" % "0.2.1")

@@ -27,7 +27,7 @@ object Build extends sbt.Build {
         ivyScala := ivyScala.value.map(_.copy(
           overrideScalaVersion = true
         )),
-        scapegoatVersion := "1.1.1"
+        scapegoatVersion := "1.2.0"
       )
 
   val compilerFlags = Seq(

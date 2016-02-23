@@ -23,6 +23,8 @@ object Routes {
 
   private val defaultHeaders = List(versionHeader)
 
+  private val notFoundResponse = HttpResponse(StatusCodes.NotFound)
+
   def apply()(implicit sys: ActorSystem, mat: Materializer): Route = {
     import sys.dispatcher
 
@@ -64,14 +66,27 @@ object Routes {
                     `Docker-Content-Digest`("sha256", digest),
                     RawHeader("Range", s"0-${entity.getData.length}")
                   ))
-                case uuid :: "blobs" :: xs =>
+                case prefix :: "blobs" :: xs =>
                   val imageName = xs.reverse.mkString("/")
-                  val digest = ctx.request.uri.query().get("digest").get
-                  HttpResponse(StatusCodes.Created, headers = List(
-                    Location(s"/v2/$imageName/blobs/sha256:$digest"),
-                    `Docker-Content-Digest`("sha256", digest)
-                  ))
-                case _ => HttpResponse(StatusCodes.NotFound)
+                  if (prefix.startsWith("sha256")) {
+                    HttpResponse(StatusCodes.OK,
+                      headers = List(
+                        `Docker-Content-Digest`("sha256", prefix)
+                      ),
+                      entity = HttpEntity(
+                        ContentTypes.`application/octet-stream`,
+                        12345,
+                        akka.stream.scaladsl.Source.maybe
+                      )
+                    )
+                  } else {
+                    val digest = ctx.request.uri.query().get("digest").get
+                    HttpResponse(StatusCodes.Created, headers = List(
+                      Location(s"/v2/$imageName/blobs/sha256:$digest"),
+                      `Docker-Content-Digest`("sha256", digest)
+                    ))
+                  }
+                case _ => notFoundResponse
               }
             })
           }
@@ -81,7 +96,7 @@ object Routes {
             { ctx: RequestContext =>
               ctx.complete(ctx.request.entity.toStrict(1.second).map { entity =>
                 println(s"unknown route: uri: ${ctx.request.uri}, headers: ${ctx.request.headers}, entity: $entity")
-                HttpResponse(StatusCodes.NotFound)
+                notFoundResponse
               })
             }
           }

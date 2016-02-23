@@ -4,24 +4,32 @@ import akka.http.scaladsl.model.headers._
 import java.util.UUID
 
 package object headers {
-  case class `Docker-Distribution-Api-Version`(version: String) extends CustomHeader {
+  final case class `Docker-Distribution-Api-Version`(version: String) extends CustomHeader {
     def renderInRequests = false
     def renderInResponses = true
     def name: String = "Docker-Distribution-Api-Version"
     def value: String = s"registry/$version"
   }
 
-  case class `Docker-Upload-Uuid`(uuid: UUID) extends CustomHeader {
+  final case class `Docker-Upload-Uuid`(uuid: UUID) extends CustomHeader {
     def renderInRequests = false
     def renderInResponses = true
     def name: String = "Docker-Upload-Uuid"
     def value: String = uuid.toString
   }
 
-  case class `Docker-Content-Digest`(schema: String, digest: String) extends CustomHeader {
+  final case class `Docker-Content-Digest`(schema: String, digest: String) extends CustomHeader {
     def renderInRequests = false
     def renderInResponses = true
     def name: String = "Docker-Content-Digest"
     def value: String = s"$schema:$digest"
+  }
+
+  final case class `Custom-Content-Length` (length: Long) extends CustomHeader {
+    def renderInRequests = false
+    def renderInResponses = true
+    protected def companion = `Content-Length`
+    def name: String = companion.name
+    def value: String = length.toString
   }
 }
