@@ -24,12 +24,4 @@ package object headers {
     def name: String = "Docker-Content-Digest"
     def value: String = s"$schema:$digest"
   }
-
-  final case class `Custom-Content-Length` (length: Long) extends CustomHeader {
-    def renderInRequests = false
-    def renderInResponses = true
-    protected def companion = `Content-Length`
-    def name: String = companion.name
-    def value: String = length.toString
-  }
 }

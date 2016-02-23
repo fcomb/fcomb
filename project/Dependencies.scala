@@ -85,9 +85,6 @@ object Dependencies {
     // val phantom         = "com.websudos"                  %% "phantom-dsl"                   % V.phantom
     // val phantomUdt      = "com.websudos"                  %% "phantom-udt"                   % V.phantom
 
-    val levelDb         = "org.iq80.leveldb"              %  "leveldb"                       % "0.7"
-    val levelDbJni      = "org.fusesource.leveldbjni"     %  "leveldbjni-all"                % "1.8"
-
     val redis           = "com.etaty.rediscala"           %% "rediscala"                     % "1.5.0"
 
     val bcProvider      = "org.bouncycastle"              %  "bcprov-jdk15on"                % V.bouncyCastle
@@ -95,7 +92,6 @@ object Dependencies {
 
     val oauth           = "com.nulab-inc"                 %% "scala-oauth2-core"             % "0.13.1"
     val bcrypt          = "com.github.t3hnar"             %% "scala-bcrypt"                  % "2.4"
-    val nacl4s          = "com.github.emstlk"             %% "nacl4s"                        % "1.0.0" 
 
     val s3              = "com.amazonaws"                 %  "aws-java-sdk-s3"               % "1.10.14"
     val awsWrap         = "com.github.dwhjames"           %% "aws-wrap"                      % "0.7.2"
@@ -116,13 +112,6 @@ object Dependencies {
     // val monocleGeneric  = "com.github.julien-truffaut"    %%  "monocle-generic"              % V.monocle
     // val monocleMacro    = "com.github.julien-truffaut"    %%  "monocle-macro"                % V.monocle
     // val monocleState    = "com.github.julien-truffaut"    %%  "monocle-state"                % V.monocle
-
-    val scodecBits      = "org.scodec"                    %% "scodec-bits"                   % "1.0.10"
-    val scodecCore      = "org.scodec"                    %% "scodec-core"                   % "1.8.2"
-    val scodecScalaz    = "org.scodec"                    %% "scodec-scalaz"                 % "1.1.0"
-    val scodecStream    = "org.scodec"                    %% "scodec-stream"                 % "0.10.0"
-    val scodecProtocols = "org.scodec"                    %% "scodec-protocols"              % "0.7.0"
-    val scodecAkka      = "org.scodec"                    %% "scodec-akka"                   % "0.1.0-SNAPSHOT" changing()
 
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.5"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
@@ -191,11 +180,6 @@ object Dependencies {
     akkaPersistence, akkaPersistenceJdbc //,
     // akkaSse
   )
-
-  // val scodec = Seq(
-  //   scodecCore, scodecBits, scodecScalaz, scodecStream,
-  //   scodecProtocols, scodecAkka
-  // )
 
   val root = common // ++ monitoring
 
