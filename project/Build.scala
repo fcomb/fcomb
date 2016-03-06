@@ -79,7 +79,10 @@ object Build extends sbt.Build {
         parallelExecution in Test := false,
         fork in Test := true,
         publishArtifact in (Compile, packageDoc) := false,
+        publishArtifact in (Compile, packageSrc) := false,
         publishArtifact in packageDoc := false,
+        publishArtifact in packageSrc := false,
+        publishArtifact in Test := false,
         sources in (Compile, doc) := Seq.empty
       )
 

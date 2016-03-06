@@ -9,15 +9,17 @@ import akka.http.scaladsl._
 import akka.http.scaladsl.server._
 import akka.util.ByteString
 import org.scalatest._
-import scala.io.{Source => ISource}
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 trait SpecHelpers {
   def getFixture(path: String) = {
     val is = getClass.getClassLoader.getResourceAsStream(s"fixtures/$path")
-    ISource.fromInputStream(is).mkString
+    Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
   }
+
+  def getFixtureAsString(path: String) =
+    new String(getFixture(path))
 }
 
 private object ActorSystemSpec {

@@ -18,7 +18,7 @@ class ClientSpec extends ActorSpec {
 
     "get version" in {
       val handler = pathPrefix("version") {
-        get(complete(getFixture("docker/v1.19/version.json")))
+        get(complete(getFixtureAsString("docker/v1.19/version.json")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -41,7 +41,7 @@ class ClientSpec extends ActorSpec {
 
     "get information" in {
       val handler = pathPrefix("info") {
-        get(complete(getFixture("docker/v1.19/info.json")))
+        get(complete(getFixtureAsString("docker/v1.19/info.json")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -99,7 +99,7 @@ class ClientSpec extends ActorSpec {
 
     "get containers" in {
       val handler = pathPrefix("containers" / "json") {
-        get(complete(getFixture("docker/v1.19/containers.json")))
+        get(complete(getFixtureAsString("docker/v1.19/containers.json")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -150,9 +150,9 @@ class ClientSpec extends ActorSpec {
           assert(name.contains("test_container"))
           ctx.request.entity.dataBytes.runFold(ByteString.empty)(_ ++ _)
             .flatMap { bs =>
-              val req = getFixture("docker/v1.19/create_container_request.json").parseJson
+              val req = getFixtureAsString("docker/v1.19/create_container_request.json").parseJson
               assert(bs.utf8String.parseJson == req)
-              ctx.complete(getFixture("docker/v1.19/create_container.json"))
+              ctx.complete(getFixtureAsString("docker/v1.19/create_container.json"))
             }
         }
       }
@@ -227,7 +227,7 @@ class ClientSpec extends ActorSpec {
     "inspect container" in {
       val handler = pathPrefix("containers" / Segment / "json") { containerIdPart =>
         assert(containerIdPart == containerId)
-        get(complete(getFixture("docker/v1.19/container.json")))
+        get(complete(getFixtureAsString("docker/v1.19/container.json")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -361,7 +361,7 @@ class ClientSpec extends ActorSpec {
     "get container processes" in {
       val handler = pathPrefix("containers" / Segment / "top") { containerIdPart =>
         assert(containerIdPart == containerId)
-        get(complete(getFixture("docker/v1.19/container_processes.json")))
+        get(complete(getFixtureAsString("docker/v1.19/container_processes.json")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -379,7 +379,7 @@ class ClientSpec extends ActorSpec {
     "get container logs" in {
       val handler = pathPrefix("containers" / Segment / "logs") { containerIdPart =>
         assert(containerIdPart == containerId)
-        get(complete(getFixture("docker/v1.19/logs")))
+        get(complete(getFixtureAsString("docker/v1.19/logs")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -394,7 +394,7 @@ class ClientSpec extends ActorSpec {
     "get container logs as stream" in {
       val handler = pathPrefix("containers" / Segment / "logs") { containerIdPart =>
         assert(containerIdPart == containerId)
-        get(complete(getFixture("docker/v1.19/logs")))
+        get(complete(getFixtureAsString("docker/v1.19/logs")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -410,7 +410,7 @@ class ClientSpec extends ActorSpec {
     "get container changes" in {
       val handler = pathPrefix("containers" / Segment / "changes") { containerIdPart =>
         assert(containerIdPart == containerId)
-        get(complete(getFixture("docker/v1.19/changes.json")))
+        get(complete(getFixtureAsString("docker/v1.19/changes.json")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -431,7 +431,7 @@ class ClientSpec extends ActorSpec {
     "container export" in {
       val handler = pathPrefix("containers" / Segment / "export") { containerIdPart =>
         assert(containerIdPart == containerId)
-        get(complete(getFixture("docker/v1.19/export")))
+        get(complete(getFixtureAsString("docker/v1.19/export")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -446,7 +446,7 @@ class ClientSpec extends ActorSpec {
     "container stats" in {
       val handler = pathPrefix("containers" / Segment / "stats") { containerIdPart =>
         assert(containerIdPart == containerId)
-        get(complete(getFixture("docker/v1.19/stats.json")))
+        get(complete(getFixtureAsString("docker/v1.19/stats.json")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
@@ -460,7 +460,7 @@ class ClientSpec extends ActorSpec {
     "container stats as stream" in {
       val handler = pathPrefix("containers" / Segment / "stats") { containerIdPart =>
         assert(containerIdPart == containerId)
-        get(complete(getFixture("docker/v1.19/stats.json")))
+        get(complete(getFixtureAsString("docker/v1.19/stats.json")))
       }
       startFakeHttpServer(handler) { port =>
         val dc = new Client("localhost", port)
