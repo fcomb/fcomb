@@ -262,5 +262,5 @@ object Build extends sbt.Build {
       defaultSettings ++ Seq(
         libraryDependencies ++= Dependencies.tests
       )
-  ).dependsOn(api)
+  ).dependsOn(api, dockerDistribution)
 }

@@ -27,6 +27,7 @@ object Dependencies {
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream"                   % V.akka
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akka
     val akkaHttpSwagger = "com.github.swagger-akka-http"  %% "swagger-akka-http"             % "0.6.2"
+    val akkaHttpSprayJson = "com.typesafe.akka"           %% "akka-http-spray-json-experimental" % V.akka
     val akkaHttpJson    = "de.heikoseeberger"             %% "akka-http-json4s"              % "1.5.0"
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
@@ -139,6 +140,7 @@ object Dependencies {
 
   object Test {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
+    val akkaHttpTestkit = "com.typesafe.akka"             %% "akka-http-testkit"             % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.0" % "test"
     val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7.2" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
@@ -174,7 +176,7 @@ object Dependencies {
   val akka = Seq(
     akkaActor, akkaClusterSharding, akkaContrib,
     akkaDistributedData,
-    akkaStream, akkaHttp, akkaHttpJson,
+    akkaStream, akkaHttp, akkaHttpJson, akkaHttpSprayJson,
     // akkaHttpSwagger,
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc //,
@@ -185,7 +187,10 @@ object Dependencies {
 
   val api = common ++ akka ++ Seq(oauth)
 
-  val tests = common ++ Seq(akkaTestkit, scalacheck, specs2, scalatest, slickTestkit)
+  val tests = common ++ Seq(
+    akkaTestkit, akkaHttpTestkit, akkaHttpSprayJson,
+    scalacheck, specs2, scalatest, slickTestkit
+  )
 
   val data = common ++ Seq(xml, scalazCore, shapeless, shapelessScalaz)
 

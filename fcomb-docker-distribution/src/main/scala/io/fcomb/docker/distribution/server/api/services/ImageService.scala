@@ -23,7 +23,7 @@ object ImageService extends Service {
     completeWithoutResult(StatusCodes.Accepted, List(
       Location(s"/v2/$name/blobs/uploads/$uuid"),
       `Docker-Upload-Uuid`(uuid),
-      RangeCustom(0L, 0L)
+      range(0L, 0L)
     ))
   }
 
@@ -41,7 +41,7 @@ object ImageService extends Service {
           Location(s"/v2/$name/blobs/$uuid"),
           `Docker-Upload-Uuid`(uuid),
           // `Docker-Content-Digest`("sha256", digest),
-          RangeCustom(0L, blob.length - 1)
+          range(0L, blob.length)
         ))
       }
     })
@@ -53,6 +53,13 @@ object ImageService extends Service {
     mat: Materializer
   ) = action { implicit ctx ⇒
     ???
+  }
+
+  private def range(from: Long, length: Long) = {
+    val to =
+      if (from < length) length - 1
+      else from
+    RangeCustom(from, to)
   }
 
   private def imageFile(imageName: String) =
