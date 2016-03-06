@@ -1,4 +1,4 @@
-package io.fcomb.docker.distribution.api.services
+package io.fcomb.docker.distribution.server.api.services
 
 import akka.http.scaladsl.model.headers._
 import java.util.UUID
@@ -23,5 +23,12 @@ package object headers {
     def renderInResponses = true
     def name: String = "Docker-Content-Digest"
     def value: String = s"$schema:$digest"
+  }
+
+  final case class RangeCustom(first: Long, last: Long) extends CustomHeader {
+    def renderInRequests = false
+    def renderInResponses = true
+    def name: String = "Range"
+    def value: String = s"$first-$last"
   }
 }

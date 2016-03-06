@@ -439,11 +439,14 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(f.map(completeValidation(_, statusCode)))
 
-  def completeWithoutResult(statusCode: StatusCode)(
+  def completeWithoutResult(
+    statusCode: StatusCode,
+    headers: List[HttpHeader] = List.empty
+  )(
     implicit
     ctx: ServiceContext
   ): ServiceResult =
-    CompleteWithoutResult(statusCode, ctx.contentType)
+    CompleteWithoutResult(statusCode, ctx.contentType, headers)
 
   def completeWithoutContent()(
     implicit

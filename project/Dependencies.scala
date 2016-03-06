@@ -9,9 +9,9 @@ object Dependencies {
     val slick = "3.1.1"
     val slickPg = "0.11.0"
     val shims = "0.2"
-    val scalaz = "7.2.0"
+    val scalaz = "7.2.1"
     val quill = "0.3.0"
-    val kamon = "0.5.2"
+    val kamon = "0.6.0-2961cc2fff3f408dbce964ed8ec82998bc864186"
   }
 
   object Compile {
@@ -57,7 +57,7 @@ object Dependencies {
     // val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
     // val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.5"
     val sprayJson       = "io.spray"                      %% "spray-json"                   % "1.3.2"
-    val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.1.0"
+    val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.2.0"
     val circeCore       = "io.circe"                      %% "circe-core"                    % V.circe
     val circeGeneric    = "io.circe"                      %% "circe-generic"                 % V.circe
     val circeJawn       = "io.circe"                      %% "circe-jawn"                    % V.circe
@@ -80,7 +80,7 @@ object Dependencies {
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg exclude("org.postgresql", "postgresql")
     val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % V.slickPg
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.7"
-    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.1"
+    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.3"
 
     // val phantom         = "com.websudos"                  %% "phantom-dsl"                   % V.phantom
     // val phantomUdt      = "com.websudos"                  %% "phantom-udt"                   % V.phantom
@@ -99,7 +99,7 @@ object Dependencies {
     val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
     val scalazShims     = "com.codecommit"                %% "shims-scalaz-72"               % V.shims
-    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.2.5"
+    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.3.0"
     val scalazStream    = "org.scalaz.stream"             %% "scalaz-stream"                 % "0.8"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
     val cats            = "org.typelevel"                 %% "cats"                          % V.cats
@@ -113,7 +113,7 @@ object Dependencies {
     // val monocleMacro    = "com.github.julien-truffaut"    %%  "monocle-macro"                % V.monocle
     // val monocleState    = "com.github.julien-truffaut"    %%  "monocle-state"                % V.monocle
 
-    val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.5"
+    val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.6"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
 
     val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.8"
@@ -140,7 +140,7 @@ object Dependencies {
   object Test {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.0" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7.1" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7.2" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
     val slickTestkit    = "com.typesafe.slick"            %% "slick-testkit"                 % V.slick % "test"
   }

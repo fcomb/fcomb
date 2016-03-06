@@ -12,8 +12,8 @@ import net.virtualvoid.sbt.graph.DependencyGraphSettings
 
 object Build extends sbt.Build {
   val Organization = "io.fcomb"
-  val Version = "0.2.0-SNAPSHOT"
-  val ScalaVersion = "2.11.7"
+  val Version = "0.4.0-SNAPSHOT"
+  val ScalaVersion = "2.11.8"
 
   lazy val buildSettings =
     super.settings ++
@@ -31,10 +31,14 @@ object Build extends sbt.Build {
       )
 
   val compilerFlags = Seq(
+    "-Xexperimental",
+    "-Yopt:l:classpath",
+    "-Yopt:unreachable-code",
     "-Ywarn-dead-code",
     "-Ywarn-infer-any",
     "-Ywarn-numeric-widen",
-    "-Ywarn-unused"
+    "-Ywarn-unused",
+    "-Ywarn-unused-import"
     // "-Xfatal-warnings"
   )
 
@@ -73,7 +77,10 @@ object Build extends sbt.Build {
         javaOptions ++= Seq("-Dfile.encoding=UTF-8", "-Dscalac.patmat.analysisBudget=off"),
         javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion, "-Xlint:unchecked", "-Xlint:deprecation"),
         parallelExecution in Test := false,
-        fork in Test := true
+        fork in Test := true,
+        publishArtifact in (Compile, packageDoc) := false,
+        publishArtifact in packageDoc := false,
+        sources in (Compile, doc) := Seq.empty
       )
 
   lazy val root = Project(
