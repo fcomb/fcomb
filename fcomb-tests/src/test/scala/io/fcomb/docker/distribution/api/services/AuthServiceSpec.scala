@@ -1,5 +1,6 @@
 package io.fcomb.docker.distribution.server.api.services
 
+import io.fcomb.docker.distribution.server.api.services.headers.`Docker-Distribution-Api-Version`
 import org.scalatest.{Matchers, WordSpec}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -11,9 +12,10 @@ class AuthServiceSpec extends WordSpec with Matchers with ScalatestRouteTest {
 
   "The auth service" should {
     "return a version for GET requests to the version path" in {
-      Get("/v2") ~> route ~> check {
+      Get("/v2/") ~> route ~> check {
         status === StatusCodes.OK
         entityAs[JsValue] shouldEqual JsObject.empty
+        header[`Docker-Distribution-Api-Version`].get.value shouldEqual "registry/2.0"
       }
     }
   }
