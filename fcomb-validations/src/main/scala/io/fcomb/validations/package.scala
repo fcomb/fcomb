@@ -4,6 +4,7 @@ import io.fcomb.models.errors.ValidationException
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{existentials, implicitConversions, postfixOps}
+import scala.util.matching.Regex
 import scalaz._
 import scalaz.Scalaz._
 import slick.driver.PostgresDriver.api._
@@ -22,9 +23,15 @@ package object validations {
 
   type DBIOActionValidator = DBIOAction[Boolean, NoStream, Effect.Read]
 
+  def eitherT[R](fut: Future[ValidationResult[R]])(
+    implicit
+    ec: ExecutionContext
+  ) =
+    EitherT(fut.map(_.disjunction))
+
   def plainValidation(validations: Seq[PlainValidation]) =
     validations.foldLeft(().success[String]) {
-      (acc, v) => (acc |@| v) { (_, _) => () }
+      (acc, v) ⇒ (acc |@| v) { (_, _) ⇒ () }
     }
 
   def futureValidation(validations: Seq[FutureValidation])(implicit ec: ExecutionContext) =
@@ -43,36 +50,36 @@ package object validations {
 
   def validationErrors[M](errors: (String, String)*): ValidationResult[M] =
     errors.map {
-      case (param, msg) => ValidationException(param, msg)
+      case (param, msg) ⇒ ValidationException(param, msg)
     }.toList.failure[M]
 
   def validateColumn(column: String, validation: PlainValidation): ColumnValidation =
     validation match {
-      case Success(_) => ().success
-      case Failure(msg) => ValidationException(column, msg).failure
+      case Success(_)   ⇒ ().success
+      case Failure(msg) ⇒ ValidationException(column, msg).failure
     }
 
   def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResultUnit =
     validations.foldLeft(List.empty[ValidationException]) {
-      (acc, v) =>
+      (acc, v) ⇒
         v match {
-          case Success(_) => acc
-          case Failure(e) => e :: acc
+          case Success(_) ⇒ acc
+          case Failure(e) ⇒ e :: acc
         }
     } match {
-      case Nil => ().success
-      case xs => xs.failure
+      case Nil ⇒ ().success
+      case xs  ⇒ xs.failure
     }
 
   def validatePlain(result: (String, List[PlainValidation])*): ValidationResultUnit =
     result.foldLeft(List.empty[ValidationException]) {
-      case (m, (c, v)) => plainValidation(v) match {
-        case Success(_) => m
-        case Failure(msg) => ValidationException(c, msg) :: m
+      case (m, (c, v)) ⇒ plainValidation(v) match {
+        case Success(_)   ⇒ m
+        case Failure(msg) ⇒ ValidationException(c, msg) :: m
       }
     } match {
-      case Nil => ().success
-      case xs => xs.failure
+      case Nil ⇒ ().success
+      case xs  ⇒ xs.failure
     }
 
   def validateDBIO(
@@ -85,13 +92,13 @@ package object validations {
       .successful(List.empty[ValidationException])
       .asInstanceOf[DBIOT[ValidationErrors]]
     result.foldLeft(emptyList) {
-      case (m, (c, v)) => dbioValidation(v).flatMap {
-        case Success(_) => m
-        case Failure(msg) => m.map(ValidationException(c, msg) :: _)
+      case (m, (c, v)) ⇒ dbioValidation(v).flatMap {
+        case Success(_)   ⇒ m
+        case Failure(msg) ⇒ m.map(ValidationException(c, msg) :: _)
       }
     }.map {
-      case Nil => ().success
-      case xs => xs.failure
+      case Nil ⇒ ().success
+      case xs  ⇒ xs.failure
     }
   }
 
@@ -106,12 +113,16 @@ package object validations {
       if (emailRegEx.findFirstIn(value).isDefined) ().success
       else "invalid email format".failure
 
+    def matches(value: String, regex: Regex, errorMessage: String) =
+      if (regex.findFirstIn(value).isDefined) ().success
+      else errorMessage.failure
+
     def unique(
       action: AppliedCompiledFunction[_, Rep[Boolean], Boolean]
     )(implicit ec: ExecutionContext): DBIOValidation = {
       action.result.map {
-        case true => "not unique".failure
-        case false => ().success
+        case true  ⇒ "not unique".failure
+        case false ⇒ ().success
       }
     }
 
@@ -145,10 +156,10 @@ package object validations {
   implicit class ValidationResultMethods[T](val result: ValidationResult[T]) extends AnyVal {
     def `:::`(result2: ValidationResult[T]): ValidationResult[T] =
       (result, result2) match {
-        case (Failure(e1), Failure(e2)) => Failure(e1 ++ e2)
-        case (e @ Failure(_), _) => e
-        case (_, e @ Failure(_)) => e
-        case _ => result
+        case (Failure(e1), Failure(e2)) ⇒ Failure(e1 ++ e2)
+        case (e @ Failure(_), _)        ⇒ e
+        case (_, e @ Failure(_))        ⇒ e
+        case _                          ⇒ result
       }
   }
 }

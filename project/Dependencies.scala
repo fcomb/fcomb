@@ -7,10 +7,11 @@ object Dependencies {
     val cats = "0.4.1"
     val circe = "0.3.0"
     val slick = "3.1.1"
-    val slickPg = "0.11.0"
-    val shims = "0.2"
+    val slickPg = "0.11.2"
+    val shims = "0.3"
     val scalaz = "7.2.1"
     val quill = "0.3.0"
+    val monocle = "1.2.0"
     val kamon = "0.6.0-2961cc2fff3f408dbce964ed8ec82998bc864186"
   }
 
@@ -105,14 +106,15 @@ object Dependencies {
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
     val cats            = "org.typelevel"                 %% "cats"                          % V.cats
     val catsShims       = "com.codecommit"                %% "shims-cats"                    % V.shims
+    val kittens         = "com.milessabin"                %% "kittens"                       % "1.0.0-M1"
 
     // val raptureCore     = "com.propensive"                %% "rapture-core"                  % "1.1.0"
     // val raptureIo       = "com.propensive"                %% "rapture-io"                    % "0.9.0"
 
-    // val monocleCore     = "com.github.julien-truffaut"    %%  "monocle-core"                 % V.monocle
-    // val monocleGeneric  = "com.github.julien-truffaut"    %%  "monocle-generic"              % V.monocle
-    // val monocleMacro    = "com.github.julien-truffaut"    %%  "monocle-macro"                % V.monocle
-    // val monocleState    = "com.github.julien-truffaut"    %%  "monocle-state"                % V.monocle
+    val monocleCore     = "com.github.julien-truffaut"    %%  "monocle-core"                 % V.monocle
+    val monocleGeneric  = "com.github.julien-truffaut"    %%  "monocle-generic"              % V.monocle
+    val monocleMacro    = "com.github.julien-truffaut"    %%  "monocle-macro"                % V.monocle
+    val monocleState    = "com.github.julien-truffaut"    %%  "monocle-state"                % V.monocle
 
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.6"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
@@ -157,10 +159,12 @@ object Dependencies {
     // pickling, upickle,
     // pprint,
     sprayJson, sprayJsonShapeless,
-    // circeCore, circeGeneric, circeJawn, circeOptics, circeJava8,
+    circeCore, circeGeneric, circeJawn, circeOptics, circeJava8,
     scalazCore, scalazConcurrent, scalazStream,
-    // cats,
+    cats, catsShims,
     shapeless, shapelessScalaz,
+    kittens,
+    monocleCore, monocleGeneric, monocleMacro, monocleState,
     pprint,
     atmos,
     objectsize

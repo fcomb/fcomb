@@ -71,19 +71,36 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   ): Future[ValidationModel] =
     validateThenApplyVM(result)(f.map(_.success))
 
+  protected def validateThenApplyDBIO(result: ValidationDBIOResult)(
+    f: ⇒ DBIOAction[T, NoStream, Effect.All]
+  )(
+    implicit
+    ec: ExecutionContext,
+    m:  Manifest[T]
+  ): DBIOAction[ValidationModel, NoStream, Effect.All] =
+    validateThenApplyVMDBIO(result)(f.map(_.success))
+
+  protected def validateThenApplyVMDBIO(result: ValidationDBIOResult)(
+    f: ⇒ DBIOAction[ValidationModel, NoStream, Effect.All]
+  )(
+    implicit
+    ec: ExecutionContext,
+    m:  Manifest[T]
+  ): DBIOAction[ValidationModel, NoStream, Effect.All] = {
+    result.flatMap {
+      case Success(_)     ⇒ f
+      case e @ Failure(_) ⇒ DBIO.successful(e)
+    }
+  }
+
   protected def validateThenApplyVM(result: ValidationDBIOResult)(
     f: ⇒ DBIOAction[ValidationModel, NoStream, Effect.All]
   )(
     implicit
     ec: ExecutionContext,
     m:  Manifest[T]
-  ): Future[ValidationModel] = {
-    val dbio = result.flatMap {
-      case Success(_)     ⇒ f
-      case e @ Failure(_) ⇒ DBIO.successful(e)
-    }
-    runInTransaction(dbio)
-  }
+  ): Future[ValidationModel] =
+    runInTransaction(validateThenApplyVMDBIO(result)(f))
 
   def all() =
     db.run(table.result)
@@ -106,10 +123,21 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
       case None       ⇒ DBIO.successful(Option.empty[T])
     }
 
-  def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+  def createWithValidationDBIO(item: T)(
+    implicit
+    ec: ExecutionContext,
+    m:  Manifest[T]
+  ): DBIOAction[ValidationModel, NoStream, Effect.All] = {
     val mappedItem = mapModel(item)
-    validateThenApply(validate(mappedItem))(createDBIO(mappedItem))
+    validateThenApplyDBIO(validate(mappedItem))(createDBIO(mappedItem))
   }
+
+  def create(item: T)(
+    implicit
+    ec: ExecutionContext,
+    m:  Manifest[T]
+  ): Future[ValidationModel] =
+    runInTransaction(createWithValidationDBIO(item))
 
   def strictUpdateDBIO[R](res: R)(
     q:     Int,

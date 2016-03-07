@@ -1,6 +1,5 @@
 package io.fcomb.api.services
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, Location, `X-Forwarded-For`, `Remote-Address`}
@@ -90,10 +89,11 @@ object ServiceResult {
   ) extends ServiceResult
 
   case class CompleteSourceResult(
-    source:      Source[ByteString, Any],
-    statusCode:  StatusCode,
-    contentType: ContentType,
-    headers:     List[HttpHeader]        = List.empty
+    source:        Source[ByteString, Any],
+    statusCode:    StatusCode,
+    contentType:   ContentType,
+    headers:       List[HttpHeader]        = List.empty,
+    contentLength: Option[Long]            = None
   ) extends CompleteResultItem
 }
 import ServiceResult._
@@ -132,11 +132,15 @@ object ServiceRoute {
         headers = headers,
         entity = HttpEntity(ct, res)
       ))
-    case CompleteSourceResult(s, status, ct, headers) ⇒
+    case CompleteSourceResult(s, status, ct, headers, contentLength) ⇒
+      val entity = contentLength match {
+        case Some(length) ⇒ HttpEntity.apply(ct, length, s)
+        case None         ⇒ HttpEntity.apply(ct, s)
+      }
       rCtx.complete(HttpResponse(
         status = status,
         headers = headers,
-        entity = HttpEntity.CloseDelimited(ct, s)
+        entity = entity
       ))
     case CompleteWithoutResult(status, ct, headers) ⇒
       rCtx.complete(HttpResponse(
@@ -175,23 +179,26 @@ trait CompleteResultMethods {
     bs:          ByteString,
     statusCode:  StatusCode,
     contentType: ContentType,
-    headers:     List[HttpHeader] = List.empty
+    headers:     List[HttpHeader]
   ): ServiceResult =
     CompleteResult(bs, statusCode, contentType, headers)
 
   def complete(
     f:           Future[ByteString],
     statusCode:  StatusCode,
-    contentType: ContentType
+    contentType: ContentType,
+    headers:     List[HttpHeader]
   )(implicit ec: ExecutionContext): ServiceResult =
-    CompleteFutureResult(f.map(complete(_, statusCode, contentType)))
+    CompleteFutureResult(f.map(complete(_, statusCode, contentType, headers)))
 
   def complete(
-    source:      Source[ByteString, Any],
-    statusCode:  StatusCode,
-    contentType: ContentType
+    source:        Source[ByteString, Any],
+    statusCode:    StatusCode,
+    contentType:   ContentType,
+    headers:       List[HttpHeader],
+    contentLength: Option[Long]            = None
   ): ServiceResult =
-    CompleteSourceResult(source, statusCode, contentType)
+    CompleteSourceResult(source, statusCode, contentType, headers, contentLength)
 
   def completeFile(
     source: Source[ByteString, Any],
@@ -345,7 +352,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     m:   Manifest[T],
     jw:  JsonWriter[T]
   ): ServiceResult =
-    complete(ctx.marshaller.serialize(res), statusCode, ctx.contentType)
+    complete(ctx.marshaller.serialize(res), statusCode, ctx.contentType, List.empty)
 
   def complete[T](f: Future[T], statusCode: StatusCode)(
     implicit
@@ -441,7 +448,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
 
   def completeWithoutResult(
     statusCode: StatusCode,
-    headers: List[HttpHeader] = List.empty
+    headers:    List[HttpHeader] = List.empty
   )(
     implicit
     ctx: ServiceContext
@@ -481,9 +488,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(f.map(opt ⇒ completeOrNotFound(opt, statusCode)))
 
-  def completeValidationWithoutContent(
-    res: Validation[ValidationErrors, _]
-  )(
+  def completeValidationWithoutContent(res: Validation[ValidationErrors, _])(
     implicit
     ctx: ServiceContext
   ): ServiceResult = res match {
@@ -499,6 +504,18 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ec:  ExecutionContext
   ): ServiceResult =
     complete(f.map(completeValidationWithoutContent))
+
+  def completeValidationWithoutResult(
+    res:        Validation[ValidationErrors, _],
+    statusCode: StatusCode,
+    headers:    List[HttpHeader]                = List.empty
+  )(
+    implicit
+    ctx: ServiceContext
+  ): ServiceResult = res match {
+    case Success(s) ⇒ completeWithoutResult(statusCode, headers)
+    case Failure(e) ⇒ complete(e)
+  }
 
   def getAuthToken()(implicit ctx: ServiceContext): Option[String] = {
     val r = ctx.requestContext.request

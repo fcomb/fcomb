@@ -1,7 +1,7 @@
 import sbt._
 import sbt.Keys._
 import spray.revolver._
-import spray.revolver.RevolverPlugin.autoImport.{reStart, reStartArgs}
+import spray.revolver.RevolverPlugin.autoImport.reStart
 import com.typesafe.sbt.SbtNativePackager, SbtNativePackager._
 import com.typesafe.sbt.packager.Keys._
 import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
@@ -27,7 +27,7 @@ object Build extends sbt.Build {
         ivyScala := ivyScala.value.map(_.copy(
           overrideScalaVersion = true
         )),
-        scapegoatVersion := "1.2.0"
+        scapegoatVersion := "1.2.1"
       )
 
   val compilerFlags = Seq(
@@ -78,10 +78,7 @@ object Build extends sbt.Build {
         javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion, "-Xlint:unchecked", "-Xlint:deprecation"),
         parallelExecution in Test := false,
         fork in Test := true,
-        publishArtifact in (Compile, packageDoc) := false,
-        publishArtifact in (Compile, packageSrc) := false,
         publishArtifact in packageDoc := false,
-        publishArtifact in packageSrc := false,
         publishArtifact in Test := false,
         sources in (Compile, doc) := Seq.empty
       )
@@ -96,7 +93,6 @@ object Build extends sbt.Build {
       RevolverPlugin.settings ++
         Seq(
           libraryDependencies ++= Dependencies.root,
-          reStartArgs :=  Seq("io.fcomb.Main"),
           mainClass in reStart := Some("io.fcomb.Main"),
           autoCompilerPlugins := true,
           scalacOptions in (Compile,doc) := Seq(

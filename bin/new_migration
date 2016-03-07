@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+
+name = ARGV.map { |arg| arg.gsub('\s+', '').capitalize }.join
+raise "Name can't be empty" if name.nil? or name.empty?
+
+version = "V#{Time.now.to_i}__#{name}"
+file_path = "../../fcomb-persist/src/main/resources/sql/migrations/#{version}.sql"
+
+puts "new migration: #{version}"
+File.new(File.expand_path(file_path, __FILE__), "w")

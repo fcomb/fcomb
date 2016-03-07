@@ -57,32 +57,17 @@ object Routes {
               case id :: "uploads" :: "blobs" :: xs if uuidRegEx.findFirstIn(id).nonEmpty =>
                 val uuid = UUID.fromString(id)
                 ImageService.upload(imageName(xs), uuid)
-              case digest :: "blobs" :: xs if digest.startsWith("sha256:") =>
+              case id :: "blobs" :: xs =>
                 val image = imageName(xs)
                 method match {
-                  case HttpMethods.HEAD => ImageService.show(image, digest)
+                  case HttpMethods.HEAD if id.startsWith("sha256:") =>
+                    ImageService.show(image, id)
+                  case HttpMethods.GET if id.startsWith("sha256:") =>
+                    ImageService.download(image, id)
+                  case HttpMethods.PUT =>
+                    ImageService.uploadComplete(image, UUID.fromString(id))
                   case _ => completeAsNotFound()
                 }
-              //   val name = imageName(xs)
-              //   val blob = imageFile(name)
-              //   if (prefix.startsWith("sha256")) {
-              //     rCtx.complete(HttpResponse(StatusCodes.OK,
-              //       headers = List(
-              //         `Docker-Content-Digest`("sha256", prefix)
-              //       ),
-              //       entity = HttpEntity(
-              //         ContentTypes.`application/octet-stream`,
-              //         blob.length(),
-              //         akka.stream.scaladsl.Source.maybe
-              //       )
-              //     ))
-              //   } else {
-              //     val digest = rCtx.request.uri.query().get("digest").get
-              //     rCtx.complete(HttpResponse(StatusCodes.Created, headers = List(
-              //       Location(s"/v2/$name/blobs/sha256:$digest"),
-              //       `Docker-Content-Digest`("sha256", digest)
-              //     )))
-              //   }
               case _ => completeAsNotFound()
             }
           }
@@ -105,7 +90,4 @@ object Routes {
 
   private def imageName(xs: List[String]) =
     xs.reverse.mkString("/")
-
-  private def imageFile(imageName: String) =
-    new java.io.File(s"/tmp/blobs/${imageName.replaceAll("/", "_")}")
 }

@@ -2,12 +2,14 @@ package io.fcomb.docker.distribution.server.api.services
 
 import io.fcomb.api.services.Service
 import io.fcomb.docker.distribution.server.api.services.headers._
+import io.fcomb.persist.docker.distribution.{Image ⇒ PImage, Blob ⇒ PBlob}
 import akka.actor._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.Materializer
+import akka.stream.scaladsl._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import org.apache.commons.codec.digest.DigestUtils
@@ -20,11 +22,14 @@ object ImageService extends Service {
     mat: Materializer
   ) = action { implicit ctx ⇒
     val uuid = java.util.UUID.randomUUID()
-    completeWithoutResult(StatusCodes.Accepted, List(
-      Location(s"/v2/$name/blobs/uploads/$uuid"),
-      `Docker-Upload-Uuid`(uuid),
-      range(0L, 0L)
-    ))
+    complete(PBlob.createByImageName(name, 1).map { res ⇒
+      val headers = List(
+        Location(s"/v2/$name/blobs/uploads/$uuid"),
+        `Docker-Upload-Uuid`(uuid),
+        range(0L, 0L)
+      )
+      completeValidationWithoutResult(res, StatusCodes.Accepted, headers)
+    })
   }
 
   def upload(name: String, uuid: UUID)(
@@ -47,12 +52,40 @@ object ImageService extends Service {
     })
   }
 
+  def uploadComplete(name: String, uuid: UUID)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    val digest = ctx.requestContext.request.uri.query().get("digest").get.split(':').last
+    completeWithoutResult(StatusCodes.Created, List(
+      Location(s"/v2/$name/blobs/sha256:$digest"),
+      `Docker-Content-Digest`("sha256", digest)
+    ))
+  }
+
   def show(name: String, digest: String)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
     ???
+  }
+
+  def download(name: String, digest: String)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    val file = imageFile(name)
+    val blob = FileIO.fromFile(file)
+    complete(
+      blob,
+      StatusCodes.OK,
+      ContentTypes.`application/octet-stream`,
+      List(`Docker-Content-Digest`("sha256", digest.split(':').last)),
+      contentLength = Some(file.length)
+    )
   }
 
   private def range(from: Long, length: Long) = {
