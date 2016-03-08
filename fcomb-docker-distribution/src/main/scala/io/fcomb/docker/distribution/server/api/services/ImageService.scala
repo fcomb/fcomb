@@ -3,7 +3,7 @@ package io.fcomb.docker.distribution.server.api.services
 import io.fcomb.api.services.{Service, ServiceContext, ServiceResult}
 import io.fcomb.docker.distribution.server.api.services.headers._
 import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob}
-import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob}
+import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob, _}
 import io.fcomb.utils.StringUtils
 import akka.actor._
 import akka.http.scaladsl.model._
@@ -16,6 +16,7 @@ import akka.util.ByteString
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import java.security.MessageDigest
+import java.time.ZonedDateTime
 import java.util.UUID
 
 object ImageService extends Service {
@@ -42,28 +43,30 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    val md = MessageDigest.getInstance("SHA-256")
-    findByUuid(name, uuid) { blob ⇒
-      val file = imageFile(blob.getId.toString)
-      for {
-        _ ← ctx.requestContext.request.entity.dataBytes
-          .map { chunk ⇒
-            md.update(chunk.toArray)
-            chunk
-          }
-          .runWith(akka.stream.scaladsl.FileIO.toFile(file))
-        digest = StringUtils.hexify(md.digest)
-        _ ← PBlob.uploadChunk(uuid, file.length, digest)
-      } yield {
-        println(s"digest: $digest")
-        println(s"upload `$uuid` (${file.length} bytes) layout for image $name: $file")
-        completeWithoutResult(StatusCodes.Accepted, List(
-          Location(s"/v2/$name/blobs/$uuid"),
-          `Docker-Upload-Uuid`(uuid),
-          range(blob.length, file.length)
-        ))
-      }
-    }
+    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
+      case Some((blob, _)) ⇒
+        val md = MessageDigest.getInstance("SHA-256")
+        val file = imageFile(blob.getId.toString)
+        for {
+          _ ← ctx.requestContext.request.entity.dataBytes
+            .map { chunk ⇒
+              md.update(chunk.toArray)
+              chunk
+            }
+            .runWith(akka.stream.scaladsl.FileIO.toFile(file))
+          digest = StringUtils.hexify(md.digest)
+          _ ← PBlob.uploadChunk(uuid, file.length, digest)
+        } yield {
+          println(s"digest: $digest")
+          println(s"upload `$uuid` (${file.length} bytes) layout for image $name: $file")
+          completeWithoutResult(StatusCodes.Accepted, List(
+            Location(s"/v2/$name/blobs/$uuid"),
+            `Docker-Upload-Uuid`(uuid),
+            range(blob.length, file.length)
+          ))
+        }
+      case None ⇒ Future.successful(completeNotFound())
+    })
   }
 
   def uploadComplete(name: String, uuid: UUID)(
@@ -71,11 +74,24 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    val digest = getDigest(ctx.requestContext.request.uri.query().get("digest").get)
-    completeWithoutResult(StatusCodes.Created, List(
-      Location(s"/v2/$name/blobs/sha256:$digest"),
-      `Docker-Content-Digest`("sha256", digest)
-    ))
+    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
+      case Some((blob, _)) ⇒
+        // TODO: append data from dataBytes if non empty
+        val digest = getDigest(ctx.requestContext.request.uri.query().get("digest").get)
+        if (blob.sha256Digest.contains(digest)) {
+          PBlob.update(uuid)(_.copy(
+            state = BlobState.Uploaded,
+            uploadedAt = Some(ZonedDateTime.now())
+          )).map { _ ⇒
+            completeWithoutResult(StatusCodes.Created, List(
+              Location(s"/v2/$name/blobs/sha256:$digest"),
+              `Docker-Content-Digest`("sha256", digest)
+            ))
+          }
+        }
+        else ??? // TODO
+      case None ⇒ Future.successful(completeNotFound())
+    })
   }
 
   def show(name: String, digest: String)(
@@ -83,7 +99,11 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    ???
+    complete(PBlob.findByImageAndDigest(name, getDigest(digest)).flatMap {
+      case Some((blob, _)) ⇒
+        println(s"blob: $blob")
+        ???
+    })
   }
 
   def download(name: String, digest: String)(
@@ -91,40 +111,20 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    val file = imageFile(name)
-    val blob = FileIO.fromFile(file)
-    complete(
-      blob,
-      StatusCodes.OK,
-      ContentTypes.`application/octet-stream`,
-      List(`Docker-Content-Digest`("sha256", getDigest(digest))),
-      contentLength = Some(file.length)
-    )
+    val sha256Digest = getDigest(digest)
+    println(s"sha256Digest: $sha256Digest")
+    complete(PBlob.findByImageAndDigest(name, sha256Digest).map {
+      case Some((blob, _)) ⇒
+        complete(
+          FileIO.fromFile(imageFile(blob.getId.toString)),
+          StatusCodes.OK,
+          ContentTypes.`application/octet-stream`,
+          List(`Docker-Content-Digest`("sha256", sha256Digest)),
+          contentLength = Some(blob.length)
+        )
+      case None ⇒ completeNotFound()
+    })
   }
-
-  private def findByDigest(image: String, digest: String)(
-    f: MBlob ⇒ Future[ServiceResult]
-  )(
-    implicit
-    ctx: ServiceContext,
-    ec:  ExecutionContext
-  ) =
-    complete(PBlob.findByImageAndDigest(image, digest).flatMap {
-      case Some(blob) ⇒ f(blob._1)
-      case None       ⇒ Future.successful(completeNotFound())
-    })
-
-  private def findByUuid(image: String, uuid: UUID)(
-    f: MBlob ⇒ Future[ServiceResult]
-  )(
-    implicit
-    ctx: ServiceContext,
-    ec:  ExecutionContext
-  ) =
-    complete(PBlob.findByImageAndUuid(image, uuid).flatMap {
-      case Some(blob) ⇒ f(blob._1)
-      case None       ⇒ Future.successful(completeNotFound())
-    })
 
   private def getDigest(digest: String) =
     digest.split(':').last
