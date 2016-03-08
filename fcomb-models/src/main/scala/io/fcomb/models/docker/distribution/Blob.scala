@@ -20,4 +20,7 @@ case class Blob(
   state:        BlobState.BlobState,
   createdAt:    ZonedDateTime,
   uploadedAt:   Option[ZonedDateTime]
-) extends ModelWithUuidPk
+) extends ModelWithUuidPk {
+  def isCreated =
+    state == BlobState.Created
+}

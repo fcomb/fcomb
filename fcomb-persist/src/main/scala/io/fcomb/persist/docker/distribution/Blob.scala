@@ -88,4 +88,14 @@ object Blob extends PersistModelWithUuidPk[MBlob, BlobTable] {
     ec: ExecutionContext
   ) =
     db.run(findByImageAndDigestCompiled(image, digest).result.headOption)
+
+  def uploadChunk(id: UUID, length: Long, digest: String)(
+    implicit
+    ec: ExecutionContext
+  ) = db.run {
+    table
+      .filter(_.id === id)
+      .map(t ⇒ (t.state, t.length, t.sha256Digest))
+      .update((BlobState.Uploading, length, Some(digest)))
+  }
 }

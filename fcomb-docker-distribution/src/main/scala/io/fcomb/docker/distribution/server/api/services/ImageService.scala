@@ -24,13 +24,15 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    val uuid = java.util.UUID.randomUUID()
     complete(PBlob.createByImageName(name, 1).map { res ⇒
-      val headers = List(
-        Location(s"/v2/$name/blobs/uploads/$uuid"),
-        `Docker-Upload-Uuid`(uuid),
-        range(0L, 0L)
-      )
+      val headers = res.map { blob ⇒
+        val uuid = blob.getId
+        List(
+          Location(s"/v2/$name/blobs/uploads/$uuid"),
+          `Docker-Upload-Uuid`(uuid),
+          range(0L, 0L)
+        )
+      }.getOrElse(List.empty)
       completeValidationWithoutResult(res, StatusCodes.Accepted, headers)
     })
   }
@@ -40,23 +42,28 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    val blob = imageFile(name)
-    val digest = MessageDigest.getInstance("SHA-256")
-    complete(ctx.requestContext.request.entity.dataBytes
-      .map { chunk ⇒
-        digest.update(chunk.toArray)
-        chunk
-      }
-      .runWith(akka.stream.scaladsl.FileIO.toFile(blob)).map { _ ⇒
-        println(s"digest: ${StringUtils.hexify(digest.digest)}")
-        println(s"upload `$uuid` (${blob.length} bytes) layout for image $name: $blob")
+    val md = MessageDigest.getInstance("SHA-256")
+    findByUuid(name, uuid) { blob ⇒
+      val file = imageFile(blob.getId.toString)
+      for {
+        _ ← ctx.requestContext.request.entity.dataBytes
+          .map { chunk ⇒
+            md.update(chunk.toArray)
+            chunk
+          }
+          .runWith(akka.stream.scaladsl.FileIO.toFile(file))
+        digest = StringUtils.hexify(md.digest)
+        _ ← PBlob.uploadChunk(uuid, file.length, digest)
+      } yield {
+        println(s"digest: $digest")
+        println(s"upload `$uuid` (${file.length} bytes) layout for image $name: $file")
         completeWithoutResult(StatusCodes.Accepted, List(
           Location(s"/v2/$name/blobs/$uuid"),
           `Docker-Upload-Uuid`(uuid),
-          // `Docker-Content-Digest`("sha256", digest),
-          range(0L, blob.length)
+          range(blob.length, file.length)
         ))
-      })
+      }
+    }
   }
 
   def uploadComplete(name: String, uuid: UUID)(

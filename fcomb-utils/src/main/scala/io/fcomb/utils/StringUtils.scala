@@ -25,7 +25,7 @@ object StringUtils {
     }
   }
 
-  private val hex = "0123456789ABCDEF"
+  private val hex = "0123456789abcdef"
 
   def hexify(bytes: Array[Byte]): String = {
     val builder = new java.lang.StringBuilder(bytes.length * 2)
