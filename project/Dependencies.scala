@@ -233,7 +233,7 @@ object Dependencies {
 
   val dockerDistribution = docker
 
-  val crypto = common ++ Seq(bcProvider, bcPkix)
+  val crypto = akka ++ common ++ Seq(bcProvider, bcPkix)
 
   val validations = common ++ Seq(slick)
 

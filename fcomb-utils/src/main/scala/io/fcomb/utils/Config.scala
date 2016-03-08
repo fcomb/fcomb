@@ -11,16 +11,22 @@ object Config {
 
   val jdbcConfigSlick = config.getConfig("jdbc-slick")
 
+  object docker {
+    object distribution {
+      val imageStorage = config.getString("docker.distribution.rest-api")
+    }
+  }
+
   val redis = config.getConfig("redis")
 
   val mandrillKey = config.getString("mandrill.key")
 
   case class CertificateIssuer(
     organizationalUnit: String,
-    organization: String,
-    city: String,
-    state: String,
-    country: String
+    organization:       String,
+    city:               String,
+    state:              String,
+    country:            String
   )
 
   val certificateIssuer = CertificateIssuer(

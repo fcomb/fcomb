@@ -13,11 +13,11 @@ object BlobState extends Enumeration {
 }
 
 case class Blob(
-  id:         Option[UUID]          = None,
-  imageId:    Long,
-  digest:     Option[String],
-  length:     Long,
-  state:      BlobState.BlobState,
-  createdAt:  ZonedDateTime,
-  uploadedAt: Option[ZonedDateTime]
+  id:           Option[UUID]          = None,
+  imageId:      Long,
+  sha256Digest: Option[String],
+  length:       Long,
+  state:        BlobState.BlobState,
+  createdAt:    ZonedDateTime,
+  uploadedAt:   Option[ZonedDateTime]
 ) extends ModelWithUuidPk

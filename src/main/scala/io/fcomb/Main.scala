@@ -37,8 +37,8 @@ object Main extends App {
   val interface = Config.config.getString("rest-api.interface")
   val port = Config.config.getInt("rest-api.port")
 
-  val drInterface = Config.config.getString("docker-registry.interface")
-  val drPort = Config.config.getInt("docker-registry.port")
+  val drInterface = Config.config.getString("docker.distribution.rest-api.interface")
+  val drPort = Config.config.getInt("docker.distribution.rest-api.port")
 
   (for {
     _ ← Db.migrate()

@@ -1,5 +1,6 @@
 package io.fcomb.persist.docker.distribution
 
+import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob, _}
 import io.fcomb.persist._
@@ -12,19 +13,23 @@ import java.util.UUID
 
 class BlobTable(tag: Tag) extends Table[MBlob](tag, "docker_distribution_blobs") with PersistTableWithUuidPk {
   def imageId = column[Long]("image_id")
-  def digest = column[Option[String]]("digest")
+  def sha256Digest = column[Option[String]]("sha256_digest")
   def length = column[Long]("length")
   def state = column[BlobState.BlobState]("state")
   def createdAt = column[ZonedDateTime]("created_at")
   def uploadedAt = column[Option[ZonedDateTime]]("uploaded_at")
 
   def * =
-    (id, imageId, digest, length, state, createdAt, uploadedAt) <>
+    (id, imageId, sha256Digest, length, state, createdAt, uploadedAt) <>
       ((MBlob.apply _).tupled, MBlob.unapply)
 }
 
 object Blob extends PersistModelWithUuidPk[MBlob, BlobTable] {
   val table = TableQuery[BlobTable]
+
+  override def mapModel(b: MBlob) = b.copy(
+    sha256Digest = b.sha256Digest.map(_.toLowerCase)
+  )
 
   def create(imageId: Long)(
     implicit
@@ -34,7 +39,7 @@ object Blob extends PersistModelWithUuidPk[MBlob, BlobTable] {
       id = Some(UUID.randomUUID()),
       state = BlobState.Created,
       imageId = imageId,
-      digest = None,
+      sha256Digest = None,
       length = 0,
       createdAt = ZonedDateTime.now(),
       uploadedAt = None
@@ -49,4 +54,38 @@ object Blob extends PersistModelWithUuidPk[MBlob, BlobTable] {
       imageId ← eitherT(Image.findIdOrCreateByName(name, userId))
       blob ← eitherT(create(imageId))
     } yield blob).run.map(_.validation)
+
+  private def imageScope() =
+    table.join(Image.table).on(_.imageId === _.id)
+
+  private val findByImageAndUuidCompiled = Compiled {
+    (name: Rep[String], uuid: Rep[UUID]) ⇒
+      imageScope
+        .filter { q ⇒
+          q._2.name === name && q._1.id === uuid
+        }
+        .take(1)
+  }
+
+  def findByImageAndUuid(image: String, uuid: UUID)(
+    implicit
+    ec: ExecutionContext
+  ) =
+    db.run(findByImageAndUuidCompiled(image, uuid).result.headOption)
+
+  private val findByImageAndDigestCompiled = Compiled {
+    (name: Rep[String], digest: Rep[String]) ⇒
+      imageScope
+        .filter { q ⇒
+          q._2.name === name &&
+            q._1.sha256Digest === digest.toLowerCase
+        }
+        .take(1)
+  }
+
+  def findByImageAndDigest(image: String, digest: String)(
+    implicit
+    ec: ExecutionContext
+  ) =
+    db.run(findByImageAndDigestCompiled(image, digest).result.headOption)
 }
