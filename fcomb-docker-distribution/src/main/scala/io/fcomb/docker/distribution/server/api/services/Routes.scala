@@ -65,7 +65,14 @@ object Routes {
                   case HttpMethods.GET if id.startsWith("sha256:") =>
                     ImageService.download(image, id)
                   case HttpMethods.PUT =>
-                    ImageService.uploadComplete(image, UUID.fromString(id))
+                     ImageService.uploadComplete(image, UUID.fromString(id))
+                  case _ => completeAsNotFound()
+                }
+              case reference :: "manifests" :: xs =>
+                val image = imageName(xs)
+                method match {
+                  case HttpMethods.PUT =>
+                    ImageService.manifestUpload(image, reference)
                   case _ => completeAsNotFound()
                 }
               case _ => completeAsNotFound()

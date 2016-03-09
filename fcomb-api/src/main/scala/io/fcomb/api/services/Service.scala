@@ -8,6 +8,8 @@ import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, Sink, FileIO}
 import akka.util.ByteString
+import io.circe._
+import io.circe.jawn._
 import io.fcomb.json._
 import io.fcomb.json.errors._
 import io.fcomb.models._
@@ -18,6 +20,7 @@ import io.fcomb.validations.ValidationErrors
 import org.slf4j.LoggerFactory
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
+import cats.data.Xor
 import scalaz._
 import scalaz.Scalaz._
 import spray.json._
@@ -30,6 +33,8 @@ sealed trait RequestBody[R] {
 
 case class JsonBody(body: Option[JsValue]) extends RequestBody[JsValue]
 
+// case class JsonBody2(body: Option[Json]) extends RequestBody[Json]
+
 sealed trait Marshaller {
   def serialize[T](res: T)(implicit m: Manifest[T], jw: JsonWriter[T]): ByteString
 
@@ -40,7 +45,7 @@ sealed trait Marshaller {
   ): Future[Throwable \/ RequestBody[_]]
 }
 
-case object JsonMarshaller extends Marshaller {
+object JsonMarshaller extends Marshaller {
   def serialize[T](res: T)(implicit m: Manifest[T], jw: JsonWriter[T]) =
     ByteString(res.toJson.compactPrint)
 
@@ -61,6 +66,28 @@ case object JsonMarshaller extends Marshaller {
         }
       }
 }
+
+// object Json2Marshaller extends Marshaller {
+//   def serialize[T](res: T)(
+//     implicit
+//     m:   Manifest[T],
+//     enc: Encoder[T]
+//   ): ByteString =
+//     ???
+//   // ByteString(res.toJson.compactPrint))
+
+//   def deserialize(body: Source[ByteString, Any])(
+//     implicit
+//     ec:  ExecutionContext,
+//     mat: Materializer
+//   ): Future[Xor[ParsingFailure, JsonBody2]] =
+//     body
+//       .runFold(ByteString.empty)(_ ++ _)
+//       .map { data ⇒
+//         if (data.isEmpty) Xor.Right(JsonBody2(None))
+//         else parse(data.utf8String).map(res ⇒ JsonBody2(Some(res)))
+//       }
+// }
 
 sealed trait ServiceResult
 

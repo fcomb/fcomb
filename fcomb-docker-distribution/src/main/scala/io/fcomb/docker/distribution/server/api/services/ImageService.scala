@@ -126,6 +126,15 @@ object ImageService extends Service {
     })
   }
 
+  def manifestUpload(name: String, reference: String)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    println(s"reference: $reference")
+    ???
+  }
+
   private def getDigest(digest: String) =
     digest.split(':').last
 

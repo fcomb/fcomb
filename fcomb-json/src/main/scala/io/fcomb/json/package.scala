@@ -198,6 +198,12 @@ package object json {
   implicit val nodeResponseJsonProtocol =
     jsonFormat6(NodeResponse)
 
+  implicit val dockerDistributionFsLayerJsonProtocol =
+    jsonFormat1(distribution.FsLayer)
+
+  implicit val dockerDistributionManifestJsonProtocol =
+    jsonFormat4(distribution.Manifest)
+
   object errors {
     implicit val errorKindFormat = createStringEnumJsonFormat(ErrorKind)
 
