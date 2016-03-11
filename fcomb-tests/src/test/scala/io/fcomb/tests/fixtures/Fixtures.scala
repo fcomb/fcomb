@@ -13,23 +13,25 @@ object Fixtures {
   def await[T](fut: Future[T])(implicit timeout: Duration = 10.seconds): T =
     Await.result(fut, timeout)
 
-  val userEmail = "test@fcomb.io"
-  val userUsername = "test"
-  val userPassword = "password"
-  val userFullName = "Test Test"
+  object User {
+    val email = "test@fcomb.io"
+    val username = "test"
+    val password = "password"
+    val fullName = Some("Test Test")
 
-  def createUser(
-    email:    String         = userEmail,
-    username: String         = userUsername,
-    password: String         = userPassword,
-    fullName: Option[String] = Some(userFullName)
-  ) =
-    P.User.create(
-      email = email,
-      username = username,
-      password = password,
-      fullName = fullName
-    ).map(getSuccess)
+    def create(
+      email:    String         = email,
+      username: String         = username,
+      password: String         = password,
+      fullName: Option[String] = fullName
+    ) =
+      P.User.create(
+        email = email,
+        username = username,
+        password = password,
+        fullName = fullName
+      ).map(getSuccess)
+  }
 
   private def getSuccess[T](res: Validation[_, T]) =
     res match {

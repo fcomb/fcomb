@@ -17,7 +17,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
   "The image service" should {
     "return a uuid for POST requests to the start upload path" in {
-      Fixtures.await(Fixtures.createUser())
+      Fixtures.await(Fixtures.User.create())
 
       Post(s"/v2/$imageName/blobs/uploads/") ~> route ~> check {
         status === StatusCodes.Accepted

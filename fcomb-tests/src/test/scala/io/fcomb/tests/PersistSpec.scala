@@ -4,11 +4,11 @@ import io.fcomb.Db
 import io.fcomb.{persist ⇒ P}
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 import org.slf4j.LoggerFactory
 
-private[this] final object PersistSpec {
+private[this] object PersistSpec {
   lazy val logger = LoggerFactory.getLogger(getClass)
 
   lazy val initDbOnlyOnce = {
@@ -21,7 +21,7 @@ private[this] final object PersistSpec {
     try st.executeUpdate()
     finally conn.close()
     logger.debug("Migrate db schema")
-    Await.result(Db.migrate(), Duration.Inf)
+    Await.result(Db.migrate(), 30.seconds)
   }
 
   val tables = Set(
