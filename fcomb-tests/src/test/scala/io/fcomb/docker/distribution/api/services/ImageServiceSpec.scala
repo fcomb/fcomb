@@ -27,40 +27,5 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         header[RangeCustom].get shouldEqual RangeCustom(0L, 0L)
       }
     }
-
-    "test registry" in {
-      import org.scalatest.concurrent._
-      import akka.http._
-      import akka.http.scaladsl._, model._
-      import akka.stream._
-      import akka.stream.scaladsl._
-      import akka.util.ByteString
-      import scala.concurrent.duration._
-
-      def registryCall(
-        method:  HttpMethod,
-        uri:     String,
-        entity:  RequestEntity    = HttpEntity.Empty,
-        headers: List[HttpHeader] = List.empty
-      ) = {
-        Source
-          .single(HttpRequest(
-            uri = uri,
-            method = method,
-            entity = entity,
-            headers = headers
-          ))
-          .via(Http().outgoingConnection("coreos", 5000))
-          .runWith(Sink.head)
-          .flatMap { res ⇒
-            res.entity.toStrict(1.second).map(_.getData).map { data ⇒
-              (data, res.headers)
-            }
-          }
-      }
-
-      val (res, headers) = registryCall(HttpMethods.GET, "/v2/").futureValue
-      res shouldBe ByteString("{}")
-    }
   }
 }
