@@ -5,6 +5,7 @@ import io.fcomb.docker.distribution.server.api.services.headers._
 import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob}
 import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob, _}
 import io.fcomb.utils.StringUtils
+import io.fcomb.json._
 import akka.actor._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
@@ -131,8 +132,14 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    println(s"reference: $reference")
-    ???
+    import scala.concurrent.duration._
+    complete(ctx.requestContext.request.entity.toStrict(1.second).map { entity =>
+      println(s"entity: ${entity.getData.utf8String}")
+      requestBodyAsOpt[Manifest] { req ⇒
+        println(s"reference: $reference, manifest: $req")
+        ???
+      }
+    })
   }
 
   private def getDigest(digest: String) =

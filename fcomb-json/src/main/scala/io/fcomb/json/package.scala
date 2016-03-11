@@ -201,8 +201,17 @@ package object json {
   implicit val dockerDistributionFsLayerJsonProtocol =
     jsonFormat1(distribution.FsLayer)
 
-  implicit val dockerDistributionManifestJsonProtocol =
-    jsonFormat4(distribution.Manifest)
+  implicit val dockerDistributionManifestV1JsonProtocol =
+    jsonFormat5(distribution.ManifestV1)
+
+  implicit object DockerDistributionManifestJsonProtocol extends RootJsonFormat[distribution.Manifest] {
+    def write(m: distribution.Manifest) = m match {
+      case m: distribution.ManifestV1 => m.toJson
+      case _ => ???
+    }
+
+    def read(v: JsValue): distribution.Manifest = ???
+  }
 
   object errors {
     implicit val errorKindFormat = createStringEnumJsonFormat(ErrorKind)

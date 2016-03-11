@@ -4,7 +4,7 @@ import io.fcomb.docker.api.methods.ContainerMethods._
 import spray.json._
 import spray.json.DefaultJsonProtocol.{listFormat => _, _}
 import io.fcomb.json._
-import java.time.{LocalDateTime, ZonedDateTime}
+import java.time.ZonedDateTime
 
 private[api] object ContainerMethodsFormat {
   implicit val portKindFormat =

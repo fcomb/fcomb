@@ -7,7 +7,7 @@ object Dependencies {
     val cats = "0.4.1"
     val circe = "0.4.0-SNAPSHOT"
     val slick = "3.1.1"
-    val slickPg = "0.11.2"
+    val slickPg = "0.12.0"
     val shims = "0.3"
     val scalaz = "7.2.1"
     val quill = "0.3.0"
@@ -74,12 +74,12 @@ object Dependencies {
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
     val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
 
-    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4.1208" exclude("org.slf4j", "slf4j-simple")
     val quillJdbc       = "io.getquill"                   %% "quill-jdbc"                    % V.quill
     val quillAsync      = "io.getquill"                   %% "quill-async"                   % V.quill
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
-    val slickHikariCp   = "com.typesafe.slick"            %% "slick-hikaricp"                % V.slick exclude("com.zaxxer", "HikariCP-java6")
-    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg exclude("org.postgresql", "postgresql")
+    val slickHikariCp   = "com.typesafe.slick"            %% "slick-hikaricp"                % V.slick
+    val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg
+    val slickPgDate2    = "com.github.tminglei"           %% "slick-pg_date2"                % V.slickPg
     val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % V.slickPg
     val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.7"
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.3"
@@ -203,10 +203,9 @@ object Dependencies {
   )
 
   val persist = common ++ Seq(
-    postgresJdbc,
     dbMigration,
     quillJdbc, quillAsync,
-    slick, slickHikariCp, slickPg, slickPgSprayJson, slickJdbc,
+    slick, slickHikariCp, slickPg, slickPgDate2, slickPgSprayJson, slickJdbc,
     // phantom, phantomUdt,
     hikariCp, bcrypt, commonsCodec,
     routeTrie
