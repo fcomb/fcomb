@@ -38,10 +38,13 @@ private[this] final object PersistSpec {
 trait PersistSpec extends BeforeAndAfterAll with BeforeAndAfterEach { this: Suite ⇒
   lazy val logger = LoggerFactory.getLogger(getClass)
 
-  override def beforeAll(): Unit =
+  override def beforeAll(): Unit = {
+    super.beforeAll()
     PersistSpec.initDbOnlyOnce
+  }
 
   override def beforeEach(): Unit = {
+    super.beforeEach()
     logger.debug("Truncate tables")
     val conn = Db.db.createSession().conn
     val st = conn.prepareStatement(PersistSpec.truncateQuery)
