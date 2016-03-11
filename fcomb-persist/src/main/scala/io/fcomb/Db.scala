@@ -1,12 +1,10 @@
 package io.fcomb
 
-import akka.actor.ActorSystem
 import io.fcomb.db.Migration
 import io.fcomb.utils.{Config, Implicits}
 import io.fcomb.RichPostgresDriver.api.Database
 import redis.RedisClient
-import scala.concurrent.{ Await, ExecutionContext, Future, blocking }
-import javax.sql.DataSource
+import scala.concurrent.ExecutionContext
 import com.github.kxbmap.configs.syntax._
 
 object Db {

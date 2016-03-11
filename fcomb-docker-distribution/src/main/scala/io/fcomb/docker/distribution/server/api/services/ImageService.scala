@@ -103,7 +103,6 @@ object ImageService extends Service {
               println(blob)
               ??? // TODO
             }
-
           }
         case None ⇒ Future.successful(completeNotFound())
       }
