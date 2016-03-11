@@ -74,8 +74,9 @@ object Dependencies {
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
     val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
 
-    val quillJdbc       = "io.getquill"                   %% "quill-jdbc"                    % V.quill
-    val quillAsync      = "io.getquill"                   %% "quill-async"                   % V.quill
+    val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1201-jdbc41" exclude("org.slf4j", "slf4j-simple")
+    // val quillJdbc       = "io.getquill"                   %% "quill-jdbc"                    % V.quill
+    // val quillAsync      = "io.getquill"                   %% "quill-async"                   % V.quill
     val slick           = "com.typesafe.slick"            %% "slick"                         % V.slick
     val slickHikariCp   = "com.typesafe.slick"            %% "slick-hikaricp"                % V.slick
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg
@@ -203,8 +204,9 @@ object Dependencies {
   )
 
   val persist = common ++ Seq(
+    postgresJdbc,
     dbMigration,
-    quillJdbc, quillAsync,
+    // quillJdbc, quillAsync,
     slick, slickHikariCp, slickPg, slickPgDate2, slickPgSprayJson, slickJdbc,
     // phantom, phantomUdt,
     hikariCp, bcrypt, commonsCodec,

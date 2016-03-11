@@ -46,10 +46,10 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   //   }
 
   @inline
-  def runInTransaction[Q](
+  def runInTransaction[Q](isolation: TransactionIsolation)(
     q: DBIOAction[Q, NoStream, Effect.All]
   )(implicit ec: ExecutionContext): Future[Q] = db.run {
-    q.transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted)
+    q.transactionally.withTransactionIsolation(isolation)
   }
 
   protected def validate(
@@ -100,7 +100,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     ec: ExecutionContext,
     m:  Manifest[T]
   ): Future[ValidationModel] =
-    runInTransaction(validateThenApplyVMDBIO(result)(f))
+    runInTransaction(TransactionIsolation.ReadCommitted)(validateThenApplyVMDBIO(result)(f))
 
   def all() =
     db.run(table.result)
@@ -137,7 +137,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     ec: ExecutionContext,
     m:  Manifest[T]
   ): Future[ValidationModel] =
-    runInTransaction(createWithValidationDBIO(item))
+    runInTransaction(TransactionIsolation.ReadCommitted)(createWithValidationDBIO(item))
 
   def strictUpdateDBIO[R](res: R)(
     q:     Int,

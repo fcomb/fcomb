@@ -5,6 +5,7 @@ import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models
 import scalaz._, Scalaz._
 import scala.concurrent.{ExecutionContext, Future}
+import slick.jdbc.TransactionIsolation
 import java.time.ZonedDateTime
 
 class UserCertificateTable(tag: Tag) extends Table[models.UserCertificate](tag, "user_certificates")
@@ -49,7 +50,7 @@ object UserCertificate extends PersistModelWithAutoLongPk[models.UserCertificate
       createdAt = timeAt,
       updatedAt = timeAt
     )
-    runInTransaction(for {
+    runInTransaction(TransactionIsolation.ReadCommitted)(for {
       root ← createDBIO(rootCert)
       client ← createDBIO(clientCert)
     } yield root.success)

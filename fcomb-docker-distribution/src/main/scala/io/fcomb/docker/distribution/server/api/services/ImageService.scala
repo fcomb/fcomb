@@ -56,6 +56,7 @@ object ImageService extends Service {
             }
             .runWith(akka.stream.scaladsl.FileIO.toFile(file))
           digest = StringUtils.hexify(md.digest)
+          // TODO: check digest for unique
           _ ← PBlob.uploadChunk(uuid, file.length, digest)
         } yield {
           println(s"digest: $digest")
@@ -75,23 +76,37 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
-      case Some((blob, _)) ⇒
-        // TODO: append data from dataBytes if non empty
-        val digest = getDigest(ctx.requestContext.request.uri.query().get("digest").get)
-        if (blob.sha256Digest.contains(digest)) {
-          PBlob.update(uuid)(_.copy(
-            state = BlobState.Uploaded,
-            uploadedAt = Some(ZonedDateTime.now())
-          )).map { _ ⇒
-            completeWithoutResult(StatusCodes.Created, List(
-              Location(s"/v2/$name/blobs/sha256:$digest"),
-              `Docker-Content-Digest`("sha256", digest)
-            ))
+    val digest = getDigest(ctx.requestContext.request.uri.query().get("digest").get)
+    val headers = List(
+      Location(s"/v2/$name/blobs/sha256:$digest"),
+      `Docker-Content-Digest`("sha256", digest)
+    )
+    complete(PBlob.findByImageAndDigest(name, digest).flatMap {
+      case Some(blob) ⇒
+        Future.successful(completeWithoutResult(StatusCodes.Created, headers))
+      case None ⇒ PBlob.findByImageAndUuid(name, uuid).flatMap {
+        case Some((blob, _)) ⇒
+          // TODO: append data from dataBytes if non empty
+          ctx.requestContext.request.entity.toStrict(1.second).flatMap { entity ⇒
+            println(s"entity.length: ${entity.getData.length}")
+            if (blob.sha256Digest.contains(digest)) {
+              // TODO: check digest for already exists (same image must be deleted and return OK response)
+              PBlob.update(uuid)(_.copy(
+                state = BlobState.Uploaded,
+                uploadedAt = Some(ZonedDateTime.now())
+              )).map { res ⇒
+                completeValidationWithoutResult(res, StatusCodes.Created, headers)
+              }
+            }
+            else {
+              println(s"${blob.sha256Digest}.contains($digest): ${blob.sha256Digest.contains(digest)} !!!!!!!!!!!!!!!!!!!!!!!!!!")
+              println(blob)
+              ??? // TODO
+            }
+
           }
-        }
-        else ??? // TODO
-      case None ⇒ Future.successful(completeNotFound())
+        case None ⇒ Future.successful(completeNotFound())
+      }
     })
   }
 
@@ -133,11 +148,18 @@ object ImageService extends Service {
     mat: Materializer
   ) = action { implicit ctx ⇒
     import scala.concurrent.duration._
-    complete(ctx.requestContext.request.entity.toStrict(1.second).map { entity =>
+    complete(ctx.requestContext.request.entity.toStrict(1.second).map { entity ⇒
       println(s"entity: ${entity.getData.utf8String}")
-      requestBodyAsOpt[Manifest] { req ⇒
+      requestBodyAs[Manifest] { req ⇒
         println(s"reference: $reference, manifest: $req")
-        ???
+        val digest = getDigest(req match {
+          case m: ManifestV1 ⇒ m.fsLayers.head.blobSum
+          case m: ManifestV2 ⇒ m.layers.head.digest
+        })
+        println(s"digest: $digest")
+        completeWithoutResult(StatusCodes.Created, List(
+          `Docker-Content-Digest`("sha256", digest)
+        ))
       }
     })
   }

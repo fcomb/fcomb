@@ -1,12 +1,12 @@
 package io.fcomb.persist.docker.distribution
 
-import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage}
 import io.fcomb.persist._
 import io.fcomb.validations._
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz._, Scalaz._
+import slick.jdbc.TransactionIsolation
 import java.time.ZonedDateTime
 
 class ImageTable(tag: Tag) extends Table[MImage](tag, "docker_distribution_images") with PersistTableWithAutoLongPk {
@@ -33,18 +33,21 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
   def findIdOrCreateByName(name: String, userId: Long)(
     implicit
     ec: ExecutionContext
-  ): Future[ValidationResult[Long]] = runInTransaction {
-    findByNameCompiled(name).result.headOption.flatMap {
-      case Some(idOpt) ⇒ DBIO.successful(idOpt.get.success)
-      case None ⇒
-        val timeNow = ZonedDateTime.now
-        createWithValidationDBIO(MImage(
-          name = name,
-          userId = userId,
-          createdAt = timeNow,
-          updatedAt = timeNow
-        )).map(_.map(_.getId))
-    }
+  ): Future[ValidationResult[Long]] = runInTransaction(TransactionIsolation.ReadUncommitted) {
+    for {
+      _ ← sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
+      res ← findByNameCompiled(name).result.headOption.flatMap {
+        case Some(idOpt) ⇒ DBIO.successful(idOpt.get.success)
+        case None ⇒
+          val timeNow = ZonedDateTime.now
+          createWithValidationDBIO(MImage(
+            name = name,
+            userId = userId,
+            createdAt = timeNow,
+            updatedAt = timeNow
+          )).map(_.map(_.getId))
+      }
+    } yield res
   }
 
   private val uniqueNameCompiled = Compiled {

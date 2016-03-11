@@ -204,13 +204,27 @@ package object json {
   implicit val dockerDistributionManifestV1JsonProtocol =
     jsonFormat5(distribution.ManifestV1)
 
+  implicit val dockerDistributionDescriptorJsonProtocol =
+    jsonFormat3(distribution.Descriptor)
+
+  implicit val dockerDistributionManifestV2JsonProtocol =
+    jsonFormat4(distribution.ManifestV2)
+
   implicit object DockerDistributionManifestJsonProtocol extends RootJsonFormat[distribution.Manifest] {
     def write(m: distribution.Manifest) = m match {
-      case m: distribution.ManifestV1 => m.toJson
-      case _ => ???
+      case m: distribution.ManifestV1 ⇒ m.toJson
+      case m: distribution.ManifestV2 ⇒ m.toJson
     }
 
-    def read(v: JsValue): distribution.Manifest = ???
+    def read(v: JsValue): distribution.Manifest = v match {
+      case obj: JsObject ⇒
+        obj.getFields("schemaVersion").headOption.map(_.convertTo[Int]) match {
+          case Some(1) ⇒ obj.convertTo[distribution.ManifestV1]
+          case Some(2) ⇒ obj.convertTo[distribution.ManifestV2]
+          case _       ⇒ throw new DeserializationException("unsupported Manifest version")
+        }
+      case _ ⇒ throw new DeserializationException("invalid Manifest")
+    }
   }
 
   object errors {

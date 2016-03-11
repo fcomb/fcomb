@@ -253,18 +253,21 @@ trait ServiceLogging {
 }
 
 trait ServiceExceptionMethods {
-  def mapThrowable(e: Throwable) = e match {
-    case _: DeserializationException |
-      _: ParsingException |
-      _: Unmarshaller.UnsupportedContentTypeException ⇒
-      (
+  def mapThrowable(e: Throwable) = {
+    e.printStackTrace() // TODO: debug only
+    e match {
+      case _: DeserializationException |
+        _: ParsingException |
+        _: Unmarshaller.UnsupportedContentTypeException ⇒
+        (
+          InternalException(e.getMessage),
+          StatusCodes.UnprocessableEntity
+        )
+      case _ ⇒ (
         InternalException(e.getMessage),
-        StatusCodes.UnprocessableEntity
+        StatusCodes.InternalServerError
       )
-    case _ ⇒ (
-      InternalException(e.getMessage),
-      StatusCodes.InternalServerError
-    )
+    }
   }
 }
 
