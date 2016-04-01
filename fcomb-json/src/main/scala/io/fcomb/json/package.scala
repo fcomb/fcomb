@@ -1,6 +1,7 @@
 package io.fcomb
 
-import io.fcomb.models._, errors._, node._, application._, docker._
+import io.fcomb.models._, errors._, node._, application._
+import io.fcomb.models.docker._
 import io.fcomb.request._
 import io.fcomb.response._
 import java.time._

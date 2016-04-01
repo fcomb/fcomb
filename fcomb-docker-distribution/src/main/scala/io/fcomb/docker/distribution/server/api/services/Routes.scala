@@ -2,6 +2,7 @@ package io.fcomb.docker.distribution.server.api.services
 
 import io.fcomb.api.services.{ServiceContext, ServiceMethod}
 import io.fcomb.api.services.ServiceRoute._
+import io.fcomb.api.services.headers._
 import io.fcomb.docker.distribution.server.api.services.headers._
 import akka.actor._
 import akka.http.scaladsl.model._
@@ -35,10 +36,13 @@ object Routes {
               ImageService.upload(imageName(xs), uuid)
             case id :: "blobs" :: xs =>
               val image = imageName(xs)
+              println(ctx.request)
               method match {
                 case HttpMethods.HEAD if id.startsWith("sha256:") =>
+                  println(s"HEAD")
                   ImageService.show(image, id)
                 case HttpMethods.GET if id.startsWith("sha256:") =>
+                  println(s"GET")
                   ImageService.download(image, id)
                 case HttpMethods.PUT =>
                   ImageService.uploadComplete(image, UUID.fromString(id))
@@ -70,7 +74,12 @@ object Routes {
 
   private val versionHeader = `Docker-Distribution-Api-Version`("2.0")
 
-  private val defaultHeaders = List(versionHeader)
+  private val defaultHeaders = List(
+    versionHeader,
+    `X-Content-Type-Options`("nosniff"),
+    `X-Frame-Options`("sameorigin"),
+    `X-XSS-Protection`("1; mode=block")
+  )
 
   private val notFoundResponse = HttpResponse(StatusCodes.NotFound)
 

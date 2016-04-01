@@ -161,8 +161,8 @@ object ServiceRoute {
       ))
     case CompleteSourceResult(s, status, ct, headers, contentLength) ⇒
       val entity = contentLength match {
-        case Some(length) ⇒ HttpEntity.apply(ct, length, s)
-        case None         ⇒ HttpEntity.apply(ct, s)
+        case Some(length) ⇒ HttpEntity(ct, length, s)
+        case None         ⇒ HttpEntity(ct, s)
       }
       rCtx.complete(HttpResponse(
         status = status,

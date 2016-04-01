@@ -15,7 +15,8 @@ import scala.concurrent.duration._
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.concurrent.ScalaFutures
 
-class DistributionApiSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with ScalaFutures {
+class DistributionApiSpec extends WordSpec with Matchers with ScalatestRouteTest
+    with SpecHelpers with ScalaFutures {
   val imageName = "library/test-image_2016"
   val blob = getFixture("docker/distribution/blob")
 

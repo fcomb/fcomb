@@ -42,7 +42,7 @@ abstract class ActorSpec extends TestKit(ActorSystemSpec.system)
   with ImplicitSender with WordSpecLike with Matchers
   with BeforeAndAfterAll with ActorSystemSpec with SpecHelpers {
 
-  implicit val timeout = 1.second // TODO: move into config
+  implicit val timeout = 5.seconds // TODO: move into config
 
   def await[T](f: Future[T]): T =
     Await.result(f, timeout)

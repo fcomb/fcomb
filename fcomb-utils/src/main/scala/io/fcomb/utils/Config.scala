@@ -13,7 +13,7 @@ object Config {
 
   object docker {
     object distribution {
-      val imageStorage = config.getString("docker.distribution.rest-api")
+      val imageStorage = config.getString("docker.distribution.image-storage")
     }
   }
 

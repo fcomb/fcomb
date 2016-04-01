@@ -2,17 +2,17 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.2"
+    val akka = "2.4.3"
     val bouncyCastle = "1.53"
     val cats = "0.4.1"
-    val circe = "0.4.0-SNAPSHOT"
+    val circe = "0.4.0-RC1"
     val slick = "3.1.1"
     val slickPg = "0.12.0"
     val shims = "0.3"
-    val scalaz = "7.2.1"
+    val scalaz = "7.2.2"
     val quill = "0.3.0"
     val monocle = "1.2.0"
-    val kamon = "0.6.0-2961cc2fff3f408dbce964ed8ec82998bc864186"
+    val kamon = "0.6.0"
   }
 
   object Compile {
@@ -57,7 +57,6 @@ object Dependencies {
     // "com.github.romix.akka" %% "akka-kryo-serialization" % "0.3.3"
 
     // val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
-    // val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.5"
     val sprayJson       = "io.spray"                      %% "spray-json"                   % "1.3.2"
     val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.2.0"
     val circeCore       = "io.circe"                      %% "circe-core"                    % V.circe
@@ -72,7 +71,7 @@ object Dependencies {
     val caffeine        = "com.github.ben-manes.caffeine" % "caffeine"                       % "1.3.3"
 
     val config          = "com.typesafe"                  %  "config"                        % "1.3.0"
-    val configs         = "com.github.kxbmap"             %% "configs"                       % "0.3.0"
+    val configs         = "com.github.kxbmap"             %% "configs"                       % "0.4.2"
 
     val postgresJdbc    = "org.postgresql"                %  "postgresql"                    % "9.4-1201-jdbc41" exclude("org.slf4j", "slf4j-simple")
     // val quillJdbc       = "io.getquill"                   %% "quill-jdbc"                    % V.quill
@@ -117,10 +116,10 @@ object Dependencies {
     val monocleMacro    = "com.github.julien-truffaut"    %%  "monocle-macro"                % V.monocle
     val monocleState    = "com.github.julien-truffaut"    %%  "monocle-state"                % V.monocle
 
-    val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.6"
+    val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.7"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
 
-    val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.8"
+    val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.9"
 
     val bridj           = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
 
@@ -139,6 +138,8 @@ object Dependencies {
 
     // val jamm            = "com.github.jbellis"            % "jamm"                           % "0.3.1"
     // "com.github.jnr" % "jnr-unixsocket" % "0.10"
+
+    val scalaMeter      = "com.storm-enroute"             %% "scalameter"                    % "0.7"
   }
 
   object Test {

@@ -5,7 +5,7 @@ import io.fcomb.utils.{Config, Implicits}
 import io.fcomb.RichPostgresDriver.api.Database
 import redis.RedisClient
 import scala.concurrent.ExecutionContext
-import com.github.kxbmap.configs.syntax._
+import configs.syntax._
 
 object Db {
   private val dbUrl = Config.jdbcConfig.getString("url")
@@ -18,9 +18,9 @@ object Db {
     Migration.run(dbUrl, dbUser, dbPassword)
 
   lazy val redis = RedisClient(
-    host = Config.redis.get[String]("host"),
-    port = Config.redis.get[Int]("port"),
-    db = Config.redis.get[Option[Int]]("db"),
-    password = Config.redis.get[Option[String]]("password")
+    host = Config.redis.get[String]("host").value,
+    port = Config.redis.get[Int]("port").value,
+    db = Config.redis.get[Option[Int]]("db").value,
+    password = Config.redis.get[Option[String]]("password").value
   )(Implicits.global.system)
 }

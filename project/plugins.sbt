@@ -5,7 +5,7 @@ resolvers ++= Seq(
   Classpaths.sbtPluginReleases
 )
 
-addSbtPlugin("com.github.alexarchambault" % "coursier-sbt-plugin" % "1.0.0-M9")
+addSbtPlugin("com.github.alexarchambault" % "coursier-sbt-plugin" % "1.0.0-M10")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.0.6")
 
@@ -29,4 +29,4 @@ addSbtPlugin("org.brianmckenna" % "sbt-wartremover" % "0.14")
 
 addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")
 
-addSbtPlugin("com.softwaremill.clippy" % "plugin-sbt" % "0.2.2")
+addSbtPlugin("com.softwaremill.clippy" % "plugin-sbt" % "0.2.5")

@@ -6,6 +6,7 @@ import scala.util.control.NoStackTrace
 package object errors {
   object ErrorKind extends Enumeration {
     type ErrorKind = Value
+
     val Request = Value("request")
     val Validation = Value("validation")
     val Internal = Value("internal")

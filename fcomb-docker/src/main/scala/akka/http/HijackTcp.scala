@@ -117,19 +117,18 @@ object HijackTcp {
     def parsingResponse: State = new State {
       val parser = new HttpResponseParser(settings.parserSettings, HttpHeaderParser(settings.parserSettings)()) {
         var first = true
-
+        override def handleInformationalResponses = false
         override protected def parseMessage(input: ByteString, offset: Int): StateResult = {
           if (first) {
             first = false
             super.parseMessage(input, offset)
-          }
-          else {
+          } else {
             emit(RemainingBytes(input.drop(offset)))
             terminate()
           }
         }
       }
-      parser.setRequestMethodForNextResponse(req.method)
+      parser.setContextForNextResponse(HttpResponseParser.ResponseContext(HttpMethods.GET, None))
 
       def onPush(elem: ByteString, ctx: Context[ByteString]): SyncDirective = {
         parser.parseBytes(elem) match {

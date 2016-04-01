@@ -1,6 +1,7 @@
 package io.fcomb.docker.distribution.server.services
 
 import io.fcomb.services._
+import io.fcomb.models.docker.distribution.{BlobState}
 import akka.actor._
 import akka.cluster.sharding._
 import akka.stream.Materializer
@@ -15,10 +16,10 @@ import scala.concurrent.duration._
 import java.security.MessageDigest
 import java.util.UUID
 
-object ImagePushProcessor extends Processor[UUID] {
+object ImageBlobPushProcessor extends Processor[UUID] {
   val numberOfShards = 1
 
-  val shardName = "image-push-processor"
+  val shardName = "image-blob-push-processor"
 
   val extractShardId: ShardRegion.ExtractShardId = {
     case EntityEnvelope(id, _) ⇒ id.toString
@@ -32,14 +33,9 @@ object ImagePushProcessor extends Processor[UUID] {
     startClustedSharding(props(timeout))
 
   def props(timeout: Duration)(implicit mat: Materializer) =
-    Props(new ImagePushProcessor(timeout))
+    Props(new ImageBlobPushProcessor(timeout))
 
   case object GetState extends Entity
-
-  case class PushDataBytes(
-    range: (Long, Long),
-    dataBytes: Source[ByteString, Any]
-  ) extends Entity
 
   // def getState(imageUuid: UUID)(
   //   implicit
@@ -49,18 +45,18 @@ object ImagePushProcessor extends Processor[UUID] {
   //   askRef[ReserveResult](userId, Reserve(scaleStrategy), timeout)
 }
 
-object ImagePushMessages {
+object ImageBlobPushMessages {
   case class State(
     length: Long,
     digest: MessageDigest
   )
 }
 
-class ImagePushProcessor(timeout: Duration) extends Actor
-    with Stash with ActorLogging with ProcessorActor[ImagePushMessages.State] {
+class ImageBlobPushProcessor(timeout: Duration) extends Actor
+    with Stash with ActorLogging with ProcessorActor[ImageBlobPushMessages.State] {
   import context.dispatcher
-  import ImagePushProcessor._
-  import ImagePushMessages._
+  import ImageBlobPushProcessor._
+  import ImageBlobPushMessages._
 
   context.setReceiveTimeout(timeout)
 

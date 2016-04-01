@@ -4,7 +4,7 @@ import io.fcomb.api.services.{Service, ServiceContext, ServiceResult}
 import io.fcomb.docker.distribution.server.api.services.headers._
 import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob}
 import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob, _}
-import io.fcomb.utils.StringUtils
+import io.fcomb.utils.{Config, StringUtils}
 import io.fcomb.json._
 import akka.actor._
 import akka.http.scaladsl.model._
@@ -18,6 +18,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import java.security.MessageDigest
 import java.time.ZonedDateTime
+import java.io.File
 import java.util.UUID
 
 object ImageService extends Service {
@@ -49,12 +50,11 @@ object ImageService extends Service {
         val md = MessageDigest.getInstance("SHA-256")
         val file = imageFile(blob.getId.toString)
         for {
-          _ ← ctx.requestContext.request.entity.dataBytes
-            .map { chunk ⇒
-              md.update(chunk.toArray)
-              chunk
-            }
-            .runWith(akka.stream.scaladsl.FileIO.toFile(file))
+          _ ← ctx.requestContext.request.entity.dataBytes.map { chunk ⇒
+            md.update(chunk.toArray)
+            chunk
+          }.runWith(akka.stream.scaladsl.FileIO.toFile(file))
+          // TODO: check file for 0 size
           digest = StringUtils.hexify(md.digest)
           // TODO: check digest for unique
           _ ← PBlob.uploadChunk(uuid, file.length, digest)
@@ -114,10 +114,23 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    complete(PBlob.findByImageAndDigest(name, getDigest(digest)).flatMap {
+    val sha256Digest = getDigest(digest)
+    complete(PBlob.findByImageAndDigest(name, sha256Digest).map {
       case Some((blob, _)) ⇒
         println(s"blob: $blob")
-        ???
+        complete(
+          Source.empty,
+          StatusCodes.OK,
+          ContentTypes.`application/octet-stream`,
+          List(
+            `Docker-Content-Digest`("sha256", sha256Digest),
+            ETag(digest),
+            cacheHeader
+          ),
+          contentLength = Some(blob.length)
+        )
+      case None ⇒
+        completeNotFound()
     })
   }
 
@@ -163,6 +176,9 @@ object ImageService extends Service {
     })
   }
 
+  private val cacheHeader =
+    `Cache-Control`(CacheDirectives.`max-age`(365.days.toSeconds))
+
   private def getDigest(digest: String) =
     digest.split(':').last
 
@@ -174,5 +190,5 @@ object ImageService extends Service {
   }
 
   private def imageFile(imageName: String) =
-    new java.io.File(s"/tmp/blobs/${imageName.replaceAll("/", "_")}")
+    new File(s"${Config.docker.distribution.imageStorage}/${imageName.replaceAll("/", "_")}")
 }
