@@ -41,8 +41,42 @@ object Fixtures {
       ).map(getSuccess)
   }
 
+  object DockerDistributionImage {
+    def create(      userId:    Long,      imageName: String    )(
+      implicit
+      ec:  ExecutionContext,
+      mat: Materializer
+    ) =
+      (for {
+        Success(imageId) ← P.docker.distribution.Image.findIdOrCreateByName(imageName, userId)
+      } yield imageId)
+  }
+
   object DockerDistributionBlob {
-    def createWithImage(
+    def create(
+      userId:    Long,
+      imageName: String
+    )(
+      implicit
+      ec:  ExecutionContext,
+      mat: Materializer
+    ) =
+      (for {
+        imageId ← DockerDistributionImage.create(userId, imageName)
+        id = UUID.randomUUID()
+        blob = M.docker.distribution.Blob(
+          id = Some(id),
+          state = M.docker.distribution.BlobState.Created,
+          imageId = imageId,
+          sha256Digest = None,
+          length = 0L,
+          createdAt = ZonedDateTime.now(),
+          uploadedAt = None
+        )
+        Success(res) ← P.docker.distribution.Blob.create(blob)
+      } yield res)
+
+    def createAsUploaded(
       userId:    Long,
       imageName: String,
       digest:    String,
@@ -54,7 +88,7 @@ object Fixtures {
       mat: Materializer
     ) =
       (for {
-        Success(imageId) ← P.docker.distribution.Image.findIdOrCreateByName(imageName, userId)
+        imageId ← DockerDistributionImage.create(userId, imageName)
         id = UUID.randomUUID()
         blob = M.docker.distribution.Blob(
           id = Some(id),

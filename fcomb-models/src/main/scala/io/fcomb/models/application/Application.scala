@@ -2,6 +2,7 @@ package io.fcomb.models.application
 
 import io.fcomb.models.ModelWithAutoLongPk
 import java.time.ZonedDateTime
+import cats.Eq
 
 object ApplicationState extends Enumeration {
   type ApplicationState = Value
@@ -17,6 +18,9 @@ object ApplicationState extends Enumeration {
   val Scaling = Value("scaling")
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
+
+  implicit val applicationStateEq: Eq[ApplicationState] =
+    Eq.fromUniversalEquals
 }
 
 @SerialVersionUID(1L)
@@ -55,6 +59,9 @@ object NetworkPort extends Enumeration {
 
   val Tcp = Value("tcp")
   val Udp = Value("udp")
+
+  implicit val networkPortEq: Eq[NetworkPort] =
+    Eq.fromUniversalEquals
 }
 
 case class DockerDeployPort(
@@ -87,6 +94,9 @@ object ScaleStrategyKind extends Enumeration {
   // val EveryNode = Value("every_node")
   // val EmptiestNode = Value("emptiest_node")
   // val HighAvailability = Value("high_availability")
+
+  implicit val scaleStrategyKindEq: Eq[ScaleStrategyKind] =
+    Eq.fromUniversalEquals
 }
 
 @SerialVersionUID(1L)

@@ -12,6 +12,22 @@ import spray.json._
 import spray.json.DefaultJsonProtocol._
 
 package object json {
+  private def createEnumJsonFormat[T <: EnumItem](enum: Enum[T]) =
+    new RootJsonFormat[T] {
+      def write(obj: T) = JsString(obj.toString)
+
+      private val klassName =
+        enum.getClass.getName.split('.').last.dropRight(1).replaceAll("\\$", "#")
+
+      def read(v: JsValue) = {
+        val value =
+          if (v.isInstanceOf[JsString])
+            Some(enum.fromString(v.asInstanceOf[JsString].value))
+          else None
+        value.getOrElse(throw new DeserializationException(s"invalid $klassName value"))
+      }
+    }
+
   implicit class JsObjectMethods(val obj: JsObject) extends AnyVal {
     def get[T](fieldName: String)(implicit jr: JsonReader[T]): T =
       obj.fields(fieldName).convertTo[T]
@@ -227,6 +243,36 @@ package object json {
       case _ ⇒ throw new DeserializationException("invalid Manifest")
     }
   }
+
+  import io.fcomb.models.errors.docker.distribution
+
+  implicit val DistributionErrorCodeJsonProtocol =
+    createEnumJsonFormat(distribution.DistributionErrorCode)
+
+  implicit object DistributionErrorJsonProtocol extends RootJsonFormat[distribution.DistributionError] {
+    def write(e: distribution.DistributionError) = JsObject(
+      "code" → e.code.toJson,
+      "message" → e.message.toJson
+    // "detail" -> e.detail.toJson
+    )
+
+    def read(v: JsValue): distribution.DistributionError = v match {
+      case obj: JsObject ⇒
+        obj.getFields("code", "message") match {
+          case Seq(codeStr, JsString(message)) ⇒
+            codeStr.convertTo[distribution.DistributionErrorCode] match {
+              case distribution.DistributionErrorCode.DigestInvalid ⇒
+                distribution.DistributionError.DigestInvalid(message)
+              case _ ⇒ throw new DeserializationException("unsupported DistributionError")
+            }
+          case _ ⇒ throw new DeserializationException("unsupported DistributionError")
+        }
+      case _ ⇒ throw new DeserializationException("invalid DistributionError")
+    }
+  }
+
+  implicit val distributionErrorResponseJsonProtocol =
+    jsonFormat1(distribution.DistributionErrorResponse.apply)
 
   object errors {
     implicit val errorKindFormat = createStringEnumJsonFormat(ErrorKind)

@@ -3,6 +3,7 @@ package io.fcomb.models.node
 import io.fcomb.models.ModelWithAutoLongPk
 import java.time.ZonedDateTime
 import java.net.InetAddress
+import cats.Eq
 
 object NodeState extends Enumeration {
   type NodeState = Value
@@ -13,6 +14,9 @@ object NodeState extends Enumeration {
   val Upgrading = Value("upgrading")
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
+
+  implicit val nodeStateEq: Eq[NodeState] =
+    Eq.fromUniversalEquals
 }
 
 case class Node(

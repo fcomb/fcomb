@@ -3,7 +3,9 @@ package io.fcomb.docker.distribution.server.api.services
 import io.fcomb.api.services.{Service, ServiceContext, ServiceResult}
 import io.fcomb.docker.distribution.server.api.services.headers._
 import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob}
+import io.fcomb.persist.User
 import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob, _}
+import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.utils.{Config, StringUtils}
 import io.fcomb.json._
 import akka.actor._
@@ -14,30 +16,91 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.concurrent.duration._
+import spray.json.JsonWriter
 import java.security.MessageDigest
 import java.time.ZonedDateTime
 import java.io.File
 import java.util.UUID
 
 object ImageService extends Service {
-  def create(name: String)(
+  def createEmptyBlob(name: String)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    complete(PBlob.createByImageName(name, 1).map { res ⇒
-      val headers = res.map { blob ⇒
-        val uuid = blob.getId
-        List(
-          Location(s"/v2/$name/blobs/uploads/$uuid"),
-          `Docker-Upload-Uuid`(uuid),
-          range(0L, 0L)
-        )
-      }.getOrElse(List.empty)
-      completeValidationWithoutResult(res, StatusCodes.Accepted, headers)
-    })
+    complete {
+      (for {
+        user ← User.first
+        res ← PBlob.createByImageName(name, user.getId)
+      } yield res).map { res ⇒
+        val headers = res.map { blob ⇒
+          val uuid = blob.getId
+          List(
+            Location(s"/v2/$name/blobs/uploads/$uuid"),
+            `Docker-Upload-Uuid`(uuid),
+            range(0L, 0L)
+          )
+        }.getOrElse(List.empty)
+        completeValidationWithoutResult(res, StatusCodes.Accepted, headers)
+      }
+    }
+  }
+
+  def completeErrors(errors: Seq[DistributionError])(statusCode: StatusCode)(
+    implicit
+    ctx: ServiceContext
+  ) =
+    complete(DistributionErrorResponse(errors), statusCode)
+
+  def createUploadedBlob(name: String, digest: String)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    val source = ctx.requestContext.request.entity.dataBytes
+    complete {
+      (for {
+        user ← User.first
+        scalaz.Success(blob) ← PBlob.createByImageName(name, user.getId)
+        file = imageFile(blob.getId.toString)
+        sha256Digest ← writeFile(source, file)
+      } yield (blob.getId, sha256Digest, file)).flatMap {
+        case (uuid, sha256Digest, file) ⇒
+          if (getDigest(digest) == sha256Digest) {
+            PBlob.updateState(uuid, file.length, sha256Digest, BlobState.Uploaded).map { _ ⇒
+              completeWithoutResult(StatusCodes.Created, List(
+                Location(s"/v2/$name/blobs/sha256:$sha256Digest"),
+                `Docker-Upload-Uuid`(uuid)
+              ))
+            }
+          }
+          else {
+            for {
+              _ ← Future(blocking(file.delete()))
+              _ ← PBlob.destroy(uuid)
+            } yield completeErrors(Seq(DistributionError.DigestInvalid()))(StatusCodes.BadRequest)
+          }
+      }
+    }
+  }
+
+  private def writeFile(
+    source: Source[ByteString, Any],
+    file:   File
+  )(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = {
+    val md = MessageDigest.getInstance("SHA-256")
+    source.map { chunk ⇒
+      md.update(chunk.toArray)
+      chunk
+    }.runWith(FileIO.toFile(file)).map { _ ⇒
+      StringUtils.hexify(md.digest)
+    }
   }
 
   def upload(name: String, uuid: UUID)(
@@ -57,7 +120,7 @@ object ImageService extends Service {
           // TODO: check file for 0 size
           digest = StringUtils.hexify(md.digest)
           // TODO: check digest for unique
-          _ ← PBlob.uploadChunk(uuid, file.length, digest)
+          _ ← PBlob.updateState(uuid, file.length, digest, BlobState.Uploading)
         } yield {
           println(s"digest: $digest")
           println(s"upload `$uuid` (${file.length} bytes) layout for image $name: $file")
@@ -71,6 +134,7 @@ object ImageService extends Service {
     })
   }
 
+  // TODO: remove blob if digest doesn't match
   def uploadComplete(name: String, uuid: UUID)(
     implicit
     ec:  ExecutionContext,

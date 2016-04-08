@@ -8,7 +8,7 @@ import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, Sink, FileIO}
 import akka.util.ByteString
-import io.circe._
+import io.circe.{Error => CirceError, _}
 import io.circe.jawn._
 import io.fcomb.json._
 import io.fcomb.json.errors._
@@ -355,16 +355,16 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     requestBodyAsOpt[T] {
       case Some(res) ⇒ f(res)
-      case _         ⇒ completeError(JsonBodyCantBeEmpty)(StatusCodes.BadRequest)
+      case _         ⇒ completeException(JsonBodyCantBeEmpty)(StatusCodes.BadRequest)
     }
 
-  def completeErrors(errors: Seq[DtCemException])(statusCode: StatusCode)(
+  def completeExceptions(errors: Seq[DtCemException])(statusCode: StatusCode)(
     implicit
     ctx: ServiceContext
   ) =
     complete(FailureResponse.fromExceptions(errors), statusCode)
 
-  def completeError(error: DtCemException)(statusCode: StatusCode)(
+  def completeException(error: DtCemException)(statusCode: StatusCode)(
     implicit
     ctx: ServiceContext
   ) =
@@ -374,7 +374,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     implicit
     ctx: ServiceContext
   ): ServiceResult =
-    completeError(RecordNotFoundException)(StatusCodes.NotFound)
+    completeException(RecordNotFoundException)(StatusCodes.NotFound)
 
   def complete[T](res: T, statusCode: StatusCode)(
     implicit
@@ -568,7 +568,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     implicit
     ctx: ServiceContext
   ) =
-    Future.successful(completeError(e)(StatusCodes.Unauthorized))
+    Future.successful(completeException(e)(StatusCodes.Unauthorized))
 
   def authorizeUser(
     f: User ⇒ ServiceResult
@@ -686,7 +686,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
           catch { case _: UnknownHostException ⇒ None }
       }) match {
         case Some(ip) ⇒ f(ip)
-        case None     ⇒ completeError(CantExtractClientIpAddress)(StatusCodes.BadRequest)
+        case None     ⇒ completeException(CantExtractClientIpAddress)(StatusCodes.BadRequest)
       }
   }
 }

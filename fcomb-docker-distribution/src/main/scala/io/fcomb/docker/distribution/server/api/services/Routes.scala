@@ -30,10 +30,19 @@ object Routes {
           println(s"image action => $method uri: ${ctx.request.uri}, segments: $segments, headers: ${ctx.request.headers}")
           segments.reverse match {
             case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
-              ImageService.create(imageName(xs))
+              ctx.request.uri.query().get("digest") match {
+                case Some(digest) => ImageService.createUploadedBlob(imageName(xs), digest)
+                case None => ImageService.createEmptyBlob(imageName(xs))
+              }
             case id :: "uploads" :: "blobs" :: xs if uuidRegEx.findFirstIn(id).nonEmpty =>
               val uuid = UUID.fromString(id)
-              ImageService.upload(imageName(xs), uuid)
+              method match {
+                case HttpMethods.PUT =>
+                  ImageService.upload(imageName(xs), uuid)
+                case HttpMethods.PATCH =>
+                  ???
+                case _ => completeAsNotFound()
+              }
             case id :: "blobs" :: xs =>
               val image = imageName(xs)
               println(ctx.request)

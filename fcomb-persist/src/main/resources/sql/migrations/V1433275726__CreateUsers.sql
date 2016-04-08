@@ -6,8 +6,8 @@ CREATE TABLE users (
   username varchar(255) NOT NULL,
   full_name varchar(255),
   password_hash varchar(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
   PRIMARY KEY (id)
 );
 

@@ -28,6 +28,10 @@ class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistT
 object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
   val table = TableQuery[UserTable]
 
+  // TODO: for test only!!!
+  def first() =
+    db.run(table.take(1).result.head)
+
   def create(
     email:    String,
     username: String,

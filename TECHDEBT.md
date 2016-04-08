@@ -14,3 +14,7 @@
 ## Remote
 
 * Guaranteed delivery of container `state` changes
+
+
+## Code
+* Replace `Enumeration` with `sealed trait`

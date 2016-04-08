@@ -3,6 +3,8 @@ package io.fcomb.models.docker
 import io.fcomb.models.ModelWithAutoLongPk
 import scala.collection.immutable
 import java.time.ZonedDateTime
+import cats.Eq
+import cats.syntax.eq._
 
 object ContainerState extends Enumeration {
   type ContainerState = Value
@@ -17,6 +19,9 @@ object ContainerState extends Enumeration {
   val Unreachable = Value("unreachable")
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
+
+  implicit val containerStateEq: Eq[ContainerState] =
+    Eq.fromUniversalEquals
 
   def parseDockerStatus(status: String): ContainerState =
     status.toLowerCase match {
@@ -58,10 +63,10 @@ case class Container(
       dockerId.nonEmpty
 
   def isRunning =
-    isPresent && state == ContainerState.Running
+    isPresent && state === ContainerState.Running
 
   def isPending =
-    isPresent && state == ContainerState.Pending
+    isPresent && state === ContainerState.Pending
 
   def isInProgress =
     ContainerConstants.inProgressSet.contains(this.state)

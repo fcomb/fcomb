@@ -3,7 +3,8 @@ package io.fcomb.docker.api
 import akka.stream.BidiShape
 import akka.stream.scaladsl._
 import akka.stream.stage._
-import akka.util.{ByteIterator, ByteString, ByteStringBuilder}
+import akka.util.ByteString
+import cats.Eq
 
 object StdStream extends Enumeration {
   type StdStream = Value
@@ -13,6 +14,9 @@ object StdStream extends Enumeration {
   val Err = Value(2)
 
   val all = Set(In, Out, Err)
+
+  implicit val stdStreamEq: Eq[StdStream] =
+    Eq.fromUniversalEquals
 }
 
 object StdStreamFrame {
