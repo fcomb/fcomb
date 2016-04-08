@@ -1,6 +1,7 @@
 package io.fcomb.models.docker.distribution
 
 import io.fcomb.models.ModelWithUuidPk
+import cats.Eq
 import java.util.UUID
 import java.time.ZonedDateTime
 
@@ -10,6 +11,8 @@ object BlobState extends Enumeration {
   val Created = Value("created")
   val Uploading = Value("uploading")
   val Uploaded = Value("uploaded")
+
+  implicit val valueEq: Eq[BlobState] = Eq.fromUniversalEquals
 }
 
 case class Blob(

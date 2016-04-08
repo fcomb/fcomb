@@ -5,7 +5,7 @@ import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob}
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.json._
-import io.fcomb.utils.StringUtils
+import io.fcomb.utils.{Config, StringUtils}
 import io.fcomb.tests.{SpecHelpers, PersistSpec}
 import io.fcomb.tests.fixtures.Fixtures
 import scala.concurrent.Await
@@ -19,7 +19,9 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
+import org.apache.commons.codec.digest.DigestUtils
 import java.util.UUID
+import java.io.{File, FileInputStream}
 import java.security.MessageDigest
 import spray.json._
 
@@ -33,6 +35,9 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     StringUtils.hexify(md.digest)
   }
   val digest = "300f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f"
+
+  private def imageFile(imageName: String) =
+    new File(s"${Config.docker.distribution.imageStorage}/${imageName.replaceAll("/", "_")}")
 
   "The image service" should {
     // "return a uuid for POST request to the start upload path" in {
@@ -111,6 +116,34 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     //     }
     // }
 
+    // "return successful response for PUT request to monolithic blob upload path" in {
+    //   val blob = Fixtures.await(for {
+    //     user ← Fixtures.User.create()
+    //     blob ← Fixtures.DockerDistributionBlob.create(user.getId, imageName)
+    //   } yield blob)
+
+    //   Put(
+    //     s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
+    //     HttpEntity(ContentTypes.`application/octet-stream`, bs)
+    //   ) ~> route ~> check {
+    //       status shouldEqual StatusCodes.Created
+    //       responseAs[String] shouldEqual ""
+    //       header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/sha256:$bsDigest")
+    //       header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
+    //       val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
+
+    //       val blob = Await.result(PBlob.findByPk(uuid), 5.seconds).get
+    //       blob.length shouldEqual bs.length
+    //       blob.state shouldEqual BlobState.Uploaded
+    //       blob.sha256Digest shouldEqual Some(bsDigest)
+    //           val file = imageFile(blob.getId.toString)
+    // file.length shouldEqual bs.length
+    // val fis = new FileInputStream(imageFile(blob.getId.toString))
+    //   val fileDigest = DigestUtils.sha256Hex(fis)
+    //   fileDigest shouldEqual bsDigest
+    //     }
+    // }
+
     "return successful response for PATCH requests to blob upload path" in {
       val blob = Fixtures.await(for {
         user ← Fixtures.User.create()
@@ -120,7 +153,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       Patch(
         s"/v2/$imageName/blobs/uploads/${blob.getId}",
         HttpEntity(ContentTypes.`application/octet-stream`, bs)
-      ) ~> route ~> check {
+      ) ~> `Content-Range`(ContentRange(0L, bs.length - 1L)) ~> route ~> check {
           status shouldEqual StatusCodes.Accepted
           responseAs[String] shouldEqual ""
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
@@ -130,6 +163,12 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           updatedBlob.length shouldEqual bs.length
           updatedBlob.state shouldEqual BlobState.Uploading
           updatedBlob.sha256Digest shouldEqual None
+
+          val file = imageFile(blob.getId.toString)
+          file.length shouldEqual bs.length
+          val fis = new FileInputStream(imageFile(blob.getId.toString))
+          val fileDigest = DigestUtils.sha256Hex(fis)
+          fileDigest shouldEqual bsDigest
         }
     }
 
@@ -155,9 +194,6 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     //       blob.state shouldEqual BlobState.Uploaded
     //       blob.sha256Digest shouldEqual Some(bsDigest)
     //     }
-    // }
-
-    // "return successful response for PUT request with final chunk to complete blob upload path" in {
     // }
   }
 }

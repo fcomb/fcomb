@@ -16,11 +16,13 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
+import cats.syntax.eq._
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.concurrent.duration._
 import spray.json.JsonWriter
 import java.security.MessageDigest
 import java.time.ZonedDateTime
+import java.nio.file.StandardOpenOption
 import java.io.File
 import java.util.UUID
 
@@ -69,7 +71,7 @@ object ImageService extends Service {
       } yield (blob.getId, sha256Digest, file)).flatMap {
         case (uuid, sha256Digest, file) ⇒
           if (getDigest(digest) == sha256Digest) {
-            PBlob.updateState(uuid, file.length, sha256Digest, BlobState.Uploaded).map { _ ⇒
+            PBlob.updateState(uuid, file.length, Some(sha256Digest), BlobState.Uploaded).map { _ ⇒
               completeWithoutResult(StatusCodes.Created, List(
                 Location(s"/v2/$name/blobs/sha256:$sha256Digest"),
                 `Docker-Upload-Uuid`(uuid)
@@ -110,6 +112,7 @@ object ImageService extends Service {
   ) = action { implicit ctx ⇒
     complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
       case Some((blob, _)) ⇒
+        assert(blob.state === BlobState.Created) // TODO: monolithic cannot be uploaded through chunk;move into FSM
         val md = MessageDigest.getInstance("SHA-256")
         val file = imageFile(blob.getId.toString)
         for {
@@ -120,16 +123,42 @@ object ImageService extends Service {
           // TODO: check file for 0 size
           digest = StringUtils.hexify(md.digest)
           // TODO: check digest for unique
-          _ ← PBlob.updateState(uuid, file.length, digest, BlobState.Uploading)
-        } yield {
-          println(s"digest: $digest")
-          println(s"upload `$uuid` (${file.length} bytes) layout for image $name: $file")
-          completeWithoutResult(StatusCodes.Accepted, List(
-            Location(s"/v2/$name/blobs/$uuid"),
-            `Docker-Upload-Uuid`(uuid),
-            range(blob.length, file.length)
+          _ ← PBlob.updateState(uuid, file.length, Some(digest), BlobState.Uploaded)
+        } yield completeWithoutResult(StatusCodes.Created, List(
+          Location(s"/v2/$name/blobs/sha256:$digest"),
+          `Docker-Upload-Uuid`(uuid),
+          `Docker-Content-Digest`("sha256", digest)
+        ))
+      case None ⇒ Future.successful(completeNotFound())
+    })
+  }
+
+  def uploadChunk(name: String, uuid: UUID)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
+      case Some((blob, _)) ⇒
+        assert(blob.state === BlobState.Created || blob.state === BlobState.Uploading) // TODO: move into FSM
+        val contentRange = ctx.requestContext.request.header[`Content-Range`].get
+        val md = MessageDigest.getInstance("SHA-256")
+        val file = imageFile(blob.getId.toString)
+        for {
+          _ ← ctx.requestContext.request.entity.dataBytes.map { chunk ⇒
+            md.update(chunk.toArray)
+            chunk
+          }.runWith(akka.stream.scaladsl.FileIO.toFile(
+            file,
+            Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
           ))
-        }
+          // TODO: check file for 0 size
+          _ ← PBlob.updateState(uuid, file.length, None, BlobState.Uploading)
+        } yield completeWithoutResult(StatusCodes.Accepted, List(
+          Location(s"/v2/$name/blobs/$uuid"),
+          `Docker-Upload-Uuid`(uuid),
+          range(blob.length, file.length)
+        ))
       case None ⇒ Future.successful(completeNotFound())
     })
   }

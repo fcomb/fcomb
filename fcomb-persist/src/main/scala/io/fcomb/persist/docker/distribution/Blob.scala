@@ -92,7 +92,7 @@ object Blob extends PersistModelWithUuidPk[MBlob, BlobTable] {
   def updateState(
     id:     UUID,
     length: Long,
-    digest: String,
+    digest: Option[String],
     state:  BlobState.BlobState
   )(
     implicit
@@ -101,6 +101,6 @@ object Blob extends PersistModelWithUuidPk[MBlob, BlobTable] {
     table
       .filter(_.id === id)
       .map(t ⇒ (t.state, t.length, t.sha256Digest))
-      .update((state, length, Some(digest)))
+      .update((state, length, digest))
   }
 }

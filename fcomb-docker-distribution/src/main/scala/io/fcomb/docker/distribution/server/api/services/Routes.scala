@@ -40,7 +40,7 @@ object Routes {
                 case HttpMethods.PUT =>
                   ImageService.upload(imageName(xs), uuid)
                 case HttpMethods.PATCH =>
-                  ???
+                  ImageService.uploadChunk(imageName(xs), uuid)
                 case _ => completeAsNotFound()
               }
             case id :: "blobs" :: xs =>
