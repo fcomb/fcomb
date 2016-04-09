@@ -20,6 +20,7 @@ import akka.util.ByteString
 import cats.syntax.eq._
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.concurrent.duration._
+import scala.compat.java8.OptionConverters._
 import spray.json.JsonWriter
 import java.security.MessageDigest
 import java.time.ZonedDateTime
@@ -143,11 +144,15 @@ object ImageService extends Service {
       case Some((blob, _)) ⇒
         assert(blob.state === BlobState.Created || blob.state === BlobState.Uploading) // TODO: move into FSM
         val contentRange = ctx.requestContext.request.header[`Content-Range`].get
+        val rangeFrom = contentRange.contentRange.getSatisfiableFirst.asScala.get
+        val rangeTo = contentRange.contentRange.getSatisfiableLast.asScala.get
+        assert(rangeFrom == blob.length)
+        assert(rangeTo >= rangeFrom)
         val file = imageFile(blob.getId.toString)
         for {
           (length, digest) <- ImageBlobPushProcessor.uploadChunk(
             blob.getId,
-            ctx.requestContext.request.entity.dataBytes,
+            ctx.requestContext.request.entity.dataBytes.take(rangeTo - rangeFrom + 1),
             file
           )
           // TODO: check file for 0 size
@@ -155,7 +160,7 @@ object ImageService extends Service {
         } yield completeWithoutResult(StatusCodes.Accepted, List(
           Location(s"/v2/$name/blobs/$uuid"),
           `Docker-Upload-Uuid`(uuid),
-          range(blob.length, file.length)
+          range(0L, file.length)
         ))
       case None ⇒ Future.successful(completeNotFound())
     })
@@ -172,11 +177,12 @@ object ImageService extends Service {
       Location(s"/v2/$name/blobs/sha256:$digest"),
       `Docker-Content-Digest`("sha256", digest)
     )
-    complete(PBlob.findByImageAndDigest(name, digest).flatMap {
-      case Some(blob) ⇒
-        Future.successful(completeWithoutResult(StatusCodes.Created, headers))
-      case None ⇒ PBlob.findByImageAndUuid(name, uuid).flatMap {
-        case Some((blob, _)) ⇒
+    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
+      case Some((blob, _)) ⇒
+        if (blob.state === BlobState.Uploaded)
+          Future.successful(completeWithoutResult(StatusCodes.Created, headers))
+        else {
+          assert(blob.state === BlobState.Uploading) // TODO
           // TODO: append data from dataBytes if non empty
           ctx.requestContext.request.entity.toStrict(1.second).flatMap { entity ⇒
             println(s"entity.length: ${entity.getData.length}")
@@ -195,8 +201,8 @@ object ImageService extends Service {
               ??? // TODO
             }
           }
-        case None ⇒ Future.successful(completeNotFound())
-      }
+        }
+      case None ⇒ Future.successful(completeNotFound())
     })
   }
 

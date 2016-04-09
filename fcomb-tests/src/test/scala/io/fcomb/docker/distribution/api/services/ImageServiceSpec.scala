@@ -165,11 +165,12 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       Patch(
         s"/v2/$imageName/blobs/uploads/${blob.getId}",
         HttpEntity(ContentTypes.`application/octet-stream`, blobPart1)
-      ) ~> `Content-Range`(ContentRange(0L, bs.length - 1L)) ~> route ~> check {
+      ) ~> `Content-Range`(ContentRange(0L, blobPart1.length - 1L)) ~> route ~> check {
           status shouldEqual StatusCodes.Accepted
           responseAs[String] shouldEqual ""
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
           header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
+          header[RangeCustom].get shouldEqual RangeCustom(0L, blobPart1.length - 1)
 
           val updatedBlob = Await.result(PBlob.findByPk(blob.getId), 5.seconds).get
           updatedBlob.length shouldEqual blobPart1.length
@@ -188,11 +189,12 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       Patch(
         s"/v2/$imageName/blobs/uploads/${blob.getId}",
         HttpEntity(ContentTypes.`application/octet-stream`, blobPart2)
-      ) ~> `Content-Range`(ContentRange(0L, bs.length - 1L)) ~> route ~> check {
+      ) ~> `Content-Range`(ContentRange(blobPart1.length, blobPart2.length - 1L)) ~> route ~> check {
           status shouldEqual StatusCodes.Accepted
           responseAs[String] shouldEqual ""
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
           header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
+          header[RangeCustom].get shouldEqual RangeCustom(0L, bs.length - 1)
 
           val updatedBlob = Await.result(PBlob.findByPk(blob.getId), 5.seconds).get
           updatedBlob.length shouldEqual bs.length
