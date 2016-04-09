@@ -2,6 +2,7 @@ package io.fcomb.docker.distribution.server.api.services
 
 import io.fcomb.api.services.{Service, ServiceContext, ServiceResult}
 import io.fcomb.docker.distribution.server.api.services.headers._
+import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob}
 import io.fcomb.persist.User
 import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob, _}
@@ -142,18 +143,15 @@ object ImageService extends Service {
       case Some((blob, _)) ⇒
         assert(blob.state === BlobState.Created || blob.state === BlobState.Uploading) // TODO: move into FSM
         val contentRange = ctx.requestContext.request.header[`Content-Range`].get
-        val md = MessageDigest.getInstance("SHA-256")
         val file = imageFile(blob.getId.toString)
         for {
-          _ ← ctx.requestContext.request.entity.dataBytes.map { chunk ⇒
-            md.update(chunk.toArray)
-            chunk
-          }.runWith(akka.stream.scaladsl.FileIO.toFile(
-            file,
-            Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
-          ))
+          (length, digest) <- ImageBlobPushProcessor.uploadChunk(
+            blob.getId,
+            ctx.requestContext.request.entity.dataBytes,
+            file
+          )
           // TODO: check file for 0 size
-          _ ← PBlob.updateState(uuid, file.length, None, BlobState.Uploading)
+          _ ← PBlob.updateState(uuid, blob.length + length, Some(digest), BlobState.Uploading)
         } yield completeWithoutResult(StatusCodes.Accepted, List(
           Location(s"/v2/$name/blobs/$uuid"),
           `Docker-Upload-Uuid`(uuid),
