@@ -6,11 +6,12 @@ import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob}
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.json._
-import io.fcomb.utils.{Config, StringUtils}
+import io.fcomb.utils.{Config, StringUtils, Random}
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures.Fixtures
-import scala.concurrent.Await
+import scala.concurrent.{Await, Promise}
 import scala.concurrent.duration._
+import scala.util.Try
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.concurrent.ScalaFutures
 import akka.actor.PoisonPill
@@ -20,6 +21,8 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.stream._
+import akka.stream.scaladsl._
 import akka.util.ByteString
 import org.apache.commons.codec.digest.DigestUtils
 import java.util.UUID
@@ -208,6 +211,49 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           fileDigest shouldEqual bsDigest
         }
     }
+
+    // TODO
+    // "return successful response for first PATCH request to blob upload path" in {
+    //   val blob = Fixtures.await(for {
+    //     user ← Fixtures.User.create()
+    //     blob ← Fixtures.DockerDistributionBlob.create(user.getId, imageName)
+    //   } yield blob)
+    //   val p = Promise[ByteString]()
+    //   val bsSource = Source.single(bs).concat(Source.fromFuture(p.future))
+
+    //   Patch(
+    //     s"/v2/$imageName/blobs/uploads/${blob.getId}",
+    //     HttpEntity(ContentTypes.`application/octet-stream`, bsSource)
+    //   ) ~> `Content-Range`(ContentRange(0L, bs.length - 1L)) ~> route ~> check {
+    //       status shouldEqual StatusCodes.Accepted
+    //       responseAs[String] shouldEqual ""
+    //       header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
+    //       header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
+    //       header[RangeCustom].get shouldEqual RangeCustom(0L, bs.length - 1)
+
+    //       val updatedBlob = Await.result(PBlob.findByPk(blob.getId), 5.seconds).get
+    //       updatedBlob.length shouldEqual bs.length
+    //       updatedBlob.state shouldEqual BlobState.Uploading
+    //       updatedBlob.sha256Digest shouldEqual Some(bsDigest)
+
+    //       val file = imageFile(blob.getId.toString)
+    //       file.length shouldEqual bs.length
+    //       val fis = new FileInputStream(imageFile(blob.getId.toString))
+    //       val fileDigest = DigestUtils.sha256Hex(fis)
+    //       fileDigest shouldEqual bsDigest
+    //     }
+
+    //   val blobRandom = ByteString(Random.random.alphanumeric.take(1024).mkString)
+
+    //   Patch(
+    //     s"/v2/$imageName/blobs/uploads/${blob.getId}",
+    //     HttpEntity(ContentTypes.`application/octet-stream`, blobRandom)
+    //   ) ~> `Content-Range`(ContentRange(0L, blobRandom.length - 1L)) ~> route ~> check {
+    //       p.complete(Try(ByteString.empty))
+    //       status shouldEqual StatusCodes.BadRequest // TODO
+    //       // responseAs[String] shouldEqual ""
+    //     }
+    // }
 
     // "return successful response for PUT request without final chunk to complete blob upload path" in {
     //   val blob = Fixtures.await(for {

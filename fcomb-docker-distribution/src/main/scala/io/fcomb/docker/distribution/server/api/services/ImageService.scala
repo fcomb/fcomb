@@ -17,6 +17,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
+import cats.data.Xor
 import cats.syntax.eq._
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.concurrent.duration._
@@ -150,7 +151,7 @@ object ImageService extends Service {
         assert(rangeTo >= rangeFrom)
         val file = imageFile(blob.getId.toString)
         for {
-          (length, digest) <- ImageBlobPushProcessor.uploadChunk(
+          (length, digest) ← ImageBlobPushProcessor.uploadChunk(
             blob.getId,
             ctx.requestContext.request.entity.dataBytes.take(rangeTo - rangeFrom + 1),
             file
@@ -166,16 +167,15 @@ object ImageService extends Service {
     })
   }
 
-  // TODO: remove blob if digest doesn't match
   def uploadComplete(name: String, uuid: UUID)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    val digest = getDigest(ctx.requestContext.request.uri.query().get("digest").get)
+    val queryDigest = getDigest(ctx.requestContext.request.uri.query().get("digest").get)
     val headers = List(
-      Location(s"/v2/$name/blobs/sha256:$digest"),
-      `Docker-Content-Digest`("sha256", digest)
+      Location(s"/v2/$name/blobs/sha256:$queryDigest"),
+      `Docker-Content-Digest`("sha256", queryDigest)
     )
     complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
       case Some((blob, _)) ⇒
@@ -183,23 +183,27 @@ object ImageService extends Service {
           Future.successful(completeWithoutResult(StatusCodes.Created, headers))
         else {
           assert(blob.state === BlobState.Uploading) // TODO
-          // TODO: append data from dataBytes if non empty
-          ctx.requestContext.request.entity.toStrict(1.second).flatMap { entity ⇒
-            println(s"entity.length: ${entity.getData.length}")
-            if (blob.sha256Digest.contains(digest)) {
-              // TODO: check digest for already exists (same image must be deleted and return OK response)
-              PBlob.update(uuid)(_.copy(
-                state = BlobState.Uploaded,
-                uploadedAt = Some(ZonedDateTime.now())
-              )).map { res ⇒
-                completeValidationWithoutResult(res, StatusCodes.Created, headers)
+          val file = imageFile(blob.getId.toString)
+          (for {
+            (length, digest) ← ImageBlobPushProcessor.uploadChunk(
+              uuid,
+              ctx.requestContext.request.entity.dataBytes,
+              file
+            )
+            Xor.Right(_) ← ImageBlobPushProcessor.stop(blob.getId)
+          } yield (length, digest)).flatMap {
+            case (length, digest) ⇒
+              if (digest == queryDigest) {
+                PBlob.updateState(uuid, blob.length + length, Some(digest), BlobState.Uploaded).map { _ ⇒ // TODO: update uploadedAt
+                  completeWithoutResult(StatusCodes.Created, headers)
+                }
               }
-            }
-            else {
-              println(s"${blob.sha256Digest}.contains($digest): ${blob.sha256Digest.contains(digest)} !!!!!!!!!!!!!!!!!!!!!!!!!!")
-              println(blob)
-              ??? // TODO
-            }
+              else {
+                for {
+                  _ ← Future(blocking(file.delete))
+                  _ ← PBlob.destroy(uuid)
+                } yield completeErrors(Seq(DistributionError.DigestInvalid()))(StatusCodes.BadRequest)
+              }
           }
         }
       case None ⇒ Future.successful(completeNotFound())

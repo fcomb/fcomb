@@ -74,9 +74,11 @@ object ImageBlobPushProcessor extends Processor[UUID] {
     })
   }
 
-  case object Begin extends Entity
+  final case object Begin extends Entity
 
-  case class Commit(md: MessageDigest) extends Entity
+  final case object Stop extends Entity
+
+  final case class Commit(md: MessageDigest) extends Entity
 
   def begin(blobId: UUID)(
     implicit
@@ -91,6 +93,13 @@ object ImageBlobPushProcessor extends Processor[UUID] {
     timeout: Timeout          = Timeout(30.seconds)
   ): Future[Xor[String, MessageDigest]] =
     askRef[Xor[String, MessageDigest]](blobId, Commit(md), timeout)
+
+  def stop(blobId: UUID)(
+    implicit
+    ec:      ExecutionContext,
+    timeout: Timeout          = Timeout(30.seconds)
+  ) =
+    askRef[Xor[String, Unit]](blobId, Stop, timeout)
 }
 
 object ImageBlobPushMessages {
@@ -101,6 +110,7 @@ class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLogging 
   import context.dispatcher
   import ImageBlobPushProcessor._
   import ImageBlobPushMessages._
+  import ShardRegion.Passivate
 
   context.setReceiveTimeout(timeout)
 
@@ -117,6 +127,9 @@ class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLogging 
       sender() ! Xor.Right(state.digest.clone.asInstanceOf[MessageDigest])
     case Commit(_) ⇒
       sender() ! Xor.Left("Transaction not being started")
+    case Stop ⇒
+      sender() ! Xor.Right(())
+      context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   val locking: Receive = {
@@ -126,6 +139,8 @@ class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLogging 
       context.become(idle)
       updateState(md)
       sender() ! Xor.Right(state.digest.clone.asInstanceOf[MessageDigest])
+    case Stop ⇒
+      sender() ! Xor.Left("The transaction is not completed yet")
   }
 
   def receive = idle
