@@ -29,8 +29,9 @@ import java.nio.file.StandardOpenOption
 import java.io.File
 import java.util.UUID
 
+// TODO: move blob upload methods into BlobUploadService
 object ImageService extends Service {
-  def createEmptyBlob(name: String)(
+  def createBlobUpload(name: String)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
@@ -59,7 +60,7 @@ object ImageService extends Service {
   ) =
     complete(DistributionErrorResponse(errors), statusCode)
 
-  def createUploadedBlob(name: String, digest: String)(
+  def createBlob(name: String, digest: String)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
@@ -108,7 +109,7 @@ object ImageService extends Service {
     }
   }
 
-  def upload(name: String, uuid: UUID)(
+  def uploadBlob(name: String, uuid: UUID)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
@@ -136,7 +137,7 @@ object ImageService extends Service {
     })
   }
 
-  def uploadChunk(name: String, uuid: UUID)(
+  def uploadBlobChunk(name: String, uuid: UUID)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
@@ -210,6 +211,22 @@ object ImageService extends Service {
     })
   }
 
+  def destroyBlobUpload(name: String, uuid: UUID)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
+      case Some((blob, _)) if blob.state === BlobState.Created || blob.state === BlobState.Uploading ⇒
+        val file = imageFile(blob.getId.toString)
+        for {
+          _ ← Future(blocking(file.delete))
+          _ ← PBlob.destroy(uuid)
+        } yield completeWithoutContent()
+      case _ ⇒ Future.successful(completeNotFound)
+    })
+  }
+
   def show(name: String, digest: String)(
     implicit
     ec:  ExecutionContext,
@@ -230,8 +247,7 @@ object ImageService extends Service {
           ),
           contentLength = Some(blob.length)
         )
-      case None ⇒
-        completeNotFound()
+      case None ⇒ completeNotFound()
     })
   }
 

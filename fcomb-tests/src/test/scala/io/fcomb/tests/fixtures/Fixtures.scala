@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory
 import java.time.ZonedDateTime
 import java.io.File
 import java.util.UUID
+import org.apache.commons.codec.digest.DigestUtils
 
 object Fixtures {
   lazy val logger = LoggerFactory.getLogger(getClass)
@@ -42,7 +43,7 @@ object Fixtures {
   }
 
   object DockerDistributionImage {
-    def create(      userId:    Long,      imageName: String    )(
+    def create(userId: Long, imageName: String)(
       implicit
       ec:  ExecutionContext,
       mat: Materializer
@@ -76,12 +77,11 @@ object Fixtures {
         Success(res) ← P.docker.distribution.Blob.create(blob)
       } yield res)
 
-    def createAsUploaded(
+    def createAs(
       userId:    Long,
       imageName: String,
-      digest:    String,
       bs:        ByteString,
-      length:    Int
+      state:     M.docker.distribution.BlobState.BlobState
     )(
       implicit
       ec:  ExecutionContext,
@@ -92,10 +92,10 @@ object Fixtures {
         id = UUID.randomUUID()
         blob = M.docker.distribution.Blob(
           id = Some(id),
-          state = M.docker.distribution.BlobState.Uploaded,
+          state = state,
           imageId = imageId,
-          sha256Digest = Some(digest),
-          length = length.toLong,
+          sha256Digest = Some(DigestUtils.sha256Hex(bs.toArray)),
+          length = bs.length.toLong,
           createdAt = ZonedDateTime.now(),
           uploadedAt = None
         )

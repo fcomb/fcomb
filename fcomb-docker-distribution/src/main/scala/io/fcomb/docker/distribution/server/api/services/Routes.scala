@@ -31,16 +31,18 @@ object Routes {
           segments.reverse match {
             case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
               ctx.request.uri.query().get("digest") match {
-                case Some(digest) => ImageService.createUploadedBlob(imageName(xs), digest)
-                case None => ImageService.createEmptyBlob(imageName(xs))
+                case Some(digest) => ImageService.createBlob(imageName(xs), digest)
+                case None => ImageService.createBlobUpload(imageName(xs))
               }
             case id :: "uploads" :: "blobs" :: xs if uuidRegEx.findFirstIn(id).nonEmpty =>
               val uuid = UUID.fromString(id)
               method match {
                 case HttpMethods.PUT =>
-                  ImageService.upload(imageName(xs), uuid)
+                  ImageService.uploadBlob(imageName(xs), uuid)
                 case HttpMethods.PATCH =>
-                  ImageService.uploadChunk(imageName(xs), uuid)
+                  ImageService.uploadBlobChunk(imageName(xs), uuid)
+                case HttpMethods.DELETE =>
+                  ImageService.destroyBlobUpload(imageName(xs), uuid)
                 case _ => completeAsNotFound()
               }
             case id :: "blobs" :: xs =>
