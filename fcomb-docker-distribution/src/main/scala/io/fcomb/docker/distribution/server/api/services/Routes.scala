@@ -25,6 +25,13 @@ object Routes {
         pathEndOrSingleSlash {
           get(AuthService.versionCheck())
         } ~
+        pathPrefix("_catalog") {
+          pathEndOrSingleSlash {
+            get { implicit ctx: RequestContext => // TODO
+              ImageService.catalog
+            }
+          }
+        } ~
         path(Segments ~ Slash.?) { segments => implicit ctx: RequestContext =>
           val method = ctx.request.method
           println(s"image action => $method uri: ${ctx.request.uri}, segments: $segments, headers: ${ctx.request.headers}")
@@ -51,10 +58,10 @@ object Routes {
               method match {
                 case HttpMethods.HEAD if id.startsWith("sha256:") =>
                   println(s"HEAD")
-                  ImageService.show(image, id)
+                  ImageService.showBlob(image, id)
                 case HttpMethods.GET if id.startsWith("sha256:") =>
                   println(s"GET")
-                  ImageService.download(image, id)
+                  ImageService.downloadBlob(image, id)
                 case HttpMethods.PUT =>
                   ImageService.uploadComplete(image, UUID.fromString(id))
                 case HttpMethods.DELETE if id.startsWith("sha256:") =>

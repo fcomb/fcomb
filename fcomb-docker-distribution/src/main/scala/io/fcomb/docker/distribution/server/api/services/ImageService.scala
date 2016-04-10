@@ -3,7 +3,7 @@ package io.fcomb.docker.distribution.server.api.services
 import io.fcomb.api.services.{Service, ServiceContext, ServiceResult}
 import io.fcomb.docker.distribution.server.api.services.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
-import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob}
+import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob, Image ⇒ PImage}
 import io.fcomb.persist.User
 import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
@@ -238,13 +238,13 @@ object ImageService extends Service {
         val file = imageFile(blob.getId.toString)
         for {
           _ ← Future(blocking(file.delete))
-          _ ← PBlob.destroy(blob.getId)
+          _ ← PBlob.destroy(blob.getId) // TODO: destroy only unlinked blob
         } yield completeWithoutContent()
       case _ ⇒ Future.successful(completeNotFound)
     })
   }
 
-  def show(name: String, digest: String)(
+  def showBlob(name: String, digest: String)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
@@ -268,7 +268,7 @@ object ImageService extends Service {
     })
   }
 
-  def download(name: String, digest: String)(
+  def downloadBlob(name: String, digest: String)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
@@ -308,6 +308,14 @@ object ImageService extends Service {
         ))
       }
     })
+  }
+
+  def catalog(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    complete(PImage.repositories, StatusCodes.OK)
   }
 
   private val cacheHeader =

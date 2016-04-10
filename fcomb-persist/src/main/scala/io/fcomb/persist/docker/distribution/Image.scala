@@ -1,7 +1,9 @@
 package io.fcomb.persist.docker.distribution
 
+import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage}
+import io.fcomb.response.DistributionImageCatalog
 import io.fcomb.persist._
 import io.fcomb.validations._
 import scala.concurrent.{ExecutionContext, Future}
@@ -49,6 +51,16 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
       }
     } yield res
   }
+
+  private val repositoriesCompiled = Compiled {
+    table.map(_.name).sortBy(identity)
+  }
+
+  def repositories()(
+    implicit
+    ec:  ExecutionContext
+  ) =
+    db.run(repositoriesCompiled.result.map(DistributionImageCatalog(_)))
 
   private val uniqueNameCompiled = Compiled {
     (id: Rep[Option[Long]], name: Rep[String]) ⇒

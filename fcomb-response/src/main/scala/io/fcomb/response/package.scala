@@ -49,13 +49,17 @@ package object response {
   )
 
   case class NodeResponse(
-    id:                Option[Long],
-    state:             NodeState.NodeState,
-    publicIpAddress:   Option[String],
-    createdAt:         ZonedDateTime,
-    updatedAt:         ZonedDateTime,
-    terminatedAt:      Option[ZonedDateTime]
+    id:              Option[Long],
+    state:           NodeState.NodeState,
+    publicIpAddress: Option[String],
+    createdAt:       ZonedDateTime,
+    updatedAt:       ZonedDateTime,
+    terminatedAt:    Option[ZonedDateTime]
   )
+
+  final case class DistributionImageCatalog(
+    repositories: Seq[String]
+  ) extends ServiceModelResponse
 
   implicit def user2ProfileResponse(u: User): UserProfileResponse =
     UserProfileResponse(

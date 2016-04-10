@@ -274,6 +274,9 @@ package object json {
   implicit val distributionErrorResponseJsonProtocol =
     jsonFormat1(distribution.DistributionErrorResponse.apply)
 
+  implicit val distributionImageCatalogJsonProtocol =
+    jsonFormat1(DistributionImageCatalog)
+
   object errors {
     implicit val errorKindFormat = createStringEnumJsonFormat(ErrorKind)
 

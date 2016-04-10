@@ -5,6 +5,7 @@ import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob}
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
+import io.fcomb.response.DistributionImageCatalog
 import io.fcomb.json._
 import io.fcomb.utils.{Config, StringUtils, Random}
 import io.fcomb.tests._
@@ -51,17 +52,17 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     new File(s"${Config.docker.distribution.imageStorage}/${imageName.replaceAll("/", "_")}")
 
   "The image service" should {
-    // "return a uuid for POST request to the start upload path" in {
-    //   Fixtures.await(Fixtures.User.create())
+    "return a uuid for POST request to the start upload path" in {
+      Fixtures.await(Fixtures.User.create())
 
-    //   Post(s"/v2/$imageName/blobs/uploads/") ~> route ~> check {
-    //     status shouldEqual StatusCodes.Accepted
-    //     responseAs[String] shouldEqual ""
-    //     val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
-    //     header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/uploads/$uuid")
-    //     header[RangeCustom].get shouldEqual RangeCustom(0L, 0L)
-    //   }
-    // }
+      Post(s"/v2/$imageName/blobs/uploads/") ~> route ~> check {
+        status shouldEqual StatusCodes.Accepted
+        responseAs[String] shouldEqual ""
+        val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
+        header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/uploads/$uuid")
+        header[RangeCustom].get shouldEqual RangeCustom(0L, 0L)
+      }
+    }
 
     // "return an info without content for HEAD request to the exist layer path" in {
     //   Fixtures.await(for {
@@ -309,6 +310,19 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
         val file = imageFile(blob.getId.toString)
         file.exists() should be(false)
+      }
+    }
+
+    "return repositories for GET request to the catalog path" in {
+      Fixtures.await(for {
+        user ← Fixtures.User.create()
+        _ ← Fixtures.DockerDistributionBlob.create(user.getId, imageName)
+      } yield ())
+
+      Get(s"/v2/_catalog") ~> route ~> check {
+        status shouldEqual StatusCodes.OK
+        val resp = responseAs[JsValue].convertTo[DistributionImageCatalog]
+        resp shouldEqual DistributionImageCatalog(Seq(imageName))
       }
     }
   }
