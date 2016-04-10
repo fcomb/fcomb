@@ -57,6 +57,8 @@ object Routes {
                   ImageService.download(image, id)
                 case HttpMethods.PUT =>
                   ImageService.uploadComplete(image, UUID.fromString(id))
+                case HttpMethods.DELETE if id.startsWith("sha256:") =>
+                  ImageService.destroyBlob(imageName(xs), id)
                 case _ => completeAsNotFound()
               }
             case reference :: "manifests" :: xs =>

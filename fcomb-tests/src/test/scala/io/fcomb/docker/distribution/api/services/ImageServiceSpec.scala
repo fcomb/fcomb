@@ -294,5 +294,22 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         file.exists() should be(false)
       }
     }
+
+    "return successful response for DELETE request to the blob path" in {
+      val blob = Fixtures.await(for {
+        user ← Fixtures.User.create()
+        blob ← Fixtures.DockerDistributionBlob.createAs(
+          user.getId, imageName, bs, BlobState.Uploaded
+        )
+      } yield blob)
+
+      Delete(s"/v2/$imageName/blobs/sha256:${blob.sha256Digest.get}") ~> route ~> check {
+        status shouldEqual StatusCodes.NoContent
+        responseAs[String] shouldEqual ""
+
+        val file = imageFile(blob.getId.toString)
+        file.exists() should be(false)
+      }
+    }
   }
 }

@@ -227,6 +227,23 @@ object ImageService extends Service {
     })
   }
 
+  def destroyBlob(name: String, digest: String)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    val sha256Digest = getDigest(digest)
+    complete(PBlob.findByImageAndDigest(name, sha256Digest).flatMap {
+      case Some((blob, _)) if blob.state === BlobState.Uploaded ⇒
+        val file = imageFile(blob.getId.toString)
+        for {
+          _ ← Future(blocking(file.delete))
+          _ ← PBlob.destroy(blob.getId)
+        } yield completeWithoutContent()
+      case _ ⇒ Future.successful(completeNotFound)
+    })
+  }
+
   def show(name: String, digest: String)(
     implicit
     ec:  ExecutionContext,

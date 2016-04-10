@@ -5,7 +5,7 @@ object Dependencies {
     val akka = "2.4.3"
     val bouncyCastle = "1.53"
     val cats = "0.4.1"
-    val circe = "0.4.0-RC1"
+    val circe = "0.4.0-RC2"
     val slick = "3.1.1"
     val slickPg = "0.12.0"
     val shims = "0.3"
