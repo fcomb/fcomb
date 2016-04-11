@@ -159,14 +159,17 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 
 trait PersistTableWithPk[T] { this: Table[_] ⇒
   def id: Rep[Option[T]]
+  def pk: Rep[T]
 }
 
 trait PersistTableWithUuidPk extends PersistTableWithPk[UUID] { this: Table[_] ⇒
   def id = column[Option[UUID]]("id", O.PrimaryKey)
+  def pk = column[UUID]("id", O.PrimaryKey)
 }
 
 trait PersistTableWithAutoLongPk extends PersistTableWithPk[Long] { this: Table[_] ⇒
   def id = column[Option[Long]]("id", O.AutoInc, O.PrimaryKey)
+  def pk = column[Long]("id", O.AutoInc, O.PrimaryKey)
 }
 
 trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with PersistTableWithPk[Id]]

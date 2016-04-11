@@ -8,6 +8,7 @@ import io.fcomb.services.UserCertificateProcessor
 import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor, UserNodeProcessor}
 import io.fcomb.services.application.ApplicationProcessor
 import io.fcomb.docker.distribution.server.api.services.{Routes => DockerDistributionRoutes}
+import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
@@ -42,15 +43,16 @@ object Main extends App {
 
   (for {
     _ ← Db.migrate()
-    // _ ← server.HttpApiService.start(port, interface, ApiRoutes())
+    _ ← server.HttpApiService.start(port, interface, ApiRoutes())
     _ ← server.HttpApiService.start(drPort, drInterface, DockerDistributionRoutes())
   } yield ()).onComplete {
     case Success(_) ⇒
-      // UserCertificateProcessor.startRegion(5.minutes)
+      UserCertificateProcessor.startRegion(5.minutes)
       // NodeJoinProcessor.startRegion(5.minutes)
       // NodeProcessor.startRegion(25.minutes)
       // ApplicationProcessor.startRegion(1.hour)
       // UserNodeProcessor.startRegion(1.day)
+      ImageBlobPushProcessor.startRegion(25.minutes)
 
       // (for {
       //   _ ← ApplicationProcessor.initialize()

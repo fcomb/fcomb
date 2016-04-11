@@ -89,6 +89,14 @@ object Blob extends PersistModelWithUuidPk[MBlob, BlobTable] {
   ) =
     db.run(findByImageAndDigestCompiled(image, digest).result.headOption)
 
+  def findByImageIdAndDigests(imageId: Long, digests: List[String])(
+    implicit
+    ec: ExecutionContext
+  ) =
+    db.run(table.filter { q ⇒
+      q.imageId === imageId && q.sha256Digest.inSetBind(digests)
+    }.result)
+
   def updateState(
     id:     UUID,
     length: Long,
@@ -103,4 +111,7 @@ object Blob extends PersistModelWithUuidPk[MBlob, BlobTable] {
       .map(t ⇒ (t.state, t.length, t.sha256Digest))
       .update((state, length, digest))
   }
+
+  def findByIds(ids: List[UUID]) =
+    db.run(table.filter(_.id.inSetBind(ids)).result)
 }

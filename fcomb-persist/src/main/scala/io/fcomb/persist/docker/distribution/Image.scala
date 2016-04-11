@@ -25,12 +25,15 @@ class ImageTable(tag: Tag) extends Table[MImage](tag, "docker_distribution_image
 object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
   val table = TableQuery[ImageTable]
 
-  private val findByNameCompiled = Compiled { name: Rep[String] ⇒
+  private val findIdByNameCompiled = Compiled { name: Rep[String] ⇒
     table
       .filter(_.name.toLowerCase === name.toLowerCase)
-      .map(_.id)
+      .map(_.pk)
       .take(1)
   }
+
+  def findIdByName(name: String) =
+    db.run(findIdByNameCompiled(name).result.headOption)
 
   def findIdOrCreateByName(name: String, userId: Long)(
     implicit
@@ -38,8 +41,8 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
   ): Future[ValidationResult[Long]] = runInTransaction(TransactionIsolation.ReadUncommitted) {
     for {
       _ ← sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
-      res ← findByNameCompiled(name).result.headOption.flatMap {
-        case Some(idOpt) ⇒ DBIO.successful(idOpt.get.success)
+      res ← findIdByNameCompiled(name).result.headOption.flatMap {
+        case Some(id) ⇒ DBIO.successful(id.success)
         case None ⇒
           val timeNow = ZonedDateTime.now
           createWithValidationDBIO(MImage(

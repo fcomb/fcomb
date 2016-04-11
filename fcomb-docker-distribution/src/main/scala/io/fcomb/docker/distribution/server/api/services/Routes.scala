@@ -71,8 +71,12 @@ object Routes {
             case reference :: "manifests" :: xs =>
               val image = imageName(xs)
               method match {
+                case HttpMethods.GET =>
+                  ImageService.getManifest(image, reference)
                 case HttpMethods.PUT =>
-                  ImageService.manifestUpload(image, reference)
+                  ImageService.uploadManifest(image, reference)
+                case HttpMethods.DELETE =>
+                  ImageService.destroyManifest(image, reference)
                 case _ => completeAsNotFound()
               }
             case _ => completeAsNotFound()

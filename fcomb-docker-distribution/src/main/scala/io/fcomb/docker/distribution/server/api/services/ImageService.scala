@@ -3,7 +3,8 @@ package io.fcomb.docker.distribution.server.api.services
 import io.fcomb.api.services.{Service, ServiceContext, ServiceResult}
 import io.fcomb.docker.distribution.server.api.services.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
-import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob, Image ⇒ PImage}
+import io.fcomb.docker.distribution.server.api.services.ContentTypes.`application/vnd.docker.distribution.manifest.v2+json`
+import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
 import io.fcomb.persist.User
 import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
@@ -11,6 +12,7 @@ import io.fcomb.utils.{Config, StringUtils}
 import io.fcomb.json._
 import akka.actor._
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
@@ -145,16 +147,17 @@ object ImageService extends Service {
     complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
       case Some((blob, _)) ⇒
         assert(blob.state === BlobState.Created || blob.state === BlobState.Uploading) // TODO: move into FSM
-        val contentRange = ctx.requestContext.request.header[`Content-Range`].get
-        val rangeFrom = contentRange.contentRange.getSatisfiableFirst.asScala.get
-        val rangeTo = contentRange.contentRange.getSatisfiableLast.asScala.get
-        assert(rangeFrom == blob.length)
-        assert(rangeTo >= rangeFrom)
+        // TODO: support content range and validate if it exists (Chunked and Streamed upload)
+        // val contentRange = ctx.requestContext.request.header[`Content-Range`].get
+        // val rangeFrom = contentRange.contentRange.getSatisfiableFirst.asScala.get
+        // val rangeTo = contentRange.contentRange.getSatisfiableLast.asScala.get
+        // assert(rangeFrom == blob.length)
+        // assert(rangeTo >= rangeFrom)
         val file = imageFile(blob.getId.toString)
         for {
           (length, digest) ← ImageBlobPushProcessor.uploadChunk(
             blob.getId,
-            ctx.requestContext.request.entity.dataBytes.take(rangeTo - rangeFrom + 1),
+            ctx.requestContext.request.entity.dataBytes, // .take(rangeTo - rangeFrom + 1),
             file
           )
           // TODO: check file for 0 size
@@ -256,10 +259,11 @@ object ImageService extends Service {
         complete(
           Source.empty,
           StatusCodes.OK,
-          ContentTypes.`application/octet-stream`,
+          `application/octet-stream`,
           List(
             `Docker-Content-Digest`("sha256", sha256Digest),
             ETag(digest),
+            `Accept-Ranges`(RangeUnits.Bytes), // TODO: spec
             cacheHeader
           ),
           contentLength = Some(blob.length)
@@ -277,37 +281,71 @@ object ImageService extends Service {
     println(s"sha256Digest: $sha256Digest")
     complete(PBlob.findByImageAndDigest(name, sha256Digest).map {
       case Some((blob, _)) ⇒
-        complete(
-          FileIO.fromFile(imageFile(blob.getId.toString)),
-          StatusCodes.OK,
-          ContentTypes.`application/octet-stream`,
-          List(`Docker-Content-Digest`("sha256", sha256Digest)),
-          contentLength = Some(blob.length)
-        )
+        val source = FileIO.fromFile(imageFile(blob.getId.toString))
+        ctx.requestContext.request.header[Range] match {
+          case Some(range) ⇒
+            val r = range.ranges.head // TODO
+            val offset: Long = r.getOffset.asScala.orElse(r.getSliceFirst.asScala).getOrElse(0L)
+            val limit: Long = r.getSliceLast.asScala.map(_ - offset).getOrElse(blob.length)
+            complete(
+              source.drop(offset).take(limit),
+              StatusCodes.PartialContent,
+              `application/octet-stream`,
+              List(`Content-Range`(ContentRange(offset, limit, blob.length))),
+              contentLength = Some(blob.length)
+            )
+          case None ⇒
+            complete(
+              source,
+              StatusCodes.OK,
+              `application/octet-stream`,
+              List(`Docker-Content-Digest`("sha256", sha256Digest)),
+              contentLength = Some(blob.length)
+            )
+        }
       case None ⇒ completeNotFound()
     })
   }
 
-  def manifestUpload(name: String, reference: String)(
+  def getManifest(name: String, reference: String)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    import scala.concurrent.duration._
-    complete(ctx.requestContext.request.entity.toStrict(1.second).map { entity ⇒
-      println(s"entity: ${entity.getData.utf8String}")
-      requestBodyAs[Manifest] { req ⇒
-        println(s"reference: $reference, manifest: $req")
-        val digest = getDigest(req match {
-          case m: ManifestV1 ⇒ m.fsLayers.head.blobSum
-          case m: ManifestV2 ⇒ m.layers.head.digest
-        })
-        println(s"digest: $digest")
-        completeWithoutResult(StatusCodes.Created, List(
-          `Docker-Content-Digest`("sha256", digest)
-        ))
-      }
-    })
+    complete(for {
+      Some(imageId) ← PImage.findIdByName(name)
+      manifest ← PImageManifest.findByImageIdAndReferenceAsManifestV2(imageId, reference)
+    } yield completeOrNotFound(manifest, StatusCodes.OK))
+  }
+
+  def uploadManifest(name: String, reference: String)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    requestBodyAs[Manifest] { manifest ⇒
+      complete(ctx.requestContext.request.entity.dataBytes.runFold(ByteString.empty)(_ ++ _).flatMap { rawManifest ⇒
+        assert(ctx.requestContext.request.entity.contentType == `application/vnd.docker.distribution.manifest.v2+json`) // TODO
+        PImageManifest.upsertByRequest(name, reference, manifest, rawManifest.utf8String).map {
+          case res @ scalaz.Success(m) ⇒
+            completeWithoutResult(StatusCodes.Created, List(
+              `Docker-Content-Digest`("sha256", m.sha256Digest)
+            ))
+          case e ⇒ completeValidationWithoutContent(e)
+        }
+      })
+    }
+  }
+
+  def destroyManifest(name: String, digest: String)(
+    implicit
+    ec:  ExecutionContext,
+    mat: Materializer
+  ) = action { implicit ctx ⇒
+    complete(for {
+      Some(imageId) ← PImage.findIdByName(name)
+      _ ← PImageManifest.destroy(imageId, getDigest(digest))
+    } yield completeWithoutContent())
   }
 
   def catalog(
@@ -315,6 +353,7 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
+    // TODO: add apgination
     complete(PImage.repositories, StatusCodes.OK)
   }
 

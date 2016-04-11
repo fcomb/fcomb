@@ -19,6 +19,7 @@ case class Blob(
   id:           Option[UUID]          = None,
   imageId:      Long,
   sha256Digest: Option[String],
+  // TODO: contentType: String,
   length:       Long,
   state:        BlobState.BlobState,
   createdAt:    ZonedDateTime,
