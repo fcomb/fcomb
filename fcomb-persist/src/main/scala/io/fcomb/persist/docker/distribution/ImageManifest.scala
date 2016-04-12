@@ -6,7 +6,6 @@ import io.fcomb.models.docker.distribution.{Manifest ⇒ MManifest, ImageManifes
 import io.fcomb.persist._
 import io.fcomb.validations._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect.Manifest
 import scalaz._, Scalaz._
 import org.apache.commons.codec.digest.DigestUtils
 import java.time.ZonedDateTime
@@ -57,7 +56,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
       .distinct
     (for {
       Some(imageId) ← Image.findIdByName(name) // TODO
-      blobs ← Blob.findByImageIdAndDigests(imageId, digests)
+      blobs ← ImageBlob.findByImageIdAndDigests(imageId, digests)
       manifestIdOpt ← findIdByImageIdAndDigest(imageId, sha256Digest)
     } yield (imageId, blobs, manifestIdOpt)).flatMap {
       case (imageId, blobs, manifestIdOpt) ⇒
@@ -96,7 +95,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
       Some(manifest) ← db.run(table.filter { q ⇒
         q.imageId === imageId && q.sha256Digest === reference.drop(sha256Prefix.length)
       }.result.headOption)
-      blobs ← Blob.findByIds(manifest.configBlobId :: manifest.layersBlobId)
+      blobs ← ImageBlob.findByIds(manifest.configBlobId :: manifest.layersBlobId)
     } yield {
       val blobsMap = blobs.map(b ⇒ (b.getId, b)).toMap
 

@@ -4,9 +4,9 @@ import io.fcomb.api.services.{Service, ServiceContext, ServiceResult}
 import io.fcomb.docker.distribution.server.api.services.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.server.api.services.ContentTypes.`application/vnd.docker.distribution.manifest.v2+json`
-import io.fcomb.persist.docker.distribution.{Blob ⇒ PBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
+import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
 import io.fcomb.persist.User
-import io.fcomb.models.docker.distribution.{Blob ⇒ MBlob, _}
+import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.utils.{Config, StringUtils}
 import io.fcomb.json._
@@ -39,9 +39,12 @@ object ImageService extends Service {
     mat: Materializer
   ) = action { implicit ctx ⇒
     complete {
+      val mount = ctx.requestContext.request.uri.query().get("mount")
+      val from = ctx.requestContext.request.uri.query().get("from")
+      val contentType = ctx.requestContext.request.entity.contentType.mediaType.value
       (for {
         user ← User.first
-        res ← PBlob.createByImageName(name, user.getId)
+        res ← PImageBlob.createByImageName(name, user.getId, contentType)
       } yield res).map { res ⇒
         val headers = res.map { blob ⇒
           val uuid = blob.getId
@@ -68,31 +71,44 @@ object ImageService extends Service {
     mat: Materializer
   ) = action { implicit ctx ⇒
     val source = ctx.requestContext.request.entity.dataBytes
+    val contentType = ctx.requestContext.request.entity.contentType.mediaType.value
     complete {
       (for {
         user ← User.first
-        scalaz.Success(blob) ← PBlob.createByImageName(name, user.getId)
-        file = imageFile(blob.getId.toString)
+        scalaz.Success(blob) ← PImageBlob.createByImageName(name, user.getId, contentType)
+        file = blobFile(blob.getId.toString)
         sha256Digest ← writeFile(source, file)
-      } yield (blob.getId, sha256Digest, file)).flatMap {
-        case (uuid, sha256Digest, file) ⇒
+        fileLength ← Future(blocking(file.length))
+        _ ← PImageBlob.completeUpload(blob.getId, fileLength, sha256Digest)
+      } yield (blob, sha256Digest, file)).flatMap {
+        case (blob, sha256Digest, file) ⇒
           if (getDigest(digest) == sha256Digest) {
-            PBlob.updateState(uuid, file.length, Some(sha256Digest), BlobState.Uploaded).map { _ ⇒
+            renameFileToDigest(file, sha256Digest).map { _ ⇒
               completeWithoutResult(StatusCodes.Created, List(
                 Location(s"/v2/$name/blobs/sha256:$sha256Digest"),
-                `Docker-Upload-Uuid`(uuid)
+                `Docker-Upload-Uuid`(blob.getId),
+                `Docker-Content-Digest`("sha256", sha256Digest)
               ))
             }
           }
           else {
             for {
               _ ← Future(blocking(file.delete()))
-              _ ← PBlob.destroy(uuid)
+              _ ← PImageBlob.destroy(blob.getId)
             } yield completeErrors(Seq(DistributionError.DigestInvalid()))(StatusCodes.BadRequest)
           }
       }
     }
   }
+
+  private def renameFileToDigest(file: File, digest: String)(
+    implicit
+    ec: ExecutionContext
+  ) =
+    Future(blocking {
+      val newFile = blobFile(digest)
+      if (!newFile.exists()) file.renameTo(newFile)
+    })
 
   private def writeFile(
     source: Source[ByteString, Any],
@@ -116,11 +132,11 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
+    complete(PImageBlob.findByImageAndUuid(name, uuid).flatMap {
       case Some((blob, _)) ⇒
-        assert(blob.state === BlobState.Created) // TODO: monolithic cannot be uploaded through chunk;move into FSM
+        assert(blob.state === ImageBlobState.Created) // TODO: monolithic cannot be uploaded through chunk;move into FSM
         val md = MessageDigest.getInstance("SHA-256")
-        val file = imageFile(blob.getId.toString)
+        val file = blobFile(blob.getId.toString)
         for {
           _ ← ctx.requestContext.request.entity.dataBytes.map { chunk ⇒
             md.update(chunk.toArray)
@@ -129,7 +145,7 @@ object ImageService extends Service {
           // TODO: check file for 0 size
           digest = StringUtils.hexify(md.digest)
           // TODO: check digest for unique
-          _ ← PBlob.updateState(uuid, file.length, Some(digest), BlobState.Uploaded)
+          _ ← PImageBlob.completeUpload(uuid, file.length, digest)
         } yield completeWithoutResult(StatusCodes.Created, List(
           Location(s"/v2/$name/blobs/sha256:$digest"),
           `Docker-Upload-Uuid`(uuid),
@@ -144,16 +160,16 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
+    complete(PImageBlob.findByImageAndUuid(name, uuid).flatMap {
       case Some((blob, _)) ⇒
-        assert(blob.state === BlobState.Created || blob.state === BlobState.Uploading) // TODO: move into FSM
+        assert(blob.state === ImageBlobState.Created || blob.state === ImageBlobState.Uploading) // TODO: move into FSM
         // TODO: support content range and validate if it exists (Chunked and Streamed upload)
         // val contentRange = ctx.requestContext.request.header[`Content-Range`].get
         // val rangeFrom = contentRange.contentRange.getSatisfiableFirst.asScala.get
         // val rangeTo = contentRange.contentRange.getSatisfiableLast.asScala.get
         // assert(rangeFrom == blob.length)
         // assert(rangeTo >= rangeFrom)
-        val file = imageFile(blob.getId.toString)
+        val file = blobFile(blob.getId.toString)
         for {
           (length, digest) ← ImageBlobPushProcessor.uploadChunk(
             blob.getId,
@@ -161,7 +177,7 @@ object ImageService extends Service {
             file
           )
           // TODO: check file for 0 size
-          _ ← PBlob.updateState(uuid, blob.length + length, Some(digest), BlobState.Uploading)
+          _ ← PImageBlob.updateState(uuid, blob.length + length, digest, ImageBlobState.Uploading)
         } yield completeWithoutResult(StatusCodes.Accepted, List(
           Location(s"/v2/$name/blobs/$uuid"),
           `Docker-Upload-Uuid`(uuid),
@@ -181,13 +197,13 @@ object ImageService extends Service {
       Location(s"/v2/$name/blobs/sha256:$queryDigest"),
       `Docker-Content-Digest`("sha256", queryDigest)
     )
-    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
+    complete(PImageBlob.findByImageAndUuid(name, uuid).flatMap {
       case Some((blob, _)) ⇒
-        if (blob.state === BlobState.Uploaded)
+        if (blob.state === ImageBlobState.Uploaded)
           Future.successful(completeWithoutResult(StatusCodes.Created, headers))
         else {
-          assert(blob.state === BlobState.Uploading) // TODO
-          val file = imageFile(blob.getId.toString)
+          assert(blob.state === ImageBlobState.Uploading) // TODO
+          val file = blobFile(blob.getId.toString)
           (for {
             (length, digest) ← ImageBlobPushProcessor.uploadChunk(
               uuid,
@@ -198,14 +214,14 @@ object ImageService extends Service {
           } yield (length, digest)).flatMap {
             case (length, digest) ⇒
               if (digest == queryDigest) {
-                PBlob.updateState(uuid, blob.length + length, Some(digest), BlobState.Uploaded).map { _ ⇒ // TODO: update uploadedAt
+                PImageBlob.completeUpload(uuid, blob.length + length, digest).map { _ ⇒
                   completeWithoutResult(StatusCodes.Created, headers)
                 }
               }
               else {
                 for {
                   _ ← Future(blocking(file.delete))
-                  _ ← PBlob.destroy(uuid)
+                  _ ← PImageBlob.destroy(uuid)
                 } yield completeErrors(Seq(DistributionError.DigestInvalid()))(StatusCodes.BadRequest)
               }
           }
@@ -219,12 +235,12 @@ object ImageService extends Service {
     ec:  ExecutionContext,
     mat: Materializer
   ) = action { implicit ctx ⇒
-    complete(PBlob.findByImageAndUuid(name, uuid).flatMap {
-      case Some((blob, _)) if blob.state === BlobState.Created || blob.state === BlobState.Uploading ⇒
-        val file = imageFile(blob.getId.toString)
+    complete(PImageBlob.findByImageAndUuid(name, uuid).flatMap {
+      case Some((blob, _)) if blob.state === ImageBlobState.Created || blob.state === ImageBlobState.Uploading ⇒
+        val file = blobFile(blob.getId.toString)
         for {
           _ ← Future(blocking(file.delete))
-          _ ← PBlob.destroy(uuid)
+          _ ← PImageBlob.destroy(uuid)
         } yield completeWithoutContent()
       case _ ⇒ Future.successful(completeNotFound)
     })
@@ -236,12 +252,12 @@ object ImageService extends Service {
     mat: Materializer
   ) = action { implicit ctx ⇒
     val sha256Digest = getDigest(digest)
-    complete(PBlob.findByImageAndDigest(name, sha256Digest).flatMap {
-      case Some((blob, _)) if blob.state === BlobState.Uploaded ⇒
-        val file = imageFile(blob.getId.toString)
+    complete(PImageBlob.findByImageAndDigest(name, sha256Digest).flatMap {
+      case Some((blob, _)) if blob.state === ImageBlobState.Uploaded ⇒
+        val file = blobFile(blob.getId.toString)
         for {
-          _ ← Future(blocking(file.delete))
-          _ ← PBlob.destroy(blob.getId) // TODO: destroy only unlinked blob
+          _ ← Future(blocking(file.delete)) // TODO: only if file exists once
+          _ ← PImageBlob.destroy(blob.getId) // TODO: destroy only unlinked blob
         } yield completeWithoutContent()
       case _ ⇒ Future.successful(completeNotFound)
     })
@@ -253,7 +269,7 @@ object ImageService extends Service {
     mat: Materializer
   ) = action { implicit ctx ⇒
     val sha256Digest = getDigest(digest)
-    complete(PBlob.findByImageAndDigest(name, sha256Digest).map {
+    complete(PImageBlob.findByImageAndDigest(name, sha256Digest).map {
       case Some((blob, _)) ⇒
         println(s"blob: $blob")
         complete(
@@ -279,9 +295,9 @@ object ImageService extends Service {
   ) = action { implicit ctx ⇒
     val sha256Digest = getDigest(digest)
     println(s"sha256Digest: $sha256Digest")
-    complete(PBlob.findByImageAndDigest(name, sha256Digest).map {
+    complete(PImageBlob.findByImageAndDigest(name, sha256Digest).map {
       case Some((blob, _)) ⇒
-        val source = FileIO.fromFile(imageFile(blob.getId.toString))
+        val source = FileIO.fromFile(blobFile(blob))
         ctx.requestContext.request.header[Range] match {
           case Some(range) ⇒
             val r = range.ranges.head // TODO
@@ -370,6 +386,13 @@ object ImageService extends Service {
     RangeCustom(from, to)
   }
 
-  private def imageFile(imageName: String) =
+  private def blobFile(imageName: String): File =
     new File(s"${Config.docker.distribution.imageStorage}/${imageName.replaceAll("/", "_")}")
+
+  private def blobFile(blob: MImageBlob): File = {
+    val filename =
+      if (blob.isUploaded) blob.sha256Digest.get
+      else blob.getId.toString
+    blobFile(filename)
+  }
 }

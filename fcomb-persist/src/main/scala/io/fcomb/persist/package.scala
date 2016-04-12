@@ -29,8 +29,8 @@ package object persist {
   implicit val scaleStrategyKindColumnType =
     createEnumJdbcType("scale_strategy_kind", models.application.ScaleStrategyKind)
 
-  implicit val blobStateColumnType =
-    createEnumJdbcType("blob_state", models.docker.distribution.BlobState)
+  implicit val dockerDistributionImageBlobStateColumnType =
+    createEnumJdbcType("docker_distribution_image_blob_state", models.docker.distribution.ImageBlobState)
 
   import io.fcomb.RichPostgresDriver.api._
   import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName

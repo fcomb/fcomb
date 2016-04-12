@@ -1,7 +1,6 @@
 package io.fcomb.docker.distribution.server.services
 
 import io.fcomb.services._
-import io.fcomb.models.docker.distribution.{BlobState}
 import io.fcomb.utils.StringUtils
 import akka.actor._
 import akka.cluster.sharding._

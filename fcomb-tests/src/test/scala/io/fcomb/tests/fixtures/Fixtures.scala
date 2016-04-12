@@ -1,20 +1,21 @@
 package io.fcomb.tests.fixtures
 
-import io.fcomb.{persist ⇒ P}
-import io.fcomb.{models ⇒ M}
-import io.fcomb.utils.Config
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scalaz.{Success, Failure, Validation}
 import akka.stream._
 import akka.stream.scaladsl._
 import akka.util.ByteString
-import org.slf4j.LoggerFactory
-import java.time.ZonedDateTime
+import cats.syntax.eq._
+import io.fcomb.utils.Config
+import io.fcomb.{models ⇒ M}
+import io.fcomb.{persist ⇒ P}
 import java.io.File
+import java.time.ZonedDateTime
 import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
+import org.slf4j.LoggerFactory
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scalaz.{Success, Failure, Validation}
 
 object Fixtures {
   lazy val logger = LoggerFactory.getLogger(getClass)
@@ -53,7 +54,7 @@ object Fixtures {
       } yield imageId)
   }
 
-  object DockerDistributionBlob {
+  object DockerDistributionImageBlob {
     def create(
       userId:    Long,
       imageName: String
@@ -65,23 +66,24 @@ object Fixtures {
       (for {
         imageId ← DockerDistributionImage.create(userId, imageName)
         id = UUID.randomUUID()
-        blob = M.docker.distribution.Blob(
+        blob = M.docker.distribution.ImageBlob(
           id = Some(id),
-          state = M.docker.distribution.BlobState.Created,
+          state = M.docker.distribution.ImageBlobState.Created,
           imageId = imageId,
           sha256Digest = None,
+          contentType = "application/octet-stream",
           length = 0L,
           createdAt = ZonedDateTime.now(),
           uploadedAt = None
         )
-        Success(res) ← P.docker.distribution.Blob.create(blob)
+        Success(res) ← P.docker.distribution.ImageBlob.create(blob)
       } yield res)
 
     def createAs(
       userId:    Long,
       imageName: String,
       bs:        ByteString,
-      state:     M.docker.distribution.BlobState.BlobState
+      state:     M.docker.distribution.ImageBlobState.ImageBlobState
     )(
       implicit
       ec:  ExecutionContext,
@@ -90,17 +92,21 @@ object Fixtures {
       (for {
         imageId ← DockerDistributionImage.create(userId, imageName)
         id = UUID.randomUUID()
-        blob = M.docker.distribution.Blob(
+        digest = DigestUtils.sha256Hex(bs.toArray)
+        blob = M.docker.distribution.ImageBlob(
           id = Some(id),
           state = state,
           imageId = imageId,
-          sha256Digest = Some(DigestUtils.sha256Hex(bs.toArray)),
+          sha256Digest = Some(digest),
           length = bs.length.toLong,
+          contentType = "application/octet-stream",
           createdAt = ZonedDateTime.now(),
           uploadedAt = None
         )
-        Success(res) ← P.docker.distribution.Blob.create(blob)
-        file = new File(s"${Config.docker.distribution.imageStorage}/$id")
+        Success(res) ← P.docker.distribution.ImageBlob.create(blob)
+        filename = if (state === M.docker.distribution.ImageBlobState.Uploaded) digest
+        else id.toString
+        file = new File(s"${Config.docker.distribution.imageStorage}/$filename")
         _ ← Source.single(bs).runWith(FileIO.toFile(file))
       } yield res)
   }
