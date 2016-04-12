@@ -264,29 +264,29 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     //     }
     // }
 
-    "return successful response for PUT request without final chunk to complete blob upload path" in {
-      val blob = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.DockerDistributionImageBlob.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploading
-        )
-      } yield blob)
+    // "return successful response for PUT request without final chunk to complete blob upload path" in {
+    //   val blob = Fixtures.await(for {
+    //     user ← Fixtures.User.create()
+    //     blob ← Fixtures.DockerDistributionImageBlob.createAs(
+    //       user.getId, imageName, bs, ImageBlobState.Uploading
+    //     )
+    //   } yield blob)
 
-      Put(
-        s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
-        HttpEntity(`application/octet-stream`, bs)
-      ) ~> route ~> check {
-          status shouldEqual StatusCodes.Accepted
-          responseAs[String] shouldEqual ""
-          header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/sha256:$bsDigest")
-          val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
+    //   Put(
+    //     s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
+    //     HttpEntity(`application/octet-stream`, bs)
+    //   ) ~> route ~> check {
+    //       status shouldEqual StatusCodes.Accepted
+    //       responseAs[String] shouldEqual ""
+    //       header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/sha256:$bsDigest")
+    //       val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
 
-          val blob = Await.result(PImageBlob.findByPk(uuid), 5.seconds).get
-          blob.length shouldEqual bs.length
-          blob.state shouldEqual ImageBlobState.Uploaded
-          blob.sha256Digest shouldEqual Some(bsDigest)
-        }
-    }
+    //       val blob = Await.result(PImageBlob.findByPk(uuid), 5.seconds).get
+    //       blob.length shouldEqual bs.length
+    //       blob.state shouldEqual ImageBlobState.Uploaded
+    //       blob.sha256Digest shouldEqual Some(bsDigest)
+    //     }
+    // }
 
     "return successful response for DELETE request to the blob upload path" in {
       val blob = Fixtures.await(for {

@@ -17,4 +17,5 @@
 
 
 ## Code
+
 * Replace `Enumeration` with `sealed trait`

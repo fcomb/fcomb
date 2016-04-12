@@ -37,23 +37,33 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   //       .exists
   // }
 
-  // def create(imageId: Long, sha256Digest: String, contentType: String, length: Long)(
-  //   implicit
-  //   ec: ExecutionContext
-  // ): Future[Unit] = db.run {
-  //   Blob.findByDigestCompiled(sha256Digest).result.headOption
-  //     .flatMap {
-  //       case Some(blob) ⇒ DBIO.successful(blob.getId)
-  //       case None       ⇒ Blob.createDBIO(sha256Digest, contentType, length).map(_.getId)
-  //     }
-  //     .flatMap { blobId ⇒
-  //       isPresentCompiled((imageId, blobId)).result.flatMap {
-  //         case true  ⇒ DBIO.successful(())
-  //         case false ⇒ createDBIO(MImageBlob(imageId, blobId)).map(_ ⇒ ())
-  //       }
-  //     }
-  //     .transactionally
-  // }
+  // TODO
+  def mount(fromImageName: String, toImageName: String, digest: String)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Option[MImageBlob]] = db.run {
+    findByImageAndDigestCompiled((fromImageName, digest)).result.headOption
+      .flatMap {
+        case Some((blob, _)) ⇒
+          findByImageAndDigestCompiled((toImageName, digest)).result.headOption.flatMap {
+            case Some((e, _)) ⇒ DBIO.successful(Some(e))
+            case None ⇒
+              val timeNow = ZonedDateTime.now()
+              createDBIO(MImageBlob(
+                id = Some(UUID.randomUUID()),
+                state = ImageBlobState.Created,
+                imageId = ???, // TODO
+                sha256Digest = None,
+                contentType = blob.contentType,
+                length = blob.length,
+                createdAt = timeNow,
+                uploadedAt = Some(timeNow)
+              )).map(Some(_))
+          }
+        case None ⇒ DBIO.successful(None)
+      }
+      .transactionally
+  }
 
   def create(imageId: Long, contentType: String)(
     implicit
@@ -103,7 +113,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
       imageScope
         .filter { q ⇒
           q._2.name === name &&
-            q._1.sha256Digest === digest.toLowerCase
+            q._1.sha256Digest === digest
         }
         .take(1)
   }
@@ -122,6 +132,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
       q.imageId === imageId && q.sha256Digest.inSetBind(digests)
     }.result)
 
+  // TODO: check for blob to exists with the same digest before !!!
   def completeUpload(
     id:     UUID,
     length: Long,
