@@ -35,6 +35,19 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
   def findIdByName(name: String) =
     db.run(findIdByNameCompiled(name).result.headOption)
 
+  private val findByImageAndUserIdCompiled = Compiled {
+    (name: Rep[String], userId: Rep[Long]) ⇒
+      table
+        .filter { q ⇒
+          q.name.toLowerCase === name.toLowerCase &&
+            q.userId === userId
+        }
+        .take(1)
+  }
+
+  def findByImageAndUserId(name: String, userId: Long) =
+    db.run(findByImageAndUserIdCompiled((name, userId)).result.headOption)
+
   def findIdOrCreateByName(name: String, userId: Long)(
     implicit
     ec: ExecutionContext
@@ -55,15 +68,18 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
     } yield res
   }
 
-  private val repositoriesCompiled = Compiled {
-    table.map(_.name).sortBy(identity)
+  private val repositoriesByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
+    table
+      .filter(_.userId === userId)
+      .map(_.name)
+      .sortBy(identity)
   }
 
-  def repositories()(
+  def repositoriesByUserId(userId: Long)(
     implicit
-    ec:  ExecutionContext
+    ec: ExecutionContext
   ) =
-    db.run(repositoriesCompiled.result.map(DistributionImageCatalog(_)))
+    db.run(repositoriesByUserIdCompiled(userId).result.map(DistributionImageCatalog(_)))
 
   private val uniqueNameCompiled = Compiled {
     (id: Rep[Option[Long]], name: Rep[String]) ⇒

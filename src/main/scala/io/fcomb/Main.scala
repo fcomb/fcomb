@@ -26,53 +26,72 @@ object Main extends App {
   implicit val mat = ActorMaterializer()
   import sys.dispatcher
 
-  val cluster = Cluster(sys)
+  {
+    import pdi.jwt._
+    import java.io._
+    import java.security._
+    import org.bouncycastle.openssl._
+    import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 
-  if (Config.config.getList("akka.cluster.seed-nodes").isEmpty) {
-    logger.info("Going to a single-node cluster mode")
-    cluster.join(cluster.selfAddress)
+    Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+
+    val converter = new JcaPEMKeyConverter().setProvider("BC")
+    val pkFile = new File("/tmp/server.key")
+    val pp = new PEMParser(new FileReader(pkFile))
+    val kp = converter.getKeyPair(pp.readObject().asInstanceOf[PEMKeyPair])
+    val pk = kp.getPrivate
+
+    val token = Jwt.encode("""{"user":1}""", pk, JwtAlgorithm.RS256)
+    println(s"token: $token")
   }
 
-  Implicits.global(sys, mat)
+  // val cluster = Cluster(sys)
 
-  val interface = Config.config.getString("rest-api.interface")
-  val port = Config.config.getInt("rest-api.port")
+  // if (Config.config.getList("akka.cluster.seed-nodes").isEmpty) {
+  //   logger.info("Going to a single-node cluster mode")
+  //   cluster.join(cluster.selfAddress)
+  // }
 
-  val drInterface = Config.config.getString("docker.distribution.rest-api.interface")
-  val drPort = Config.config.getInt("docker.distribution.rest-api.port")
+  // Implicits.global(sys, mat)
 
-  (for {
-    _ ← Db.migrate()
-    _ ← server.HttpApiService.start(port, interface, ApiRoutes())
-    _ ← server.HttpApiService.start(drPort, drInterface, DockerDistributionRoutes())
-  } yield ()).onComplete {
-    case Success(_) ⇒
-      UserCertificateProcessor.startRegion(5.minutes)
-      // NodeJoinProcessor.startRegion(5.minutes)
-      // NodeProcessor.startRegion(25.minutes)
-      // ApplicationProcessor.startRegion(1.hour)
-      // UserNodeProcessor.startRegion(1.day)
-      ImageBlobPushProcessor.startRegion(25.minutes)
+  // val interface = Config.config.getString("rest-api.interface")
+  // val port = Config.config.getInt("rest-api.port")
 
-      // (for {
-      //   _ ← ApplicationProcessor.initialize()
-      //   _ ← NodeProcessor.initialize()
-      // } yield ()).onComplete {
-      //   case Success(_) ⇒
-      //     logger.info("Initialization has been completed")
-      //   case Failure(e) ⇒
-      //     logger.error(e.getMessage(), e.getCause())
-      // }
-    case Failure(e) ⇒
-      logger.error(e.getMessage(), e.getCause())
-      try {
-        // Kamon.shutdown()
-        sys.terminate()
-      }
-      finally {
-        System.exit(-1)
-      }
-  }
+  // val drInterface = Config.config.getString("docker.distribution.rest-api.interface")
+  // val drPort = Config.config.getInt("docker.distribution.rest-api.port")
 
-  Await.result(sys.whenTerminated, Duration.Inf)
+  // (for {
+  //   _ ← Db.migrate()
+  //   _ ← server.HttpApiService.start(port, interface, ApiRoutes())
+  //   _ ← server.HttpApiService.start(drPort, drInterface, DockerDistributionRoutes())
+  // } yield ()).onComplete {
+  //   case Success(_) ⇒
+  //     UserCertificateProcessor.startRegion(5.minutes)
+  //     // NodeJoinProcessor.startRegion(5.minutes)
+  //     // NodeProcessor.startRegion(25.minutes)
+  //     // ApplicationProcessor.startRegion(1.hour)
+  //     // UserNodeProcessor.startRegion(1.day)
+  //     ImageBlobPushProcessor.startRegion(25.minutes)
+
+  //     // (for {
+  //     //   _ ← ApplicationProcessor.initialize()
+  //     //   _ ← NodeProcessor.initialize()
+  //     // } yield ()).onComplete {
+  //     //   case Success(_) ⇒
+  //     //     logger.info("Initialization has been completed")
+  //     //   case Failure(e) ⇒
+  //     //     logger.error(e.getMessage(), e.getCause())
+  //     // }
+  //   case Failure(e) ⇒
+  //     logger.error(e.getMessage(), e.getCause())
+  //     try {
+  //       // Kamon.shutdown()
+  //       sys.terminate()
+  //     }
+  //     finally {
+  //       System.exit(-1)
+  //     }
+  // }
+
+  // Await.result(sys.whenTerminated, Duration.Inf)
 }

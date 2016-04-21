@@ -2,16 +2,17 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.3"
+    val akka = "2.4.4"
     val bouncyCastle = "1.53"
     val cats = "0.4.1"
-    val circe = "0.4.0-RC2"
+    val circe = "0.4.1"
+    val enumeratum = "1.4.1"
     val slick = "3.1.1"
-    val slickPg = "0.12.0"
+    val slickPg = "0.12.1"
     val shims = "0.3"
     val scalaz = "7.2.2"
-    val quill = "0.3.0"
-    val monocle = "1.2.0"
+    val quill = "0.5.0"
+    val monocle = "1.2.1"
     val kamon = "0.6.0"
   }
 
@@ -29,7 +30,7 @@ object Dependencies {
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akka
     val akkaHttpSwagger = "com.github.swagger-akka-http"  %% "swagger-akka-http"             % "0.6.2"
     val akkaHttpSprayJson = "com.typesafe.akka"           %% "akka-http-spray-json-experimental" % V.akka
-    val akkaHttpJson    = "de.heikoseeberger"             %% "akka-http-json4s"              % "1.5.0"
+    val akkaHttpJsonCirce = "de.heikoseeberger"           %% "akka-http-circe"               % "1.6.0"
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
     val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "2.2.8"
@@ -54,10 +55,13 @@ object Dependencies {
 
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
+    val enumeration     = "com.beachape"                  %% "enumeratum"                    % V.enumeratum
+    val enumerationCirce = "com.beachape"                 %% "enumeratum-circe"              % V.enumeratum
+
     // "com.github.romix.akka" %% "akka-kryo-serialization" % "0.3.3"
 
     // val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
-    val sprayJson       = "io.spray"                      %% "spray-json"                   % "1.3.2"
+    val sprayJson       = "io.spray"                      %% "spray-json"                    % "1.3.2"
     val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.2.0"
     val circeCore       = "io.circe"                      %% "circe-core"                    % V.circe
     val circeGeneric    = "io.circe"                      %% "circe-generic"                 % V.circe
@@ -102,7 +106,7 @@ object Dependencies {
     val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
     val scalazShims     = "com.codecommit"                %% "shims-scalaz-72"               % V.shims
     val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.3.0"
-    val scalazStream    = "org.scalaz.stream"             %% "scalaz-stream"                 % "0.8"
+    val scalazStream    = "org.scalaz.stream"             %% "scalaz-stream"                 % "0.8.1"
     val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
     val cats            = "org.typelevel"                 %% "cats"                          % V.cats
     val catsShims       = "com.codecommit"                %% "shims-cats"                    % V.shims
@@ -117,7 +121,7 @@ object Dependencies {
     val monocleState    = "com.github.julien-truffaut"    %%  "monocle-state"                % V.monocle
 
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.7"
-    val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.1.0"
+    val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.4.0"
 
     val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.9"
 
@@ -140,13 +144,17 @@ object Dependencies {
     // "com.github.jnr" % "jnr-unixsocket" % "0.10"
 
     val scalaMeter      = "com.storm-enroute"             %% "scalameter"                    % "0.7"
+
+    val jwt = "com.pauldijou" %% "jwt-core" % "0.7.0"
+    val authentikat = "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1"
+    val jose4s = "org.bitbucket.b_c" % "jose4j" % "0.5.0"
   }
 
   object Test {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val akkaHttpTestkit = "com.typesafe.akka"             %% "akka-http-testkit"             % V.akka % "test"
-    val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.0" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7.2" % "test"
+    val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.1" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7.3" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
     val slickTestkit    = "com.typesafe.slick"            %% "slick-testkit"                 % V.slick % "test"
   }
@@ -160,6 +168,7 @@ object Dependencies {
     config, configs,
     // pickling, upickle,
     // pprint,
+    enumeration, enumerationCirce,
     sprayJson, sprayJsonShapeless,
     circeCore, circeGeneric, circeJawn, circeOptics, circeJava8,
     scalazCore, scalazConcurrent, scalazStream,
@@ -182,14 +191,14 @@ object Dependencies {
   val akka = Seq(
     akkaActor, akkaClusterSharding, akkaContrib,
     akkaDistributedData,
-    akkaStream, akkaHttp, akkaHttpJson, akkaHttpSprayJson,
+    akkaStream, akkaHttp, akkaHttpJsonCirce, akkaHttpSprayJson,
     // akkaHttpSwagger,
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc //,
     // akkaSse
   )
 
-  val root = common // ++ monitoring
+  val root = common ++ Seq(jwt, authentikat, jose4s) // ++ monitoring
 
   val api = common ++ akka ++ Seq(oauth)
 
@@ -204,7 +213,7 @@ object Dependencies {
     bcrypt, routeTrie
   )
 
-  val persist = common ++ Seq(
+  val persist = common ++ akka ++ Seq(
     postgresJdbc,
     dbMigration,
     // quillJdbc, quillAsync,

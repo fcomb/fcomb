@@ -14,6 +14,7 @@ object Config {
   object docker {
     object distribution {
       val imageStorage = config.getString("docker.distribution.image-storage")
+      val realm = config.getString("docker.distribution.realm")
     }
   }
 

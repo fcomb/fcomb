@@ -6,6 +6,7 @@ import akka.util.ByteString
 import cats.syntax.eq._
 import io.fcomb.utils.Config
 import io.fcomb.{models ⇒ M}
+import io.fcomb.models.errors.{FailureResponse, DtCemException}
 import io.fcomb.{persist ⇒ P}
 import java.io.File
 import java.time.ZonedDateTime
@@ -115,7 +116,8 @@ object Fixtures {
     res match {
       case Success(res) ⇒ res
       case Failure(e) ⇒
-        logger.error(e.toString)
-        throw new IllegalStateException(e.toString)
+        val errors = FailureResponse.fromExceptions(e.asInstanceOf[List[DtCemException]]).toString
+        logger.error(errors)
+        throw new IllegalStateException(errors)
     }
 }

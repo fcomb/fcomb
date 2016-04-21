@@ -14,14 +14,14 @@ package object errors {
     val Persistent = Value("persistent")
   }
 
-  case class ErrorMessage(
+  final case class ErrorMessage(
     message: String,
     kind:    ErrorKind.ErrorKind,
     param:   Option[String]      = None,
     code:    Option[Int]         = None
   )
 
-  case class FailureResponse(
+  final case class FailureResponse(
     errors: Seq[ErrorMessage]
   )
 

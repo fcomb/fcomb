@@ -11,6 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scalaz._
 import scalaz.Scalaz._
 import slick.jdbc.GetResult
+import akka.http.scaladsl.util.FastFuture, FastFuture._
 
 class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistTableWithAutoLongPk {
   def email = column[String]("email")
@@ -126,6 +127,24 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
 
   def findByEmail(email: String) =
     db.run(findByEmailCompiled(email).result.headOption)
+
+  private val findByUsernameCompiled = Compiled { username: Rep[String] ⇒
+    table.filter(_.username === username).take(1)
+  }
+
+  def matchByUsernameAndPassword(username: String, password: String)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Option[models.User]] = {
+    val un = username.toLowerCase
+    val q =
+      if (un.indexOf('@') == -1) findByUsernameCompiled(un)
+      else findByEmailCompiled(un)
+    db.run(q.result.headOption).fast.map {
+      case res @ Some(user) if user.isValidPassword(password) ⇒ res
+      case _ ⇒ None
+    }
+  }
 
   import Validations._
 

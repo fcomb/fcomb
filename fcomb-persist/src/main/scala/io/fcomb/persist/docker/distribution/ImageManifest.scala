@@ -8,6 +8,7 @@ import io.fcomb.validations._
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz._, Scalaz._
 import org.apache.commons.codec.digest.DigestUtils
+import akka.http.scaladsl.util.FastFuture, FastFuture._
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -114,6 +115,17 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
       ))
     }
   }
+
+  private val findTagsByImageIdCompiled = Compiled { imageId: Rep[Long] =>
+    table
+      .filter(_.imageId === imageId)
+      .map(_.tags)
+  }
+
+  def findTagsByImageId(imageId: Long)(
+    implicit ec: ExecutionContext
+  ): Future[Seq[String]] =
+    db.run(findTagsByImageIdCompiled(imageId).result).fast.map(_.flatten)
 
   def destroy(imageId: Long, digest: String) =
     db.run(table.filter { q ⇒

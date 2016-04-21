@@ -2,13 +2,13 @@ package io.fcomb.api.services
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, Location, `X-Forwarded-For`, `Remote-Address`}
+import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, GenericHttpCredentials, Location, `X-Forwarded-For`, `Remote-Address`}
 import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, Sink, FileIO}
 import akka.util.ByteString
-import io.circe.{Error => CirceError, _}
+import io.circe.{Error ⇒ CirceError, _}
 import io.circe.jawn._
 import io.fcomb.json._
 import io.fcomb.json.errors._
@@ -549,18 +549,11 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
 
   def getAuthToken()(implicit ctx: ServiceContext): Option[String] = {
     val r = ctx.requestContext.request
-    val authHeader = r.headers.collectFirst {
-      case a: Authorization ⇒ a
-    }
+    val credentials = r.header[Authorization].map(_.credentials)
     val authParameter = r.uri.query().get("access_token")
-    (authHeader, authParameter) match {
-      case (Some(token), _) ⇒
-        val s = token.value.split(' ')
-        if (s.head.toLowerCase == "token")
-          Some(s.last.take(256)) // restrict token length
-        else None
-      case (_, token @ Some(_)) ⇒ token
-      case _                    ⇒ None
+    (credentials, authParameter) match {
+      case (Some(GenericHttpCredentials("Token", token, _)), _) ⇒ Some(token)
+      case (_, token) ⇒ token
     }
   }
 

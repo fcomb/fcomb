@@ -1,5 +1,6 @@
 package io.fcomb
 
+import enumeratum._
 import io.fcomb.models._, errors._, node._, application._
 import io.fcomb.models.docker._
 import io.fcomb.request._
@@ -12,7 +13,7 @@ import spray.json._
 import spray.json.DefaultJsonProtocol._
 
 package object json {
-  private def createEnumJsonFormat[T <: EnumItem](enum: Enum[T]) =
+  private def createEnumJsonFormat[T <: EnumEntry](enum: Enum[T]) =
     new RootJsonFormat[T] {
       def write(obj: T) = JsString(obj.toString)
 
@@ -22,7 +23,7 @@ package object json {
       def read(v: JsValue) = {
         val value =
           if (v.isInstanceOf[JsString])
-            Some(enum.fromString(v.asInstanceOf[JsString].value))
+            Some(enum.withName(v.asInstanceOf[JsString].value))
           else None
         value.getOrElse(throw new DeserializationException(s"invalid $klassName value"))
       }

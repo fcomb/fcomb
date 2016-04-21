@@ -1,13 +1,13 @@
 package io.fcomb.models.errors.docker.distribution
 
+import enumeratum._
 import io.fcomb.models.errors.{Error, ErrorResponse}
-import io.fcomb.models.{Enum, EnumItem}
 
 sealed trait DistributionErrorDetail
 
-sealed trait DistributionErrorCode extends EnumItem
+sealed trait DistributionErrorCode extends EnumEntry
 
-final object DistributionErrorCode extends Enum[DistributionErrorCode] {
+final object DistributionErrorCode extends CirceEnum[DistributionErrorCode] with Enum[DistributionErrorCode] {
   final case object BlobUnknown extends DistributionErrorCode {
     val value = "BLOB_UNKNOWN"
   }
@@ -68,23 +68,7 @@ final object DistributionErrorCode extends Enum[DistributionErrorCode] {
     val value = "NAME_INVALID"
   }
 
-  def fromString(value: String) = value match {
-    case BlobUnknown.value         ⇒ BlobUnknown
-    case BlobUploadInvalid.value   ⇒ BlobUploadInvalid
-    case BlobUploadUnknown.value   ⇒ BlobUploadUnknown
-    case Denied.value              ⇒ Denied
-    case DigestInvalid.value       ⇒ DigestInvalid
-    case ManifestBlobUnknown.value ⇒ ManifestBlobUnknown
-    case ManifestInvalid.value     ⇒ ManifestInvalid
-    case ManifestUnknown.value     ⇒ ManifestUnknown
-    case ManifestUnverified.value  ⇒ ManifestUnverified
-    case NameInvalid.value         ⇒ NameInvalid
-    case NameUnknown.value         ⇒ NameUnknown
-    case SizeInvalid.value         ⇒ SizeInvalid
-    case TagInvalid.value          ⇒ TagInvalid
-    case Unauthorized.value        ⇒ Unauthorized
-    case Unsupported.value         ⇒ Unsupported
-  }
+  val values = findValues
 }
 
 sealed trait DistributionError extends Error {

@@ -1,6 +1,6 @@
 package io.fcomb
 
-import io.fcomb.models.{Enum, EnumItem}
+import enumeratum._
 import io.fcomb.RichPostgresDriver._
 import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
@@ -35,7 +35,7 @@ package object persist {
   import io.fcomb.RichPostgresDriver.api._
   import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName
 
-  private def createEnumJdbcMapping[T <: EnumItem](
+  private def createEnumJdbcMapping[T <: EnumEntry](
     sqlEnumTypeName: String,
     enum:            Enum[T],
     quoteName:       Boolean = false
@@ -52,7 +52,7 @@ package object persist {
 
     override def getValue(r: ResultSet, idx: Int): T = {
       val value = r.getString(idx)
-      if (r.wasNull) null.asInstanceOf[T] else enum.fromString(value)
+      if (r.wasNull) null.asInstanceOf[T] else enum.withName(value)
     }
 
     override def setValue(v: T, p: PreparedStatement, idx: Int): Unit =
