@@ -1,6 +1,5 @@
 package io.fcomb
 
-import enumeratum._
 import io.fcomb.models._, errors._, node._, application._
 import io.fcomb.models.docker._
 import io.fcomb.request._
@@ -13,7 +12,7 @@ import spray.json._
 import spray.json.DefaultJsonProtocol._
 
 package object json {
-  private def createEnumJsonFormat[T <: EnumEntry](enum: Enum[T]) =
+  private def createEnumJsonFormat[T <: enumeratum.EnumEntry](enum: enumeratum.Enum[T]) =
     new RootJsonFormat[T] {
       def write(obj: T) = JsString(obj.toString)
 

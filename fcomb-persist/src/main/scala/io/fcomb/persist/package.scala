@@ -64,9 +64,9 @@ package object persist {
     override def hasLiteralForm: Boolean = true
 
     override def valueToSQLLiteral(v: T) =
-      if (v == null) "NULL" else s"'$v'"
+      if (v == null) "NULL" else s"'${v.entryName}'"
 
     private def toStr(v: T) =
-      if (v == null) null else v.toString
+      if (v == null) null else v.entryName
   }
 }

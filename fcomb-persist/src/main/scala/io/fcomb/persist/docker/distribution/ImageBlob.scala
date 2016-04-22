@@ -37,33 +37,33 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   //       .exists
   // }
 
-  // TODO
-  def mount(fromImageName: String, toImageName: String, digest: String)(
-    implicit
-    ec: ExecutionContext
-  ): Future[Option[MImageBlob]] = db.run {
-    findByImageAndDigestCompiled((fromImageName, digest)).result.headOption
-      .flatMap {
-        case Some((blob, _)) ⇒
-          findByImageAndDigestCompiled((toImageName, digest)).result.headOption.flatMap {
-            case Some((e, _)) ⇒ DBIO.successful(Some(e))
-            case None ⇒
-              val timeNow = ZonedDateTime.now()
-              createDBIO(MImageBlob(
-                id = Some(UUID.randomUUID()),
-                state = ImageBlobState.Created,
-                imageId = ???, // TODO
-                sha256Digest = None,
-                contentType = blob.contentType,
-                length = blob.length,
-                createdAt = timeNow,
-                uploadedAt = Some(timeNow)
-              )).map(Some(_))
-          }
-        case None ⇒ DBIO.successful(None)
-      }
-      .transactionally
-  }
+  // // TODO
+  // def mount(fromImageName: String, toImageName: String, digest: String)(
+  //   implicit
+  //   ec: ExecutionContext
+  // ): Future[Option[MImageBlob]] = db.run {
+  //   findByImageAndDigestCompiled((fromImageName, digest)).result.headOption
+  //     .flatMap {
+  //       case Some((blob, _)) ⇒
+  //         findByImageAndDigestCompiled((toImageName, digest)).result.headOption.flatMap {
+  //           case Some((e, _)) ⇒ DBIO.successful(Some(e))
+  //           case None ⇒
+  //             val timeNow = ZonedDateTime.now()
+  //             createDBIO(MImageBlob(
+  //               id = Some(UUID.randomUUID()),
+  //               state = ImageBlobState.Created,
+  //               imageId = ???, // TODO
+  //               sha256Digest = None,
+  //               contentType = blob.contentType,
+  //               length = blob.length,
+  //               createdAt = timeNow,
+  //               uploadedAt = Some(timeNow)
+  //             )).map(Some(_))
+  //         }
+  //       case None ⇒ DBIO.successful(None)
+  //     }
+  //     .transactionally
+  // }
 
   def create(imageId: Long, contentType: String)(
     implicit
@@ -80,6 +80,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
       uploadedAt = None
     ))
 
+  // TODO
   def createByImageName(name: String, userId: Long, contentType: String)(
     implicit
     ec: ExecutionContext,
@@ -90,39 +91,36 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
       blob ← eitherT(create(imageId, contentType))
     } yield blob).run.map(_.validation)
 
-  private def imageScope() =
-    table.join(Image.table).on(_.imageId === _.id)
-
-  private val findByImageAndUuidCompiled = Compiled {
-    (name: Rep[String], uuid: Rep[UUID]) ⇒
-      imageScope
+  private val findByImageIdAndUuidCompiled = Compiled {
+    (imageId: Rep[Long], uuid: Rep[UUID]) ⇒
+    table
         .filter { q ⇒
-          q._2.name === name && q._1.id === uuid
+          q.imageId === imageId && q.id === uuid
         }
         .take(1)
   }
 
-  def findByImageAndUuid(image: String, uuid: UUID)(
+  def findByImageIdAndUuid(imageId: Long, uuid: UUID)(
     implicit
     ec: ExecutionContext
   ) =
-    db.run(findByImageAndUuidCompiled(image, uuid).result.headOption)
+    db.run(findByImageIdAndUuidCompiled(imageId, uuid).result.headOption)
 
-  private val findByImageAndDigestCompiled = Compiled {
-    (name: Rep[String], digest: Rep[String]) ⇒
-      imageScope
+  private val findByImageIdAndDigestCompiled = Compiled {
+    (imageId: Rep[Long], digest: Rep[String]) ⇒
+    table
         .filter { q ⇒
-          q._2.name === name &&
-            q._1.sha256Digest === digest
+          q.imageId === imageId &&
+            q.sha256Digest === digest
         }
         .take(1)
   }
 
-  def findByImageAndDigest(image: String, digest: String)(
+  def findByImageIdAndDigest(imageId: Long, digest: String)(
     implicit
     ec: ExecutionContext
   ) =
-    db.run(findByImageAndDigestCompiled(image, digest).result.headOption)
+    db.run(findByImageIdAndDigestCompiled(imageId, digest).result.headOption)
 
   def findByImageIdAndDigests(imageId: Long, digests: List[String])(
     implicit

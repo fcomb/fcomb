@@ -1,72 +1,29 @@
 package io.fcomb.models.errors.docker.distribution
 
-import enumeratum._
+import enumeratum.EnumEntry
+import io.fcomb.models.{Enum, EnumItem}
 import io.fcomb.models.errors.{Error, ErrorResponse}
 
 sealed trait DistributionErrorDetail
 
-sealed trait DistributionErrorCode extends EnumEntry
+sealed trait DistributionErrorCode extends EnumItem with EnumEntry.Uppercase
 
-final object DistributionErrorCode extends CirceEnum[DistributionErrorCode] with Enum[DistributionErrorCode] {
-  final case object BlobUnknown extends DistributionErrorCode {
-    val value = "BLOB_UNKNOWN"
-  }
-
-  final case object BlobUploadInvalid extends DistributionErrorCode {
-    val value = "BLOB_UPLOAD_INVALID"
-  }
-
-  final case object BlobUploadUnknown extends DistributionErrorCode {
-    val value = "BLOB_UPLOAD_UNKNOWN"
-  }
-
-  final case object ManifestBlobUnknown extends DistributionErrorCode {
-    val value = "MANIFEST_BLOB_UNKNOWN"
-  }
-
-  final case object ManifestInvalid extends DistributionErrorCode {
-    val value = "MANIFEST_INVALID"
-  }
-
-  final case object ManifestUnknown extends DistributionErrorCode {
-    val value = "MANIFEST_UNKNOWN"
-  }
-
-  final case object ManifestUnverified extends DistributionErrorCode {
-    val value = "MANIFEST_UNVERIFIED"
-  }
-
-  final case object NameUnknown extends DistributionErrorCode {
-    val value = "NAME_UNKNOWN"
-  }
-
-  final case object SizeInvalid extends DistributionErrorCode {
-    val value = "SIZE_INVALID"
-  }
-
-  final case object TagInvalid extends DistributionErrorCode {
-    val value = "TAG_INVALID"
-  }
-
-  final case object Unauthorized extends DistributionErrorCode {
-    val value = "UNAUTHORIZED"
-  }
-
-  final case object Denied extends DistributionErrorCode {
-    val value = "DENIED"
-  }
-
-  final case object Unsupported extends DistributionErrorCode {
-    val value = "UNSUPPORTED"
-  }
-
-  final case object DigestInvalid extends DistributionErrorCode {
-    val value = "DIGEST_INVALID"
-  }
-
-  final case object NameInvalid extends DistributionErrorCode {
-    val value = "NAME_INVALID"
-  }
+final object DistributionErrorCode extends Enum[DistributionErrorCode] {
+  final case object BlobUnknown extends DistributionErrorCode
+  final case object BlobUploadInvalid extends DistributionErrorCode
+  final case object BlobUploadUnknown extends DistributionErrorCode
+  final case object ManifestBlobUnknown extends DistributionErrorCode
+  final case object ManifestInvalid extends DistributionErrorCode
+  final case object ManifestUnknown extends DistributionErrorCode
+  final case object ManifestUnverified extends DistributionErrorCode
+  final case object NameUnknown extends DistributionErrorCode
+  final case object SizeInvalid extends DistributionErrorCode
+  final case object TagInvalid extends DistributionErrorCode
+  final case object Unauthorized extends DistributionErrorCode
+  final case object Denied extends DistributionErrorCode
+  final case object Unsupported extends DistributionErrorCode
+  final case object DigestInvalid extends DistributionErrorCode
+  final case object NameInvalid extends DistributionErrorCode
 
   val values = findValues
 }
