@@ -3,7 +3,7 @@ package io.fcomb.persist
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models
-import scalaz._, Scalaz._
+import cats.data.Validated
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 import java.time.ZonedDateTime
@@ -53,7 +53,7 @@ object UserCertificate extends PersistModelWithAutoLongPk[models.UserCertificate
     runInTransaction(TransactionIsolation.ReadCommitted)(for {
       root ← createDBIO(rootCert)
       client ← createDBIO(clientCert)
-    } yield root.success)
+    } yield Validated.Valid(root))
   }
 
   private val findRootCertByUserIdCompiled = Compiled { userId: Rep[Long] ⇒

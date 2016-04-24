@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scalaz.{Success, Failure, Validation}
+import cats.data.Validated
 
 object Fixtures {
   lazy val logger = LoggerFactory.getLogger(getClass)
@@ -51,7 +51,7 @@ object Fixtures {
       mat: Materializer
     ) =
       (for {
-        Success(imageId) ← P.docker.distribution.Image.findIdOrCreateByName(imageName, userId)
+        Validated.Valid(imageId) ← P.docker.distribution.Image.findIdOrCreateByName(imageName, userId)
       } yield imageId)
   }
 
@@ -77,7 +77,7 @@ object Fixtures {
           createdAt = ZonedDateTime.now(),
           uploadedAt = None
         )
-        Success(res) ← P.docker.distribution.ImageBlob.create(blob)
+        Validated.Valid(res) ← P.docker.distribution.ImageBlob.create(blob)
       } yield res)
 
     def createAs(
@@ -104,7 +104,7 @@ object Fixtures {
           createdAt = ZonedDateTime.now(),
           uploadedAt = None
         )
-        Success(res) ← P.docker.distribution.ImageBlob.create(blob)
+        Validated.Valid(res) ← P.docker.distribution.ImageBlob.create(blob)
         filename = if (state === M.docker.distribution.ImageBlobState.Uploaded) digest
         else id.toString
         file = new File(s"${Config.docker.distribution.imageStorage}/$filename")
@@ -112,10 +112,10 @@ object Fixtures {
       } yield res)
   }
 
-  private def getSuccess[T](res: Validation[_, T]) =
+  private def getSuccess[T](res: Validated[_, T]) =
     res match {
-      case Success(res) ⇒ res
-      case Failure(e) ⇒
+      case Validated.Valid(res) ⇒ res
+      case Validated.Invalid(e) ⇒
         val errors = FailureResponse.fromExceptions(e.asInstanceOf[List[DtCemException]]).toString
         logger.error(errors)
         throw new IllegalStateException(errors)

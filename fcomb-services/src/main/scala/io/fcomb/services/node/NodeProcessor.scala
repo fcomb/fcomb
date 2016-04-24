@@ -23,10 +23,11 @@ import scala.concurrent.{Future, Promise, ExecutionContext}
 import scala.collection.immutable
 import scala.concurrent.duration._
 import scala.util.{Success, Failure}
-import scalaz._, Scalaz._
 import java.time.{LocalDateTime, ZonedDateTime}
 import java.net.InetAddress
 import javax.net.ssl.SSLContext
+import akka.http.scaladsl.util.FastFuture
+import cats.data.Xor
 
 object NodeProcessor extends Processor[Long] {
   val numberOfShards = 1
@@ -322,8 +323,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     if (this.lastPingAt + pingIntervalMillis >= currentTime) {
       this.lastPingAt = currentTime
       apiCall(_.ping()).foreach {
-        case \/-(_) ⇒ self ! Available
-        case -\/(_) ⇒ self ! Unreachable
+        case Xor.Right(_) ⇒ self ! Available
+        case Xor.Left(_) ⇒ self ! Unreachable
       }
     }
   }
@@ -361,8 +362,8 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
       _ ← p.future
       res ← apiCall(_.ping) // TODO: add retry with exponential backoff
       nodeState = res match {
-        case \/-(_) ⇒ NodeState.Available
-        case -\/(_) ⇒ NodeState.Unreachable
+        case Xor.Right(_) ⇒ NodeState.Available
+        case Xor.Left(_) ⇒ NodeState.Unreachable
       }
       newState ← updateNodeState(state, nodeState)
     } yield newState
@@ -391,7 +392,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
 
   def syncContainers() = {
     apiCall(_.containers(showAll = true)).flatMap {
-      case \/-(items) ⇒
+      case Xor.Right(items) ⇒
         val itemsMap = items.map { item ⇒
           (item.id, ContainerState.parseDockerStatus(item.status))
         }.toMap
@@ -410,12 +411,12 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
                 ids
             }
         }
-        dropIds.foldLeft(Future.successful(().right[Throwable])) {
+        dropIds.foldLeft(Future.successful(Xor.right[Throwable, Unit](()))) {
           case (f, id) ⇒ f.flatMap { _ ⇒
             apiCall(_.containerRemove(id, withForce = true, withVolumes = true))
           }
         }
-      case -\/(e) ⇒ Future.failed(e)
+      case Xor.Left(e) ⇒ Future.failed(e)
     }
   }
 
@@ -432,14 +433,14 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
   }
 
   private val apiClientNotInitialized =
-    Future.successful(DockerApiClientIsNotInitialized.left)
+    FastFuture.successful(Xor.Left(DockerApiClientIsNotInitialized))
 
-  def apiCall[T](f: Client ⇒ Future[T]): Future[Throwable \/ T] = {
+  def apiCall[T](f: Client ⇒ Future[T]): Future[Xor[Throwable, T]] = {
     this.apiClient match {
-      case Some(api) ⇒ f(api).map(_.right).recover {
+      case Some(api) ⇒ f(api).map(Xor.Right(_)).recover {
         case e: Throwable ⇒
           log.error(s"API call error: ${e.getMessage}")
-          e.left
+          Xor.Left(e)
       }
       case None ⇒
         log.error("Docker API client is not initialized")
@@ -466,7 +467,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
           c.imagePull(image.name, image.tag).flatMap(_.runWith(Sink.lastOption))
         }).onComplete {
           case Success(opt) ⇒ opt match {
-            case \/-(Some(evt)) ⇒
+            case Xor.Right(Some(evt)) ⇒
               if (evt.isFailure) {
                 val msg = evt.errorDetail.map(_.message)
                   .orElse(evt.errorMessage)
@@ -474,9 +475,9 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
                 p.failure(new Throwable(msg)) // TODO
               }
               else p.complete(Success(()))
-            case \/-(None) ⇒
+            case Xor.Right(None) ⇒
               p.failure(new Throwable("Unknown docker error")) // TODO
-            case -\/(e) ⇒ p.failure(e)
+            case Xor.Left(e) ⇒ p.failure(e)
           }
           case Failure(e) ⇒ p.failure(e)
         }
@@ -501,7 +502,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     val name = Some(container.dockerName)
     (for {
       _ ← imagePull(image)
-      \/-(res) ← apiCall(_.containerCreate(config, name))
+      Xor.Right(res) ← apiCall(_.containerCreate(config, name))
     } yield container.copy(
       state = ContainerState.Created,
       dockerId = Some(res.id)
@@ -625,10 +626,10 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
     val containerId = container.getId
     putContainerState(containerId, startState, updateEvent = false)
     containerApiCallByAction(action, dockerId).foreach {
-      case \/-(_) ⇒
+      case Xor.Right(_) ⇒
         updateContainerState(containerId, finalState, updateEvent = false)
         replyTo.!(())
-      case -\/(e) ⇒
+      case Xor.Left(e) ⇒
         if (action == ContainerTerminateAction) {
           updateContainerState(containerId, ContainerState.Terminated, updateEvent = false)
           replyTo.!(())

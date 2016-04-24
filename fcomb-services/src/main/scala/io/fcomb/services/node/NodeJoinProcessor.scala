@@ -19,6 +19,7 @@ import sun.security.pkcs10.PKCS10
 import java.security.cert.X509Certificate
 import java.security.PrivateKey
 import java.time.ZonedDateTime
+import cats.data.Validated
 
 object NodeJoinProcessor {
   val extractEntityId: ShardRegion.ExtractEntityId = {
@@ -146,9 +147,9 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
         publicKeyHash
       )
     } yield res match {
-      case scalaz.Success(node) ⇒
+      case Validated.Valid(node) ⇒
         self ! Initialize(node)
-      case scalaz.Failure(e) ⇒
+      case Validated.Invalid(e) ⇒
         throw e.head
     }).recover {
       case e: Throwable ⇒ handleThrowable(e)

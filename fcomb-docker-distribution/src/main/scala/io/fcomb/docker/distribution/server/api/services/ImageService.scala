@@ -19,7 +19,6 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
-import cats.data.Xor
 import cats.syntax.eq._
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.concurrent.duration._
@@ -33,6 +32,7 @@ import java.util.UUID
 import akka.http.scaladsl.marshalling.{Marshal, ToEntityMarshaller}
 import scala.util.{Right, Left}
 import io.circe.{Encoder, Json}
+import cats.data.{Validated, Xor}
 
 import AuthDirectives._
 
@@ -90,7 +90,7 @@ object ImageService {
         // val from = ctx.requestContext.request.uri.query().get("from")
         val contentType = req.entity.contentType.mediaType.value
         onSuccess(PImageBlob.createByImageName(imageName, user.getId, contentType)) {
-          case scalaz.Success(blob) ⇒
+          case Validated.Valid(blob) ⇒
             val uuid = blob.getId
             val headers = immutable.Seq(
               Location(s"/v2/$imageName/blobs/uploads/$uuid"),
@@ -98,7 +98,7 @@ object ImageService {
               rangeHeader(0L, 0L)
             )
             complete(HttpResponse(StatusCodes.Accepted, headers))
-          case scalaz.Failure(e) ⇒
+          case Validated.Invalid(e) ⇒
             complete(response(StatusCodes.BadRequest, FailureResponse.fromExceptions(e)))
         }
       }
@@ -112,7 +112,7 @@ object ImageService {
         val contentType = req.entity.contentType.mediaType.value
         complete {
           (for {
-            scalaz.Success(blob) ← PImageBlob.createByImageName(name, user.getId, contentType)
+            Validated.Valid(blob) ← PImageBlob.createByImageName(name, user.getId, contentType)
             file = blobFile(blob.getId.toString)
             sha256Digest ← writeFile(source, file)
             fileLength ← Future(blocking(file.length))
@@ -397,7 +397,7 @@ object ImageService {
   //     complete(ctx.requestContext.request.entity.dataBytes.runFold(ByteString.empty)(_ ++ _).flatMap { rawManifest ⇒
   //       assert(ctx.requestContext.request.entity.contentType == `application/vnd.docker.distribution.manifest.v2+json`) // TODO
   //       PImageManifest.upsertByRequest(name, reference, manifest, rawManifest.utf8String).map {
-  //         case res @ scalaz.Success(m) ⇒
+  //         case res @ Validated.Valid(m) ⇒
   //           completeWithoutResult(StatusCodes.Created, List(
   //             `Docker-Content-Digest`("sha256", m.sha256Digest)
   //           ))

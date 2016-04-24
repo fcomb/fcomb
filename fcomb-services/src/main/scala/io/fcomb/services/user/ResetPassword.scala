@@ -9,9 +9,9 @@ import io.fcomb.validations.ValidationResultUnit
 import io.fcomb.utils.Random
 import akka.stream.Materializer
 import akka.actor.ActorSystem
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
-import scalaz._, Scalaz._
+import cats.data.Validated
 import java.time.LocalDateTime
 import java.util.UUID
 import redis._
@@ -26,45 +26,45 @@ object ResetPassword {
     mat: Materializer
   ): Future[ValidationResultUnit] = {
     persist.User.findByEmail(email).flatMap {
-      case Some(user) =>
+      case Some(user) ⇒
         val token = Random.random.alphanumeric.take(42).mkString
         val date = LocalDateTime.now.plusSeconds(ttl.get)
-        redis.set(s"$prefix$token", user.id.toString, ttl).flatMap { _ =>
+        redis.set(s"$prefix$token", user.id.toString, ttl).flatMap { _ ⇒
           val template = templates.ResetPassword(s"title: token $token", s"date: $date", token)
           Mandrill.sendTemplate(
             template.mandrillTemplateName,
             List(user.email),
             template.toHtml
-          ).map(_ => ().success)
+          ).map(_ ⇒ Validated.Valid(()))
         }
-      case None =>
+      case None ⇒
         persist.User.validationErrorAsFuture("email", "not found")
     }
   }
 
   def set(token: String, password: String)(
     implicit
-    ec: ExecutionContext,
+    ec:  ExecutionContext,
     mat: Materializer
   ): Future[ValidationResultUnit] = {
     val key = s"$prefix$token"
     persist.User.validatePassword(password) match {
-      case Success(_) =>
+      case Validated.Valid(_) ⇒
         redis.get(key).flatMap {
-          case Some(id) =>
+          case Some(id) ⇒
             val updateF =
               persist.User.updatePassword(id.utf8String.toLong, password).map {
-                case true  => ().success
-                case false => persist.User.validationError("id", "not found")
+                case true  ⇒ Validated.Valid(())
+                case false ⇒ persist.User.validationError("id", "not found")
               }
             for {
-              res <- updateF
-              _ <- redis.del(key)
+              res ← updateF
+              _ ← redis.del(key)
             } yield res
-          case _ =>
+          case _ ⇒
             persist.User.validationErrorAsFuture("token", "not found")
         }
-      case e @ Failure(_) => Future.successful(e)
+      case e @ Validated.Invalid(_) ⇒ Future.successful(e)
     }
   }
 

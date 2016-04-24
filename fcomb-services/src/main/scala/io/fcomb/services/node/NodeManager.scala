@@ -9,7 +9,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import sun.security.pkcs10.PKCS10
 import java.util.Base64
 import java.net.InetAddress
-import scalaz._, Scalaz._
+import cats.data.Validated
 
 object NodeManager {
   def joinByRequest(userId: Long, req: NodeJoinRequest)(
@@ -20,7 +20,7 @@ object NodeManager {
     if ((rs.startsWith(beginRequest) || rs.startsWith(beginNewRequest))) {
       val body = rs.substring(rs.indexOf('\n'), rs.lastIndexOf('\n'))
       val csr = new PKCS10(Base64.getMimeDecoder().decode(body))
-      NodeJoinProcessor.join(userId, csr).map(_.success)
+      NodeJoinProcessor.join(userId, csr).map(Validated.Valid(_))
     }
     else Future.successful(unknownHeaderError)
   }
@@ -36,6 +36,5 @@ object NodeManager {
     implicit
     ec: ExecutionContext
   ): Future[ValidationResultUnit] =
-    NodeProcessor.register(nodeId, ipAddress)
-      .map(_.success)
+    NodeProcessor.register(nodeId, ipAddress).map(Validated.Valid(_))
 }

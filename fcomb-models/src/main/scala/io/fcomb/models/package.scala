@@ -3,9 +3,9 @@ package io.fcomb
 import java.util.UUID
 
 package object models {
-  sealed trait ModelWithPk[PK] {
-    type PkType = PK
-    type IdType = Option[PK]
+  sealed trait ModelWithPk {
+    type PkType
+    type IdType = Option[PkType]
 
     val id: IdType
 
@@ -13,7 +13,9 @@ package object models {
       id.getOrElse(throw new IllegalArgumentException("Column 'id' cannot be empty"))
   }
 
-  trait ModelWithLongPk extends ModelWithPk[Long]
+  trait ModelWithLongPk extends ModelWithPk {
+    type PkType = Long
+  }
 
   sealed trait ModelWithAutoPk[T] {
     def withPk(id: T): ModelWithAutoPk[T]
@@ -21,32 +23,30 @@ package object models {
 
   trait ModelWithAutoLongPk extends ModelWithLongPk with ModelWithAutoPk[Long]
 
-  trait ModelWithUuidPk extends ModelWithPk[UUID]
+  trait ModelWithUuidPk extends ModelWithPk {
+    type PkType = UUID
+  }
 
   trait ServiceModel
 
-  case class PaginationData(
-    total: Int,
-    offset: Long,
-    limit: Long
-  )
+  final case class PaginationData(total: Int)
 
-  case class MultipleDataResponse[A](
-    items: Seq[A],
+  final case class MultipleDataResponse[A](
+    items:      Seq[A],
     pagination: Option[PaginationData]
   )
 
   sealed trait SortOrder
-  case object Asc extends SortOrder
-  case object Desc extends SortOrder
+  final case object Asc extends SortOrder
+  final case object Desc extends SortOrder
 
-  case class PaginatorQuery(
-    limit: Long,
-    offset: Long,
-    filter: Seq[(String, String)],
+  final case class PaginatorQuery(
+    limit:     Long,
+    offset:    Long,
+    filter:    Seq[(String, String)],
     filterNot: Seq[(String, String)],
-    order: Seq[(String, SortOrder)],
-    includes: Seq[String],
-    excludes: Seq[String]
+    order:     Seq[(String, SortOrder)],
+    includes:  Seq[String],
+    excludes:  Seq[String]
   )
 }

@@ -8,7 +8,6 @@ import akka.stream.Materializer
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.Http
 import spray.json._
-import scalaz._
 
 object Mandrill {
   private[Mandrill] case class SentStatus(

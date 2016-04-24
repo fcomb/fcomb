@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, GenericHttpCredentials, Location, `X-Forwarded-For`, `Remote-Address`}
 import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
+import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, Sink, FileIO}
 import akka.util.ByteString
@@ -20,9 +21,8 @@ import io.fcomb.validations.ValidationErrors
 import org.slf4j.LoggerFactory
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
-import cats.data.Xor
-import scalaz._
-import scalaz.Scalaz._
+import cats.data.{Xor, Validated}
+import scala.util.Try
 import spray.json._
 import java.io.File
 import java.net.{InetAddress, UnknownHostException}
@@ -42,7 +42,7 @@ sealed trait Marshaller {
     implicit
     ec:  ExecutionContext,
     mat: Materializer
-  ): Future[Throwable \/ RequestBody[_]]
+  ): Future[Xor[Throwable, RequestBody[_]]]
 }
 
 object JsonMarshaller extends Marshaller {
@@ -53,17 +53,13 @@ object JsonMarshaller extends Marshaller {
     implicit
     ec:  ExecutionContext,
     mat: Materializer
-  ): Future[Throwable \/ RequestBody[_]] =
+  ): Future[Xor[Throwable, RequestBody[_]]] =
     body
       .runFold(ByteString.empty)(_ ++ _)
       .map { data ⇒
-        if (data.isEmpty) {
-          JsonBody(None).right[Throwable]
-        }
-        else {
-          tryE(data.utf8String.parseJson)
-            .map(res ⇒ JsonBody(Some(res)))
-        }
+        if (data.isEmpty) Xor.Right(JsonBody(None))
+        else Xor.fromTry(Try(data.utf8String.parseJson))
+          .map(res ⇒ JsonBody(Some(res)))
       }
 }
 
@@ -310,11 +306,11 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     mat: Materializer,
     tm:  Manifest[T],
     jr:  JsonReader[T]
-  ): Future[Throwable \/ Option[T]] =
+  ): Future[Xor[Throwable, Option[T]]] =
     ctx.requestBody().map(_.flatMap {
       case JsonBody(Some(json)) ⇒
-        tryE(jr.read(json)).map(Some(_))
-      case _ ⇒ None.right[Throwable]
+        Xor.fromTry(Try(jr.read(json))).map(Some(_))
+      case _ ⇒ Xor.Right(None)
     })
 
   def flatResult(res: ServiceResult)(
@@ -322,7 +318,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ec: ExecutionContext
   ): Future[ServiceResult] = res match {
     case CompleteFutureResult(f) ⇒ f.flatMap(flatResult)
-    case res                     ⇒ Future.successful(res)
+    case res                     ⇒ FastFuture.successful(res)
   }
 
   def complete(f: Future[ServiceResult])(
@@ -341,8 +337,8 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     jr:  JsonReader[T]
   ): ServiceResult =
     complete(requestBodyTryAs[T]().map {
-      case \/-(res) ⇒ f(res)
-      case -\/(e)   ⇒ completeThrowable(e)
+      case Xor.Right(res) ⇒ f(res)
+      case Xor.Left(e)    ⇒ completeThrowable(e)
     })
 
   def requestBodyAs[T](f: T ⇒ ServiceResult)(
@@ -402,14 +398,14 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(f.map(items ⇒ complete(MultipleDataResponse[T](items, None), statusCode)))
 
-  def completeValidation[T](res: Validation[ValidationErrors, T], statusCode: StatusCode)(
+  def completeValidation[T](res: Validated[ValidationErrors, T], statusCode: StatusCode)(
     implicit
     ctx: ServiceContext,
     m:   Manifest[T],
     jw:  JsonWriter[T]
   ): ServiceResult = res match {
-    case Success(s) ⇒ complete(s, statusCode)
-    case Failure(e) ⇒ complete(e)
+    case Validated.Valid(s)   ⇒ complete(s, statusCode)
+    case Validated.Invalid(e) ⇒ complete(e)
   }
 
   def completeAsCreated(uri: Uri, headers: List[HttpHeader] = List.empty)(
@@ -422,15 +418,15 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       Location(uri) :: headers
     )
 
-  def completeValidationAsCreated(res: Validation[ValidationErrors, _], uri: Uri)(
+  def completeValidationAsCreated(res: Validated[ValidationErrors, _], uri: Uri)(
     implicit
     ctx: ServiceContext
   ): ServiceResult = res match {
-    case Success(s) ⇒ completeAsCreated(uri)
-    case Failure(e) ⇒ complete(e)
+    case Validated.Valid(s)   ⇒ completeAsCreated(uri)
+    case Validated.Invalid(e) ⇒ complete(e)
   }
 
-  def completeValidationAsCreated(f: Future[Validation[ValidationErrors, _]], uri: Uri)(
+  def completeValidationAsCreated(f: Future[Validated[ValidationErrors, _]], uri: Uri)(
     implicit
     ctx: ServiceContext,
     ec:  ExecutionContext
@@ -438,7 +434,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     complete(f.map(completeValidationAsCreated(_, uri)))
 
   def completeValidationWithPkAsCreated(
-    res:       Validation[ValidationErrors, _ <: ModelWithPk[_]],
+    res:       Validated[ValidationErrors, _ <: ModelWithPk],
     uriPrefix: Uri
   )(
     implicit
@@ -446,13 +442,13 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ec:  ExecutionContext
   ): ServiceResult =
     res match {
-      case Success(res) ⇒
+      case Validated.Valid(res) ⇒
         completeAsCreated(s"$apiPrefix/$uriPrefix/${res.getId}")
-      case Failure(e) ⇒ complete(e)
+      case Validated.Invalid(e) ⇒ complete(e)
     }
 
   def completeValidationWithPkAsCreated(
-    f:         Future[Validation[ValidationErrors, _ <: ModelWithPk[_]]],
+    f:         Future[Validated[ValidationErrors, _ <: ModelWithPk]],
     uriPrefix: Uri
   )(
     implicit
@@ -467,7 +463,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(FailureResponse.fromExceptions(errors), StatusCodes.UnprocessableEntity)
 
-  def completeValidation[T](f: Future[Validation[ValidationErrors, T]], statusCode: StatusCode)(
+  def completeValidation[T](f: Future[Validated[ValidationErrors, T]], statusCode: StatusCode)(
     implicit
     ctx: ServiceContext,
     ec:  ExecutionContext,
@@ -518,16 +514,16 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
   ): ServiceResult =
     complete(f.map(opt ⇒ completeOrNotFound(opt, statusCode)))
 
-  def completeValidationWithoutContent(res: Validation[ValidationErrors, _])(
+  def completeValidationWithoutContent(res: Validated[ValidationErrors, _])(
     implicit
     ctx: ServiceContext
   ): ServiceResult = res match {
-    case Success(s) ⇒ completeWithoutContent()
-    case Failure(e) ⇒ complete(e)
+    case Validated.Valid(s)   ⇒ completeWithoutContent()
+    case Validated.Invalid(e) ⇒ complete(e)
   }
 
   def completeValidationWithoutContent(
-    f: Future[Validation[ValidationErrors, _]]
+    f: Future[Validated[ValidationErrors, _]]
   )(
     implicit
     ctx: ServiceContext,
@@ -536,15 +532,15 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     complete(f.map(completeValidationWithoutContent))
 
   def completeValidationWithoutResult(
-    res:        Validation[ValidationErrors, _],
+    res:        Validated[ValidationErrors, _],
     statusCode: StatusCode,
-    headers:    List[HttpHeader]                = List.empty
+    headers:    List[HttpHeader]               = List.empty
   )(
     implicit
     ctx: ServiceContext
   ): ServiceResult = res match {
-    case Success(s) ⇒ completeWithoutResult(statusCode, headers)
-    case Failure(e) ⇒ complete(e)
+    case Validated.Valid(s)   ⇒ completeWithoutResult(statusCode, headers)
+    case Validated.Invalid(e) ⇒ complete(e)
   }
 
   def getAuthToken()(implicit ctx: ServiceContext): Option[String] = {

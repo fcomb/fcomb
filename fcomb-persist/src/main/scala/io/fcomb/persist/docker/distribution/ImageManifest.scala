@@ -6,7 +6,6 @@ import io.fcomb.models.docker.distribution.{Manifest ⇒ MManifest, ImageManifes
 import io.fcomb.persist._
 import io.fcomb.validations._
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz._, Scalaz._
 import org.apache.commons.codec.digest.DigestUtils
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import java.time.ZonedDateTime
@@ -62,7 +61,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
     } yield (imageId, blobs, manifestIdOpt)).flatMap {
       case (imageId, blobs, manifestIdOpt) ⇒
         val blobsMap = blobs.map(b ⇒ (s"$sha256Prefix${b.sha256Digest.get}", b.getId)).toMap
-        assert(blobsMap.length === digests.length) // TODO
+        assert(blobsMap.size == digests.length) // TODO
         val timeNow = ZonedDateTime.now
         val configBlobId = blobsMap(mm.config.digest)
         val layersBlobId = mm.layers.map(l ⇒ blobsMap(l.digest))

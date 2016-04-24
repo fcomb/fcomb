@@ -8,7 +8,6 @@ import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz._
 
 object NodeService extends Service {
   val pathPrefix = "nodes"

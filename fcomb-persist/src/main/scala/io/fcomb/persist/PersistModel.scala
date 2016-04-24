@@ -5,10 +5,11 @@ import io.fcomb.validations.{DBIOT, ValidationResult, ValidationResultUnit}
 import io.fcomb.Db._
 import io.fcomb.RichPostgresDriver.IntoInsertActionComposer
 import io.fcomb.RichPostgresDriver.api._
+import akka.http.scaladsl.util.FastFuture, FastFuture._
 import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future, blocking}
-import scalaz._
-import scalaz.Scalaz._
+import scala.concurrent.{ExecutionContext, Future}
+import cats.data.Validated, cats.std.all._
+import cats.syntax.cartesian._
 import slick.jdbc.TransactionIsolation
 import slick.lifted.AppliedCompiledFunction
 
@@ -20,13 +21,13 @@ trait PersistTypes[T] {
     validations.validationErrors(columnName → error)
 
   def validationErrorAsFuture[E](columnName: String, error: String): Future[ValidationResult[E]] =
-    Future.successful(validationError(columnName, error))
+    FastFuture.successful(validationError(columnName, error))
 
   def recordNotFound[E](columnName: String, id: String): ValidationResult[E] =
     validationError(columnName, s"Not found `$id` record")
 
   def recordNotFoundAsFuture[E](field: String, id: String): Future[ValidationResult[E]] =
-    Future.successful(recordNotFound(field, id))
+    FastFuture.successful(recordNotFound(field, id))
 }
 
 trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
@@ -58,10 +59,10 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     for {
       plainRes ← DBIO.successful(t._1)
       dbioRes ← t._2
-    } yield (plainRes |@| dbioRes) { (_, _) ⇒ () }
+    } yield plainRes *> dbioRes
 
   protected def validate(item: T)(implicit ec: ExecutionContext): ValidationDBIOResult =
-    DBIO.successful(().success)
+    DBIO.successful(Validated.Valid(()))
 
   protected def validateThenApply(result: ValidationDBIOResult)(
     f: ⇒ DBIOAction[T, NoStream, Effect.All]
@@ -69,7 +70,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     implicit
     ec: ExecutionContext, m: Manifest[T]
   ): Future[ValidationModel] =
-    validateThenApplyVM(result)(f.map(_.success))
+    validateThenApplyVM(result)(f.map(Validated.Valid(_)))
 
   protected def validateThenApplyDBIO(result: ValidationDBIOResult)(
     f: ⇒ DBIOAction[T, NoStream, Effect.All]
@@ -78,7 +79,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     ec: ExecutionContext,
     m:  Manifest[T]
   ): DBIOAction[ValidationModel, NoStream, Effect.All] =
-    validateThenApplyVMDBIO(result)(f.map(_.success))
+    validateThenApplyVMDBIO(result)(f.map(Validated.Valid(_)))
 
   protected def validateThenApplyVMDBIO(result: ValidationDBIOResult)(
     f: ⇒ DBIOAction[ValidationModel, NoStream, Effect.All]
@@ -88,8 +89,8 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     m:  Manifest[T]
   ): DBIOAction[ValidationModel, NoStream, Effect.All] = {
     result.flatMap {
-      case Success(_)     ⇒ f
-      case e @ Failure(_) ⇒ DBIO.successful(e)
+      case Validated.Valid(_)       ⇒ f
+      case e @ Validated.Invalid(_) ⇒ DBIO.successful(e)
     }
   }
 
@@ -147,32 +148,38 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     ec: ExecutionContext
   ): ValidationResult[R] =
     if (q == 0) error
-    else res.success
+    else Validated.Valid(res)
 
   def strictDestroyDBIO(q: Int, error: ValidationResultUnit)(
     implicit
     ec: ExecutionContext
   ): ValidationResultUnit =
     if (q == 0) error
-    else ().success
+    else Validated.Valid(())
 }
 
-trait PersistTableWithPk[T] { this: Table[_] ⇒
-  def id: Rep[Option[T]]
-  def pk: Rep[T]
+trait PersistTableWithPk { this: Table[_] ⇒
+  type Pk
+
+  def id: Rep[Option[Pk]]
+  def pk: Rep[Pk]
 }
 
-trait PersistTableWithUuidPk extends PersistTableWithPk[UUID] { this: Table[_] ⇒
+trait PersistTableWithUuidPk extends PersistTableWithPk { this: Table[_] ⇒
+  type Pk = UUID
+
   def id = column[Option[UUID]]("id", O.PrimaryKey)
   def pk = column[UUID]("id", O.PrimaryKey)
 }
 
-trait PersistTableWithAutoLongPk extends PersistTableWithPk[Long] { this: Table[_] ⇒
+trait PersistTableWithAutoLongPk extends PersistTableWithPk { this: Table[_] ⇒
+  type Pk = Long
+
   def id = column[Option[Long]]("id", O.AutoInc, O.PrimaryKey)
   def pk = column[Long]("id", O.AutoInc, O.PrimaryKey)
 }
 
-trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with PersistTableWithPk[Id]]
+trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTableWithPk]
     extends PersistModel[T, Q] {
   val tableWithPk: IntoInsertActionComposer[T, T]
 
@@ -191,7 +198,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
     recordNotFound("id", id.toString)
 
   def recordNotFoundAsFuture[E](id: T#PkType): Future[ValidationResult[E]] =
-    Future.successful(recordNotFound(id))
+    FastFuture.successful(recordNotFound(id))
 
   def findByPkDBIO(id: T#PkType) =
     findByPkQuery(id).result.headOption
@@ -251,7 +258,7 @@ trait PersistModelWithPk[Id, T <: models.ModelWithPk[Id], Q <: Table[T] with Per
 }
 
 trait PersistModelWithUuidPk[T <: models.ModelWithUuidPk, Q <: Table[T] with PersistTableWithUuidPk]
-    extends PersistModelWithPk[UUID, T, Q] {
+    extends PersistModelWithPk[T, Q] {
   lazy val tableWithPk = table.returning(table.map(_.id))
     .into((item, _) ⇒ item)
 
@@ -269,7 +276,7 @@ trait PersistModelWithUuidPk[T <: models.ModelWithUuidPk, Q <: Table[T] with Per
 }
 
 trait PersistModelWithAutoLongPk[T <: models.ModelWithAutoLongPk, Q <: Table[T] with PersistTableWithAutoLongPk]
-    extends PersistModelWithPk[Long, T, Q] {
+    extends PersistModelWithPk[T, Q] {
   lazy val tableWithPk =
     table.returning(table.map(_.id))
       .into((item, id) ⇒ item.withPk(id.get).asInstanceOf[T])

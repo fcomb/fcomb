@@ -19,6 +19,7 @@ import java.security.spec.PKCS8EncodedKeySpec
 import java.time.ZonedDateTime
 import sun.security.pkcs10.PKCS10
 import sun.security.x509.{CertificateExtensions, X500Name, X509CertImpl}
+import cats.data.Validated
 
 // TODO: add router and distribution by userId
 
@@ -181,8 +182,8 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
     ).onComplete {
         case Success(res) ⇒
           res match {
-            case scalaz.Success(cert) ⇒ self ! initializeWith(cert)
-            case scalaz.Failure(e)    ⇒ handleThrowable(e.head)
+            case Validated.Valid(cert) ⇒ self ! initializeWith(cert)
+            case Validated.Invalid(e)  ⇒ handleThrowable(e.head)
           }
         case Failure(e) ⇒ handleThrowable(e)
       }

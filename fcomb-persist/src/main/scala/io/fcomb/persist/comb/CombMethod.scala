@@ -11,8 +11,6 @@
 // import java.time.LocalDateTime
 // import scala.concurrent.{ExecutionContext, Future}
 // import scala.util.{Failure, Success, Try}
-// import scalaz._
-// import scalaz.Scalaz._
 
 // class CombMethodTable(tag: Tag) extends Table[comb.CombMethod](tag, "comb_methods")
 //   with PersistTableWithAutoLongPk {

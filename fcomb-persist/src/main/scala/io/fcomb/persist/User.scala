@@ -8,8 +8,7 @@ import io.fcomb.validations._
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz._
-import scalaz.Scalaz._
+import cats.data.Validated
 import slick.jdbc.GetResult
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 
@@ -57,8 +56,8 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     implicit
     ec: ExecutionContext
   ) = res match {
-    case s @ Success(u) ⇒ UserToken.createDefaults(u.getId).map(_ ⇒ s)
-    case e @ Failure(_) ⇒ Future.successful(e)
+    case s @ Validated.Valid(u)   ⇒ UserToken.createDefaults(u.getId).map(_ ⇒ s)
+    case e @ Validated.Invalid(_) ⇒ Future.successful(e)
   }
 
   def updateByRequest(id: Long)(
@@ -100,7 +99,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     if (oldPassword == newPassword)
       validationErrorAsFuture("password", "can't be the same")
     else if (user.isValidPassword(oldPassword))
-      updatePassword(user.getId, newPassword).map(_ ⇒ user.success)
+      updatePassword(user.getId, newPassword).map(_ ⇒ Validated.Valid(user))
     else
       validationErrorAsFuture("password", "doesn't match")
   }

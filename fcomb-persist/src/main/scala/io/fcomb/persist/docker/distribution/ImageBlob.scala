@@ -8,7 +8,7 @@ import io.fcomb.validations.eitherT
 import scala.concurrent.{ExecutionContext, Future}
 import java.time.ZonedDateTime
 import java.util.UUID
-import scalaz._, Scalaz._
+import cats.std.all._
 
 class ImageBlobTable(tag: Tag) extends Table[MImageBlob](tag, "docker_distribution_image_blobs")
     with PersistTableWithUuidPk {
@@ -89,7 +89,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
     (for {
       imageId ← eitherT(Image.findIdOrCreateByName(name, userId))
       blob ← eitherT(create(imageId, contentType))
-    } yield blob).run.map(_.validation)
+    } yield blob).toValidated
 
   private val findByImageIdAndUuidCompiled = Compiled {
     (imageId: Rep[Long], uuid: Rep[UUID]) ⇒

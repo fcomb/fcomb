@@ -9,8 +9,6 @@
 // import java.time.LocalDateTime
 // import java.util.UUID
 // import scala.concurrent.{ ExecutionContext, Future }
-// import scalaz._
-// import scalaz.Scalaz._
 
 // class CombTable(tag: Tag) extends Table[comb.Comb](tag, "combs") with PersistTableWithAutoLongPk {
 //   def userId = column[UUID]("user_id")

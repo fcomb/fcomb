@@ -97,10 +97,10 @@
 //     f: T => Unit
 //   ) = {
 //     v match {
-//       case r @ scalaz.Success(res) =>
+//       case r @ Validated.Valid(res) =>
 //         f(res)
 //         replyTo ! r
-//       case e @ scalaz.Failure(_) =>
+//       case e @ Validated.Invalid(_) =>
 //         replyTo ! e
 //     }
 //     backToWork()

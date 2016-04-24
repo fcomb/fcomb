@@ -9,8 +9,6 @@ object Dependencies {
     val enumeratum = "1.4.1"
     val slick = "3.1.1"
     val slickPg = "0.12.2"
-    val shims = "0.3"
-    val scalaz = "7.2.2"
     val quill = "0.5.0"
     val monocle = "1.2.1"
     val kamon = "0.6.0"
@@ -27,9 +25,9 @@ object Dependencies {
     val akkaDistributedData = "com.typesafe.akka"         %% "akka-distributed-data-experimental" % V.akka
     val akkaContrib     = "com.typesafe.akka"             %% "akka-contrib"                  % V.akka
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream"                   % V.akka
+    val akkaHttpCore    = "com.typesafe.akka"             %% "akka-http-core"                % V.akka
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akka
     val akkaHttpSwagger = "com.github.swagger-akka-http"  %% "swagger-akka-http"             % "0.6.2"
-    val akkaHttpSprayJson = "com.typesafe.akka"           %% "akka-http-spray-json-experimental" % V.akka
     val akkaHttpJsonCirce = "de.heikoseeberger"           %% "akka-http-circe"               % "1.6.0"
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
@@ -62,7 +60,6 @@ object Dependencies {
 
     // val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
     val sprayJson       = "io.spray"                      %% "spray-json"                    % "1.3.2"
-    val sprayJsonShapeless = "com.github.fommil"          %% "spray-json-shapeless"          % "1.2.0"
     val circeCore       = "io.circe"                      %% "circe-core"                    % V.circe
     val circeGeneric    = "io.circe"                      %% "circe-generic"                 % V.circe
     val circeJawn       = "io.circe"                      %% "circe-jawn"                    % V.circe
@@ -102,14 +99,8 @@ object Dependencies {
     val s3              = "com.amazonaws"                 %  "aws-java-sdk-s3"               % "1.10.14"
     val awsWrap         = "com.github.dwhjames"           %% "aws-wrap"                      % "0.7.2"
 
-    val scalazCore      = "org.scalaz"                    %% "scalaz-core"                   % V.scalaz
-    val scalazConcurrent = "org.scalaz"                   %% "scalaz-concurrent"             % V.scalaz
-    val scalazShims     = "com.codecommit"                %% "shims-scalaz-72"               % V.shims
     val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.3.0"
-    val scalazStream    = "org.scalaz.stream"             %% "scalaz-stream"                 % "0.8.1"
-    val shapelessScalaz = "org.typelevel"                 %% "shapeless-scalaz"              % "0.4"
     val cats            = "org.typelevel"                 %% "cats"                          % V.cats
-    val catsShims       = "com.codecommit"                %% "shims-cats"                    % V.shims
     val kittens         = "com.milessabin"                %% "kittens"                       % "1.0.0-M1"
 
     // val raptureCore     = "com.propensive"                %% "rapture-core"                  % "1.1.0"
@@ -123,7 +114,7 @@ object Dependencies {
     val logbackClassic  = "ch.qos.logback"                %  "logback-classic"               % "1.1.7"
     val scalaLogging    = "com.typesafe.scala-logging"    %% "scala-logging"                 % "3.4.0"
 
-    val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.3.9"
+    val pprint          = "com.lihaoyi"                   %% "pprint"                        % "0.4.0"
 
     val bridj           = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
 
@@ -145,7 +136,7 @@ object Dependencies {
 
     val scalaMeter      = "com.storm-enroute"             %% "scalameter"                    % "0.7"
 
-    val jwt = "com.pauldijou" %% "jwt-core" % "0.7.0"
+    val jwt = "com.pauldijou" %% "jwt-core" % "0.7.1"
     val authentikat = "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1"
     val jose4s = "org.bitbucket.b_c" % "jose4j" % "0.5.0"
   }
@@ -169,11 +160,10 @@ object Dependencies {
     // pickling, upickle,
     // pprint,
     enumeration, enumerationCirce,
-    sprayJson, sprayJsonShapeless,
+    sprayJson,
     circeCore, circeGeneric, circeJawn, circeOptics, circeJava8,
-    scalazCore, scalazConcurrent, scalazStream,
-    cats, catsShims,
-    shapeless, shapelessScalaz,
+    cats,
+    shapeless,
     kittens,
     monocleCore, monocleGeneric, monocleMacro, monocleState,
     pprint,
@@ -191,7 +181,7 @@ object Dependencies {
   val akka = Seq(
     akkaActor, akkaClusterSharding, akkaContrib,
     akkaDistributedData,
-    akkaStream, akkaHttp, akkaHttpJsonCirce, akkaHttpSprayJson,
+    akkaStream, akkaHttpCore, akkaHttp, akkaHttpJsonCirce,
     // akkaHttpSwagger,
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc //,
@@ -203,11 +193,11 @@ object Dependencies {
   val api = common ++ akka ++ Seq(oauth)
 
   val tests = common ++ Seq(
-    akkaTestkit, akkaHttpTestkit, akkaHttpSprayJson,
+    akkaTestkit, akkaHttpTestkit,
     scalacheck, specs2, scalatest, slickTestkit
   )
 
-  val data = common ++ Seq(xml, scalazCore, shapeless, shapelessScalaz)
+  val data = common ++ Seq(xml, shapeless)
 
   val models = common ++ Seq(
     bcrypt, routeTrie
@@ -246,7 +236,7 @@ object Dependencies {
 
   val crypto = akka ++ common ++ Seq(bcProvider, bcPkix)
 
-  val validations = common ++ Seq(slick)
+  val validations = common ++ Seq(akkaHttpCore, slick)
 
   val services = api
 

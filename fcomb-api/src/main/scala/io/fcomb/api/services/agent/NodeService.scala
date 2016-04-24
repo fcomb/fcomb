@@ -13,7 +13,7 @@ import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.RawHeader
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz._
+import cats.data.Validated
 
 object NodeService extends Service {
   val pathPrefix = "nodes"
@@ -26,12 +26,12 @@ object NodeService extends Service {
     authorizeUserByToken(TokenRole.JoinCluster) { user ⇒
       requestBodyAs[NodeJoinRequest] { req ⇒
         complete(NodeManager.joinByRequest(user.getId, req).map {
-          case Success(node) ⇒
+          case Validated.Valid(node) ⇒
             completeAsCreated(
               s"$apiPrefix/${AgentService.pathPrefix}/$pathPrefix/${node.getId}",
               List(RawHeader("Token", node.token))
             )
-          case Failure(e) ⇒ complete(e)
+          case Validated.Invalid(e) ⇒ complete(e)
         })
       }
     }

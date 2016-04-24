@@ -8,8 +8,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
 import redis._
-import shapeless._, contrib.scalaz._, syntax.std.function._
-import scalaz._, scalaz.syntax.validation._
+import shapeless._
+import cats.data.Validated
 import org.apache.commons.codec.digest.DigestUtils
 import java.security.SecureRandom
 import java.util.UUID
@@ -29,21 +29,21 @@ object Session extends PersistTypes[models.Session] {
 
   private def createToken(
     prefix: String,
-    id: String
+    id:     String
   )(
     implicit
     ec: ExecutionContext
   ): Future[ValidationModel] = {
     val sessionId = s"$prefix${random.alphanumeric.take(sessionIdLength).mkString}"
-    redis.set(getKey(sessionId), id, ttl).map { _ =>
-      models.Session(sessionId).success[validations.ValidationErrors]
+    redis.set(getKey(sessionId), id, ttl).map { _ ⇒
+      Validated.Valid(models.Session(sessionId))
     }
   }
 
   private val invalidEmailOrPassword =
     Future.successful(validations.validationErrors(
-      "email" -> s"invalid",
-      "password" -> "invalid"
+      "email" → s"invalid",
+      "password" → "invalid"
     ))
 
   def create(req: SessionRequest)(
@@ -51,9 +51,9 @@ object Session extends PersistTypes[models.Session] {
     ec: ExecutionContext
   ): Future[ValidationModel] =
     User.findByEmail(req.email).flatMap {
-      case Some(user) if user.isValidPassword(req.password) =>
+      case Some(user) if user.isValidPassword(req.password) ⇒
         create(user)
-      case _ =>
+      case _ ⇒
         invalidEmailOrPassword
     }
 
@@ -62,9 +62,9 @@ object Session extends PersistTypes[models.Session] {
     ec: ExecutionContext
   ) = {
     redis.get(getKey(sessionId)).flatMap {
-      case Some(userId) if sessionId.startsWith(prefix) =>
+      case Some(userId) if sessionId.startsWith(prefix) ⇒
         User.findByPk(userId.utf8String.toLong)
-      case _ =>
+      case _ ⇒
         Future.successful(None)
     }
   }

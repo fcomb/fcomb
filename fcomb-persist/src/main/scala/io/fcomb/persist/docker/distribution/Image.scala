@@ -7,7 +7,7 @@ import io.fcomb.response.DistributionImageCatalog
 import io.fcomb.persist._
 import io.fcomb.validations._
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz._, Scalaz._
+import cats.data.Validated
 import slick.jdbc.TransactionIsolation
 import java.time.ZonedDateTime
 
@@ -55,7 +55,7 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
     for {
       _ ← sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
       res ← findIdByNameCompiled(name).result.headOption.flatMap {
-        case Some(id) ⇒ DBIO.successful(id.success)
+        case Some(id) ⇒ DBIO.successful(Validated.Valid(id))
         case None ⇒
           val timeNow = ZonedDateTime.now
           createWithValidationDBIO(MImage(

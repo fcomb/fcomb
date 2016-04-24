@@ -124,7 +124,7 @@ package object json {
       }
     }
 
-  implicit val paginationDataFormat = jsonFormat3(PaginationData)
+  implicit val paginationDataFormat = jsonFormat1(PaginationData)
 
   implicit def multipleDataResponse[A: JsonFormat] =
     jsonFormat2(MultipleDataResponse.apply[A])

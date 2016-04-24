@@ -4,7 +4,7 @@ import io.fcomb.models.application.{ScaleStrategy, Application ⇒ MApplication}
 import io.fcomb.persist.application.{Application ⇒ PApplication}
 import io.fcomb.request.ApplicationRequest
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz._
+import cats.data.Validated
 
 object ApplicationManager {
   def create(userId: Long, req: ApplicationRequest)(
@@ -12,7 +12,7 @@ object ApplicationManager {
     ec: ExecutionContext
   ): Future[PApplication.ValidationModel] =
     PApplication.createByRequest(userId, req).andThen {
-      case scala.util.Success(Success(res)) ⇒
+      case scala.util.Success(Validated.Valid(res)) ⇒
         ApplicationProcessor.start(res.getId)
     }
 
