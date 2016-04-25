@@ -1,43 +1,44 @@
 package io.fcomb.docker.distribution.server.api
 
-import io.fcomb.docker.distribution.server.api.headers._
-import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
-import io.fcomb.docker.distribution.server.api.ContentTypes.`application/vnd.docker.distribution.manifest.v2+json`
-import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
-import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, Image ⇒ MImage, _}
-import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
-import io.fcomb.models.{User ⇒ MUser}
-import io.fcomb.utils.{Config, StringUtils}, Config.docker.distribution.realm
-import akka.http.scaladsl.model._
+import akka.http.scaladsl.marshalling.{Marshal, ToEntityMarshaller}
 import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
+import cats.data.{Validated, Xor}
 import cats.syntax.eq._
-import scala.concurrent.{ExecutionContext, Future, blocking}
-import scala.concurrent.duration._
+import io.circe.{Encoder, Json}
+import io.fcomb.docker.distribution.server.api.ContentTypes.`application/vnd.docker.distribution.manifest.v2+json`
+import io.fcomb.docker.distribution.server.api.headers._
+import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
+import io.fcomb.docker.distribution.server.utils.BlobFile
+import io.fcomb.models.docker.distribution.{Image ⇒ MImage, _}
+import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
+import io.fcomb.models.{User ⇒ MUser}
+import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
+import io.fcomb.utils.{Config, StringUtils}, Config.docker.distribution.realm
+import java.io.File
+import java.security.MessageDigest
+import java.util.UUID
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
-import java.security.MessageDigest
-import java.io.File
-import java.util.UUID
-import akka.http.scaladsl.marshalling.{Marshal, ToEntityMarshaller}
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.util.{Right, Left}
-import io.circe.{Encoder, Json}
-import cats.data.{Validated, Xor}
 
 import AuthDirectives._
 
-trait ValidationDirectives {
+// trait ValidationDirectives {
 
-}
+// }
 
-object ValidationDirectives extends ValidationDirectives
+// object ValidationDirectives extends ValidationDirectives
 
-import ValidationDirectives._
+// import ValidationDirectives._
 
 trait ResponseDirectives {
   def response[T](status: StatusCode, entity: T)(
@@ -107,14 +108,14 @@ object ImageService {
         val contentType = req.entity.contentType.mediaType.value
         onSuccess((for {
           Validated.Valid(blob) ← PImageBlob.createByImageName(name, user.getId, contentType)
-          file = blobFile(blob.getId.toString)
+          file ← BlobFile.createUploadFile(blob.getId)
           sha256Digest ← writeFile(source, file)
           fileLength ← Future(blocking(file.length))
           _ ← PImageBlob.completeUpload(blob.getId, fileLength, sha256Digest)
         } yield (blob, sha256Digest, file)).flatMap {
           case (blob, sha256Digest, file) ⇒
             if (parseDigest(digest) == sha256Digest) {
-              renameFileToDigest(file, sha256Digest).fast.map { _ ⇒
+              BlobFile.uploadToBlob(file, sha256Digest).fast.map { _ ⇒
                 HttpResponse(StatusCodes.Created, immutable.Seq(
                   Location(s"/v2/$name/blobs/sha256:$sha256Digest"),
                   `Docker-Upload-Uuid`(blob.getId),
@@ -170,8 +171,8 @@ object ImageService {
             case Some(blob) ⇒
               assert(blob.state === ImageBlobState.Created) // TODO: monolithic cannot be uploaded through chunk;move into FSM
               val md = MessageDigest.getInstance("SHA-256")
-              val file = blobFile(blob.getId.toString)
               complete(for {
+                file ← BlobFile.createUploadFile(blob.getId)
                 _ ← req.entity.dataBytes.map { chunk ⇒
                   md.update(chunk.toArray)
                   chunk
@@ -205,8 +206,8 @@ object ImageService {
               // val rangeTo = contentRange.contentRange.getSatisfiableLast.asScala.get
               // assert(rangeFrom == blob.length)
               // assert(rangeTo >= rangeFrom)
-              val file = blobFile(blob.getId.toString)
               complete(for {
+                file ← BlobFile.createUploadFile(blob.getId)
                 (length, digest) ← ImageBlobPushProcessor.uploadChunk(
                   blob.getId,
                   req.entity.dataBytes, // .take(rangeTo - rangeFrom + 1),
@@ -241,25 +242,28 @@ object ImageService {
                 complete(HttpResponse(StatusCodes.Created, headers))
               else {
                 assert(blob.state === ImageBlobState.Uploading) // TODO
-                val file = blobFile(blob.getId.toString)
                 complete((for {
+                  file ← BlobFile.createUploadFile(blob.getId)
                   (length, digest) ← ImageBlobPushProcessor.uploadChunk(uuid, req.entity.dataBytes, file)
                   Xor.Right(_) ← ImageBlobPushProcessor.stop(blob.getId)
-                } yield (length, digest)).flatMap {
-                  case (length, digest) ⇒
+                } yield (file, length, digest)).flatMap {
+                  case (file, length, digest) ⇒
                     if (digest == queryDigest) {
-                      PImageBlob.completeUpload(uuid, blob.length + length, digest).map { _ ⇒
-                        HttpResponse(StatusCodes.Created, headers)
-                      }
+                      for {
+                        _ ← BlobFile.uploadToBlob(file, digest)
+                        _ ← PImageBlob.completeUpload(uuid, blob.length + length, digest)
+                      } yield HttpResponse(StatusCodes.Created, headers)
                     }
-                    else for {
-                      _ ← Future(blocking(file.delete))
-                      _ ← PImageBlob.destroy(uuid)
-                      res ← response(
-                        StatusCodes.BadRequest,
-                        DistributionErrorResponse.from(DistributionError.DigestInvalid())
-                      )
-                    } yield res
+                    else {
+                      for {
+                        _ ← Future(blocking(file.delete))
+                        _ ← PImageBlob.destroy(uuid)
+                        res ← response(
+                          StatusCodes.BadRequest,
+                          DistributionErrorResponse.from(DistributionError.DigestInvalid())
+                        )
+                      } yield res
+                    }
                 })
               }
             case None ⇒ complete(StatusCodes.NotFound) // TODO
@@ -275,7 +279,7 @@ object ImageService {
           import mat.executionContext
           onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
             case Some(blob) if blob.state === ImageBlobState.Created || blob.state === ImageBlobState.Uploading ⇒
-              val file = blobFile(blob.getId.toString)
+              val file = BlobFile.uploadFile(blob.getId)
               complete(for {
                 _ ← Future(blocking(file.delete))
                 _ ← PImageBlob.destroy(uuid)
@@ -294,7 +298,7 @@ object ImageService {
           val sha256Digest = parseDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
-              val file = blobFile(blob.getId.toString)
+              val file = BlobFile.uploadFile(blob.getId)
               complete(for {
                 _ ← Future(blocking(file.delete)) // TODO: only if file exists once
                 _ ← PImageBlob.destroy(blob.getId) // TODO: destroy only unlinked blob
@@ -319,7 +323,6 @@ object ImageService {
           val sha256Digest = parseDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) ⇒
-              println(s"blob: $blob")
               complete(HttpResponse(
                 StatusCodes.OK,
                 immutable.Seq(
@@ -342,10 +345,9 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           val sha256Digest = parseDigest(digest)
-          println(s"sha256Digest: $sha256Digest")
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) ⇒
-              val source = FileIO.fromFile(blobFile(blob))
+              val source = FileIO.fromFile(BlobFile.getFile(blob))
               val ct = contentType(blob.contentType)
               req.header[Range] match {
                 case Some(range) ⇒
@@ -426,8 +428,7 @@ object ImageService {
   private val cacheHeader =
     `Cache-Control`(CacheDirectives.`max-age`(365.days.toSeconds))
 
-  private def parseDigest(digest: String) =
-    digest.split(':').last
+  private def parseDigest(digest: String) = digest.split(':').last
 
   private def rangeHeader(from: Long, length: Long) = {
     val to =
@@ -436,30 +437,7 @@ object ImageService {
     RangeCustom(from, to)
   }
 
-  // TODO
-  private def blobFile(imageName: String): File =
-    new File(s"${Config.docker.distribution.imageStorage}/${imageName.replaceAll("/", "_")}")
-
-  private def blobFile(blob: MImageBlob): File = {
-    val filename =
-      if (blob.isUploaded) blob.sha256Digest.get
-      else blob.getId.toString
-    blobFile(filename)
-  }
-
-  private def renameFileToDigest(file: File, digest: String)(
-    implicit
-    ec: ExecutionContext
-  ) =
-    Future(blocking {
-      val newFile = blobFile(digest)
-      if (!newFile.exists()) file.renameTo(newFile)
-    })
-
-  private def writeFile(
-    source: Source[ByteString, Any],
-    file:   File
-  )(
+  private def writeFile(source: Source[ByteString, Any], file: File)(
     implicit
     ec:  ExecutionContext,
     mat: Materializer
@@ -468,7 +446,7 @@ object ImageService {
     source.map { chunk ⇒
       md.update(chunk.toArray)
       chunk
-    }.runWith(FileIO.toFile(file)).map { _ ⇒
+    }.runWith(FileIO.toFile(file)).fast.map { _ ⇒
       StringUtils.hexify(md.digest)
     }
   }

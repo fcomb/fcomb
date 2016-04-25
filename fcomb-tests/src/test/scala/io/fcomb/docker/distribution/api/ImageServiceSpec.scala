@@ -1,34 +1,32 @@
 package io.fcomb.docker.distribution.server.api
 
+import akka.actor.PoisonPill
+import akka.http.scaladsl._, model._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.util.ByteString
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
-import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob}
+import io.fcomb.docker.distribution.server.utils.BlobFile
+import io.fcomb.json._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
+import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob}
 import io.fcomb.response.DistributionImageCatalog
-import io.fcomb.json._
-import io.fcomb.utils.{Config, StringUtils, Random}
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures.Fixtures
-import scala.concurrent.{Await, Promise}
-import scala.concurrent.duration._
-import scala.util.Try
-import org.scalatest.{Matchers, WordSpec}
-import org.scalatest.concurrent.ScalaFutures
-import akka.actor.PoisonPill
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl._, model._
-import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
-import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.testkit.ScalatestRouteTest
-import akka.stream._
-import akka.stream.scaladsl._
-import akka.util.ByteString
-import org.apache.commons.codec.digest.DigestUtils
-import java.util.UUID
-import java.io.{File, FileInputStream}
+import io.fcomb.utils.StringUtils
+import java.io.FileInputStream
 import java.security.MessageDigest
+import java.util.UUID
+import org.apache.commons.codec.digest.DigestUtils
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.{Matchers, WordSpec}
+import scala.concurrent.duration._
+import scala.concurrent.Await
 import spray.json._
 
 class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with ScalaFutures with PersistSpec with ActorClusterSpec {
@@ -48,9 +46,6 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     super.afterAll()
     clusterRef ! PoisonPill
   }
-
-  private def imageFile(imageName: String) =
-    new File(s"${Config.docker.distribution.imageStorage}/${imageName.replaceAll("/", "_")}")
 
   "The image service" should {
     "return a uuid for POST request to the start upload path" in {
@@ -83,7 +78,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           blob.state shouldEqual ImageBlobState.Uploaded
           blob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = imageFile(blob.sha256Digest.get)
+          val file = BlobFile.blobFile(blob.sha256Digest.get)
           file.length shouldEqual bs.length
           val fis = new FileInputStream(file)
           val fileDigest = DigestUtils.sha256Hex(fis)
@@ -158,7 +153,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           blob.state shouldEqual ImageBlobState.Uploaded
           blob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = imageFile(blob.getId.toString)
+          val file = BlobFile.uploadFile(blob.getId)
           file.length shouldEqual bs.length
           val fis = new FileInputStream(file)
           val fileDigest = DigestUtils.sha256Hex(fis)
@@ -191,7 +186,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           updatedBlob.state shouldEqual ImageBlobState.Uploading
           updatedBlob.sha256Digest shouldEqual Some(blobPart1Digest)
 
-          val file = imageFile(blob.getId.toString)
+          val file = BlobFile.uploadFile(blob.getId)
           file.length shouldEqual blobPart1.length
           val fis = new FileInputStream(file)
           val fileDigest = DigestUtils.sha256Hex(fis)
@@ -216,7 +211,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           updatedBlob.state shouldEqual ImageBlobState.Uploading
           updatedBlob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = imageFile(blob.getId.toString)
+          val file = BlobFile.uploadFile(blob.getId)
           file.length shouldEqual bs.length
           val fis = new FileInputStream(file)
           val fileDigest = DigestUtils.sha256Hex(fis)
@@ -248,7 +243,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     // //       updatedBlob.state shouldEqual BlobState.Uploading
     // //       updatedBlob.sha256Digest shouldEqual Some(bsDigest)
 
-    // //       val file = imageFile(blob.getId.toString)
+    // //       val file = BlobFile.uploadFile(blob.getId)
     // //       file.length shouldEqual bs.length
     // //       val fis = new FileInputStream(file)
     // //       val fileDigest = DigestUtils.sha256Hex(fis)
@@ -303,7 +298,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         status shouldEqual StatusCodes.NoContent
         responseAs[String] shouldEqual ""
 
-        val file = imageFile(blob.getId.toString)
+        val file = BlobFile.uploadFile(blob.getId)
         file.exists() should be(false)
       }
     }
@@ -320,7 +315,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         status shouldEqual StatusCodes.NoContent
         responseAs[String] shouldEqual ""
 
-        val file = imageFile(blob.getId.toString)
+        val file = BlobFile.uploadFile(blob.getId)
         file.exists() should be(false)
       }
     }
