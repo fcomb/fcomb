@@ -377,46 +377,51 @@ object ImageService {
       }
     }
 
-  // def getManifest(name: String, reference: String)(
-  //   implicit
-  //   ec:  ExecutionContext,
-  //   mat: Materializer
-  // ) = action { implicit ctx ⇒
-  //   complete(for {
-  //     Some(imageId) ← PImage.findIdByName(name)
-  //     manifest ← PImageManifest.findByImageIdAndReferenceAsManifestV2(imageId, reference)
-  //   } yield completeOrNotFound(manifest, StatusCodes.OK))
-  // }
+  def getManifest(imageName: String, reference: String) =
+    authenticateUserBasic(realm) { user ⇒
+      extractMaterializer { implicit mat ⇒
+        imageByNameWithAcl(imageName, user) { image ⇒
+          import mat.executionContext
+          onSuccess(PImageManifest.findByImageIdAndReferenceAsManifestV2(image.getId, reference)) {
+            case Some(manifest) ⇒ complete(manifest)
+            case None           ⇒ complete(StatusCodes.NotFound) // TODO
+          }
+        }
+      }
+    }
 
-  // def uploadManifest(name: String, reference: String)(
-  //   implicit
-  //   ec:  ExecutionContext,
-  //   mat: Materializer
-  // ) = action { implicit ctx ⇒
-  //   requestBodyAs[Manifest] { manifest ⇒
-  //     complete(ctx.requestContext.request.entity.dataBytes.runFold(ByteString.empty)(_ ++ _).flatMap { rawManifest ⇒
-  //       assert(ctx.requestContext.request.entity.contentType == `application/vnd.docker.distribution.manifest.v2+json`) // TODO
-  //       PImageManifest.upsertByRequest(name, reference, manifest, rawManifest.utf8String).map {
-  //         case res @ Validated.Valid(m) ⇒
-  //           completeWithoutResult(StatusCodes.Created, List(
-  //             `Docker-Content-Digest`("sha256", m.sha256Digest)
-  //           ))
-  //         case e ⇒ completeValidationWithoutContent(e)
-  //       }
-  //     })
-  //   }
-  // }
+  def uploadManifest(imageName: String, reference: String)(implicit req: HttpRequest) =
+    authenticateUserBasic(realm) { user ⇒
+      extractMaterializer { implicit mat ⇒
+        imageByNameWithAcl(imageName, user) { image ⇒
+          import mat.executionContext
+          entity(as[ByteString]) { rawManifest ⇒
+            entity(as[Manifest]) { manifest ⇒
+              assert(req.entity.contentType == `application/vnd.docker.distribution.manifest.v2+json`) // TODO
+              onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, rawManifest.utf8String)) {
+                case Validated.Valid(m) ⇒
+                  complete(HttpResponse(StatusCodes.Created, immutable.Seq(
+                    `Docker-Content-Digest`("sha256", m.sha256Digest)
+                  )))
+                case Validated.Invalid(e) ⇒
+                  complete(response(StatusCodes.BadRequest, FailureResponse.fromExceptions(e)))
+              }
+            }
+          }
+        }
+      }
+    }
 
-  // def destroyManifest(name: String, digest: String)(
-  //   implicit
-  //   ec:  ExecutionContext,
-  //   mat: Materializer
-  // ) = action { implicit ctx ⇒
-  //   complete(for {
-  //     Some(imageId) ← PImage.findIdByName(name)
-  //     _ ← PImageManifest.destroy(imageId, getDigest(digest))
-  //   } yield completeWithoutContent())
-  // }
+  def destroyManifest(imageName: String, digest: String) =
+    authenticateUserBasic(realm) { user ⇒
+      extractMaterializer { implicit mat ⇒
+        imageByNameWithAcl(imageName, user) { image ⇒
+          onSuccess(PImageManifest.destroy(image.getId, parseDigest(digest))) {
+            case _ ⇒ complete(HttpResponse(StatusCodes.NoContent))
+          }
+        }
+      }
+    }
 
   def catalog =
     authenticateUserBasic(realm) { user ⇒

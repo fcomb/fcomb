@@ -28,6 +28,7 @@ object Dependencies {
     val akkaHttpCore    = "com.typesafe.akka"             %% "akka-http-core"                % V.akka
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akka
     val akkaHttpSwagger = "com.github.swagger-akka-http"  %% "swagger-akka-http"             % "0.6.2"
+    val akkaHttpSprayJson = "com.typesafe.akka"           %% "akka-http-spray-json-experimental" % V.akka
     val akkaHttpJsonCirce = "de.heikoseeberger"           %% "akka-http-circe"               % "1.6.0"
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
@@ -82,8 +83,8 @@ object Dependencies {
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg
     val slickPgDate2    = "com.github.tminglei"           %% "slick-pg_date2"                % V.slickPg
     val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % V.slickPg
-    val slickJdbc       = "com.github.tarao"              %% "slick-jdbc-extension"          % "0.0.7"
-    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.3"
+    val slickPgCirceJson = "com.github.tminglei"          %% "slick-pg_circe-json"           % V.slickPg
+    val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.5"
 
     // val phantom         = "com.websudos"                  %% "phantom-dsl"                   % V.phantom
     // val phantomUdt      = "com.websudos"                  %% "phantom-udt"                   % V.phantom
@@ -181,7 +182,7 @@ object Dependencies {
   val akka = Seq(
     akkaActor, akkaClusterSharding, akkaContrib,
     akkaDistributedData,
-    akkaStream, akkaHttpCore, akkaHttp, akkaHttpJsonCirce,
+    akkaStream, akkaHttpCore, akkaHttp, akkaHttpSprayJson, akkaHttpJsonCirce,
     // akkaHttpSwagger,
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc //,
@@ -207,8 +208,7 @@ object Dependencies {
     postgresJdbc,
     dbMigration,
     // quillJdbc, quillAsync,
-    slick, slickHikariCp, slickPg, slickPgDate2, slickPgSprayJson, slickJdbc,
-    // phantom, phantomUdt,
+    slick, slickHikariCp, slickPg, slickPgDate2, slickPgSprayJson, slickPgCirceJson,
     hikariCp, bcrypt, commonsCodec,
     routeTrie
   )

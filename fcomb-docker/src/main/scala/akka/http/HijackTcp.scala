@@ -13,12 +13,12 @@ import akka.http.scaladsl.model.headers._
 import akka.stream._
 import akka.stream.TLSProtocol._
 import akka.stream.scaladsl._
-import akka.stream.stage.{Context, Stage, StageState, StatefulStage, SyncDirective}
+import akka.stream.stage.{Context, StageState, StatefulStage, SyncDirective}
 import akka.util.ByteString
 import java.net.InetSocketAddress
 import javax.net.ssl.SSLContext
 import org.slf4j.LoggerFactory
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Promise
 
 object HijackTcp {
   private val logger = LoggerFactory.getLogger(this.getClass)

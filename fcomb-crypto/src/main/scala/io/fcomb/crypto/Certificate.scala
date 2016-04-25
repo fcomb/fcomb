@@ -2,7 +2,7 @@ package io.fcomb.crypto
 
 import java.security.cert.X509Certificate
 import java.io.StringWriter
-import java.security.{KeyStore, PrivateKey, PublicKey, SecureRandom, Signature}
+import java.security.{PrivateKey, PublicKey, Signature}
 import java.util.{Calendar, Date, Vector ⇒ JavaVector}
 import java.util.concurrent.ThreadLocalRandom
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter

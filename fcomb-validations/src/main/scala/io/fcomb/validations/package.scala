@@ -1,10 +1,7 @@
 package io.fcomb
 
 import io.fcomb.models.errors.ValidationException
-import akka.http.scaladsl.util.FastFuture, FastFuture._
-import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.{existentials, implicitConversions, postfixOps}
 import scala.util.matching.Regex
 import cats.data.{XorT, Validated}, cats.std.all._
 import cats.syntax.cartesian._

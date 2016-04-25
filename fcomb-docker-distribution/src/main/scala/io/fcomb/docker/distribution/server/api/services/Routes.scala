@@ -7,8 +7,6 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.Materializer
-import scala.concurrent.{ExecutionContext, Future}
-import scala.language.implicitConversions
 import java.util.UUID
 
 object Routes {
@@ -65,17 +63,17 @@ object Routes {
                     ImageService.destroyBlob(imageName(xs), id)
                   case _ => complete(notFoundResponse)
                 }
-              // case reference :: "manifests" :: xs =>
-              //   val image = imageName(xs)
-              //   method match {
-              //     case HttpMethods.GET =>
-              //       ImageService.getManifest(image, reference)
-              //     case HttpMethods.PUT =>
-              //       ImageService.uploadManifest(image, reference)
-              //     case HttpMethods.DELETE =>
-              //       ImageService.destroyManifest(image, reference)
-              //     case _ => complete(notFoundResponse)
-              //   }
+              case reference :: "manifests" :: xs =>
+                val image = imageName(xs)
+                method match {
+                  case HttpMethods.GET =>
+                    ImageService.getManifest(image, reference)
+                  case HttpMethods.PUT =>
+                    ImageService.uploadManifest(image, reference)
+                  case HttpMethods.DELETE =>
+                    ImageService.destroyManifest(image, reference)
+                  case _ => complete(notFoundResponse)
+                }
               case "list" :: "tags" :: xs if method == HttpMethods.POST =>
                 ImageService.tags(imageName(xs))
             }

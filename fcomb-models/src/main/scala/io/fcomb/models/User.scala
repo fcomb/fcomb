@@ -2,7 +2,6 @@ package io.fcomb.models
 
 import com.github.t3hnar.bcrypt._
 import java.time.ZonedDateTime
-import java.util.UUID
 
 @SerialVersionUID(1L)
 case class User(

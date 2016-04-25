@@ -89,7 +89,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
   def findByImageIdAndReferenceAsManifestV2(imageId: Long, reference: String)(
     implicit
     ec: ExecutionContext
-  ) = {
+  ): Future[Option[ManifestV2]] = {
     // TODO: find by tags
     for {
       Some(manifest) ← db.run(table.filter { q ⇒
