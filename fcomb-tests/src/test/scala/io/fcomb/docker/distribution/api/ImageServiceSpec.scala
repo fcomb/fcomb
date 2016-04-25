@@ -1,6 +1,6 @@
-package io.fcomb.docker.distribution.server.api.services
+package io.fcomb.docker.distribution.server.api
 
-import io.fcomb.docker.distribution.server.api.services.headers._
+import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob}
 import io.fcomb.models.docker.distribution._

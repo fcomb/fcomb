@@ -1,20 +1,17 @@
-package io.fcomb.docker.distribution.server.api.services
+package io.fcomb.docker.distribution.server.api
 
-import io.fcomb.docker.distribution.server.api.services.headers._
+import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
-import io.fcomb.docker.distribution.server.api.services.ContentTypes.`application/vnd.docker.distribution.manifest.v2+json`
+import io.fcomb.docker.distribution.server.api.ContentTypes.`application/vnd.docker.distribution.manifest.v2+json`
 import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
-import io.fcomb.persist.User
 import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, Image ⇒ MImage, _}
-import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse, DistributionErrorCode}
+import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
 import io.fcomb.utils.{Config, StringUtils}, Config.docker.distribution.realm
-import akka.actor._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl._
@@ -25,8 +22,6 @@ import scala.concurrent.duration._
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import java.security.MessageDigest
-import java.time.ZonedDateTime
-import java.nio.file.StandardOpenOption
 import java.io.File
 import java.util.UUID
 import akka.http.scaladsl.marshalling.{Marshal, ToEntityMarshaller}
@@ -110,36 +105,34 @@ object ImageService {
         import mat.executionContext
         val source = req.entity.dataBytes
         val contentType = req.entity.contentType.mediaType.value
-        complete {
-          (for {
-            Validated.Valid(blob) ← PImageBlob.createByImageName(name, user.getId, contentType)
-            file = blobFile(blob.getId.toString)
-            sha256Digest ← writeFile(source, file)
-            fileLength ← Future(blocking(file.length))
-            _ ← PImageBlob.completeUpload(blob.getId, fileLength, sha256Digest)
-          } yield (blob, sha256Digest, file)).flatMap {
-            case (blob, sha256Digest, file) ⇒
-              if (parseDigest(digest) == sha256Digest) {
-                renameFileToDigest(file, sha256Digest).map { _ ⇒
-                  HttpResponse(StatusCodes.Created, immutable.Seq(
-                    Location(s"/v2/$name/blobs/sha256:$sha256Digest"),
-                    `Docker-Upload-Uuid`(blob.getId),
-                    `Docker-Content-Digest`("sha256", sha256Digest)
-                  ))
-                }
+        onSuccess((for {
+          Validated.Valid(blob) ← PImageBlob.createByImageName(name, user.getId, contentType)
+          file = blobFile(blob.getId.toString)
+          sha256Digest ← writeFile(source, file)
+          fileLength ← Future(blocking(file.length))
+          _ ← PImageBlob.completeUpload(blob.getId, fileLength, sha256Digest)
+        } yield (blob, sha256Digest, file)).flatMap {
+          case (blob, sha256Digest, file) ⇒
+            if (parseDigest(digest) == sha256Digest) {
+              renameFileToDigest(file, sha256Digest).fast.map { _ ⇒
+                HttpResponse(StatusCodes.Created, immutable.Seq(
+                  Location(s"/v2/$name/blobs/sha256:$sha256Digest"),
+                  `Docker-Upload-Uuid`(blob.getId),
+                  `Docker-Content-Digest`("sha256", sha256Digest)
+                ))
               }
-              else {
-                for {
-                  _ ← Future(blocking(file.delete()))
-                  _ ← PImageBlob.destroy(blob.getId)
-                  res ← response(
-                    StatusCodes.BadRequest,
-                    DistributionErrorResponse.from(DistributionError.DigestInvalid())
-                  )
-                } yield res
-              }
-          }
-        }
+            }
+            else {
+              for {
+                _ ← Future(blocking(file.delete()))
+                _ ← PImageBlob.destroy(blob.getId)
+                res ← response(
+                  StatusCodes.BadRequest,
+                  DistributionErrorResponse.from(DistributionError.DigestInvalid())
+                )
+              } yield res
+            }
+        })(complete(_))
       }
     }
 

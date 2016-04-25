@@ -1,6 +1,5 @@
-package io.fcomb.docker.distribution.server.api.services
+package io.fcomb.docker.distribution.server.api
 
-import akka.actor._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.headers._
@@ -8,12 +7,10 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.directives._
 import akka.http.scaladsl.server.Directives._
 import io.fcomb.utils.Config, Config.docker.distribution.realm
-import scala.concurrent.Future
 
 // TODO: move
 trait AuthDirectives {
   import BasicDirectives._
-  import HeaderDirectives._
   import FutureDirectives._
   import RouteDirectives._
 

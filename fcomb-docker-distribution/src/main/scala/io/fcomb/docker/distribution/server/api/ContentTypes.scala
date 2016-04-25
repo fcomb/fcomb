@@ -1,4 +1,4 @@
-package io.fcomb.docker.distribution.server.api.services
+package io.fcomb.docker.distribution.server.api
 
 import akka.http.scaladsl.model.ContentType
 

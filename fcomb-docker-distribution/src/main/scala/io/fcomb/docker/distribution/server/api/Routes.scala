@@ -1,7 +1,7 @@
-package io.fcomb.docker.distribution.server.api.services
+package io.fcomb.docker.distribution.server.api
 
 import io.fcomb.api.services.headers._
-import io.fcomb.docker.distribution.server.api.services.headers._
+import io.fcomb.docker.distribution.server.api.headers._
 import akka.actor._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
