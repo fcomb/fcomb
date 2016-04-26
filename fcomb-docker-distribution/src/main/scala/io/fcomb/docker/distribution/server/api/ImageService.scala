@@ -11,7 +11,7 @@ import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.{Validated, Xor}
 import cats.syntax.eq._
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.fcomb.docker.distribution.server.api.ContentTypes.`application/vnd.docker.distribution.manifest.v2+json`
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
@@ -63,6 +63,7 @@ object ImageService {
   import akka.http.scaladsl.server.Directives._
 
   import io.fcomb.models.errors._
+  import io.fcomb.json.docker.distribution.Formats._
   import de.heikoseeberger.akkahttpcirce.CirceSupport._
 
   import io.circe.generic.auto._
@@ -70,13 +71,6 @@ object ImageService {
   implicit val encodeErrorKind = new Encoder[ErrorKind.ErrorKind] {
     def apply(kind: ErrorKind.ErrorKind) =
       Encoder[String].apply(kind.toString)
-  }
-
-  implicit val encodeDistributionError = new Encoder[DistributionError] {
-    def apply(error: DistributionError) = Json.obj(
-      "code" → Encoder[String].apply(error.code.entryName),
-      "message" → Encoder[String].apply(error.message)
-    )
   }
 
   def createBlobUpload(imageName: String)(implicit req: HttpRequest): Route =

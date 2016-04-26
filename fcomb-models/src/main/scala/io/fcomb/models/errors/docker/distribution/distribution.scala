@@ -24,6 +24,7 @@ final object DistributionErrorCode extends Enum[DistributionErrorCode] {
   final case object Unsupported extends DistributionErrorCode
   final case object DigestInvalid extends DistributionErrorCode
   final case object NameInvalid extends DistributionErrorCode
+  final case object Unknown extends DistributionErrorCode
 
   val values = findValues
 }
@@ -37,6 +38,11 @@ sealed trait DistributionError extends Error {
 final object DistributionError {
   final case class DigestInvalid(message: String = "provided digest did not match uploaded content") extends DistributionError {
     val code = DistributionErrorCode.DigestInvalid
+    val detail = None
+  }
+
+  final case class Unknown(message: String = "unknown error") extends DistributionError {
+    val code = DistributionErrorCode.Unknown
     val detail = None
   }
 

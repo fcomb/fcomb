@@ -93,7 +93,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
 
   private val findByImageIdAndUuidCompiled = Compiled {
     (imageId: Rep[Long], uuid: Rep[UUID]) ⇒
-    table
+      table
         .filter { q ⇒
           q.imageId === imageId && q.id === uuid
         }
@@ -108,7 +108,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
 
   private val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Long], digest: Rep[String]) ⇒
-    table
+      table
         .filter { q ⇒
           q.imageId === imageId &&
             q.sha256Digest === digest
@@ -162,4 +162,14 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
 
   def findByIds(ids: List[UUID]) =
     db.run(table.filter(_.id.inSetBind(ids)).result)
+
+  private val findOutdatedUploadsCompiled = Compiled { until: Rep[ZonedDateTime] ⇒
+    table.filter { q ⇒
+      q.createdAt <= until &&
+        (q.state === ImageBlobState.Created || q.state === ImageBlobState.Uploading)
+    }
+  }
+
+  def findOutdatedUploads(until: ZonedDateTime) =
+    db.stream(findOutdatedUploadsCompiled(until).result)
 }

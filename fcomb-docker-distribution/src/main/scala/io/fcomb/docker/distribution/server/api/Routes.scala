@@ -8,6 +8,7 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.Materializer
 import java.util.UUID
+import org.slf4j.LoggerFactory
 
 object Routes {
   val apiVersion = "v2"
@@ -16,7 +17,7 @@ object Routes {
     import sys.dispatcher
 
     // format: OFF
-    respondWithDefaultHeaders(defaultHeaders) {
+    val routes = respondWithDefaultHeaders(defaultHeaders) {
       pathPrefix(apiVersion) {
         pathEndOrSingleSlash {
           get(AuthService.versionCheck)
@@ -91,7 +92,42 @@ object Routes {
       }
     }
     // format: ON
+
+    import ResponseDirectives._
+    import de.heikoseeberger.akkahttpcirce.CirceSupport._
+    import io.fcomb.json.docker.distribution.Formats._
+    import io.circe.generic.auto._
+    import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
+
+    val exceptionHandler = ExceptionHandler {
+      case e ⇒
+        logger.error(e.getMessage(), e.getCause())
+        complete(response(StatusCodes.InternalServerError, DistributionErrorResponse.from(DistributionError.Unknown())))
+    }
+    val rejectionHandler = RejectionHandler.newBuilder()
+      // .handle {
+      //   case r =>
+      //     logger.error(r.toString, r.toString)
+      //     handleRejection(r)
+      // }
+      .handleNotFound {
+        complete(HttpResponse(StatusCodes.NotFound))
+      }
+      .result
+
+    handleRejections(rejectionHandler) {
+      handleExceptions(exceptionHandler)(routes)
+    }
   }
+
+  private val logger = LoggerFactory.getLogger(getClass)
+
+  // private def handleRejection(r: Rejection) = r match {
+  //   case _ => errorResponse(
+  //     InternalException(r.toString),
+  //     StatusCodes.BadRequest
+  //   )
+  // }
 
   private val versionHeader = `Docker-Distribution-Api-Version`("2.0")
 
