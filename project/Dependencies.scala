@@ -8,7 +8,7 @@ object Dependencies {
     val circe = "0.4.1"
     val enumeratum = "1.4.1"
     val slick = "3.1.1"
-    val slickPg = "0.12.2"
+    val slickPg = "0.13.0"
     val quill = "0.5.0"
     val monocle = "1.2.1"
     val kamon = "0.6.0"
@@ -29,7 +29,7 @@ object Dependencies {
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akka
     val akkaHttpSwagger = "com.github.swagger-akka-http"  %% "swagger-akka-http"             % "0.6.2"
     val akkaHttpSprayJson = "com.typesafe.akka"           %% "akka-http-spray-json-experimental" % V.akka
-    val akkaHttpJsonCirce = "de.heikoseeberger"           %% "akka-http-circe"               % "1.6.0"
+    val akkaHttpCirceJson = "de.heikoseeberger"           %% "akka-http-circe"               % "1.6.0"
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
     val akkaPersistenceJdbc = "com.github.dnvriend"       %% "akka-persistence-jdbc"         % "2.2.8"
@@ -182,7 +182,7 @@ object Dependencies {
   val akka = Seq(
     akkaActor, akkaClusterSharding, akkaContrib,
     akkaDistributedData,
-    akkaStream, akkaHttpCore, akkaHttp, akkaHttpSprayJson, akkaHttpJsonCirce,
+    akkaStream, akkaHttpCore, akkaHttp, akkaHttpSprayJson, akkaHttpCirceJson,
     // akkaHttpSwagger,
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc //,

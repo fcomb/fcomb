@@ -215,68 +215,6 @@ package object json {
   implicit val nodeResponseJsonProtocol =
     jsonFormat6(NodeResponse)
 
-  implicit val dockerDistributionFsLayerJsonProtocol =
-    jsonFormat1(distribution.FsLayer)
-
-  implicit val dockerDistributionManifestV1JsonProtocol =
-    jsonFormat5(distribution.ManifestV1)
-
-  implicit val dockerDistributionDescriptorJsonProtocol =
-    jsonFormat3(distribution.Descriptor)
-
-  implicit val dockerDistributionManifestV2JsonProtocol =
-    jsonFormat4(distribution.ManifestV2)
-
-  implicit object DockerDistributionManifestJsonProtocol extends RootJsonFormat[distribution.Manifest] {
-    def write(m: distribution.Manifest) = m match {
-      case m: distribution.ManifestV1 ⇒ m.toJson
-      case m: distribution.ManifestV2 ⇒ m.toJson
-    }
-
-    def read(v: JsValue): distribution.Manifest = v match {
-      case obj: JsObject ⇒
-        obj.getFields("schemaVersion").headOption.map(_.convertTo[Int]) match {
-          case Some(1) ⇒ obj.convertTo[distribution.ManifestV1]
-          case Some(2) ⇒ obj.convertTo[distribution.ManifestV2]
-          case _       ⇒ throw new DeserializationException("unsupported Manifest version")
-        }
-      case _ ⇒ throw new DeserializationException("invalid Manifest")
-    }
-  }
-
-  import io.fcomb.models.errors.docker.distribution
-
-  implicit val DistributionErrorCodeJsonProtocol =
-    createEnumJsonFormat(distribution.DistributionErrorCode)
-
-  implicit object DistributionErrorJsonProtocol extends RootJsonFormat[distribution.DistributionError] {
-    def write(e: distribution.DistributionError) = JsObject(
-      "code" → e.code.toJson,
-      "message" → e.message.toJson
-    // "detail" -> e.detail.toJson
-    )
-
-    def read(v: JsValue): distribution.DistributionError = v match {
-      case obj: JsObject ⇒
-        obj.getFields("code", "message") match {
-          case Seq(codeStr, JsString(message)) ⇒
-            codeStr.convertTo[distribution.DistributionErrorCode] match {
-              case distribution.DistributionErrorCode.DigestInvalid ⇒
-                distribution.DistributionError.DigestInvalid(message)
-              case _ ⇒ throw new DeserializationException("unsupported DistributionError")
-            }
-          case _ ⇒ throw new DeserializationException("unsupported DistributionError")
-        }
-      case _ ⇒ throw new DeserializationException("invalid DistributionError")
-    }
-  }
-
-  implicit val distributionErrorResponseJsonProtocol =
-    jsonFormat1(distribution.DistributionErrorResponse.apply)
-
-  implicit val distributionImageCatalogJsonProtocol =
-    jsonFormat1(DistributionImageCatalog)
-
   object errors {
     implicit val errorKindFormat = createStringEnumJsonFormat(ErrorKind)
 

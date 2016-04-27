@@ -6,7 +6,7 @@ CREATE TABLE docker_distribution_image_manifests (
   config_blob_id uuid not null references docker_distribution_image_blobs(id),
   layers_blob_id uuid[] not null default array[]::uuid[],
   created_at timestamp with time zone not null default now(),
-  updated_at timestamp with time zone not null default now()
+  updated_at timestamp with time zone
 );
 
 CREATE UNIQUE INDEX on docker_distribution_image_manifests(image_id, sha256_digest);

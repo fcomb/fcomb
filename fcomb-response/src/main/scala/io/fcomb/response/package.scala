@@ -3,7 +3,6 @@ package io.fcomb
 import io.fcomb.models._, node._
 // import io.fcomb.models.comb._
 import java.time.ZonedDateTime
-import java.util.UUID
 import scala.language.implicitConversions
 
 package object response {
@@ -56,10 +55,6 @@ package object response {
     updatedAt:       ZonedDateTime,
     terminatedAt:    Option[ZonedDateTime]
   )
-
-  final case class DistributionImageCatalog(
-    repositories: Seq[String]
-  ) extends ServiceModelResponse
 
   implicit def user2ProfileResponse(u: User): UserProfileResponse =
     UserProfileResponse(

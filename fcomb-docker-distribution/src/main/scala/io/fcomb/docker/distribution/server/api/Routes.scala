@@ -76,7 +76,7 @@ object Routes {
                       ImageService.destroyManifest(image, reference)
                     case _ => complete(notFoundResponse)
                   }
-                case "list" :: "tags" :: xs if method == HttpMethods.POST =>
+                case "list" :: "tags" :: xs if method == HttpMethods.GET =>
                   ImageService.tags(imageName(xs))
                 case _ => complete(notFoundResponse)
               }

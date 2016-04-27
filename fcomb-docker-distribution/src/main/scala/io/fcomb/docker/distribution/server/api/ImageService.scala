@@ -65,13 +65,7 @@ object ImageService {
   import io.fcomb.models.errors._
   import io.fcomb.json.docker.distribution.Formats._
   import de.heikoseeberger.akkahttpcirce.CirceSupport._
-
   import io.circe.generic.auto._
-
-  implicit val encodeErrorKind = new Encoder[ErrorKind.ErrorKind] {
-    def apply(kind: ErrorKind.ErrorKind) =
-      Encoder[String].apply(kind.toString)
-  }
 
   def createBlobUpload(imageName: String)(implicit req: HttpRequest): Route =
     authenticateUserBasic(realm) { user ⇒
@@ -138,7 +132,7 @@ object ImageService {
 
   def tags(imageName: String) =
     authenticateUserBasic(realm) { user ⇒
-      parameters('n.as[Option[Int]], 'last.as[Option[String]]) { (n, last) ⇒
+      parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
         extractExecutionContext { implicit ec ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
             onSuccess(PImageManifest.findTagsByImageId(image.getId, n, last)) { (tags, limit, hasNext) ⇒
@@ -422,10 +416,26 @@ object ImageService {
       }
     }
 
+  final case class DistributionImageCatalog(
+    repositories: Seq[String]
+  )
+
   def catalog =
     authenticateUserBasic(realm) { user ⇒
-      extractExecutionContext { implicit ec ⇒
-        complete(PImage.repositoriesByUserId(user.getId))
+      parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
+        extractExecutionContext { implicit ec ⇒
+          onSuccess(PImage.findRepositoriesByUserId(user.getId, n, last)) { (repositories, limit, hasNext) ⇒
+            val headers =
+              if (hasNext) {
+                val uri = Uri(s"/v2/_catalog?n=$limit&last=${repositories.last}")
+                immutable.Seq(Link(uri, LinkParams.next))
+              }
+              else Nil
+            respondWithHeaders(headers) {
+              complete(DistributionImageCatalog(repositories))
+            }
+          }
+        }
       }
     }
 

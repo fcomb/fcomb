@@ -1,11 +1,11 @@
 package io.fcomb.persist.docker.distribution
 
+import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage}
 import io.fcomb.persist._
-import io.fcomb.response.DistributionImageCatalog
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -80,18 +80,51 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
       } yield res
     }
 
-  private val repositoriesByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
-    table
-      .filter(_.userId === userId)
-      .map(_.name)
-      .sortBy(identity)
+  private val findIdByUserIdAndNameCompiled = Compiled {
+    (userId: Rep[Long], name: Rep[String]) ⇒
+      table
+        .filter { q ⇒
+          q.userId === userId && q.name === name
+        }
+        .map(_.pk)
   }
 
-  def repositoriesByUserId(userId: Long)(
+  private val findRepositoriesByUserIdCompiled = Compiled {
+    (userId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long]) ⇒
+      table
+        .filter { q ⇒
+          q.userId === userId && q.pk > id
+        }
+        .sortBy(_.id.asc)
+        .map(_.name)
+        .take(limit)
+  }
+
+  val fetchLimit = 256
+
+  def findRepositoriesByUserId(userId: Long, n: Option[Int], last: Option[String])(
     implicit
     ec: ExecutionContext
-  ) =
-    db.run(repositoriesByUserIdCompiled(userId).result.map(DistributionImageCatalog(_)))
+  ): Future[(Seq[String], Int, Boolean)] = {
+    val limit = n match {
+      case Some(v) if v > 0 && v <= fetchLimit ⇒ v
+      case _                                   ⇒ fetchLimit
+    }
+    val since = last match {
+      case Some(imageName) ⇒
+        findIdByUserIdAndNameCompiled((userId, imageName)).result.headOption.map {
+          case Some(id) ⇒ id
+          case None     ⇒ 0L
+        }
+      case None ⇒ DBIO.successful(0L)
+    }
+    db.run(for {
+      id ← since
+      repositories ← findRepositoriesByUserIdCompiled((userId, limit + 1L, id)).result
+    } yield repositories).fast.map { repositories ⇒
+      (repositories.take(limit), limit, repositories.length > limit)
+    }
+  }
 
   private val uniqueNameCompiled = Compiled {
     (id: Rep[Option[Long]], name: Rep[String]) ⇒

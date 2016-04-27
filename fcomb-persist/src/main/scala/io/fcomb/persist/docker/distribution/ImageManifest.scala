@@ -4,7 +4,7 @@ import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{Manifest ⇒ MManifest, ImageManifest ⇒ MImageManifest, _}
 import io.fcomb.persist._
-import io.fcomb.validations._
+// import io.fcomb.validations._
 import scala.concurrent.{ExecutionContext, Future}
 import org.apache.commons.codec.digest.DigestUtils
 import akka.http.scaladsl.util.FastFuture, FastFuture._
@@ -18,7 +18,7 @@ class ImageManifestTable(tag: Tag) extends Table[MImageManifest](tag, "docker_di
   def configBlobId = column[UUID]("config_blob_id")
   def layersBlobId = column[List[UUID]]("layers_blob_id")
   def createdAt = column[ZonedDateTime]("created_at")
-  def updatedAt = column[ZonedDateTime]("updated_at")
+  def updatedAt = column[Option[ZonedDateTime]]("updated_at")
 
   def * =
     (id, sha256Digest, imageId, tags, configBlobId, layersBlobId, createdAt, updatedAt) <>
@@ -62,7 +62,6 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
       case (imageId, blobs, manifestIdOpt) ⇒
         val blobsMap = blobs.map(b ⇒ (s"$sha256Prefix${b.sha256Digest.get}", b.getId)).toMap
         assert(blobsMap.size == digests.length) // TODO
-        val timeNow = ZonedDateTime.now
         val configBlobId = blobsMap(mm.config.digest)
         val layersBlobId = mm.layers.map(l ⇒ blobsMap(l.digest))
         manifestIdOpt match {
@@ -70,7 +69,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
             update(manifestId)(_.copy(
               configBlobId = configBlobId,
               layersBlobId = layersBlobId,
-              updatedAt = timeNow
+              updatedAt = Some(ZonedDateTime.now)
             ))
           case None ⇒
             create(MImageManifest(
@@ -79,8 +78,8 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
               tags = List.empty, // TODO
               configBlobId = configBlobId,
               layersBlobId = layersBlobId,
-              createdAt = timeNow,
-              updatedAt = timeNow
+              createdAt = ZonedDateTime.now,
+              updatedAt = None
             ))
         }
     }
@@ -119,7 +118,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
     (imageId: Rep[Long], tag: Rep[String]) ⇒
       table
         .filter { q ⇒
-          q.imageId === imageId && q.tags.any === tag
+          q.imageId === imageId && tag === q.tags.any
         }
         .map(m ⇒ (m.pk, m.tags))
   }

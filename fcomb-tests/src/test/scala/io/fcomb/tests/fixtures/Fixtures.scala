@@ -44,72 +44,84 @@ object Fixtures {
       ).map(getSuccess)
   }
 
-  object DockerDistributionImage {
-    def create(userId: Long, imageName: String)(
-      implicit
-      ec:  ExecutionContext,
-      mat: Materializer
-    ) =
-      (for {
-        Validated.Valid(imageId) ← P.docker.distribution.Image.findIdOrCreateByName(imageName, userId)
-      } yield imageId)
-  }
+  object docker {
+    object distribution {
+      import M.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageManifest ⇒ MImageManifest, _}
 
-  object DockerDistributionImageBlob {
-    def create(
-      userId:    Long,
-      imageName: String
-    )(
-      implicit
-      ec:  ExecutionContext,
-      mat: Materializer
-    ) =
-      (for {
-        imageId ← DockerDistributionImage.create(userId, imageName)
-        id = UUID.randomUUID()
-        blob = M.docker.distribution.ImageBlob(
-          id = Some(id),
-          state = M.docker.distribution.ImageBlobState.Created,
-          imageId = imageId,
-          sha256Digest = None,
-          contentType = "application/octet-stream",
-          length = 0L,
-          createdAt = ZonedDateTime.now(),
-          uploadedAt = None
-        )
-        Validated.Valid(res) ← P.docker.distribution.ImageBlob.create(blob)
-      } yield res)
+      object Image {
+        def create(userId: Long, imageName: String)(implicit ec: ExecutionContext) =
+          P.docker.distribution.Image.findIdOrCreateByName(imageName, userId)
+            .map(getSuccess)
+      }
 
-    def createAs(
-      userId:    Long,
-      imageName: String,
-      bs:        ByteString,
-      state:     M.docker.distribution.ImageBlobState.ImageBlobState
-    )(
-      implicit
-      ec:  ExecutionContext,
-      mat: Materializer
-    ) =
-      (for {
-        imageId ← DockerDistributionImage.create(userId, imageName)
-        id = UUID.randomUUID()
-        digest = DigestUtils.sha256Hex(bs.toArray)
-        blob = M.docker.distribution.ImageBlob(
-          id = Some(id),
-          state = state,
-          imageId = imageId,
-          sha256Digest = Some(digest),
-          length = bs.length.toLong,
-          contentType = "application/octet-stream",
-          createdAt = ZonedDateTime.now(),
-          uploadedAt = None
-        )
-        Validated.Valid(res) ← P.docker.distribution.ImageBlob.create(blob)
-        filename = if (state === M.docker.distribution.ImageBlobState.Uploaded) digest
-        else id.toString
-        file = new File(s"${Config.docker.distribution.imageStorage}/$filename")
-        _ ← Source.single(bs).runWith(FileIO.toFile(file))
-      } yield res)
+      object ImageBlob {
+        def create(
+          userId:    Long,
+          imageName: String
+        )(implicit ec: ExecutionContext) =
+          (for {
+            imageId ← Image.create(userId, imageName)
+            id = UUID.randomUUID()
+            blob = MImageBlob(
+              id = Some(id),
+              state = ImageBlobState.Created,
+              imageId = imageId,
+              sha256Digest = None,
+              contentType = "application/octet-stream",
+              length = 0L,
+              createdAt = ZonedDateTime.now(),
+              uploadedAt = None
+            )
+            Validated.Valid(res) ← P.docker.distribution.ImageBlob.create(blob)
+          } yield res)
+
+        def createAs(
+          userId:    Long,
+          imageName: String,
+          bs:        ByteString,
+          state:     M.docker.distribution.ImageBlobState.ImageBlobState
+        )(implicit mat: Materializer) = {
+          (for {
+            imageId ← Image.create(userId, imageName)
+            id = UUID.randomUUID()
+            digest = DigestUtils.sha256Hex(bs.toArray)
+            blob = MImageBlob(
+              id = Some(id),
+              state = state,
+              imageId = imageId,
+              sha256Digest = Some(digest),
+              length = bs.length.toLong,
+              contentType = "application/octet-stream",
+              createdAt = ZonedDateTime.now(),
+              uploadedAt = None
+            )
+            Validated.Valid(res) ← P.docker.distribution.ImageBlob.create(blob)
+            filename = if (state === ImageBlobState.Uploaded) digest
+            else id.toString
+            file = new File(s"${Config.docker.distribution.imageStorage}/$filename")
+            _ ← Source.single(bs).runWith(FileIO.toFile(file))
+          } yield res)
+        }
+      }
+
+      object ImageManifest {
+        def create(
+          userId:    Long,
+          imageName: String,
+          blob:      MImageBlob,
+          tags:      List[String]
+        )(implicit ec: ExecutionContext) =
+          P.docker.distribution.ImageManifest.create(MImageManifest(
+            sha256Digest = blob.sha256Digest.get,
+            imageId = blob.imageId,
+            tags = tags,
+            configBlobId = blob.getId,
+            layersBlobId = List(blob.getId),
+            createdAt = ZonedDateTime.now,
+            updatedAt = None
+          )).map(getSuccess(_))
+      }
+    }
   }
 
   private def getSuccess[T](res: Validated[_, T]) =
