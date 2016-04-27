@@ -115,16 +115,52 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
     }
   }
 
-  private val findTagsByImageIdCompiled = Compiled { imageId: Rep[Long] =>
-    table
-      .filter(_.imageId === imageId)
-      .map(_.tags)
+  private val findIdAndTagsByImageIdAndTagCompiled = Compiled {
+    (imageId: Rep[Long], tag: Rep[String]) ⇒
+      table
+        .filter { q ⇒
+          q.imageId === imageId && q.tags.any === tag
+        }
+        .map(m ⇒ (m.pk, m.tags))
   }
 
-  def findTagsByImageId(imageId: Long)(
-    implicit ec: ExecutionContext
-  ): Future[Seq[String]] =
-    db.run(findTagsByImageIdCompiled(imageId).result).fast.map(_.flatten)
+  private val findTagsByImageIdCompiled = Compiled {
+    (imageId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long], offset: ConstColumn[Long]) ⇒
+      table
+        .filter { q ⇒
+          q.imageId === imageId && q.pk >= id
+        }
+        .sortBy(_.id.asc)
+        .map(_.tags.unnest)
+        .drop(offset)
+        .take(limit)
+  }
+
+  val fetchLimit = 256
+
+  def findTagsByImageId(imageId: Long, n: Option[Int], last: Option[String])(
+    implicit
+    ec: ExecutionContext
+  ): Future[(Seq[String], Int, Boolean)] = {
+    val limit = n match {
+      case Some(v) if v > 0 && v <= fetchLimit ⇒ v
+      case _                                   ⇒ fetchLimit
+    }
+    val since = last match {
+      case Some(tag) ⇒
+        findIdAndTagsByImageIdAndTagCompiled((imageId, tag)).result.headOption.map {
+          case Some((id, tags)) ⇒ (id, tags.indexOf(tag) + 1L)
+          case None             ⇒ (0L, 0L)
+        }
+      case None ⇒ DBIO.successful((0L, 0L))
+    }
+    db.run(for {
+      (id, offset) ← since
+      tags ← findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
+    } yield tags).fast.map { tags ⇒
+      (tags.take(limit), limit, tags.length > limit)
+    }
+  }
 
   def destroy(imageId: Long, digest: String) =
     db.run(table.filter { q ⇒

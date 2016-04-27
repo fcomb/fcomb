@@ -28,6 +28,8 @@ trait AuthDirectives {
             case None ⇒
               reject(AuthenticationFailedRejection(CredentialsRejected, challengeFor(realm)))
           }
+        case _ ⇒
+          reject(AuthenticationFailedRejection(CredentialsMissing, challengeFor(realm)))
       }
     }
 }

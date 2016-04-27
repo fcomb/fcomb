@@ -1,15 +1,15 @@
 package io.fcomb.persist.docker.distribution
 
+import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage}
-import io.fcomb.response.DistributionImageCatalog
 import io.fcomb.persist._
+import io.fcomb.response.DistributionImageCatalog
 import io.fcomb.validations._
-import scala.concurrent.{ExecutionContext, Future}
-import cats.data.Validated
-import slick.jdbc.TransactionIsolation
 import java.time.ZonedDateTime
+import scala.concurrent.{ExecutionContext, Future}
+import slick.jdbc.TransactionIsolation
 
 class ImageTable(tag: Tag) extends Table[MImage](tag, "docker_distribution_images") with PersistTableWithAutoLongPk {
   def name = column[String]("name")
@@ -48,25 +48,37 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
   def findByImageAndUserId(name: String, userId: Long) =
     db.run(findByImageAndUserIdCompiled((name, userId)).result.headOption)
 
+  private val findIdByImageAndUserIdCompiled = Compiled {
+    (name: Rep[String], userId: Rep[Long]) ⇒
+      table
+        .filter { q ⇒
+          q.name.toLowerCase === name.toLowerCase &&
+            q.userId === userId
+        }
+        .map(_.pk)
+        .take(1)
+  }
+
   def findIdOrCreateByName(name: String, userId: Long)(
     implicit
     ec: ExecutionContext
-  ): Future[ValidationResult[Long]] = runInTransaction(TransactionIsolation.ReadUncommitted) {
-    for {
-      _ ← sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
-      res ← findIdByNameCompiled(name).result.headOption.flatMap {
-        case Some(id) ⇒ DBIO.successful(Validated.Valid(id))
-        case None ⇒
-          val timeNow = ZonedDateTime.now
-          createWithValidationDBIO(MImage(
-            name = name,
-            userId = userId,
-            createdAt = timeNow,
-            updatedAt = timeNow
-          )).map(_.map(_.getId))
-      }
-    } yield res
-  }
+  ): Future[ValidationResult[Long]] =
+    runInTransaction(TransactionIsolation.ReadUncommitted) {
+      for {
+        _ ← sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
+        res ← findIdByImageAndUserIdCompiled((name, userId)).result.headOption.flatMap {
+          case Some(id) ⇒ DBIO.successful(Validated.Valid(id))
+          case None ⇒
+            val timeNow = ZonedDateTime.now
+            createWithValidationDBIO(MImage(
+              name = name,
+              userId = userId,
+              createdAt = timeNow,
+              updatedAt = timeNow
+            )).map(_.map(_.getId))
+        }
+      } yield res
+    }
 
   private val repositoriesByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
     table

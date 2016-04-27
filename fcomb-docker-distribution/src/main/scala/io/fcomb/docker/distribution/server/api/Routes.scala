@@ -27,66 +27,60 @@ object Routes {
             get(ImageService.catalog)
           }
         } ~
-        path(Segments ~ Slash.?) { segments =>
-          extractRequest { implicit req ⇒
-            val method = req.method
-            println(s"image action => $method uri: ${req.uri}, segments: $segments, headers: ${req.headers}")
-            segments.reverse match {
-              case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
-                req.uri.query().get("digest") match {
-                  case Some(digest) => ImageService.createBlob(imageName(xs), digest)
-                  case None => ImageService.createBlobUpload(imageName(xs))
-                }
-              case id :: "uploads" :: "blobs" :: xs if uuidRegEx.findFirstIn(id).nonEmpty =>
-                val uuid = UUID.fromString(id)
-                method match {
-                  case HttpMethods.PUT =>
-                    ImageService.uploadBlob(imageName(xs), uuid)
-                  case HttpMethods.PATCH =>
-                    ImageService.uploadBlobChunk(imageName(xs), uuid)
-                  case HttpMethods.DELETE =>
-                    ImageService.destroyBlobUpload(imageName(xs), uuid)
-                  case _ => complete(notFoundResponse)
-                }
-              case id :: "blobs" :: xs =>
-                val image = imageName(xs)
-                println(req)
-                method match {
-                  case HttpMethods.HEAD if id.startsWith("sha256:") =>
-                    println(s"HEAD")
-                    ImageService.showBlob(image, id)
-                  case HttpMethods.GET if id.startsWith("sha256:") =>
-                    println(s"GET")
-                    ImageService.downloadBlob(image, id)
-                  case HttpMethods.PUT =>
-                    ImageService.uploadComplete(image, UUID.fromString(id))
-                  case HttpMethods.DELETE if id.startsWith("sha256:") =>
-                    ImageService.destroyBlob(imageName(xs), id)
-                  case _ => complete(notFoundResponse)
-                }
-              case reference :: "manifests" :: xs =>
-                val image = imageName(xs)
-                method match {
-                  case HttpMethods.GET =>
-                    ImageService.getManifest(image, reference)
-                  case HttpMethods.PUT =>
-                    ImageService.uploadManifest(image, reference)
-                  case HttpMethods.DELETE =>
-                    ImageService.destroyManifest(image, reference)
-                  case _ => complete(notFoundResponse)
-                }
-              case "list" :: "tags" :: xs if method == HttpMethods.POST =>
-                ImageService.tags(imageName(xs))
+        pathPrefix(Segments(2, 32)) { segments =>
+          pathEndOrSingleSlash {
+            extractRequest { implicit req ⇒
+              val method = req.method
+              println(s"image action => $method uri: ${req.uri}, segments: $segments, headers: ${req.headers}")
+              segments.reverse match {
+                case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
+                  req.uri.query().get("digest") match {
+                    case Some(digest) => ImageService.createBlob(imageName(xs), digest)
+                    case None => ImageService.createBlobUpload(imageName(xs))
+                  }
+                case id :: "uploads" :: "blobs" :: xs if uuidRegEx.findFirstIn(id).nonEmpty =>
+                  val uuid = UUID.fromString(id)
+                  method match {
+                    case HttpMethods.PUT =>
+                      ImageService.uploadBlob(imageName(xs), uuid)
+                    case HttpMethods.PATCH =>
+                      ImageService.uploadBlobChunk(imageName(xs), uuid)
+                    case HttpMethods.DELETE =>
+                      ImageService.destroyBlobUpload(imageName(xs), uuid)
+                    case _ => complete(notFoundResponse)
+                  }
+                case id :: "blobs" :: xs =>
+                  val image = imageName(xs)
+                  println(req)
+                  method match {
+                    case HttpMethods.HEAD if id.startsWith("sha256:") =>
+                      println(s"HEAD")
+                      ImageService.showBlob(image, id)
+                    case HttpMethods.GET if id.startsWith("sha256:") =>
+                      println(s"GET")
+                      ImageService.downloadBlob(image, id)
+                    case HttpMethods.PUT =>
+                      ImageService.uploadComplete(image, UUID.fromString(id))
+                    case HttpMethods.DELETE if id.startsWith("sha256:") =>
+                      ImageService.destroyBlob(imageName(xs), id)
+                    case _ => complete(notFoundResponse)
+                  }
+                case reference :: "manifests" :: xs =>
+                  val image = imageName(xs)
+                  method match {
+                    case HttpMethods.GET =>
+                      ImageService.getManifest(image, reference)
+                    case HttpMethods.PUT =>
+                      ImageService.uploadManifest(image, reference)
+                    case HttpMethods.DELETE =>
+                      ImageService.destroyManifest(image, reference)
+                    case _ => complete(notFoundResponse)
+                  }
+                case "list" :: "tags" :: xs if method == HttpMethods.POST =>
+                  ImageService.tags(imageName(xs))
+                case _ => complete(notFoundResponse)
+              }
             }
-          }
-        } ~
-        path(RestPath) { _ =>
-          pathEndOrSingleSlash { ctx: RequestContext =>
-            import scala.concurrent.duration._
-            ctx.complete(ctx.request.entity.toStrict(1.second).map { entity =>
-              println(s"unknown route: uri: ${ctx.request.uri}, headers: ${ctx.request.headers}, entity: $entity")
-              notFoundResponse
-            })
           }
         }
       }
@@ -101,6 +95,8 @@ object Routes {
 
     val exceptionHandler = ExceptionHandler {
       case e ⇒
+        println(e)
+        e.printStackTrace()
         logger.error(e.getMessage(), e.getCause())
         complete(response(StatusCodes.InternalServerError, DistributionErrorResponse.from(DistributionError.Unknown())))
     }

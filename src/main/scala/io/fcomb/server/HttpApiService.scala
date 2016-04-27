@@ -63,9 +63,10 @@ class HttpApiService(routes: Route)(
       }
       .result
 
-    handleRejections(rejectionHandler) {
-      handleExceptions(exceptionHandler)(routes)
-    }
+    // handleRejections(rejectionHandler) {
+    //   handleExceptions(exceptionHandler)(routes)
+    // }
+    routes
   }
 
   def bind(port: Int, interface: String) =

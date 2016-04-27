@@ -138,11 +138,21 @@ object ImageService {
 
   def tags(imageName: String) =
     authenticateUserBasic(realm) { user ⇒
-      extractExecutionContext { implicit ec ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
-          complete(PImageManifest.findTagsByImageId(image.getId).fast.map { tags ⇒
-            ImageTagsResponse(imageName, tags)
-          })
+      parameters('n.as[Option[Int]], 'last.as[Option[String]]) { (n, last) ⇒
+        extractExecutionContext { implicit ec ⇒
+          imageByNameWithAcl(imageName, user) { image ⇒
+            onSuccess(PImageManifest.findTagsByImageId(image.getId, n, last)) { (tags, limit, hasNext) ⇒
+              val headers =
+                if (hasNext) {
+                  val uri = Uri(s"/v2/$imageName/tags/list?n=$limit&last=${tags.last}")
+                  immutable.Seq(Link(uri, LinkParams.next))
+                }
+                else Nil
+              respondWithHeaders(headers) {
+                complete(ImageTagsResponse(imageName, tags))
+              }
+            }
+          }
         }
       }
     }

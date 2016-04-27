@@ -37,31 +37,29 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   //       .exists
   // }
 
-  // // TODO
-  // def mount(fromImageName: String, toImageName: String, digest: String)(
+  // def mount(fromImageId: Long, toImageName: String, digest: String, userId: Long)(
   //   implicit
   //   ec: ExecutionContext
   // ): Future[Option[MImageBlob]] = db.run {
-  //   findByImageAndDigestCompiled((fromImageName, digest)).result.headOption
-  //     .flatMap {
-  //       case Some((blob, _)) ⇒
-  //         findByImageAndDigestCompiled((toImageName, digest)).result.headOption.flatMap {
-  //           case Some((e, _)) ⇒ DBIO.successful(Some(e))
-  //           case None ⇒
-  //             val timeNow = ZonedDateTime.now()
-  //             createDBIO(MImageBlob(
-  //               id = Some(UUID.randomUUID()),
-  //               state = ImageBlobState.Created,
-  //               imageId = ???, // TODO
-  //               sha256Digest = None,
-  //               contentType = blob.contentType,
-  //               length = blob.length,
-  //               createdAt = timeNow,
-  //               uploadedAt = Some(timeNow)
-  //             )).map(Some(_))
-  //         }
-  //       case None ⇒ DBIO.successful(None)
-  //     }
+  //   findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption.flatMap {
+  //     case Some(blob) ⇒
+  //       findByImageAndDigestCompiled((toImageName, digest)).result.headOption.flatMap {
+  //         case Some((e, _)) ⇒ DBIO.successful(Some(e))
+  //         case None ⇒
+  //           val timeNow = ZonedDateTime.now()
+  //           createDBIO(MImageBlob(
+  //             id = Some(UUID.randomUUID()),
+  //             state = ImageBlobState.Created,
+  //             imageId = ???, // TODO
+  //             sha256Digest = None,
+  //             contentType = blob.contentType,
+  //             length = blob.length,
+  //             createdAt = timeNow,
+  //             uploadedAt = Some(timeNow)
+  //           )).map(Some(_))
+  //       }
+  //     case None ⇒ DBIO.successful(None)
+  //   }
   //     .transactionally
   // }
 
