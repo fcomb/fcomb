@@ -14,8 +14,6 @@ object Routes {
   val apiVersion = "v2"
 
   def apply()(implicit sys: ActorSystem, mat: Materializer): Route = {
-    import sys.dispatcher
-
     // format: OFF
     val routes = respondWithDefaultHeaders(defaultHeaders) {
       pathPrefix(apiVersion) {
@@ -87,7 +85,6 @@ object Routes {
     }
     // format: ON
 
-    import ResponseDirectives._
     import de.heikoseeberger.akkahttpcirce.CirceSupport._
     import io.fcomb.json.docker.distribution.Formats._
     import io.circe.generic.auto._
@@ -98,7 +95,7 @@ object Routes {
         println(e)
         e.printStackTrace()
         logger.error(e.getMessage(), e.getCause())
-        complete(response(StatusCodes.InternalServerError, DistributionErrorResponse.from(DistributionError.Unknown())))
+        complete(StatusCodes.InternalServerError, DistributionErrorResponse.from(DistributionError.Unknown()))
     }
     val rejectionHandler = RejectionHandler.newBuilder()
       // .handle {
@@ -107,7 +104,7 @@ object Routes {
       //     handleRejection(r)
       // }
       .handleNotFound {
-        complete(HttpResponse(StatusCodes.NotFound))
+        complete(StatusCodes.NotFound)
       }
       .result
 

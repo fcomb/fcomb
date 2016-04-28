@@ -1,6 +1,5 @@
 package io.fcomb.docker.distribution.server.api
 
-import akka.http.scaladsl.marshalling.{Marshal, ToEntityMarshaller}
 import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
@@ -11,7 +10,6 @@ import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.{Validated, Xor}
 import cats.syntax.eq._
-import io.circe.Encoder
 import io.fcomb.docker.distribution.server.api.ContentTypes.`application/vnd.docker.distribution.manifest.v2+json`
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
@@ -40,24 +38,6 @@ import AuthDirectives._
 
 // import ValidationDirectives._
 
-trait ResponseDirectives {
-  def response[T](status: StatusCode, entity: T)(
-    implicit
-    ec: ExecutionContext, m: ToEntityMarshaller[T]
-  ): Future[HttpResponse] =
-    response(status, Nil, entity)
-
-  def response[T](status: StatusCode, headers: immutable.Seq[HttpHeader] = Nil, entity: T)(
-    implicit
-    ec: ExecutionContext, m: ToEntityMarshaller[T]
-  ): Future[HttpResponse] =
-    Marshal(entity).to[ResponseEntity].fast.map(HttpResponse(status, headers, _))
-}
-
-object ResponseDirectives extends ResponseDirectives
-
-import ResponseDirectives._
-
 // TODO: move blob upload methods into BlobUploadService
 object ImageService {
   import akka.http.scaladsl.server.Directives._
@@ -66,6 +46,12 @@ object ImageService {
   import io.fcomb.json.docker.distribution.Formats._
   import de.heikoseeberger.akkahttpcirce.CirceSupport._
   import io.circe.generic.auto._
+
+  def completeWithStatus(status: StatusCode): Route =
+    complete(HttpResponse(status))
+
+  def completeNotFound(): Route =
+    completeWithStatus(StatusCodes.NotFound)
 
   def createBlobUpload(imageName: String)(implicit req: HttpRequest): Route =
     authenticateUserBasic(realm) { user ⇒
@@ -81,9 +67,11 @@ object ImageService {
               `Docker-Upload-Uuid`(uuid),
               rangeHeader(0L, 0L)
             )
-            complete(HttpResponse(StatusCodes.Accepted, headers))
+            respondWithHeaders(headers) {
+              completeWithStatus(StatusCodes.Accepted)
+            }
           case Validated.Invalid(e) ⇒
-            complete(response(StatusCodes.BadRequest, FailureResponse.fromExceptions(e)))
+            complete(StatusCodes.Accepted, FailureResponse.fromExceptions(e))
         }
       }
     }
@@ -94,34 +82,35 @@ object ImageService {
         import mat.executionContext
         val source = req.entity.dataBytes
         val contentType = req.entity.contentType.mediaType.value
-        onSuccess((for {
+        onSuccess(for {
           Validated.Valid(blob) ← PImageBlob.createByImageName(name, user.getId, contentType)
           file ← BlobFile.createUploadFile(blob.getId)
           sha256Digest ← writeFile(source, file)
           fileLength ← Future(blocking(file.length))
           _ ← PImageBlob.completeUpload(blob.getId, fileLength, sha256Digest)
-        } yield (blob, sha256Digest, file)).flatMap {
+        } yield (blob, sha256Digest, file)) {
           case (blob, sha256Digest, file) ⇒
             if (parseDigest(digest) == sha256Digest) {
-              BlobFile.uploadToBlob(file, sha256Digest).fast.map { _ ⇒
-                HttpResponse(StatusCodes.Created, immutable.Seq(
+              onSuccess(BlobFile.uploadToBlob(file, sha256Digest)) {
+                val headers = immutable.Seq(
                   Location(s"/v2/$name/blobs/sha256:$sha256Digest"),
                   `Docker-Upload-Uuid`(blob.getId),
                   `Docker-Content-Digest`("sha256", sha256Digest)
-                ))
+                )
+                respondWithHeaders(headers) {
+                  completeWithStatus(StatusCodes.Created)
+                }
               }
             }
             else {
-              for {
+              onSuccess(for {
                 _ ← Future(blocking(file.delete()))
                 _ ← PImageBlob.destroy(blob.getId)
-                res ← response(
-                  StatusCodes.BadRequest,
-                  DistributionErrorResponse.from(DistributionError.DigestInvalid())
-                )
-              } yield res
+              } yield ()) {
+                complete(StatusCodes.BadRequest, DistributionErrorResponse.from(DistributionError.DigestInvalid()))
+              }
             }
-        })(complete(_))
+        }
       }
     }
 
@@ -155,7 +144,7 @@ object ImageService {
     extractExecutionContext.flatMap { implicit ec ⇒
       onSuccess(PImage.findByImageAndUserId(imageName, user.getId)).flatMap {
         case Some(user) ⇒ provide(user)
-        case None       ⇒ complete(StatusCodes.NotFound) // TODO
+        case None       ⇒ complete(HttpResponse(StatusCodes.NotFound)) // TODO
       }
     }
   }
@@ -184,7 +173,7 @@ object ImageService {
                 `Docker-Upload-Uuid`(uuid),
                 `Docker-Content-Digest`("sha256", digest)
               )))
-            case None ⇒ complete(StatusCodes.NotFound) // TODO
+            case None ⇒ completeNotFound() // TODO
           }
         }
       }
@@ -204,7 +193,7 @@ object ImageService {
               // val rangeTo = contentRange.contentRange.getSatisfiableLast.asScala.get
               // assert(rangeFrom == blob.length)
               // assert(rangeTo >= rangeFrom)
-              complete(for {
+              onSuccess(for {
                 file ← BlobFile.createUploadFile(blob.getId)
                 (length, digest) ← ImageBlobPushProcessor.uploadChunk(
                   blob.getId,
@@ -213,12 +202,18 @@ object ImageService {
                 )
                 // TODO: check file for 0 size
                 _ ← PImageBlob.updateState(uuid, blob.length + length, digest, ImageBlobState.Uploading)
-              } yield HttpResponse(StatusCodes.Accepted, immutable.Seq(
-                Location(s"/v2/$imageName/blobs/$uuid"),
-                `Docker-Upload-Uuid`(uuid),
-                rangeHeader(0L, file.length)
-              )))
-            case None ⇒ complete(StatusCodes.NotFound) // TODO
+              } yield file) { file ⇒
+                val headers = immutable.Seq(
+                  Location(s"/v2/$imageName/blobs/$uuid"),
+                  `Docker-Upload-Uuid`(uuid),
+                  rangeHeader(0L, file.length)
+                )
+                respondWithHeaders(headers) {
+                  complete(StatusCodes.Accepted, HttpEntity.Empty)
+
+                }
+              }
+            case None ⇒ completeNotFound() // TODO
           }
         }
       }
@@ -240,31 +235,33 @@ object ImageService {
                 complete(HttpResponse(StatusCodes.Created, headers))
               else {
                 assert(blob.state === ImageBlobState.Uploading) // TODO
-                complete((for {
+                onSuccess(for {
                   file ← BlobFile.createUploadFile(blob.getId)
                   (length, digest) ← ImageBlobPushProcessor.uploadChunk(uuid, req.entity.dataBytes, file)
                   Xor.Right(_) ← ImageBlobPushProcessor.stop(blob.getId)
-                } yield (file, length, digest)).flatMap {
+                } yield (file, length, digest)) {
                   case (file, length, digest) ⇒
                     if (digest == queryDigest) {
-                      for {
+                      onSuccess(for {
                         _ ← BlobFile.uploadToBlob(file, digest)
                         _ ← PImageBlob.completeUpload(uuid, blob.length + length, digest)
-                      } yield HttpResponse(StatusCodes.Created, headers)
+                      } yield ()) {
+                        respondWithHeaders(headers) {
+                          complete(StatusCodes.Created, HttpEntity.Empty)
+                        }
+                      }
                     }
                     else {
-                      for {
+                      onSuccess(for {
                         _ ← Future(blocking(file.delete))
                         _ ← PImageBlob.destroy(uuid)
-                        res ← response(
-                          StatusCodes.BadRequest,
-                          DistributionErrorResponse.from(DistributionError.DigestInvalid())
-                        )
-                      } yield res
+                      } yield ()) {
+                        complete(StatusCodes.BadRequest, DistributionErrorResponse.from(DistributionError.DigestInvalid()))
+                      }
                     }
-                })
+                }
               }
-            case None ⇒ complete(StatusCodes.NotFound) // TODO
+            case None ⇒ completeNotFound() // TODO
           }
         }
       }
@@ -282,7 +279,7 @@ object ImageService {
                 _ ← Future(blocking(file.delete))
                 _ ← PImageBlob.destroy(uuid)
               } yield HttpResponse(StatusCodes.NoContent))
-            case None ⇒ complete(StatusCodes.NotFound) // TODO
+            case None ⇒ completeNotFound() // TODO
           }
         }
       }
@@ -301,7 +298,7 @@ object ImageService {
                 _ ← Future(blocking(file.delete)) // TODO: only if file exists once
                 _ ← PImageBlob.destroy(blob.getId) // TODO: destroy only unlinked blob
               } yield HttpResponse(StatusCodes.NoContent))
-            case None ⇒ complete(StatusCodes.NotFound) // TODO
+            case None ⇒ completeNotFound() // TODO
           }
         }
       }
@@ -331,7 +328,7 @@ object ImageService {
                 ),
                 HttpEntity(contentType(blob.contentType), blob.length, Source.empty)
               ))
-            case None ⇒ complete(StatusCodes.NotFound) // TODO
+            case None ⇒ completeNotFound() // TODO
           }
         }
       }
@@ -364,7 +361,7 @@ object ImageService {
                     HttpEntity(ct, blob.length, source)
                   ))
               }
-            case None ⇒ complete(StatusCodes.NotFound) // TODO
+            case None ⇒ completeNotFound() // TODO
           }
         }
       }
@@ -377,7 +374,7 @@ object ImageService {
           import mat.executionContext
           onSuccess(PImageManifest.findByImageIdAndReferenceAsManifestV2(image.getId, reference)) {
             case Some(manifest) ⇒ complete(manifest)
-            case None           ⇒ complete(StatusCodes.NotFound) // TODO
+            case None           ⇒ completeNotFound() // TODO
           }
         }
       }
@@ -393,11 +390,11 @@ object ImageService {
               assert(req.entity.contentType == `application/vnd.docker.distribution.manifest.v2+json`) // TODO
               onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, rawManifest.utf8String)) {
                 case Validated.Valid(m) ⇒
-                  complete(HttpResponse(StatusCodes.Created, immutable.Seq(
-                    `Docker-Content-Digest`("sha256", m.sha256Digest)
-                  )))
+                  respondWithHeaders(`Docker-Content-Digest`("sha256", m.sha256Digest)) {
+                    complete(StatusCodes.Created, HttpEntity.Empty)
+                  }
                 case Validated.Invalid(e) ⇒
-                  complete(response(StatusCodes.BadRequest, FailureResponse.fromExceptions(e)))
+                  complete(StatusCodes.BadRequest, FailureResponse.fromExceptions(e))
               }
             }
           }
@@ -410,7 +407,7 @@ object ImageService {
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           onSuccess(PImageManifest.destroy(image.getId, parseDigest(digest))) {
-            case _ ⇒ complete(HttpResponse(StatusCodes.NoContent))
+            case _ ⇒ complete(StatusCodes.NoContent, HttpEntity.Empty)
           }
         }
       }
