@@ -53,64 +53,98 @@ object ImageService {
   def completeNotFound(): Route =
     completeWithStatus(StatusCodes.NotFound)
 
-  def createBlobUpload(imageName: String)(implicit req: HttpRequest): Route =
+  def createBlob(imageName: String)(implicit req: HttpRequest): Route =
     authenticateUserBasic(realm) { user ⇒
-      extractExecutionContext { implicit ec ⇒
-        // val mount = ctx.requestContext.request.uri.query().get("mount")
-        // val from = ctx.requestContext.request.uri.query().get("from")
-        val contentType = req.entity.contentType.mediaType.value
-        onSuccess(PImageBlob.createByImageName(imageName, user.getId, contentType)) {
-          case Validated.Valid(blob) ⇒
-            val uuid = blob.getId
-            val headers = immutable.Seq(
-              Location(s"/v2/$imageName/blobs/uploads/$uuid"),
-              `Docker-Upload-Uuid`(uuid),
-              rangeHeader(0L, 0L)
-            )
-            respondWithHeaders(headers) {
-              completeWithStatus(StatusCodes.Accepted)
-            }
-          case Validated.Invalid(e) ⇒
-            complete(StatusCodes.Accepted, FailureResponse.fromExceptions(e))
+      parameters('mount.?, 'from.?, 'digest.?) { (mountOpt, fromOpt, digestOpt) ⇒
+        extractExecutionContext { implicit ec ⇒
+          (mountOpt, fromOpt, digestOpt) match {
+            case (Some(mount), Some(from), _) ⇒
+              mountImageBlob(user, imageName, mount, from)
+            case (_, _, Some(digest)) ⇒
+              createImageBlob(user, imageName, digest)
+            case _ ⇒
+              createImageBlobUpload(user, imageName)
+          }
         }
       }
     }
 
-  def createBlob(name: String, digest: String)(implicit req: HttpRequest) =
-    authenticateUserBasic(realm) { user ⇒
-      extractMaterializer { implicit mat ⇒
-        import mat.executionContext
-        val source = req.entity.dataBytes
-        val contentType = req.entity.contentType.mediaType.value
-        onSuccess(for {
-          Validated.Valid(blob) ← PImageBlob.createByImageName(name, user.getId, contentType)
-          file ← BlobFile.createUploadFile(blob.getId)
-          sha256Digest ← writeFile(source, file)
-          fileLength ← Future(blocking(file.length))
-          _ ← PImageBlob.completeUpload(blob.getId, fileLength, sha256Digest)
-        } yield (blob, sha256Digest, file)) {
-          case (blob, sha256Digest, file) ⇒
-            if (parseDigest(digest) == sha256Digest) {
-              onSuccess(BlobFile.uploadToBlob(file, sha256Digest)) {
-                val headers = immutable.Seq(
-                  Location(s"/v2/$name/blobs/sha256:$sha256Digest"),
-                  `Docker-Upload-Uuid`(blob.getId),
-                  `Docker-Content-Digest`("sha256", sha256Digest)
-                )
-                respondWithHeaders(headers) {
-                  completeWithStatus(StatusCodes.Created)
-                }
-              }
-            }
-            else {
-              onSuccess(for {
-                _ ← Future(blocking(file.delete()))
-                _ ← PImageBlob.destroy(blob.getId)
-              } yield ()) {
-                complete(StatusCodes.BadRequest, DistributionErrorResponse.from(DistributionError.DigestInvalid()))
-              }
-            }
+  private def createImageBlobUpload(user: MUser, imageName: String)(
+    implicit
+    ec:  ExecutionContext,
+    req: HttpRequest
+  ): Route = {
+    val contentType = req.entity.contentType.mediaType.value
+    onSuccess(PImageBlob.createByImageName(imageName, user.getId, contentType)) {
+      case Validated.Valid(blob) ⇒
+        val uuid = blob.getId
+        val headers = immutable.Seq(
+          Location(s"/v2/$imageName/blobs/uploads/$uuid"),
+          `Docker-Upload-Uuid`(uuid),
+          rangeHeader(0L, 0L)
+        )
+        respondWithHeaders(headers) {
+          completeWithStatus(StatusCodes.Accepted)
         }
+      case Validated.Invalid(e) ⇒
+        complete(StatusCodes.Accepted, FailureResponse.fromExceptions(e))
+    }
+  }
+
+  private def mountImageBlob(user: MUser, imageName: String, mount: String, from: String)(
+    implicit
+    ec:  ExecutionContext,
+    req: HttpRequest
+  ): Route = {
+    imageByNameWithAcl(from, user) { fromImage ⇒
+      onSuccess(PImageBlob.mount(fromImage.getId, imageName, parseDigest(mount), user.getId)) {
+        case Some(blob) ⇒
+          val sha256Digest = blob.sha256Digest.get
+          val headers = immutable.Seq(
+            Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
+            `Docker-Content-Digest`("sha256", sha256Digest)
+          )
+          respondWithHeaders(headers) {
+            completeWithStatus(StatusCodes.Created)
+          }
+        case None ⇒ createImageBlobUpload(user, imageName)
+      }
+    }
+  }
+
+  private def createImageBlob(user: MUser, imageName: String, digest: String)(implicit req: HttpRequest): Route =
+    extractMaterializer { implicit mat ⇒
+      import mat.executionContext
+      val source = req.entity.dataBytes
+      val contentType = req.entity.contentType.mediaType.value
+      onSuccess(for {
+        Validated.Valid(blob) ← PImageBlob.createByImageName(imageName, user.getId, contentType)
+        file ← BlobFile.createUploadFile(blob.getId)
+        sha256Digest ← writeFile(source, file)
+        fileLength ← Future(blocking(file.length))
+        _ ← PImageBlob.completeUpload(blob.getId, fileLength, sha256Digest)
+      } yield (blob, sha256Digest, file)) {
+        case (blob, sha256Digest, file) ⇒
+          if (parseDigest(digest) == sha256Digest) {
+            onSuccess(BlobFile.uploadToBlob(file, sha256Digest)) {
+              val headers = immutable.Seq(
+                Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
+                `Docker-Upload-Uuid`(blob.getId),
+                `Docker-Content-Digest`("sha256", sha256Digest)
+              )
+              respondWithHeaders(headers) {
+                completeWithStatus(StatusCodes.Created)
+              }
+            }
+          }
+          else {
+            onSuccess(for {
+              _ ← Future(blocking(file.delete()))
+              _ ← PImageBlob.destroy(blob.getId)
+            } yield ()) {
+              complete(StatusCodes.BadRequest, DistributionErrorResponse.from(DistributionError.DigestInvalid()))
+            }
+          }
       }
     }
 

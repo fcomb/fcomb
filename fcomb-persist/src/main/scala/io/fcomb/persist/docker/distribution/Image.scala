@@ -35,7 +35,7 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
   def findIdByName(name: String) =
     db.run(findIdByNameCompiled(name).result.headOption)
 
-  private val findByImageAndUserIdCompiled = Compiled {
+  val findByImageAndUserIdCompiled = Compiled {
     (name: Rep[String], userId: Rep[Long]) ⇒
       table
         .filter { q ⇒
@@ -48,36 +48,38 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
   def findByImageAndUserId(name: String, userId: Long) =
     db.run(findByImageAndUserIdCompiled((name, userId)).result.headOption)
 
-  private val findIdByImageAndUserIdCompiled = Compiled {
+  val findIdAndUserIdByImageCompiled = Compiled {
     (name: Rep[String], userId: Rep[Long]) ⇒
       table
         .filter { q ⇒
           q.name.toLowerCase === name.toLowerCase &&
             q.userId === userId
         }
-        .map(_.pk)
+        .map(t ⇒ (t.pk, t.userId))
         .take(1)
   }
 
-  def findIdOrCreateByName(name: String, userId: Long)(
-    implicit
-    ec: ExecutionContext
-  ): Future[ValidationResult[Long]] =
+  def findIdOrCreateByNameDBIO(name: String, userId: Long)(implicit ec: ExecutionContext) =
+    for {
+      _ ← sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
+      res ← findIdAndUserIdByImageCompiled((name, userId)).result.headOption.flatMap {
+        case Some((id, imageUserId)) ⇒
+          if (imageUserId == userId) DBIO.successful(Validated.Valid(id))
+          else DBIO.successful(validationError("userId", "insufficient permissions")) // TODO
+        case None ⇒
+          val timeNow = ZonedDateTime.now
+          createWithValidationDBIO(MImage(
+            name = name,
+            userId = userId,
+            createdAt = timeNow,
+            updatedAt = timeNow
+          )).map(_.map(_.getId))
+      }
+    } yield res
+
+  def findIdOrCreateByName(name: String, userId: Long)(implicit ec: ExecutionContext): Future[ValidationResult[Long]] =
     runInTransaction(TransactionIsolation.ReadUncommitted) {
-      for {
-        _ ← sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
-        res ← findIdByImageAndUserIdCompiled((name, userId)).result.headOption.flatMap {
-          case Some(id) ⇒ DBIO.successful(Validated.Valid(id))
-          case None ⇒
-            val timeNow = ZonedDateTime.now
-            createWithValidationDBIO(MImage(
-              name = name,
-              userId = userId,
-              createdAt = timeNow,
-              updatedAt = timeNow
-            )).map(_.map(_.getId))
-        }
-      } yield res
+      findIdOrCreateByNameDBIO(name, userId)
     }
 
   private val findIdByUserIdAndNameCompiled = Compiled {

@@ -15,7 +15,7 @@ import io.fcomb.docker.distribution.server.utils.BlobFile
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
-import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob}
+import io.fcomb.persist.docker.distribution.{Image ⇒ PImage, ImageBlob ⇒ PImageBlob}
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures.Fixtures
 import io.fcomb.utils.StringUtils
@@ -98,6 +98,36 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         }
     }
 
+    "return successful response for PUT request to mount blob upload path" in {
+      val user = Fixtures.await(for {
+        user ← Fixtures.User.create()
+        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
+          user.getId, imageName, bs, ImageBlobState.Uploaded
+        )
+      } yield user)
+      val newImageName = "newimage/name"
+
+      Post(
+        s"/v2/$newImageName/blobs/uploads/?mount=sha256:$bsDigest&from=$imageName",
+        HttpEntity(`application/octet-stream`, bs)
+      ) ~> addCredentials(credentials) ~> route ~> check {
+          status shouldEqual StatusCodes.Created
+          responseEntity shouldEqual HttpEntity.Empty
+          header[Location].get shouldEqual Location(s"/v2/$newImageName/blobs/sha256:$bsDigest")
+          header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
+
+          val newBlob = Await.result({
+            for {
+              Some(image) ← PImage.findByImageAndUserId(newImageName, user.getId)
+              Some(blob) ← PImageBlob.findByImageIdAndDigest(image.getId, bsDigest)
+            } yield blob
+          }, 5.seconds)
+          newBlob.length shouldEqual bs.length
+          newBlob.state shouldEqual ImageBlobState.Uploaded
+          newBlob.sha256Digest shouldEqual Some(bsDigest)
+        }
+    }
+
     // "return an info without content for HEAD request to the exist layer path" in {
     //   Fixtures.await(for {
     //     user ← Fixtures.User.create()
@@ -177,7 +207,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           responseEntity shouldEqual HttpEntity.Empty
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
           header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
-          header[RangeCustom].get shouldEqual RangeCustom(0L, blobPart1.length - 1)
+          header[RangeCustom].get shouldEqual RangeCustom(0L, blobPart1.length - 1L)
 
           val updatedBlob = Await.result(PImageBlob.findByPk(blob.getId), 5.seconds).get
           updatedBlob.length shouldEqual blobPart1.length
@@ -196,13 +226,13 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       Patch(
         s"/v2/$imageName/blobs/uploads/${blob.getId}",
         HttpEntity(`application/octet-stream`, blobPart2)
-      ) ~> `Content-Range`(ContentRange(blobPart1.length, blobPart2.length - 1L)) ~>
+      ) ~> `Content-Range`(ContentRange(blobPart1.length.toLong, blobPart2.length - 1L)) ~>
         addCredentials(credentials) ~> route ~> check {
           status shouldEqual StatusCodes.Accepted
           responseEntity shouldEqual HttpEntity.Empty
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
           header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
-          header[RangeCustom].get shouldEqual RangeCustom(0L, bs.length - 1)
+          header[RangeCustom].get shouldEqual RangeCustom(0L, bs.length - 1L)
 
           val updatedBlob = Await.result(PImageBlob.findByPk(blob.getId), 5.seconds).get
           updatedBlob.length shouldEqual bs.length

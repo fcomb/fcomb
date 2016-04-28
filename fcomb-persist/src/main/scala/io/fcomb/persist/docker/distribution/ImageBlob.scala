@@ -1,14 +1,16 @@
 package io.fcomb.persist.docker.distribution
 
+import cats.data.Validated
+import cats.std.all._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageBlobState}
 import io.fcomb.persist._
 import io.fcomb.validations.eitherT
-import scala.concurrent.{ExecutionContext, Future}
 import java.time.ZonedDateTime
 import java.util.UUID
-import cats.std.all._
+import scala.concurrent.{ExecutionContext, Future}
+import slick.jdbc.TransactionIsolation
 
 class ImageBlobTable(tag: Tag) extends Table[MImageBlob](tag, "docker_distribution_image_blobs")
     with PersistTableWithUuidPk {
@@ -28,40 +30,35 @@ class ImageBlobTable(tag: Tag) extends Table[MImageBlob](tag, "docker_distributi
 object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   val table = TableQuery[ImageBlobTable]
 
-  // private val isPresentCompiled = Compiled {
-  //   (imageId: Rep[Long], blobId: Rep[Long]) ⇒
-  //     table
-  //       .filter { q ⇒
-  //         q.imageId === imageId && q.blobId === blobId
-  //       }
-  //       .exists
-  // }
-
-  // def mount(fromImageId: Long, toImageName: String, digest: String, userId: Long)(
-  //   implicit
-  //   ec: ExecutionContext
-  // ): Future[Option[MImageBlob]] = db.run {
-  //   findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption.flatMap {
-  //     case Some(blob) ⇒
-  //       findByImageAndDigestCompiled((toImageName, digest)).result.headOption.flatMap {
-  //         case Some((e, _)) ⇒ DBIO.successful(Some(e))
-  //         case None ⇒
-  //           val timeNow = ZonedDateTime.now()
-  //           createDBIO(MImageBlob(
-  //             id = Some(UUID.randomUUID()),
-  //             state = ImageBlobState.Created,
-  //             imageId = ???, // TODO
-  //             sha256Digest = None,
-  //             contentType = blob.contentType,
-  //             length = blob.length,
-  //             createdAt = timeNow,
-  //             uploadedAt = Some(timeNow)
-  //           )).map(Some(_))
-  //       }
-  //     case None ⇒ DBIO.successful(None)
-  //   }
-  //     .transactionally
-  // }
+  def mount(fromImageId: Long, toImageName: String, digest: String, userId: Long)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Option[MImageBlob]] =
+    runInTransaction(TransactionIsolation.ReadCommitted) {
+      (for {
+        blob ← findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption
+        toImageId ← Image.findIdOrCreateByNameDBIO(toImageName, userId)
+      } yield (blob, toImageId))
+        .flatMap {
+          case (Some(blob), Validated.Valid(toImageId)) ⇒
+            findByImageIdAndDigestCompiled((toImageId, digest)).result.headOption.flatMap {
+              case Some(b) ⇒ DBIO.successful(Some(b))
+              case None ⇒
+                val timeNow = ZonedDateTime.now()
+                createDBIO(MImageBlob(
+                  id = Some(UUID.randomUUID()),
+                  state = ImageBlobState.Uploaded,
+                  imageId = toImageId,
+                  sha256Digest = blob.sha256Digest,
+                  contentType = blob.contentType,
+                  length = blob.length,
+                  createdAt = timeNow,
+                  uploadedAt = None
+                )).map(Some(_))
+            }
+          case _ ⇒ DBIO.successful(None)
+        }
+    }
 
   def create(imageId: Long, contentType: String)(
     implicit

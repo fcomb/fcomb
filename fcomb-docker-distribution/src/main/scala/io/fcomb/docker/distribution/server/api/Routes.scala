@@ -32,10 +32,7 @@ object Routes {
               println(s"image action => $method uri: ${req.uri}, segments: $segments, headers: ${req.headers}")
               segments.reverse match {
                 case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
-                  req.uri.query().get("digest") match {
-                    case Some(digest) => ImageService.createBlob(imageName(xs), digest)
-                    case None => ImageService.createBlobUpload(imageName(xs))
-                  }
+                  ImageService.createBlob(imageName(xs))
                 case id :: "uploads" :: "blobs" :: xs if uuidRegEx.findFirstIn(id).nonEmpty =>
                   val uuid = UUID.fromString(id)
                   method match {
