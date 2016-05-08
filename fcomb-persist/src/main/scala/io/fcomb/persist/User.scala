@@ -57,7 +57,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     ec: ExecutionContext
   ) = res match {
     case s @ Validated.Valid(u)   ⇒ UserToken.createDefaults(u.getId).map(_ ⇒ s)
-    case e @ Validated.Invalid(_) ⇒ Future.successful(e)
+    case e @ Validated.Invalid(_) ⇒ FastFuture.successful(e)
   }
 
   def updateByRequest(id: Long)(

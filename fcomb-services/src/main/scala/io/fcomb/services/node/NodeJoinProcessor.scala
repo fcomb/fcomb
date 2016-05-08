@@ -5,6 +5,7 @@ import io.fcomb.services.UserCertificateProcessor
 import io.fcomb.models.node.{Node ⇒ MNode}
 import io.fcomb.utils.{Config, Implicits}
 import io.fcomb.crypto.Certificate
+import akka.http.scaladsl.util.FastFuture
 import io.fcomb.persist.node.{Node ⇒ PNode}
 import akka.actor._
 import akka.cluster.sharding._
@@ -64,7 +65,7 @@ object NodeJoinProcessor {
         val hash = PNode.getPublicKeyHash(req.getSubjectPublicKeyInfo())
         ask(ref, EntityEnvelope(hash, JoinNode(userId, req)))
           .mapTo[MNode]
-      case None ⇒ Future.failed(EmptyActorRefException)
+      case None ⇒ FastFuture.failed(EmptyActorRefException)
     }
   }
 }

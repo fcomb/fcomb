@@ -16,6 +16,9 @@ object Routes {
   def apply()(implicit sys: ActorSystem, mat: Materializer): Route = {
     // format: OFF
     val routes = respondWithDefaultHeaders(defaultHeaders) {
+      pathSingleSlash {
+        get(complete(HttpResponse(StatusCodes.OK)))
+      } ~
       pathPrefix(apiVersion) {
         pathEndOrSingleSlash {
           get(AuthService.versionCheck)
@@ -101,7 +104,7 @@ object Routes {
       //     handleRejection(r)
       // }
       .handleNotFound {
-        complete(StatusCodes.NotFound)
+        complete(HttpResponse(StatusCodes.NotFound))
       }
       .result
 

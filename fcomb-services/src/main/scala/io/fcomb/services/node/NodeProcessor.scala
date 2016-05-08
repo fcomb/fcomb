@@ -416,7 +416,7 @@ class NodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
             apiCall(_.containerRemove(id, withForce = true, withVolumes = true))
           }
         }
-      case Xor.Left(e) ⇒ Future.failed(e)
+      case Xor.Left(e) ⇒ FastFuture.failed(e)
     }
   }
 

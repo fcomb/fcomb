@@ -79,7 +79,7 @@
 
 //   private def validateUri(uri: String): PlainValidation =
 //     RouteTrie.validateUri(uri) match {
-//       case Right(_) => ().success
+//       case Right(_) => Validated.Valid(())
 //       case Left(e) => e.failure
 //     }
 
@@ -90,7 +90,7 @@
 //           val unknownParameters = comb.CombMethodUtils.endpointParams(url)
 //             .filterNot(_ == "*")
 //             .diff(uriParameters.toList)
-//           if (unknownParameters.isEmpty) ().success
+//           if (unknownParameters.isEmpty) Validated.Valid(())
 //           else s"parameters not from URI: ${unknownParameters.mkString(", ")}".failure
 //         case Left(_) => "invalid uri".failure
 //       }

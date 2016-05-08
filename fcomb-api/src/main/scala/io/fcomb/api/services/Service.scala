@@ -557,7 +557,7 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     implicit
     ctx: ServiceContext
   ) =
-    Future.successful(completeException(e)(StatusCodes.Unauthorized))
+    FastFuture.successful(completeException(e)(StatusCodes.Unauthorized))
 
   def authorizeUser(
     f: User ⇒ ServiceResult

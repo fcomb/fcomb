@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.HijackTcp
 import akka.http.settings.clientSettingsWithIdleTimeout
 import akka.http.scaladsl.settings.ClientConnectionSettings
+import akka.http.scaladsl.util.FastFuture
 import akka.http.scaladsl.{Http, ConnectionContext}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
@@ -15,7 +16,6 @@ import io.fcomb.docker.api.methods._
 import javax.net.ssl.SSLContext
 import org.slf4j.Logger
 import scala.collection.immutable
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import spray.json._
 
@@ -67,7 +67,7 @@ private[api] trait ApiConnection {
   }
 
   protected def mapHttpResponse(res: HttpResponse) = {
-    if (res.status.isSuccess()) Future.successful(res)
+    if (res.status.isSuccess()) FastFuture.successful(res)
     else {
       res.entity.dataBytes.runFold(new StringBuffer) { (acc, bs) ⇒
         acc.append(bs.utf8String)

@@ -11,6 +11,7 @@ import io.fcomb.persist.docker.{Container ⇒ PContainer}
 import akka.actor._
 import akka.stream.Materializer
 import akka.cluster.sharding._
+import akka.http.scaladsl.util.FastFuture
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise, ExecutionContext}
@@ -96,7 +97,7 @@ object ApplicationProcessor {
     Option(actorRef) match {
       case Some(ref) ⇒
         ask(ref, EntityEnvelope(appId, entity))(timeout).mapTo[T]
-      case None ⇒ Future.failed(EmptyActorRefException)
+      case None ⇒ FastFuture.failed(EmptyActorRefException)
     }
 
   private def tellRef(appId: Long, entity: Entity) =
@@ -375,7 +376,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   def updateNumberOfContainers(app: MApplication, numberOfContainers: Int) =
     if (app.scaleStrategy.numberOfContainers == numberOfContainers)
-      Future.successful(())
+      FastFuture.successful(())
     else
       PApplication.updateNumberOfContainers(appId, numberOfContainers)
 
@@ -386,7 +387,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     if (containers.size == numberOfContainers &&
       state.app.state != ApplicationState.Scaling &&
       state.app.scaleStrategy.numberOfContainers == numberOfContainers)
-      Future.successful(state)
+      FastFuture.successful(state)
     else {
       val updatedState =
         if (state.app.scaleStrategy.numberOfContainers == numberOfContainers)
@@ -413,14 +414,14 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def updateScaleStrategy(scaleStrategy: Option[ScaleStrategy]) =
     scaleStrategy match {
       case Some(ss) ⇒ PApplication.updateScaleStrategy(appId, ss)
-      case None     ⇒ Future.successful(())
+      case None     ⇒ FastFuture.successful(())
     }
 
   def redeploy(state: State, scaleStrategy: Option[ScaleStrategy]) = {
     if (state.containers.isEmpty &&
       state.app.state != ApplicationState.Redeploying &&
       !scaleStrategy.exists(_ == state.app.scaleStrategy))
-      Future.successful(state)
+      FastFuture.successful(state)
     else {
       val updatedState = scaleStrategy match {
         case Some(ss) ⇒ state.copy( // TODO: lens
@@ -443,7 +444,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def start(state: State) = {
     if (!state.containers.exists(!_.isRunning) &&
       state.app.state != ApplicationState.Starting)
-      Future.successful(state)
+      FastFuture.successful(state)
     else
       for {
         _ ← persistState(ApplicationState.Starting)
@@ -456,7 +457,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def stop(state: State) = {
     if (!state.containers.exists(_.isRunning) &&
       state.app.state != ApplicationState.Stopping)
-      Future.successful(state)
+      FastFuture.successful(state)
     else
       for {
         _ ← persistState(ApplicationState.Stopping)
@@ -469,7 +470,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def restart(state: State) = {
     val containers = state.containers.filter(_.isPresent)
     if (containers.isEmpty && state.app.state != ApplicationState.Restarting)
-      Future.successful(state)
+      FastFuture.successful(state)
     else {
       val ids = containers.map(_.getId)
       val idsSeq = ids.toSeq
@@ -501,7 +502,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     }
     else {
       if (state.app.state == ApplicationState.Terminated)
-        Future.successful(state)
+        FastFuture.successful(state)
       else
         persistState(ApplicationState.Terminated).map { _ ⇒
           state.copy(app = state.app.copy(state = ApplicationState.Terminated))
@@ -512,7 +513,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def startContainers(state: State) = {
     val containers = state.containers.filterNot(_.isRunning)
     log.info(s"start containers $state")
-    if (containers.isEmpty) Future.successful(state)
+    if (containers.isEmpty) FastFuture.successful(state)
     else {
       val ids = containers.map(_.getId)
       val idsSeq = ids.toSeq
@@ -535,7 +536,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
 
   def stopContainers(state: State) = {
     val containers = state.containers.filter(_.isRunning)
-    if (containers.isEmpty) Future.successful(state)
+    if (containers.isEmpty) FastFuture.successful(state)
     else {
       val ids = containers.map(_.getId)
       val idsSeq = ids.toSeq
@@ -591,7 +592,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         case ReserveResult.NoNodesAvailable ⇒
           log.error("ReserveResult.NoNodesAvailable")
           // TODO: add errors to state messages
-          Future.successful(state)
+          FastFuture.successful(state)
       }
     }
     else if (containers.length > ss.numberOfContainers) {
@@ -602,7 +603,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
         state.copy(containers = immutable.HashSet(aliveContainers: _*))
       )
     }
-    else Future.successful(state)
+    else FastFuture.successful(state)
   }
 
   def terminateContainers(state: State) = {
@@ -623,7 +624,7 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       _ ← Future.sequence(containers.map { c ⇒
         NodeProcessor.containerTerminate(c.nodeId, c.getId)
       }).recoverWith {
-        case e: TimeoutException ⇒ Future.successful(())
+        case e: TimeoutException ⇒ FastFuture.successful(())
       }
       _ ← PContainer.updateState(idsSeq, ContainerState.Terminated)
     } yield state

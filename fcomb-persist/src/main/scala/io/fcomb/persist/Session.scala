@@ -13,6 +13,7 @@ import cats.data.Validated
 import org.apache.commons.codec.digest.DigestUtils
 import java.security.SecureRandom
 import java.util.UUID
+import akka.http.scaladsl.util.FastFuture
 
 object Session extends PersistTypes[models.Session] {
   val sessionIdLength = 42
@@ -41,7 +42,7 @@ object Session extends PersistTypes[models.Session] {
   }
 
   private val invalidEmailOrPassword =
-    Future.successful(validations.validationErrors(
+    FastFuture.successful(validations.validationErrors(
       "email" → s"invalid",
       "password" → "invalid"
     ))
@@ -65,7 +66,7 @@ object Session extends PersistTypes[models.Session] {
       case Some(userId) if sessionId.startsWith(prefix) ⇒
         User.findByPk(userId.utf8String.toLong)
       case _ ⇒
-        Future.successful(None)
+        FastFuture.successful(None)
     }
   }
 

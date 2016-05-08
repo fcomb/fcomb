@@ -10,5 +10,3 @@ CREATE TABLE docker_distribution_image_manifests (
 );
 
 CREATE UNIQUE INDEX on docker_distribution_image_manifests(image_id, sha256_digest);
-
-CREATE UNIQUE INDEX on docker_distribution_image_manifests(image_id, tags);

@@ -8,6 +8,7 @@ import io.fcomb.persist.UserCertificate
 import akka.actor._
 import akka.cluster.sharding._
 import akka.pattern.{ask, pipe}
+import akka.http.scaladsl.util.FastFuture
 import akka.util.Timeout
 import scala.concurrent.{Future, Promise}
 import scala.collection.mutable.HashSet
@@ -83,7 +84,7 @@ object UserCertificateProcessor {
       case Some(ref) ⇒
         val req = SignRequest(request, name, extOpt, expireAfterDays)
         ask(ref, EntityEnvelope(userId, req)).mapTo[SignedCertificate]
-      case None ⇒ Future.failed(EmptyActorRefException)
+      case None ⇒ FastFuture.failed(EmptyActorRefException)
     }
   }
 }

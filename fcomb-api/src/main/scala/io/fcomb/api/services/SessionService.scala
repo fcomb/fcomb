@@ -1,6 +1,7 @@
 package io.fcomb.api.services
 
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
 import io.fcomb.json._
 import io.fcomb.request._
@@ -31,7 +32,7 @@ object SessionService extends Service {
       completeWithoutContent(
         getAuthToken match {
           case Some(token) => persist.Session.destroy(token)
-          case None => Future.successful(())
+          case None => FastFuture.successful(())
         }
       )
     }

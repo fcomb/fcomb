@@ -54,7 +54,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
     }
     val digests = (mm.config.digest :: mm.layers.map(_.digest)).map(_.drop(sha256Prefix.length))
       .distinct
-    (for {
+    val res = (for {
       Some(imageId) ← Image.findIdByName(name) // TODO
       blobs ← ImageBlob.findByImageIdAndDigests(imageId, digests)
       manifestIdOpt ← findIdByImageIdAndDigest(imageId, sha256Digest)
@@ -83,6 +83,13 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
             ))
         }
     }
+    res.onComplete {
+      case scala.util.Success(_) ⇒ println("ok")
+      case scala.util.Failure(e) ⇒
+        println(e)
+        e.printStackTrace()
+    }
+    res
   }
 
   def findByImageIdAndReferenceAsManifestV2(imageId: Long, reference: String)(
@@ -101,7 +108,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
       def descriptorByUuid(uuid: UUID) = {
         val blob = blobsMap(uuid)
         Descriptor(
-          mediaType = "application/vnd.docker.image.rootfs.diff.tar.gzip", // TODO: .contentType
+          mediaType = Some(blob.contentType),
           size = blob.length,
           digest = blob.sha256Digest.get
         )

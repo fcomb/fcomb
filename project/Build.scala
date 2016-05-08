@@ -90,7 +90,7 @@ object Build extends sbt.Build {
     settings =
       defaultSettings ++
       SbtNativePackager.packageArchetype.java_application ++
-      SbtAspectj.aspectjSettings ++
+      // SbtAspectj.aspectjSettings ++
       RevolverPlugin.settings ++
         Seq(
           libraryDependencies ++= Dependencies.root,
@@ -102,14 +102,14 @@ object Build extends sbt.Build {
             "-diagrams"
           ) ++ compilerFlags,
           executableScriptName := "start",
-          javaOptions in reStart <++= AspectjKeys.weaverOptions in SbtAspectj.Aspectj,
-          javaOptions in run <++= AspectjKeys.weaverOptions in SbtAspectj.Aspectj,
+          // javaOptions in reStart <++= AspectjKeys.weaverOptions in SbtAspectj.Aspectj,
+          // javaOptions in run <++= AspectjKeys.weaverOptions in SbtAspectj.Aspectj,
           javaOptions in Universal ++= javaRunOptions.map { o => s"-J$o" },
           packageName in Universal := "dist",
-          mappings in Universal <++= (AspectjKeys.weaver in SbtAspectj.Aspectj).map { path =>
-            Seq(path.get -> "aspectj/weaver.jar")
-          },
-          bashScriptExtraDefines += """addJava "-javaagent:${app_home}/../aspectj/weaver.jar"""",
+          // mappings in Universal <++= (AspectjKeys.weaver in SbtAspectj.Aspectj).map { path =>
+          //   Seq(path.get -> "aspectj/weaver.jar")
+          // },
+          // bashScriptExtraDefines += """addJava "-javaagent:${app_home}/../aspectj/weaver.jar"""",
           scriptClasspath ~= (cp => "../config" +: cp),
           fork in run := true,
           fork in reStart := true

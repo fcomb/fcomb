@@ -6,7 +6,7 @@ object Dependencies {
     val bouncyCastle = "1.53"
     val cats = "0.5.0"
     val circe = "0.4.1"
-    val enumeratum = "1.4.1"
+    val enumeratum = "1.4.4"
     val slick = "3.1.1"
     val slickPg = "0.13.0"
     val quill = "0.5.0"
@@ -147,7 +147,7 @@ object Dependencies {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val akkaHttpTestkit = "com.typesafe.akka"             %% "akka-http-testkit"             % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.1" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.7.3" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.8" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
     val slickTestkit    = "com.typesafe.slick"            %% "slick-testkit"                 % V.slick % "test"
   }
@@ -196,6 +196,7 @@ object Dependencies {
   val api = common ++ akka ++ Seq(oauth)
 
   val tests = common ++ Seq(
+    jwt, authentikat, jose4s,
     akkaTestkit, akkaHttpTestkit,
     scalacheck, specs2, scalatest, slickTestkit
   )
@@ -207,6 +208,7 @@ object Dependencies {
   )
 
   val persist = common ++ akka ++ Seq(
+    akkaHttpCore,
     postgresJdbc,
     dbMigration,
     // quillJdbc, quillAsync,

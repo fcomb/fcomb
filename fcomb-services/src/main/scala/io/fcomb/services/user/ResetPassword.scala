@@ -9,6 +9,7 @@ import io.fcomb.validations.ValidationResultUnit
 import io.fcomb.utils.Random
 import akka.stream.Materializer
 import akka.actor.ActorSystem
+import akka.http.scaladsl.util.FastFuture
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import cats.data.Validated
@@ -64,7 +65,7 @@ object ResetPassword {
           case _ ⇒
             persist.User.validationErrorAsFuture("token", "not found")
         }
-      case e @ Validated.Invalid(_) ⇒ Future.successful(e)
+      case e @ Validated.Invalid(_) ⇒ FastFuture.successful(e)
     }
   }
 

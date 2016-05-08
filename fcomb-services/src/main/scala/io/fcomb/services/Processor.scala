@@ -2,6 +2,7 @@ package io.fcomb.services
 
 import akka.actor._
 import akka.stream.Materializer
+import akka.http.scaladsl.util.FastFuture
 import akka.cluster.sharding._
 import akka.pattern.ask
 import akka.util.Timeout
@@ -69,7 +70,7 @@ trait Processor[Id] {
               logger.error(s"ask ref $id#$entity error: $e")
               throw e
           }
-      case None ⇒ Future.failed(EmptyActorRefException)
+      case None ⇒ FastFuture.failed(EmptyActorRefException)
     }
 
   protected def tellRef(id: Id, entity: Any) =

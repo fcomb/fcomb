@@ -10,6 +10,7 @@ import sun.security.pkcs10.PKCS10
 import java.util.Base64
 import java.net.InetAddress
 import cats.data.Validated
+import akka.http.scaladsl.util.FastFuture
 
 object NodeManager {
   def joinByRequest(userId: Long, req: NodeJoinRequest)(
@@ -22,7 +23,7 @@ object NodeManager {
       val csr = new PKCS10(Base64.getMimeDecoder().decode(body))
       NodeJoinProcessor.join(userId, csr).map(Validated.Valid(_))
     }
-    else Future.successful(unknownHeaderError)
+    else FastFuture.successful(unknownHeaderError)
   }
 
   private val beginRequest = "-----BEGIN CERTIFICATE REQUEST-----"

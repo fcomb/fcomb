@@ -1,6 +1,6 @@
 package io.fcomb.docker.distribution.server.api
 
-import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
+import akka.http.scaladsl.model.ContentTypes.{`application/octet-stream`, `application/json`}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
@@ -420,20 +420,42 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           entity(as[ByteString]) { rawManifest ⇒
-            entity(as[Manifest]) { manifest ⇒
-              assert(req.entity.contentType == `application/vnd.docker.distribution.manifest.v2+json`) // TODO
-              onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, rawManifest.utf8String)) {
-                case Validated.Valid(m) ⇒
-                  respondWithHeaders(`Docker-Content-Digest`("sha256", m.sha256Digest)) {
-                    complete(StatusCodes.Created, HttpEntity.Empty)
-                  }
-                case Validated.Invalid(e) ⇒
-                  complete(StatusCodes.BadRequest, FailureResponse.fromExceptions(e))
+            println(s"rawManifest: ${rawManifest.utf8String}")
+            val contentType = req.entity.contentType
+
+
+            import java.nio.file._
+            import java.io.File
+            val file = new File("/tmp/request.json")
+            Files.write(Paths.get(file.toURI()), rawManifest.utf8String.getBytes("utf-8"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+
+            ???
+            respondWithContentType(`application/json`) {
+              entity(as[ManifestV2]) { manifest ⇒
+                assert(contentType == `application/vnd.docker.distribution.manifest.v2+json`) // TODO
+                onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, rawManifest.utf8String)) {
+                  case Validated.Valid(m) ⇒
+                    println(s"m: $m")
+                    respondWithHeaders(`Docker-Content-Digest`("sha256", m.sha256Digest)) {
+                      complete(StatusCodes.Created, HttpEntity.Empty)
+                    }
+                  case Validated.Invalid(e) ⇒
+                    println(s"e: $e")
+                    complete(StatusCodes.BadRequest, FailureResponse.fromExceptions(e))
+                }
               }
             }
           }
         }
       }
+    }
+
+  private def respondWithContentType(contentType: ContentType): Directive0 =
+    mapRequest { req ⇒
+      req.copy(
+        entity = req.entity.withContentType(contentType),
+        headers = req.headers.filterNot(_.isInstanceOf[Accept])
+      )
     }
 
   def destroyManifest(imageName: String, digest: String) =
