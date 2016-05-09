@@ -50,6 +50,16 @@ final object DistributionError {
     val code = DistributionErrorCode.NameInvalid
     val detail = None
   }
+
+  final case class ManifestUnverified(message: String = "manifest failed signature verification") extends DistributionError {
+    val code = DistributionErrorCode.ManifestUnverified
+    val detail = None
+  }
+
+  final case class ManifestInvalid(message: String = "manifest invalid") extends DistributionError {
+    val code = DistributionErrorCode.ManifestInvalid
+    val detail = None
+  }
 }
 
 final case class DistributionErrorResponse(

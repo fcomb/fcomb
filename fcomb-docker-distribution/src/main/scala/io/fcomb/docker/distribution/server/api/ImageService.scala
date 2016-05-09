@@ -13,6 +13,7 @@ import cats.syntax.eq._
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.server.utils.BlobFile
+import io.fcomb.docker.distribution.manifest.Schema1
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
@@ -418,20 +419,25 @@ object ImageService {
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
-          entity(as[ByteString]) { rawManifest ⇒
+          entity(as[ByteString]) { rawManifestBs ⇒
+            val rawManifest = rawManifestBs.utf8String
             respondWithContentType(`application/json`) {
               entity(as[Manifest]) { manifest ⇒
-                manifest match {
-                  case m: ManifestV1 =>
-                  case _ =>
-                }
-                onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, rawManifest.utf8String)) {
-                  case Validated.Valid(m) ⇒
-                    respondWithHeaders(`Docker-Content-Digest`("sha256", m.sha256Digest)) {
-                      complete(StatusCodes.Created, HttpEntity.Empty)
+                (manifest match {
+                  case m: ManifestV1 ⇒ Schema1.verify(m, rawManifest)
+                  case _             ⇒ Xor.Right(())
+                }) match {
+                  case Xor.Right(_) ⇒
+                    onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, rawManifest)) {
+                      case Validated.Valid(m) ⇒
+                        respondWithHeaders(`Docker-Content-Digest`("sha256", m.sha256Digest)) {
+                          complete(StatusCodes.Created, HttpEntity.Empty)
+                        }
+                      case Validated.Invalid(e) ⇒
+                        complete(StatusCodes.BadRequest, FailureResponse.fromExceptions(e))
                     }
-                  case Validated.Invalid(e) ⇒
-                    complete(StatusCodes.BadRequest, FailureResponse.fromExceptions(e))
+                  case Xor.Left(e) ⇒
+                    complete(StatusCodes.BadRequest, DistributionErrorResponse.from(e))
                 }
               }
             }
