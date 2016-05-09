@@ -10,7 +10,6 @@ import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.{Validated, Xor}
 import cats.syntax.eq._
-import io.fcomb.docker.distribution.server.api.ContentTypes.`application/vnd.docker.distribution.manifest.v2+json`
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.server.utils.BlobFile
@@ -420,27 +419,18 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           entity(as[ByteString]) { rawManifest ⇒
-            println(s"rawManifest: ${rawManifest.utf8String}")
-            val contentType = req.entity.contentType
-
-
-            import java.nio.file._
-            import java.io.File
-            val file = new File("/tmp/request.json")
-            Files.write(Paths.get(file.toURI()), rawManifest.utf8String.getBytes("utf-8"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
-
-            ???
             respondWithContentType(`application/json`) {
-              entity(as[ManifestV2]) { manifest ⇒
-                assert(contentType == `application/vnd.docker.distribution.manifest.v2+json`) // TODO
+              entity(as[Manifest]) { manifest ⇒
+                manifest match {
+                  case m: ManifestV1 =>
+                  case _ =>
+                }
                 onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, rawManifest.utf8String)) {
                   case Validated.Valid(m) ⇒
-                    println(s"m: $m")
                     respondWithHeaders(`Docker-Content-Digest`("sha256", m.sha256Digest)) {
                       complete(StatusCodes.Created, HttpEntity.Empty)
                     }
                   case Validated.Invalid(e) ⇒
-                    println(s"e: $e")
                     complete(StatusCodes.BadRequest, FailureResponse.fromExceptions(e))
                 }
               }

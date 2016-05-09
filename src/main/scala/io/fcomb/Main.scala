@@ -26,25 +26,6 @@ object Main extends App {
   implicit val mat = ActorMaterializer()
   import sys.dispatcher
 
-  // {
-  //   import pdi.jwt._
-  //   import java.io._
-  //   import java.security._
-  //   import org.bouncycastle.openssl._
-  //   import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
-  //
-  //   Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-  //
-  //   val converter = new JcaPEMKeyConverter().setProvider("BC")
-  //   val pkFile = new File("/tmp/server.key")
-  //   val pp = new PEMParser(new FileReader(pkFile))
-  //   val kp = converter.getKeyPair(pp.readObject().asInstanceOf[PEMKeyPair])
-  //   val pk = kp.getPrivate
-  //
-  //   val token = Jwt.encode("""{"user":1}""", pk, JwtAlgorithm.RS256)
-  //   println(s"token: $token")
-  // }
-
   val cluster = Cluster(sys)
 
   if (Config.config.getList("akka.cluster.seed-nodes").isEmpty) {

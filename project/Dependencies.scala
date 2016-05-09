@@ -62,6 +62,7 @@ object Dependencies {
     // val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
     val sprayJson       = "io.spray"                      %% "spray-json"                    % "1.3.2"
     val circeCore       = "io.circe"                      %% "circe-core"                    % V.circe
+    val circeParser     = "io.circe"                      %% "circe-parser"                  % V.circe
     val circeGeneric    = "io.circe"                      %% "circe-generic"                 % V.circe
     val circeJawn       = "io.circe"                      %% "circe-jawn"                    % V.circe
     val circeJava8      = "io.circe"                      %% "circe-java8"                   % V.circe
@@ -94,6 +95,7 @@ object Dependencies {
     val bcProvider      = "org.bouncycastle"              %  "bcprov-jdk15on"                % V.bouncyCastle
     val bcPkix          = "org.bouncycastle"              %  "bcpkix-jdk15on"                % V.bouncyCastle
 
+    val jose4s          = "org.bitbucket.b_c"             %  "jose4j"                        % "0.5.0"
     val oauth           = "com.nulab-inc"                 %% "scala-oauth2-core"             % "0.13.1"
     val bcrypt          = "com.github.t3hnar"             %% "scala-bcrypt"                  % "2.4"
 
@@ -137,10 +139,6 @@ object Dependencies {
     // "com.github.jnr" % "jnr-unixsocket" % "0.10"
 
     val scalaMeter      = "com.storm-enroute"             %% "scalameter"                    % "0.7"
-
-    val jwt = "com.pauldijou" %% "jwt-core" % "0.7.1"
-    val authentikat = "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1"
-    val jose4s = "org.bitbucket.b_c" % "jose4j" % "0.5.0"
   }
 
   object Test {
@@ -163,7 +161,7 @@ object Dependencies {
     // pprint,
     enumeration, enumerationCirce,
     sprayJson,
-    circeCore, circeGeneric, circeJawn, circeOptics, circeJava8,
+    circeCore, circeGeneric, circeJawn, circeParser, circeOptics, circeJava8,
     cats,
     // dogs
     shapeless,
@@ -191,12 +189,11 @@ object Dependencies {
     // akkaSse
   )
 
-  val root = common ++ Seq(jwt, authentikat, jose4s) // ++ monitoring
+  val root = common // ++ monitoring
 
   val api = common ++ akka ++ Seq(oauth)
 
   val tests = common ++ Seq(
-    jwt, authentikat, jose4s,
     akkaTestkit, akkaHttpTestkit,
     scalacheck, specs2, scalatest, slickTestkit
   )
@@ -238,7 +235,9 @@ object Dependencies {
 
   val dockerDistribution = docker
 
-  val crypto = akka ++ common ++ Seq(bcProvider, bcPkix)
+  val crypto = akka ++ common ++ Seq(
+    bcProvider, bcPkix, jose4s
+  )
 
   val validations = common ++ Seq(akkaHttpCore, slick)
 

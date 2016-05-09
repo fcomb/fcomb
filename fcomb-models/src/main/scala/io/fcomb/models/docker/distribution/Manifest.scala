@@ -19,12 +19,16 @@ final case class Signature(
   `protected`: String
 )
 
+final case class V1Compatibility(
+  v1Compatibility: String
+)
+
 final case class ManifestV1(
-  name:         String,
-  tag:          String,
-  fsLayers:     List[FsLayer],
-  architecture: String,
-  // history: ,
+  name:          String,
+  tag:           String,
+  fsLayers:      List[FsLayer],
+  architecture:  String,
+  history:       List[V1Compatibility],
   signatures:    Option[List[Signature]],
   schemaVersion: Int                     = 1
 ) extends Manifest

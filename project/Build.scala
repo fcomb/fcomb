@@ -253,7 +253,7 @@ object Build extends sbt.Build {
       defaultSettings ++ Seq(
         libraryDependencies ++= Dependencies.crypto
       )
-  )
+  ).dependsOn(models)
 
   lazy val tests = Project(
     id = "tests",
