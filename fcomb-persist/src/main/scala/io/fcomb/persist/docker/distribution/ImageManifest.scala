@@ -2,7 +2,7 @@ package io.fcomb.persist.docker.distribution
 
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.{Manifest ⇒ MManifest, ImageManifest ⇒ MImageManifest, _}
+import io.fcomb.models.docker.distribution.{ImageManifest ⇒ MImageManifest, _}
 import io.fcomb.persist._
 // import io.fcomb.validations._
 import scala.concurrent.{ExecutionContext, Future}
@@ -43,14 +43,16 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
   def findIdByImageIdAndDigest(imageId: Long, digest: String) =
     db.run(findIdByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
-  def upsertByRequest(name: String, reference: String, manifest: MManifest, rawManifest: String)(
+  def upsertByRequest(name: String, reference: String, manifest: SchemaManifest, rawManifest: String)(
     implicit
     ec: ExecutionContext
   ) = {
     val sha256Digest = DigestUtils.sha256Hex(rawManifest)
     val mm = manifest match {
-      case m: ManifestV1 ⇒ ???
-      case m: ManifestV2 ⇒ m
+      case m: SchemaV1.Manifest ⇒
+        println(m)
+        ???
+      case m: SchemaV2.Manifest ⇒ m
     }
     val digests = (mm.config.digest :: mm.layers.map(_.digest)).map(_.drop(sha256Prefix.length))
       .distinct
@@ -95,7 +97,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
   def findByImageIdAndReferenceAsManifestV2(imageId: Long, reference: String)(
     implicit
     ec: ExecutionContext
-  ): Future[Option[ManifestV2]] = {
+  ): Future[Option[SchemaManifest]] = {
     // TODO: find by tags
     for {
       Some(manifest) ← db.run(table.filter { q ⇒
@@ -107,14 +109,14 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
 
       def descriptorByUuid(uuid: UUID) = {
         val blob = blobsMap(uuid)
-        Descriptor(
+        SchemaV2.Descriptor(
           mediaType = Some(blob.contentType),
           size = blob.length,
           digest = blob.sha256Digest.get
         )
       }
 
-      Some(ManifestV2(
+      Some(SchemaV2.Manifest(
         config = descriptorByUuid(manifest.configBlobId),
         layers = manifest.layersBlobId.map(descriptorByUuid)
       ))

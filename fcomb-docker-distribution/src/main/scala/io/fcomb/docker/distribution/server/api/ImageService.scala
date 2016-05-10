@@ -13,7 +13,7 @@ import cats.syntax.eq._
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.server.utils.BlobFile
-import io.fcomb.docker.distribution.manifest.Schema1
+import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest}
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
@@ -420,12 +420,12 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           entity(as[ByteString]) { rawManifestBs ⇒
-            val rawManifest = rawManifestBs.utf8String
             respondWithContentType(`application/json`) {
-              entity(as[Manifest]) { manifest ⇒
+              entity(as[SchemaManifest]) { manifest ⇒
+                val rawManifest = rawManifestBs.utf8String
                 (manifest match {
-                  case m: ManifestV1 ⇒ Schema1.verify(m, rawManifest)
-                  case _             ⇒ Xor.Right(())
+                  case m: SchemaV1.Manifest ⇒ SchemaV1Manifest.verify(m, rawManifest)
+                  case _                    ⇒ Xor.right(())
                 }) match {
                   case Xor.Right(_) ⇒
                     onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, rawManifest)) {

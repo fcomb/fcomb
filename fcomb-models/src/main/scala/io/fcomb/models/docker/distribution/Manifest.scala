@@ -1,47 +1,68 @@
 package io.fcomb.models.docker.distribution
 
-sealed trait Manifest {
+import java.time.ZonedDateTime
+
+sealed trait SchemaManifest {
   val schemaVersion: Int
 }
 
-final case class FsLayer(
-  blobSum: String
-)
+final object SchemaV1 {
+  case class FsLayer(
+    blobSum: String
+  )
 
-final case class SignatureHeader(
-  jwk: Map[String, String],
-  alg: String
-)
+  case class Protected(
+    formatLength: Int,
+    formatTail:   String,
+    time:         ZonedDateTime
+  )
 
-final case class Signature(
-  header:      SignatureHeader,
-  signature:   String,
-  `protected`: String
-)
+  case class SignatureHeader(
+    jwk: Map[String, String],
+    alg: String
+  )
 
-final case class V1Compatibility(
-  v1Compatibility: String
-)
+  case class Signature(
+    header:      SignatureHeader,
+    signature:   String,
+    `protected`: String
+  )
 
-final case class ManifestV1(
-  name:          String,
-  tag:           String,
-  fsLayers:      List[FsLayer],
-  architecture:  String,
-  history:       List[V1Compatibility],
-  signatures:    Option[List[Signature]],
-  schemaVersion: Int                     = 1
-) extends Manifest
+  case class ContainerConfig(
+    cmd: List[String]
+  )
 
-final case class Descriptor(
-  mediaType: Option[String],
-  size:      Long,
-  digest:    String
-)
+  case class V1Compatibility(
+    id:              String,
+    parent:          Option[String],
+    comment:         Option[String],
+    containerConfig: Option[ContainerConfig],
+    author:          Option[String],
+    throwAway:       Option[Boolean]
+  )
 
-final case class ManifestV2(
-  schemaVersion: Int              = 2,
-  mediaType:     String           = "application/vnd.docker.distribution.manifest.v2+json",
-  config:        Descriptor,
-  layers:        List[Descriptor]
-) extends Manifest
+  case class Manifest(
+    name:          String,
+    tag:           String,
+    fsLayers:      List[FsLayer],
+    architecture:  String,
+    history:       List[V1Compatibility],
+    signatures:    Option[List[Signature]],
+    schemaVersion: Int                     = 1
+  ) extends SchemaManifest
+}
+
+final object SchemaV2 {
+  case class Descriptor(
+    mediaType: Option[String],
+    size:      Long,
+    digest:    String
+  )
+
+  case class Manifest(
+    schemaVersion: Int              = 2,
+    mediaType:     String           = "application/vnd.docker.distribution.manifest.v2+json",
+    config:        Descriptor,
+    layers:        List[Descriptor]
+  ) extends SchemaManifest
+}

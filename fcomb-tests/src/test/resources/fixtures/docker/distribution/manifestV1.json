@@ -1,0 +1,80 @@
+{
+   "schemaVersion": 1,
+   "name": "testimage1z/ttet1",
+   "tag": "1.1",
+   "architecture": "amd64",
+   "fsLayers": [
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:4831699594bca2432e2fdbe44d2566ab0bc00e27629be720c66883b1c4df018c"
+      },
+      {
+         "blobSum": "sha256:6cbb75c7cc30256b8d933ae7d78738b8b76134922b49c395d363f3d2ec2a15dd"
+      },
+      {
+         "blobSum": "sha256:a79b4a92697e40ba4fc72102418aefa96c75a91c60bc58c85a354280854e570c"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:fdd5d7827f33ef075f45262a0f74ac96ec8a5e687faeb40135319764963dcb42"
+      }
+   ],
+   "history": [
+      {
+         "v1Compatibility": "{\"architecture\":\"amd64\",\"config\":{\"Hostname\":\"e5c68db50333\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"ExposedPorts\":{\"5000/tcp\":{}},\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/etc/docker/registry/config.yml\"],\"Image\":\"c72dce2618dc8f7b794d2b2c2b1e64e0205ead5befc294f8111da23bd6a2c799\",\"Volumes\":{\"/var/lib/registry\":{}},\"WorkingDir\":\"\",\"Entrypoint\":[\"/bin/registry\"],\"OnBuild\":[],\"Labels\":{}},\"container\":\"e83a452b8fb89d78a25a6739457050131ca5c863629a47639530d9ad2008d610\",\"container_config\":{\"Hostname\":\"e5c68db50333\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"ExposedPorts\":{\"5000/tcp\":{}},\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) CMD [\\\"/etc/docker/registry/config.yml\\\"]\"],\"Image\":\"c72dce2618dc8f7b794d2b2c2b1e64e0205ead5befc294f8111da23bd6a2c799\",\"Volumes\":{\"/var/lib/registry\":{}},\"WorkingDir\":\"\",\"Entrypoint\":[\"/bin/registry\"],\"OnBuild\":[],\"Labels\":{}},\"created\":\"2016-03-08T21:08:15.399680378Z\",\"docker_version\":\"1.9.1\",\"id\":\"6b433410a0a9627d94e6aeb4a81f3630d0beed3984585c448bb4b041d8d4a988\",\"os\":\"linux\",\"parent\":\"caf1fef2cb61be4397f19974f3ad5157e0c90a93c8d986536707b7aed818ac3a\"}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"caf1fef2cb61be4397f19974f3ad5157e0c90a93c8d986536707b7aed818ac3a\",\"parent\":\"78cb92f4ea3fb70d4f00f37226d25d36f1608c24209f827a14f17fe7b9382301\",\"created\":\"2016-03-08T21:08:14.779562197Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) ENTRYPOINT \\u0026{[\\\"/bin/registry\\\"]}\"]}}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"78cb92f4ea3fb70d4f00f37226d25d36f1608c24209f827a14f17fe7b9382301\",\"parent\":\"81cf62c62f9a12a189078dd4363f78b4b3a61433f5760fa0ee565fface140bf3\",\"created\":\"2016-03-08T21:08:14.215654742Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) EXPOSE 5000/tcp\"]}}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"81cf62c62f9a12a189078dd4363f78b4b3a61433f5760fa0ee565fface140bf3\",\"parent\":\"979a4dbc5bcdc051aa027bf4e155367794b1c84649108eac385f5f765b88c137\",\"created\":\"2016-03-08T21:08:13.545290536Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) VOLUME [/var/lib/registry]\"]}}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"979a4dbc5bcdc051aa027bf4e155367794b1c84649108eac385f5f765b88c137\",\"parent\":\"999db91feb90e0ea57432d8fb69ea3f2075869a22d22ee443b18c2763ab3259f\",\"created\":\"2016-03-08T21:08:12.91115573Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) COPY file:a478f74440f88ea974a27f7286adb23d0c9b5881c487a0eea2dc551c2320a7c1 in /etc/docker/registry/config.yml\"]}}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"999db91feb90e0ea57432d8fb69ea3f2075869a22d22ee443b18c2763ab3259f\",\"parent\":\"7f46ea7431c38c00913507e57d51de79ba5ee0d66322088a94b093b73ce3d973\",\"created\":\"2016-03-08T21:08:12.213859248Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) COPY file:3221a2ecfe6f540cf4e64f990953aa5f128e5d98cd74043cd1b8d3df04ab59f9 in /bin/registry\"]}}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"7f46ea7431c38c00913507e57d51de79ba5ee0d66322088a94b093b73ce3d973\",\"parent\":\"df4594476bac39bceace2319bd473d5ee1bf6c6e0c4359d27f0f5c3a449d57b7\",\"created\":\"2016-03-02T15:31:13.613786569Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c apt-get update \\u0026\\u0026     apt-get install -y ca-certificates librados2 apache2-utils \\u0026\\u0026     rm -rf /var/lib/apt/lists/*\"]}}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"df4594476bac39bceace2319bd473d5ee1bf6c6e0c4359d27f0f5c3a449d57b7\",\"parent\":\"de71d31c0d5b564cf656b5f01fddf152e9811c3b9a753f25afa1ff0976c97cf9\",\"created\":\"2016-03-01T18:51:14.143360029Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) CMD [\\\"/bin/bash\\\"]\"]}}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"de71d31c0d5b564cf656b5f01fddf152e9811c3b9a753f25afa1ff0976c97cf9\",\"created\":\"2016-03-01T18:51:11.375621601Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) ADD file:b5391cb13172fb513dbfca0b8471ea02bffa913ffdab94ad864d892d129318c6 in /\"]}}"
+      }
+   ],
+   "signatures": [
+      {
+         "header": {
+            "jwk": {
+               "crv": "P-256",
+               "kid": "TLT3:64VE:CEIR:WI2I:7SSB:SYUG:NBSU:TQZ4:YSCD:TM3Y:J3JH:J57V",
+               "kty": "EC",
+               "x": "2n_STWmA8MkbGND3JDpK8Uol72UgbHLMU98xMeuIgYI",
+               "y": "yFHo6U2ml_UUV1udjby1yT0cm2OGTSI5QVwpv0Et36M"
+            },
+            "alg": "ES256"
+         },
+         "signature": "DcQGS-o_plivD1P3XduhN5n4yOLJK9aIO0sKtr3iyGHsov28EKvdHqLNVLRHaxPZ3wmDI9oY0y5sPgKI-j_9tQ",
+         "protected": "eyJmb3JtYXRMZW5ndGgiOjU2MjQsImZvcm1hdFRhaWwiOiJDbjAiLCJ0aW1lIjoiMjAxNi0wNS0wNlQwMDozNToyMVoifQ"
+      }
+   ]
+}
