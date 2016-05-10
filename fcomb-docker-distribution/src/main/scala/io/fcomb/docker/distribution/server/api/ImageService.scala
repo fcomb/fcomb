@@ -10,10 +10,10 @@ import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.{Validated, Xor}
 import cats.syntax.eq._
+import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest}
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.server.utils.BlobFile
-import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest}
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
@@ -22,6 +22,7 @@ import io.fcomb.utils.{Config, StringUtils}, Config.docker.distribution.realm
 import java.io.File
 import java.security.MessageDigest
 import java.util.UUID
+import org.apache.commons.codec.digest.DigestUtils
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
@@ -425,12 +426,12 @@ object ImageService {
                 val rawManifest = rawManifestBs.utf8String
                 (manifest match {
                   case m: SchemaV1.Manifest ⇒ SchemaV1Manifest.verify(m, rawManifest)
-                  case _                    ⇒ Xor.right(())
+                  case m: SchemaV2.Manifest ⇒ Xor.right(DigestUtils.sha256Hex(rawManifest))
                 }) match {
-                  case Xor.Right(_) ⇒
-                    onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, rawManifest)) {
+                  case Xor.Right(sha256Digest) ⇒
+                    onSuccess(PImageManifest.upsertByRequest(imageName, reference, manifest, sha256Digest)) {
                       case Validated.Valid(m) ⇒
-                        respondWithHeaders(`Docker-Content-Digest`("sha256", m.sha256Digest)) {
+                        respondWithHeaders(`Docker-Content-Digest`("sha256", sha256Digest)) {
                           complete(StatusCodes.Created, HttpEntity.Empty)
                         }
                       case Validated.Invalid(e) ⇒

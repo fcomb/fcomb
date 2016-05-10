@@ -8,8 +8,8 @@ object Dependencies {
     val circe = "0.4.1"
     val enumeratum = "1.4.4"
     val slick = "3.1.1"
-    val slickPg = "0.13.0"
-    val quill = "0.5.0"
+    val slickPg = "0.14.0"
+    val quill = "0.6.0"
     val monocle = "1.2.1"
     val kamon = "0.6.1"
   }

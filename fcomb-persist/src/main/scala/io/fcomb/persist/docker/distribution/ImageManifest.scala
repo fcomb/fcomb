@@ -1,15 +1,13 @@
 package io.fcomb.persist.docker.distribution
 
+import akka.http.scaladsl.util.FastFuture, FastFuture._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{ImageManifest ⇒ MImageManifest, _}
 import io.fcomb.persist._
-// import io.fcomb.validations._
-import scala.concurrent.{ExecutionContext, Future}
-import org.apache.commons.codec.digest.DigestUtils
-import akka.http.scaladsl.util.FastFuture, FastFuture._
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.concurrent.{ExecutionContext, Future}
 
 class ImageManifestTable(tag: Tag) extends Table[MImageManifest](tag, "docker_distribution_image_manifests") with PersistTableWithAutoLongPk {
   def sha256Digest = column[String]("sha256_digest")
@@ -43,11 +41,10 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
   def findIdByImageIdAndDigest(imageId: Long, digest: String) =
     db.run(findIdByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
-  def upsertByRequest(name: String, reference: String, manifest: SchemaManifest, rawManifest: String)(
+  def upsertByRequest(name: String, reference: String, manifest: SchemaManifest, sha256Digest: String)(
     implicit
     ec: ExecutionContext
   ) = {
-    val sha256Digest = DigestUtils.sha256Hex(rawManifest)
     val mm = manifest match {
       case m: SchemaV1.Manifest ⇒
         println(m)

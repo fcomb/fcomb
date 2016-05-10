@@ -47,7 +47,7 @@ final object SchemaV1 {
     fsLayers:      List[FsLayer],
     architecture:  String,
     history:       List[V1Compatibility],
-    signatures:    Option[List[Signature]],
+    signatures:    List[Signature],
     schemaVersion: Int                     = 1
   ) extends SchemaManifest
 }

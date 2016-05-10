@@ -73,8 +73,8 @@
             },
             "alg": "ES256"
          },
-         "signature": "DcQGS-o_plivD1P3XduhN5n4yOLJK9aIO0sKtr3iyGHsov28EKvdHqLNVLRHaxPZ3wmDI9oY0y5sPgKI-j_9tQ",
-         "protected": "eyJmb3JtYXRMZW5ndGgiOjU2MjQsImZvcm1hdFRhaWwiOiJDbjAiLCJ0aW1lIjoiMjAxNi0wNS0wNlQwMDozNToyMVoifQ"
+         "signature": "txenSZhOUH5ePUu1-ljQpkrsPe_d-MYd5uf7pg5AIGtVkSAvT7OVxweovnYCEzJN5rUYNOxYVbBjByfFAOu5NA",
+         "protected": "eyJmb3JtYXRMZW5ndGgiOjU2MjQsImZvcm1hdFRhaWwiOiJDbjAiLCJ0aW1lIjoiMjAxNi0wNS0xMFQxOTo1NDoxM1oifQ"
       }
    ]
 }
