@@ -5,7 +5,7 @@ import enumeratum.Circe
 import io.circe.generic.auto._
 import io.circe.java8.time._
 import io.circe.parser._
-import io.circe.{Decoder, Encoder, Json, ParsingFailure, DecodingFailure}
+import io.circe.{Decoder, Encoder, ParsingFailure, DecodingFailure}
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.ErrorKind
 import io.fcomb.models.errors.docker.distribution._
@@ -18,11 +18,14 @@ object Formats {
       Encoder[String].apply(kind.toString)
   }
 
-  implicit final val encodeDistributionError = new Encoder[DistributionError] {
-    def apply(error: DistributionError) = Json.obj(
-      "code" → Encoder[String].apply(error.code.entryName),
-      "message" → Encoder[String].apply(error.message)
-    )
+  implicit final val encodeDistributionError: Encoder[DistributionError] =
+    Encoder.forProduct2("code", "message")(e ⇒ (e.code.entryName, e.message))
+
+  implicit final val encodeSchemaV1Compatibility = new Encoder[SchemaV1.Compatibility] {
+    def apply(compatibility: SchemaV1.Compatibility) = compatibility match {
+      case c: SchemaV1.Config ⇒ Encoder[SchemaV1.Config].apply(c)
+      case l: SchemaV1.Layer  ⇒ Encoder[SchemaV1.Layer].apply(l)
+    }
   }
 
   implicit final val decodeDistributionErrorCode =
@@ -40,34 +43,53 @@ object Formats {
       }
     }
 
-  implicit final val decodeContainerConfig: Decoder[SchemaV1.ContainerConfig] =
-    Decoder.instance { c ⇒
-      c.get[List[String]]("Cmd").map(SchemaV1.ContainerConfig(_))
-    }
+  implicit final val decodeSchemaV1LayerContainerConfig: Decoder[SchemaV1.LayerContainerConfig] =
+    Decoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.apply)
 
-  implicit final val decodeV1Compatibility: Decoder[SchemaV1.V1Compatibility] =
+  private final val decodeSchemaV1Layer =
+    Decoder.forProduct6("id", "parent", "comment", "container_config", "author", "throwaway")(SchemaV1.Layer.apply)
+
+  implicit final val decodeSchemaV1LayerFromV1Compatibility: Decoder[SchemaV1.Layer] =
     Decoder.instance { c ⇒
       c.get[String]("v1Compatibility").flatMap { compS ⇒
         parse(compS).map(_.hcursor) match {
-          case Xor.Right(hc) ⇒
-            for {
-              id ← hc.get[String]("id")
-              parent ← hc.get[Option[String]]("parent")
-              comment ← hc.get[Option[String]]("comment")
-              containerConfig ← hc.get[Option[SchemaV1.ContainerConfig]]("container_config")
-              author ← hc.get[Option[String]]("author")
-              throwAway ← hc.get[Option[Boolean]]("throw_away")
-            } yield SchemaV1.V1Compatibility(
-              id = id,
-              parent = parent,
-              comment = comment,
-              containerConfig = containerConfig,
-              author = author,
-              throwAway = throwAway
-            )
-          case Xor.Left(ParsingFailure(msg, _)) ⇒
-            Xor.left(DecodingFailure(msg, Nil))
+          case Xor.Right(hc)                    ⇒ decodeSchemaV1Layer(hc)
+          case Xor.Left(ParsingFailure(msg, _)) ⇒ Xor.left(DecodingFailure(msg, Nil))
         }
+      }
+    }
+
+  implicit final val decodeSchemaV1ContainerConfig: Decoder[SchemaV1.ContainerConfig] =
+    Decoder.forProduct22("Hostname", "Domainname", "User", "AttachStdin", "AttachStdout", "AttachStderr", "ExposedPorts", "Tty", "OpenStdin", "StdinOnce", "Env", "Cmd", "ArgsEscaped", "Image", "Volumes", "WorkingDir", "Entrypoint", "NetworkDisabled", "MacAddress", "OnBuild", "Labels", "StopSignal")(SchemaV1.ContainerConfig.apply)
+
+  private final val decodeSchemaV1Config: Decoder[SchemaV1.Config] =
+    Decoder.forProduct12("id", "parent", "comment", "created", "container", "container_config", "docker_version", "author", "config", "architecture", "os", "Size")(SchemaV1.Config.apply)
+
+  implicit final val decodeSchemaV1ConfigFromV1Compatibility: Decoder[SchemaV1.Config] =
+    Decoder.instance { c ⇒
+      c.get[String]("v1Compatibility").flatMap { compS ⇒
+        parse(compS).map(_.hcursor) match {
+          case Xor.Right(hc)                    ⇒ decodeSchemaV1Config(hc)
+          case Xor.Left(ParsingFailure(msg, _)) ⇒ Xor.left(DecodingFailure(msg, Nil))
+        }
+      }
+    }
+
+  implicit final val decodeSchemaV1CompatibilityList: Decoder[List[SchemaV1.Compatibility]] =
+    Decoder.instance { c ⇒
+      c.focus.asArray match {
+        case Some(configJson :: xsJson) ⇒
+          for {
+            config ← configJson.as[SchemaV1.Config]
+            acc = Xor.right[DecodingFailure, List[SchemaV1.Layer]](Nil)
+            xs ← xsJson.foldRight(acc) { (item, lacc) ⇒
+              for {
+                acc ← lacc
+                layer ← item.as[SchemaV1.Layer]
+              } yield layer :: acc
+            }
+          } yield config :: xs
+        case _ ⇒ Xor.left(DecodingFailure("history", c.history))
       }
     }
 

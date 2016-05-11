@@ -41,7 +41,12 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
   def findIdByImageIdAndDigest(imageId: Long, digest: String) =
     db.run(findIdByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
-  def upsertByRequest(name: String, reference: String, manifest: SchemaManifest, sha256Digest: String)(
+  def upsertByRequest(
+    name: String,
+    reference: String,
+    manifest: SchemaManifest,
+    sha256Digest: String
+  )(
     implicit
     ec: ExecutionContext
   ) = {
