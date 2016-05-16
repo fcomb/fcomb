@@ -50,6 +50,10 @@ object Formats {
     }
   }
 
+  implicit final val encodeSchemaV1Manifest: Encoder[SchemaV1.Manifest] =
+    Encoder.forProduct7("name", "tag", "fsLayers", "architecture", "history",
+      "signatures", "schemaVersion")(SchemaV1.Manifest.unapply(_).get)
+
   implicit final val decodeDistributionErrorCode =
     Circe.decoder(DistributionErrorCode)
 

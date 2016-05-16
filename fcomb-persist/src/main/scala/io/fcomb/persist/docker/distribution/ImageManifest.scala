@@ -4,7 +4,7 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import io.circe.Json
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.{ImageManifest ⇒ MImageManifest, _}
+import io.fcomb.models.docker.distribution.{ImageManifest ⇒ MImageManifest, _}, MImageManifest.sha256Prefix
 import io.fcomb.persist._
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -122,7 +122,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
             ))
           case None ⇒
             val digests = (mm.config.digest :: mm.layers.map(_.digest))
-              .map(_.drop(MImageManifest.sha256Prefix.length))
+              .map(_.drop(sha256Prefix.length))
               .filterNot(_ == MImageManifest.emptyTarSha256Digest)
               .distinct
             val configDigest = digests.head
@@ -136,14 +136,13 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
               blobs ← ImageBlob.findByImageIdAndDigests(imageId, digests)
               Some(configBlob) = blobs.find(_.sha256Digest.contains(configDigest))
               _ = assert(configBlob.length <= 1.MB)
-              cats.data.Xor.Right(imageConfig) ← FileIO.fromFile(configFile)
-                .map(bs ⇒ io.circe.parser.decode[SchemaV2.ImageConfig](bs.utf8String))
-                .runWith(Sink.head)
-            } yield (blobs, imageConfig)).flatMap {
-              case (blobs, imageConfig) ⇒
+              imageConfigJson ← FileIO.fromFile(configFile).map(_.utf8String).runWith(Sink.head)
+              imageConfig = io.circe.parser.decode[SchemaV2.ImageConfig](imageConfigJson)
+            } yield (blobs, imageConfigJson, imageConfig)).flatMap {
+              case (blobs, imageConfigJson, cats.data.Xor.Right(imageConfig)) ⇒
                 // println(s"imageConfig: $imageConfig")
                 val blobsMap = blobs.map { b ⇒
-                  (s"${MImageManifest.sha256Prefix}${b.sha256Digest.get}", b.getId)
+                  (s"$sha256Prefix${b.sha256Digest.get}", b.getId)
                 }.toMap
                 assert(blobsMap.size == digests.length) // TODO
                 assert(imageConfig.history.nonEmpty)
@@ -160,12 +159,8 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
                     case ((parentId, layers, historyList, fsLayersList), img) ⇒
                       val (blobSum, layersTail) =
                         if (img.isEmptyLayer) (MImageManifest.emptyTarSha256DigestFull, layers)
-                        else (layers.head.digest.drop(MImageManifest.sha256Prefix.length), layers.tail) // TODO
-
-                      println(s"$blobSum $parentId")
+                        else (layers.head.digest.drop(sha256Prefix.length), layers.tail) // TODO
                       val v1Id = DigestUtils.sha256Hex(s"$blobSum $parentId")
-                      println(s"v1Id: $v1Id")
-
                       val createdBy = img.createdBy.map(List(_)).getOrElse(Nil)
                       val throwAway = if (img.isEmptyLayer) Some(true) else None
                       val historyLayer = SchemaV1.Layer(
@@ -177,17 +172,35 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
                         author = img.author,
                         throwAway = throwAway
                       )
-                      val fsLayer = SchemaV1.FsLayer(s"${MImageManifest.sha256Prefix}$blobSum")
-
+                      val fsLayer = SchemaV1.FsLayer(s"$sha256Prefix$blobSum")
                       val currentId =
                         if (parentId.isEmpty) baseLayerId.getOrElse(v1Id)
                         else v1Id
                       (currentId, layersTail, historyLayer :: historyList, fsLayer :: fsLayersList)
                   }
 
-                println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                println((history : List[SchemaV1.Compatibility]).asJson)
-                println(fsLayers.asJson)
+                val (configHistory, configFsLayer) = {
+                  val isEmptyLayer = imageConfig.history.last.isEmptyLayer
+                  val blobSum =
+                    if (isEmptyLayer) MImageManifest.emptyTarSha256DigestFull
+                    else remainLayers.headOption.map(_.digest.drop(sha256Prefix.length)).getOrElse("")
+                  val v1Id = DigestUtils.sha256Hex(s"$blobSum $lastParentId $imageConfigJson")
+                  println(s"config v1Id: $v1Id")
+                  val fsLayer = SchemaV1.FsLayer(s"$sha256Prefix$blobSum")
+                  (???, fsLayer)
+                }
+
+                val schemaV1JsonBlob = SchemaV1.Manifest(
+                  name = name,
+                  tag = "",
+                  fsLayers = configFsLayer :: fsLayers,
+                  architecture = imageConfig.architecture,
+                  history = configHistory :: history,
+                  signatures = Nil
+                ).asJson
+
+                println("schemaV1JsonBlob:")
+                println(schemaV1JsonBlob)
 
                 ???
                 create(MImageManifest(
@@ -196,7 +209,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
                   tags = List.empty, // TODO
                   layersBlobId = layersBlobId,
                   schemaVersion = 2,
-                  schemaV1JsonBlob = Json.Null,
+                  schemaV1JsonBlob = schemaV1JsonBlob,
                   schemaV2Details = Some(schemaV2Details),
                   createdAt = ZonedDateTime.now,
                   updatedAt = None
