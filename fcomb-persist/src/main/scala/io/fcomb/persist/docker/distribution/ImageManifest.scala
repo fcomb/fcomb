@@ -138,12 +138,12 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
               _ = assert(configBlob.length <= 1.MB)
               imageConfigJson ← FileIO.fromFile(configFile).map(_.utf8String).runWith(Sink.head)
               imageConfig = io.circe.parser.decode[SchemaV2.ImageConfig](imageConfigJson)
-            } yield (blobs, imageConfigJson, imageConfig)).flatMap {
-              case (blobs, imageConfigJson, cats.data.Xor.Right(imageConfig)) ⇒
-                // println(s"imageConfig: $imageConfig")
-                val blobsMap = blobs.map { b ⇒
-                  (s"$sha256Prefix${b.sha256Digest.get}", b.getId)
-                }.toMap
+              config = io.circe.parser.decode[SchemaV1.Config](imageConfigJson)(decodeSchemaV1Config)
+            } yield (blobs, imageConfigJson, imageConfig, config)).flatMap {
+              case (blobs, imageConfigJson, cats.data.Xor.Right(imageConfig), cats.data.Xor.Right(config)) ⇒
+                val blobsMap = blobs
+                  .map(b ⇒ (s"$sha256Prefix${b.sha256Digest.getOrElse("")}", b.getId))
+                  .toMap
                 assert(blobsMap.size == digests.length) // TODO
                 assert(imageConfig.history.nonEmpty)
                 assert(imageConfig.rootFs.diffIds.nonEmpty)
@@ -185,9 +185,17 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
                     if (isEmptyLayer) MImageManifest.emptyTarSha256DigestFull
                     else remainLayers.headOption.map(_.digest.drop(sha256Prefix.length)).getOrElse("")
                   val v1Id = DigestUtils.sha256Hex(s"$blobSum $lastParentId $imageConfigJson")
-                  println(s"config v1Id: $v1Id")
+                  val parent =
+                    if (lastParentId.isEmpty) config.parent
+                    else Some(lastParentId)
+                  val throwAway = if (isEmptyLayer) Some(true) else None
+                  val historyLayer = config.copy(
+                    id = Some(v1Id),
+                    parent = parent,
+                    throwAway = throwAway
+                  )
                   val fsLayer = SchemaV1.FsLayer(s"$sha256Prefix$blobSum")
-                  (???, fsLayer)
+                  (historyLayer, fsLayer)
                 }
 
                 val schemaV1JsonBlob = SchemaV1.Manifest(
@@ -200,7 +208,7 @@ object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageMan
                 ).asJson
 
                 println("schemaV1JsonBlob:")
-                println(schemaV1JsonBlob)
+                println(schemaV1JsonBlob.asJson)
 
                 ???
                 create(MImageManifest(

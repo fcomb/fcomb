@@ -68,7 +68,8 @@ final object SchemaV1 {
     config:          Option[ContainerConfig],
     architecture:    Option[String],
     os:              Option[String],
-    size:            Option[Long]
+    size:            Option[Long],
+    throwAway:       Option[Boolean]
   ) extends Compatibility
 
   case class LayerContainerConfig(

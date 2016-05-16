@@ -27,11 +27,12 @@ object Formats {
   implicit final val encodeDistributionError: Encoder[DistributionError] =
     Encoder.forProduct2("code", "message")(e ⇒ (e.code.entryName, e.message))
 
-  private final val encodeSchemaV1Config: Encoder[SchemaV1.Config] =
-    Encoder.forProduct12("id", "parent", "comment", "created", "container", "container_config",
-      "docker_version", "author", "config", "architecture", "os", "Size")(SchemaV1.Config.unapply(_).get)
+  final val encodeSchemaV1Config: Encoder[SchemaV1.Config] =
+    Encoder.forProduct13("id", "parent", "comment", "created", "container",
+      "container_config", "docker_version", "author", "config", "architecture",
+      "os", "Size", "throwaway")(SchemaV1.Config.unapply(_).get)
 
-  private final val encodeSchemaV1Layer: Encoder[SchemaV1.Layer] =
+  final val encodeSchemaV1Layer: Encoder[SchemaV1.Layer] =
     Encoder.forProduct7("id", "parent", "comment", "created", "container_config",
       "author", "throwaway")(SchemaV1.Layer.unapply(_).get)
 
@@ -72,7 +73,7 @@ object Formats {
   implicit final val decodeSchemaV1LayerContainerConfig: Decoder[SchemaV1.LayerContainerConfig] =
     Decoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.apply)
 
-  private final val decodeSchemaV1Layer =
+  final val decodeSchemaV1Layer =
     Decoder.forProduct7("id", "parent", "comment", "created", "container_config",
       "author", "throwaway")(SchemaV1.Layer.apply)
 
@@ -92,9 +93,9 @@ object Formats {
       "Image", "Volumes", "WorkingDir", "Entrypoint", "NetworkDisabled", "MacAddress",
       "OnBuild", "Labels", "StopSignal")(SchemaV1.ContainerConfig.apply)
 
-  private final val decodeSchemaV1Config: Decoder[SchemaV1.Config] =
-    Decoder.forProduct12("id", "parent", "comment", "created", "container", "container_config",
-      "docker_version", "author", "config", "architecture", "os", "Size")(SchemaV1.Config.apply)
+  final val decodeSchemaV1Config: Decoder[SchemaV1.Config] =
+    Decoder.forProduct13("id", "parent", "comment", "created", "container", "container_config",
+      "docker_version", "author", "config", "architecture", "os", "Size", "throwaway")(SchemaV1.Config.apply)
 
   implicit final val decodeSchemaV1ConfigFromV1Compatibility: Decoder[SchemaV1.Config] =
     Decoder.instance { c ⇒
