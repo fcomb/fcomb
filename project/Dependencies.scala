@@ -18,7 +18,7 @@ object Dependencies {
     val std             = "org.improving"                 %% "psp-std"                       % "0.6.1"
 
     val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.4.0"
-    val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.2.2"
+    val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.3.1"
 
     val akkaActor       = "com.typesafe.akka"             %% "akka-actor"                    % V.akka
     val akkaClusterSharding = "com.typesafe.akka"         %% "akka-cluster-sharding"         % V.akka
@@ -83,7 +83,6 @@ object Dependencies {
     val slickHikariCp   = "com.typesafe.slick"            %% "slick-hikaricp"                % V.slick
     val slickPg         = "com.github.tminglei"           %% "slick-pg"                      % V.slickPg
     val slickPgDate2    = "com.github.tminglei"           %% "slick-pg_date2"                % V.slickPg
-    val slickPgSprayJson = "com.github.tminglei"          %% "slick-pg_spray-json"           % V.slickPg
     val slickPgCirceJson = "com.github.tminglei"          %% "slick-pg_circe-json"           % V.slickPg
     val hikariCp        = "com.zaxxer"                    %  "HikariCP"                      % "2.4.5"
 
@@ -102,7 +101,7 @@ object Dependencies {
     val s3              = "com.amazonaws"                 %  "aws-java-sdk-s3"               % "1.10.14"
     val awsWrap         = "com.github.dwhjames"           %% "aws-wrap"                      % "0.7.2"
 
-    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.3.0"
+    val shapeless       = "com.chuusai"                   %% "shapeless"                     % "2.3.1"
     val cats            = "org.typelevel"                 %% "cats"                          % V.cats
     val dogs            = "org.typelevel"                 %% "dogs-core"                     % "0.2.2"
     val kittens         = "com.milessabin"                %% "kittens"                       % "1.0.0-M1"
@@ -145,7 +144,7 @@ object Dependencies {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val akkaHttpTestkit = "com.typesafe.akka"             %% "akka-http-testkit"             % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.1" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.8" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.8.2" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
     val slickTestkit    = "com.typesafe.slick"            %% "slick-testkit"                 % V.slick % "test"
   }
@@ -209,7 +208,7 @@ object Dependencies {
     postgresJdbc,
     dbMigration,
     // quillJdbc, quillAsync,
-    slick, slickHikariCp, slickPg, slickPgDate2, slickPgSprayJson, slickPgCirceJson,
+    slick, slickHikariCp, slickPg, slickPgDate2, slickPgCirceJson,
     hikariCp, bcrypt, commonsCodec,
     routeTrie
   )

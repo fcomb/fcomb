@@ -1,18 +1,18 @@
 package io.fcomb.persist.application
 
 import akka.stream.Materializer
+import io.circe.Json
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.json.{dockerDeployPortJsonProtocol, networkPortJsonProtocol}
 import io.fcomb.models.application.{ApplicationState, ScaleStrategy, ScaleStrategyKind, Application ⇒ MApplication, _}
+import io.fcomb.persist._
 import io.fcomb.request
 import io.fcomb.response
-import io.fcomb.persist._
-import io.fcomb.validations._
-import io.fcomb.json.{dockerDeployPortJsonProtocol, networkPortJsonProtocol}
 import io.fcomb.utils.{StringUtils, Random}
-import scala.concurrent.{ExecutionContext, Future}
-import spray.json._, DefaultJsonProtocol._
+import io.fcomb.validations._
 import java.time.ZonedDateTime
+import scala.concurrent.{ExecutionContext, Future}
 
 class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications") with PersistTableWithAutoLongPk {
   def userId = column[Long]("user_id")
@@ -28,7 +28,7 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
   def diRegistry = column[Option[String]]("di_registry")
 
   // docker deploy options
-  def ddoPorts = column[JsValue]("ddo_ports")
+  def ddoPorts = column[Json]("ddo_ports")
   def ddoIsAutoRestart = column[Boolean]("ddo_is_auto_restart")
   def ddoIsAutoDestroy = column[Boolean]("ddo_is_auto_destroy")
   def ddoIsPrivileged = column[Boolean]("ddo_is_privileged")
@@ -52,7 +52,7 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
         ((apply2 _).tupled, unapply2)
 
   def apply2(
-    id:           Option[Long]                                                                                     = None,
+    id:           Option[Long],
     userId:       Long,
     state:        ApplicationState.ApplicationState,
     name:         String,
@@ -60,11 +60,11 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
     updatedAt:    ZonedDateTime,
     terminatedAt: Option[ZonedDateTime],
     diTuple:      (String, Option[String], Option[String]),
-    ddoTuple:     (JsValue, Boolean, Boolean, Boolean, Option[String], Option[String], Option[Long], Option[Long]),
+    ddoTuple:     (Json, Boolean, Boolean, Boolean, Option[String], Option[String], Option[Long], Option[Long]),
     ssTuple:      (ScaleStrategyKind.ScaleStrategyKind, Int)
   ) = {
     val image = DockerImage.tupled(diTuple)
-    val ports = ddoTuple._1.convertTo[Set[DockerDeployPort]] // TODO: handle serialize errors and case class changes
+    val ports = ??? // ddoTuple._1.convertTo[Set[DockerDeployPort]] // TODO: handle serialize errors and case class changes
     val deployOptions = DockerDeployOptions.tupled(
       ddoTuple.copy(_1 = ports)
     )
@@ -84,7 +84,7 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
   }
 
   def unapply2(a: MApplication) = {
-    val ports = a.deployOptions.ports.toJson
+    val ports: Json = ??? // a.deployOptions.ports.toJson
     val deployOptionsTuple =
       DockerDeployOptions.unapply(a.deployOptions)
         .get

@@ -5,7 +5,7 @@ import com.github.tminglei.slickpg._
 trait RichPostgresDriver extends ExPostgresDriver
     with PgArraySupport
     with PgDateSupport
-    with PgSprayJsonSupport
+    with PgCirceJsonSupport
     with PgNetSupport
     with PgLTreeSupport
     with PgRangeSupport

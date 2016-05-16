@@ -79,6 +79,7 @@ final object SchemaV1 {
     id:              String,
     parent:          Option[String],
     comment:         Option[String],
+    created:         Option[ZonedDateTime],
     containerConfig: Option[LayerContainerConfig],
     author:          Option[String],
     throwAway:       Option[Boolean]
@@ -108,4 +109,26 @@ final object SchemaV2 {
     config:        Descriptor,
     layers:        List[Descriptor]
   ) extends SchemaManifest
+
+  case class ImageRootFs(
+    `type`:    String,
+    diffIds:   List[String],
+    baseLayer: Option[String]
+  )
+
+  case class ImageHistory(
+      created:    ZonedDateTime,
+      author:     Option[String],
+      createdBy:  Option[String],
+      comment:    Option[String],
+      emptyLayer: Option[Boolean]
+  ) {
+    def isEmptyLayer = this.emptyLayer.contains(true)
+  }
+
+  case class ImageConfig(
+    rootFs:       ImageRootFs,
+    history:      List[ImageHistory],
+    architecture: String
+  )
 }

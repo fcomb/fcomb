@@ -1,6 +1,7 @@
 package io.fcomb.docker.distribution.manifest
 
 import cats.data.Xor
+import cats.syntax.cartesian._
 import io.circe._, io.circe.parser._, io.circe.syntax._
 import io.fcomb.crypto.Jws
 import io.fcomb.json.docker.distribution.Formats.decodeSchemaV1Protected
@@ -15,12 +16,12 @@ object SchemaV1 {
       case Xor.Right(Some(json)) ⇒
         val indent = rawManifest.dropWhile(_ != ' ').takeWhile(_ == ' ')
         val original = printer(indent).pretty(json.remove("signatures").asJson)
-        if (manifest.signatures.length > 1)
-          Xor.left(DistributionError.Unknown("x509 chain signatures is not supported yet"))
-        else manifest.signatures.headOption match {
-          case Some(signature) ⇒
+        if (manifest.signatures.isEmpty)
+          Xor.left(DistributionError.Unknown("signatures cannot be empty"))
+        else manifest.signatures.foldLeft(Xor.right[DistributionError, String]("")) {
+          case (acc, signature) ⇒
             val `protected` = new String(base64url.base64UrlDecode(signature.`protected`))
-            decode[Protected](`protected`) match {
+            acc *> (decode[Protected](`protected`) match {
               case Xor.Right(p) ⇒
                 val formatTailIndex = original.lastIndexOf(p.formatTail)
                 val formatted = original.take(formatTailIndex + p.formatTail.length)
@@ -34,8 +35,7 @@ object SchemaV1 {
                 }
                 else Xor.left(DistributionError.ManifestInvalid("formatted length does not match with fortmatLength"))
               case Xor.Left(e) ⇒ Xor.left(DistributionError.Unknown(e.getMessage))
-            }
-          case None ⇒ Xor.left(DistributionError.ManifestInvalid())
+            })
         }
       case Xor.Right(None) ⇒ Xor.left(DistributionError.ManifestInvalid())
       case Xor.Left(e)     ⇒ Xor.left(DistributionError.Unknown(e.getMessage))
