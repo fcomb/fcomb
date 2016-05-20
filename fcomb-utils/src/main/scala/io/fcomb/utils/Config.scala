@@ -31,7 +31,8 @@ object Config {
   )
 
   val certificateIssuer = CertificateIssuer(
-    organizationalUnit = config.getString("certificates.issuer.organizationalUnit"),
+    organizationalUnit =
+      config.getString("certificates.issuer.organizationalUnit"),
     organization = config.getString("certificates.issuer.organization"),
     city = config.getString("certificates.issuer.city"),
     state = config.getString("certificates.issuer.state"),

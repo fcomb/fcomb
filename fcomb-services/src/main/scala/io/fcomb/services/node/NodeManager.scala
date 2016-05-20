@@ -1,11 +1,11 @@
 package io.fcomb.services.node
 
 import io.fcomb.request.NodeJoinRequest
-import io.fcomb.models.node.{Node ⇒ MNode}
-import io.fcomb.persist.node.{Node ⇒ PNode}
+import io.fcomb.models.node.{ Node ⇒ MNode }
+import io.fcomb.persist.node.{ Node ⇒ PNode }
 import io.fcomb.crypto.Certificate
 import io.fcomb.validations.ValidationResultUnit
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import sun.security.pkcs10.PKCS10
 import java.util.Base64
 import java.net.InetAddress

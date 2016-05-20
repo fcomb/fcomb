@@ -1,9 +1,9 @@
 package io.fcomb.docker.api
 
 import spray.json._
-import spray.json.DefaultJsonProtocol.{listFormat ⇒ _, _}
+import spray.json.DefaultJsonProtocol.{ listFormat ⇒ _, _ }
 import io.fcomb.json._
-import java.time.{LocalDateTime, ZonedDateTime}
+import java.time.{ LocalDateTime, ZonedDateTime }
 
 package object json {
   implicit object OptStringFormat extends JsonFormat[Option[String]] {
@@ -21,7 +21,8 @@ package object json {
     }
   }
 
-  implicit object OptZonedDateTimeFormat extends JsonFormat[Option[ZonedDateTime]] {
+  implicit object OptZonedDateTimeFormat
+      extends JsonFormat[Option[ZonedDateTime]] {
     def write(o: Option[ZonedDateTime]) = o match {
       case Some(d) ⇒ JsString(d.toString)
       case None    ⇒ JsNull
@@ -57,15 +58,19 @@ package object json {
         m.map { field ⇒
           field._1.toJson match {
             case JsString(x) ⇒ x → field._2.toJson
-            case x           ⇒ throw new SerializationException(s"Map key must be formatted as JsString, not '$x'")
+            case x ⇒
+              throw new SerializationException(
+                s"Map key must be formatted as JsString, not '$x'"
+              )
           }
         }
       }
 
       def read(value: JsValue) = value match {
-        case x: JsObject ⇒ x.fields.map { field ⇒
-          (JsString(field._1).convertTo[K], field._2.convertTo[V])
-        }(collection.breakOut)
+        case x: JsObject ⇒
+          x.fields.map { field ⇒
+            (JsString(field._1).convertTo[K], field._2.convertTo[V])
+          }(collection.breakOut)
         case JsNull ⇒ Map.empty
         case x      ⇒ deserializationError(s"Expected Map as JsObject, but got $x")
       }
@@ -78,10 +83,11 @@ package object json {
     }
 
     def read(v: JsValue) = v match {
-      case JsNumber(jn) ⇒ jn.toLong match {
-        case 0L ⇒ None
-        case n  ⇒ Some(n)
-      }
+      case JsNumber(jn) ⇒
+        jn.toLong match {
+          case 0L ⇒ None
+          case n  ⇒ Some(n)
+        }
       case JsNull ⇒ None
       case x      ⇒ deserializationError(s"Expected value as JsNumber, but got $x")
     }
@@ -94,10 +100,11 @@ package object json {
     }
 
     def read(v: JsValue) = v match {
-      case JsNumber(jn) ⇒ jn.toInt match {
-        case 0 ⇒ None
-        case n ⇒ Some(n)
-      }
+      case JsNumber(jn) ⇒
+        jn.toInt match {
+          case 0 ⇒ None
+          case n ⇒ Some(n)
+        }
       case JsNull ⇒ None
       case x      ⇒ deserializationError(s"Expected value as JsNumber, but got $x")
     }

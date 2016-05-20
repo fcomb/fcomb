@@ -3,21 +3,23 @@ package io.fcomb.persist.node
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.node.{NodeState, Node ⇒ MNode}
+import io.fcomb.models.node.{ NodeState, Node ⇒ MNode }
 import io.fcomb.request
 import io.fcomb.response
 import io.fcomb.persist._
 import io.fcomb.validations._
-import io.fcomb.utils.{StringUtils, Random}
-import scala.concurrent.{ExecutionContext, Future}
+import io.fcomb.utils.{ StringUtils, Random }
+import scala.concurrent.{ ExecutionContext, Future }
 import org.apache.commons.codec.digest.DigestUtils
 import java.time.ZonedDateTime
 import java.security.PublicKey
-import java.util.{Base64, UUID}
+import java.util.{ Base64, UUID }
 import java.net.InetAddress
 import java.io.StringWriter
 
-class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWithAutoLongPk {
+class NodeTable(tag: Tag)
+    extends Table[MNode](tag, "nodes")
+    with PersistTableWithAutoLongPk {
   def userId = column[Long]("user_id")
   def state = column[NodeState.NodeState]("state")
   def token = column[String]("token")
@@ -30,8 +32,19 @@ class NodeTable(tag: Tag) extends Table[MNode](tag, "nodes") with PersistTableWi
   def terminatedAt = column[Option[ZonedDateTime]]("terminated_at")
 
   def * =
-    (id, userId, state, token, rootCertificateId, signedCertificate,
-      publicKeyHash, publicIpAddress, createdAt, updatedAt, terminatedAt) <>
+    (
+      id,
+      userId,
+      state,
+      token,
+      rootCertificateId,
+      signedCertificate,
+      publicKeyHash,
+      publicIpAddress,
+      createdAt,
+      updatedAt,
+      terminatedAt
+    ) <>
       ((MNode.apply _).tupled, MNode.unapply)
 }
 
@@ -42,9 +55,7 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
     DigestUtils.sha256Hex(key.getEncoded())
 
   def getNodeIdSequence() = db.run {
-    sql"select nextval('nodes_id_seq'::regclass)"
-      .as[Long]
-      .head
+    sql"select nextval('nodes_id_seq'::regclass)".as[Long].head
   }
 
   private def toPemAsCertificate(encoded: Array[Byte]) = {
@@ -63,27 +74,36 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
     publicKeyHash:     String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeNow = ZonedDateTime.now()
-    super.create(MNode(
-      id = Some(id),
-      userId = userId,
-      state = NodeState.Pending,
-      token = Random.random.alphanumeric.take(128).mkString,
-      rootCertificateId = rootCertificateId,
-      signedCertificate = signedCertificate,
-      publicKeyHash = publicKeyHash,
-      createdAt = timeNow,
-      updatedAt = timeNow
-    ))
+    super.create(
+      MNode(
+        id = Some(id),
+        userId = userId,
+        state = NodeState.Pending,
+        token = Random.random.alphanumeric.take(128).mkString,
+        rootCertificateId = rootCertificateId,
+        signedCertificate = signedCertificate,
+        publicKeyHash = publicKeyHash,
+        createdAt = timeNow,
+        updatedAt = timeNow
+      )
+    )
   }
 
   private val findByIdAsAgentCompiled = Compiled { id: Rep[Long] ⇒
     table
       .filter(_.id === id)
-      .join(UserCertificate.table).on(_.rootCertificateId === _.id)
+      .join(UserCertificate.table)
+      .on(_.rootCertificateId === _.id)
       .map {
         case (t, uct) ⇒
-          (t.token, t.state, t.signedCertificate, t.createdAt,
-            t.updatedAt, uct.certificate)
+          (
+            t.token,
+            t.state,
+            t.signedCertificate,
+            t.createdAt,
+            t.updatedAt,
+            uct.certificate
+          )
       }
   }
 
@@ -92,16 +112,19 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
     ec: ExecutionContext
   ) = db.run {
     findByIdAsAgentCompiled(id).result.headOption.map {
-      case Some((nodeToken, state, signedCert, createdAt, updatedAt, rootCert)) ⇒
+      case Some(
+        (nodeToken, state, signedCert, createdAt, updatedAt, rootCert)) ⇒
         if (StringUtils.equalSecure(token, nodeToken))
-          Some(response.AgentNodeResponse(
-            id = id,
-            state = state,
-            rootCertificate = toPemAsCertificate(rootCert),
-            signedCertificate = toPemAsCertificate(signedCert),
-            createdAt = createdAt,
-            updatedAt = updatedAt
-          ))
+          Some(
+            response.AgentNodeResponse(
+              id = id,
+              state = state,
+              rootCertificate = toPemAsCertificate(rootCert),
+              signedCertificate = toPemAsCertificate(signedCert),
+              createdAt = createdAt,
+              updatedAt = updatedAt
+            )
+          )
         else None
       case None ⇒ None
     }
@@ -128,16 +151,12 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
   }
 
   def updatePublicIpAddress(id: Long, ipAddress: String) = db.run {
-    table
-      .filter(_.id === id)
-      .map(_.publicIpAddress)
-      .update(Some(ipAddress))
+    table.filter(_.id === id).map(_.publicIpAddress).update(Some(ipAddress))
   }
 
   private val findAllAvailableByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
     table.filter { q ⇒
-      q.userId === userId &&
-        q.state === NodeState.Available
+      q.userId === userId && q.state === NodeState.Available
     }
   }
 
@@ -181,9 +200,7 @@ object Node extends PersistModelWithAutoLongPk[MNode, NodeTable] {
   }
 
   def updateState(id: Long, state: NodeState.NodeState) = db.run {
-    table.filter(_.id === id)
-      .map(_.state)
-      .update(state)
+    table.filter(_.id === id).map(_.state).update(state)
   }
 
   private val findAllNonTerminatedCompiled = Compiled {

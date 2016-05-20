@@ -17,44 +17,49 @@ class HttpApiService(routes: Route)(
   implicit
   sys: ActorSystem,
   mat: Materializer
-) extends ServiceExceptionMethods {
+)
+    extends ServiceExceptionMethods {
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   private def errorResponse[T <: DtCemException](
-    error: T,
+    error:  T,
     status: StatusCode
   ) = {
     val e = FailureResponse.fromException(error)
-    complete(HttpResponse(
-      status = status,
-      entity = HttpEntity(
-        ContentTypes.`application/json`,
-        e.toJson.compactPrint
+    complete(
+      HttpResponse(
+        status = status,
+        entity = HttpEntity(
+          ContentTypes.`application/json`,
+          e.toJson.compactPrint
+        )
       )
-    ))
+    )
   }
 
   private def handleException(e: Throwable) =
     mapThrowable(e) match {
-      case (e, status) => errorResponse(e, status)
+      case (e, status) ⇒ errorResponse(e, status)
     }
 
   private def handleRejection(r: Rejection) = r match {
-    case _ => errorResponse(
-      InternalException(r.toString),
-      StatusCodes.BadRequest
-    )
+    case _ ⇒
+      errorResponse(
+        InternalException(r.toString),
+        StatusCodes.BadRequest
+      )
   }
 
   val handler = {
     val exceptionHandler = ExceptionHandler {
-      case e =>
+      case e ⇒
         logger.error(e.getMessage(), e.getCause())
         handleException(e)
     }
-    val rejectionHandler = RejectionHandler.newBuilder()
+    val rejectionHandler = RejectionHandler
+      .newBuilder()
       .handle {
-        case r =>
+        case r ⇒
           logger.error(r.toString, r.toString)
           handleRejection(r)
       }
@@ -76,7 +81,8 @@ class HttpApiService(routes: Route)(
 object HttpApiService {
   def start(port: Int, interface: String, routes: Route)(
     implicit
-    sys: ActorSystem, mat: Materializer
+    sys: ActorSystem,
+    mat: Materializer
   ) =
     new HttpApiService(routes).bind(port, interface)
 }

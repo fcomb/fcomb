@@ -13,7 +13,7 @@ import akka.http.scaladsl.model.headers._
 import akka.stream._
 import akka.stream.TLSProtocol._
 import akka.stream.scaladsl._
-import akka.stream.stage.{Context, StageState, StatefulStage, SyncDirective}
+import akka.stream.stage.{ Context, StageState, StatefulStage, SyncDirective }
 import akka.util.ByteString
 import java.net.InetSocketAddress
 import javax.net.ssl.SSLContext
@@ -44,13 +44,15 @@ object HijackTcp {
     val httpResponseFlow = responseFlow.map(_ ⇒ ByteString.empty)
 
     val renderedInitialRequest = HttpRequestRendererFactory.renderStrict(
-      RequestRenderingContext(request, Host(serverAddress)), settings, sys.log
+      RequestRenderingContext(request, Host(serverAddress)),
+      settings,
+      sys.log
     )
 
     logger.debug(s"Hijack request: ${renderedInitialRequest.utf8String}")
 
-    val g =
-      BidiFlow.fromGraph(GraphDSL.create(httpResponseFlow) { implicit b ⇒ responseFlow ⇒
+    val g = BidiFlow.fromGraph(
+      GraphDSL.create(httpResponseFlow) { implicit b ⇒ responseFlow ⇒
         import GraphDSL.Implicits._
 
         val networkIn = b.add(Flow[ByteString].transform(() ⇒
@@ -58,9 +60,11 @@ object HijackTcp {
         val streamIn = b.add(Flow[ByteString])
 
         val mergeOut = b.add(Concat[ByteString](3))
-        val requestSource = b.add(Source.single(renderedInitialRequest) ++ valve.source)
+        val requestSource =
+          b.add(Source.single(renderedInitialRequest) ++ valve.source)
 
-        val httpResponseSource = b.add(Source.fromFuture(httpResponseResult.future))
+        val httpResponseSource =
+          b.add(Source.fromFuture(httpResponseResult.future))
 
         requestSource ~> mergeOut.in(0)
         mergeOut.out ~> streamIn
@@ -72,7 +76,8 @@ object HijackTcp {
           networkIn.in,
           networkIn.outlet
         )
-      })
+      }
+    )
 
     val transportFlow = Tcp().outgoingConnection(
       serverAddress,
@@ -92,8 +97,7 @@ object HijackTcp {
       case _ ⇒ transportFlow
     }
 
-    g.joinMat(connectionFlow)(Keep.right)
-      .mapMaterializedValue(_.map(_ ⇒ ()))
+    g.joinMat(connectionFlow)(Keep.right).mapMaterializedValue(_.map(_ ⇒ ()))
   }
 
   private val tlsFlow = {
@@ -105,30 +109,39 @@ object HijackTcp {
   }
 
   private class HijackStage(
-      req:                HttpRequest,
-      httpResponseResult: Promise[HttpResponse],
-      valve:              StreamUtils.OneTimeValve,
-      settings:           ClientConnectionSettings
-  ) extends StatefulStage[ByteString, ByteString] {
+    req:                HttpRequest,
+    httpResponseResult: Promise[HttpResponse],
+    valve:              StreamUtils.OneTimeValve,
+    settings:           ClientConnectionSettings
+  )
+      extends StatefulStage[ByteString, ByteString] {
     type State = StageState[ByteString, ByteString]
 
     def initial: State = parsingResponse
 
     def parsingResponse: State = new State {
-      val parser = new HttpResponseParser(settings.parserSettings, HttpHeaderParser(settings.parserSettings)()) {
+      val parser = new HttpResponseParser(
+        settings.parserSettings,
+        HttpHeaderParser(settings.parserSettings)()
+      ) {
         var first = true
         override def handleInformationalResponses = false
-        override protected def parseMessage(input: ByteString, offset: Int): StateResult = {
+        override protected def parseMessage(
+          input: ByteString, offset: Int
+        ): StateResult = {
           if (first) {
             first = false
             super.parseMessage(input, offset)
-          } else {
+          }
+          else {
             emit(RemainingBytes(input.drop(offset)))
             terminate()
           }
         }
       }
-      parser.setContextForNextResponse(HttpResponseParser.ResponseContext(HttpMethods.GET, None))
+      parser.setContextForNextResponse(
+        HttpResponseParser.ResponseContext(HttpMethods.GET, None)
+      )
 
       def onPush(elem: ByteString, ctx: Context[ByteString]): SyncDirective = {
         parser.parseBytes(elem) match {
@@ -141,7 +154,10 @@ object HijackTcp {
             valve.open()
 
             val parseResult = parser.onPull()
-            require(parseResult == ParserOutput.MessageEnd, s"parseResult should be MessageEnd but was $parseResult")
+            require(
+              parseResult == ParserOutput.MessageEnd,
+              s"parseResult should be MessageEnd but was $parseResult"
+            )
             parser.onPull() match {
               case NeedMoreData ⇒ ctx.pull()
               case RemainingBytes(bytes) ⇒

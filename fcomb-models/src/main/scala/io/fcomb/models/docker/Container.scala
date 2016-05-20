@@ -20,8 +20,7 @@ object ContainerState extends Enumeration {
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
 
-  implicit val containerStateEq: Eq[ContainerState] =
-    Eq.fromUniversalEquals
+  implicit val containerStateEq: Eq[ContainerState] = Eq.fromUniversalEquals
 
   def parseDockerStatus(status: String): ContainerState =
     status.toLowerCase match {
@@ -34,18 +33,19 @@ object ContainerState extends Enumeration {
 }
 
 case class Container(
-    id:            Option[Long]                  = None,
-    state:         ContainerState.ContainerState,
-    userId:        Long,
-    applicationId: Long,
-    nodeId:        Long,
-    name:          String,
-    number:        Int,
-    dockerId:      Option[String]                = None,
-    createdAt:     ZonedDateTime,
-    updatedAt:     ZonedDateTime,
-    terminatedAt:  Option[ZonedDateTime]         = None
-) extends ModelWithAutoLongPk {
+  id:            Option[Long]                  = None,
+  state:         ContainerState.ContainerState,
+  userId:        Long,
+  applicationId: Long,
+  nodeId:        Long,
+  name:          String,
+  number:        Int,
+  dockerId:      Option[String]                = None,
+  createdAt:     ZonedDateTime,
+  updatedAt:     ZonedDateTime,
+  terminatedAt:  Option[ZonedDateTime]         = None
+)
+    extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 
   def dockerName() = s"${name}_${getId()}"
@@ -57,9 +57,7 @@ case class Container(
     state == ContainerState.Unreachable
 
   def isPresent =
-    state != ContainerState.Pending &&
-      !isTerminated &&
-      !isUnreachable &&
+    state != ContainerState.Pending && !isTerminated && !isUnreachable &&
       dockerId.nonEmpty
 
   def isRunning =
@@ -74,7 +72,10 @@ case class Container(
 
 private[this] object ContainerConstants {
   val inProgressSet = immutable.HashSet(
-    ContainerState.Pending, ContainerState.Starting, ContainerState.Stopping,
-    ContainerState.Restarting, ContainerState.Terminating
+    ContainerState.Pending,
+    ContainerState.Starting,
+    ContainerState.Stopping,
+    ContainerState.Restarting,
+    ContainerState.Terminating
   )
 }

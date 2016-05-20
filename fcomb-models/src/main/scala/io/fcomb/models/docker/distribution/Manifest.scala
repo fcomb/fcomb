@@ -7,23 +7,23 @@ sealed trait SchemaManifest {
   val schemaVersion: Int
 }
 
-final object SchemaV1 {
-  case class FsLayer(
+object SchemaV1 {
+  final case class FsLayer(
     blobSum: String
   )
 
-  case class Protected(
+  final case class Protected(
     formatLength: Int,
     formatTail:   String,
     time:         ZonedDateTime
   )
 
-  case class SignatureHeader(
+  final case class SignatureHeader(
     jwk: Map[String, String],
     alg: String
   )
 
-  case class Signature(
+  final case class Signature(
     header:      SignatureHeader,
     signature:   String,
     `protected`: String
@@ -31,7 +31,7 @@ final object SchemaV1 {
 
   sealed trait Compatibility
 
-  case class ContainerConfig(
+  final case class ContainerConfig(
     hostname:        String,
     domainname:      String,
     user:            String,
@@ -56,7 +56,7 @@ final object SchemaV1 {
     stopSignal:      Option[String]
   )
 
-  case class Config(
+  final case class Config(
     id:              Option[String],
     parent:          Option[String],
     comment:         Option[String],
@@ -70,13 +70,14 @@ final object SchemaV1 {
     os:              Option[String],
     size:            Option[Long],
     throwAway:       Option[Boolean]
-  ) extends Compatibility
+  )
+      extends Compatibility
 
-  case class LayerContainerConfig(
+  final case class LayerContainerConfig(
     cmd: List[String]
   )
 
-  case class Layer(
+  final case class Layer(
     id:              String,
     parent:          Option[String],
     comment:         Option[String],
@@ -84,9 +85,10 @@ final object SchemaV1 {
     containerConfig: Option[LayerContainerConfig],
     author:          Option[String],
     throwAway:       Option[Boolean]
-  ) extends Compatibility
+  )
+      extends Compatibility
 
-  case class Manifest(
+  final case class Manifest(
     name:          String,
     tag:           String,
     fsLayers:      List[FsLayer],
@@ -94,30 +96,32 @@ final object SchemaV1 {
     history:       List[Compatibility],
     signatures:    List[Signature],
     schemaVersion: Int                 = 1
-  ) extends SchemaManifest
+  )
+      extends SchemaManifest
 }
 
-final object SchemaV2 {
-  case class Descriptor(
+object SchemaV2 {
+  final case class Descriptor(
     mediaType: Option[String],
     size:      Long,
     digest:    String
   )
 
-  case class Manifest(
+  final case class Manifest(
     schemaVersion: Int              = 2,
     mediaType:     String           = "application/vnd.docker.distribution.manifest.v2+json",
     config:        Descriptor,
     layers:        List[Descriptor]
-  ) extends SchemaManifest
+  )
+      extends SchemaManifest
 
-  case class ImageRootFs(
+  final case class ImageRootFs(
     `type`:    String,
     diffIds:   List[String],
     baseLayer: Option[String]
   )
 
-  case class ImageHistory(
+  final case class ImageHistory(
       created:    ZonedDateTime,
       author:     Option[String],
       createdBy:  Option[String],
@@ -127,7 +131,7 @@ final object SchemaV2 {
     def isEmptyLayer = this.emptyLayer.contains(true)
   }
 
-  case class ImageConfig(
+  final case class ImageConfig(
     rootFs:       ImageRootFs,
     history:      List[ImageHistory],
     architecture: String

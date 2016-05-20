@@ -5,11 +5,11 @@ import akka.http.HijackTcp
 import akka.http.settings.clientSettingsWithIdleTimeout
 import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.http.scaladsl.util.FastFuture
-import akka.http.scaladsl.{Http, ConnectionContext}
+import akka.http.scaladsl.{ Http, ConnectionContext }
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.MediaTypes.`application/x-tar`
-import akka.stream.{Materializer, OverflowStrategy}
+import akka.stream.{ Materializer, OverflowStrategy }
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import io.fcomb.docker.api.methods._
@@ -31,8 +31,7 @@ private[api] trait ApiConnection {
 
   import sys.dispatcher
 
-  protected val clientConnectionSettings =
-    ClientConnectionSettings(sys)
+  protected val clientConnectionSettings = ClientConnectionSettings(sys)
 
   private def httpConnectionFlow(duration: Option[FiniteDuration]) = {
     val settings = clientSettingsWithIdleTimeout(
@@ -53,12 +52,16 @@ private[api] trait ApiConnection {
     connection.buffer(10, OverflowStrategy.backpressure)
   }
 
-  protected def hijackConnectionFlow(req: HttpRequest, idleTimeout: FiniteDuration) = {
+  protected def hijackConnectionFlow(
+    req: HttpRequest, idleTimeout: FiniteDuration
+  ) = {
     val settings = clientSettingsWithIdleTimeout(
       clientConnectionSettings,
       Some(idleTimeout)
     )
-    HijackTcp.outgoingConnection(hostname, port, settings, req, responseFlow, sslContext)
+    HijackTcp.outgoingConnection(
+      hostname, port, settings, req, responseFlow, sslContext
+    )
   }
 
   protected def uriWithQuery(uri: Uri, queryParams: Map[String, String]) = {
@@ -69,25 +72,26 @@ private[api] trait ApiConnection {
   protected def mapHttpResponse(res: HttpResponse) = {
     if (res.status.isSuccess()) FastFuture.successful(res)
     else {
-      res.entity.dataBytes.runFold(new StringBuffer) { (acc, bs) ⇒
-        acc.append(bs.utf8String)
-      }.map { buf ⇒
-        val msg = buf.toString()
-        res.status.intValue() match {
-          case 400 ⇒ throw new BadParameterException(msg)
-          case 403 ⇒ throw new PermissionDeniedException(msg)
-          case 404 ⇒ throw new ResouceOrContainerNotFoundException(msg)
-          case 406 ⇒ throw new ImpossibleToAttachException(msg)
-          case 409 ⇒ throw new ConflictException(msg)
-          case 500 ⇒ throw new ServerErrorException(msg)
-          case _   ⇒ throw new UnknownException(msg)
+      res.entity.dataBytes
+        .runFold(new StringBuffer) { (acc, bs) ⇒
+          acc.append(bs.utf8String)
         }
-      }
+        .map { buf ⇒
+          val msg = buf.toString()
+          res.status.intValue() match {
+            case 400 ⇒ throw new BadParameterException(msg)
+            case 403 ⇒ throw new PermissionDeniedException(msg)
+            case 404 ⇒ throw new ResouceOrContainerNotFoundException(msg)
+            case 406 ⇒ throw new ImpossibleToAttachException(msg)
+            case 409 ⇒ throw new ConflictException(msg)
+            case 500 ⇒ throw new ServerErrorException(msg)
+            case _   ⇒ throw new UnknownException(msg)
+          }
+        }
     }
   }
 
-  protected val responseFlow =
-    Flow[HttpResponse].mapAsync(1)(mapHttpResponse)
+  protected val responseFlow = Flow[HttpResponse].mapAsync(1)(mapHttpResponse)
 
   protected def apiRequestAsSource(
     method:      HttpMethod,

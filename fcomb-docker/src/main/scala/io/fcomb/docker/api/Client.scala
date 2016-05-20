@@ -3,7 +3,7 @@ package io.fcomb.docker.api
 import ParamHelpers._
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{Upgrade, UpgradeProtocol}
+import akka.http.scaladsl.model.headers.{ Upgrade, UpgradeProtocol }
 import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
@@ -41,12 +41,10 @@ final class Client(
   val defaultIdleTimeout = 1.hour
 
   def information() =
-    apiJsonRequest(HttpMethods.GET, "/info")
-      .map(_.convertTo[Information])
+    apiJsonRequest(HttpMethods.GET, "/info").map(_.convertTo[Information])
 
   def version() =
-    apiJsonRequest(HttpMethods.GET, "/version")
-      .map(_.convertTo[Version])
+    apiJsonRequest(HttpMethods.GET, "/version").map(_.convertTo[Version])
 
   def containers(
     showAll:  Boolean                  = false,
@@ -162,12 +160,14 @@ final class Client(
       .map(_.convertTo[ContainerChanges])
 
   def containerExport(id: String) =
-    apiRequestAsSource(HttpMethods.GET, s"/containers/$id/export")
-      .map(_._1)
+    apiRequestAsSource(HttpMethods.GET, s"/containers/$id/export").map(_._1)
 
   def containerStats(id: String) =
-    apiJsonRequest(HttpMethods.GET, s"/containers/$id/stats", Map("stream" → "false"))
-      .map(_.convertTo[ContainerStats])
+    apiJsonRequest(
+      HttpMethods.GET,
+      s"/containers/$id/stats",
+      Map("stream" → "false")
+    ).map(_.convertTo[ContainerStats])
 
   def containerStatsAsStream(
     id:          String,
@@ -190,8 +190,7 @@ final class Client(
   }
 
   def containerStart(id: String) =
-    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/start")
-      .map(_ ⇒ ())
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/start").map(_ ⇒ ())
 
   def containerStop(id: String, timeout: FiniteDuration) = {
     val params = Map(
@@ -218,18 +217,18 @@ final class Client(
   }
 
   def containerPause(id: String) =
-    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/pause")
-      .map(_ ⇒ ())
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/pause").map(_ ⇒ ())
 
   def containerUnpause(id: String) =
-    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/unpause")
-      .map(_ ⇒ ())
+    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/unpause").map(_ ⇒
+      ())
 
   private val upgradeHeaders =
     immutable.Seq(Upgrade(List(UpgradeProtocol("tcp"))))
 
-  private lazy val stdStreamFrameCodec =
-    StdStreamFrame.codec(clientConnectionSettings.parserSettings.maxChunkSize).reversed
+  private lazy val stdStreamFrameCodec = StdStreamFrame
+    .codec(clientConnectionSettings.parserSettings.maxChunkSize)
+    .reversed
 
   private def containerAttachAsSource(
     id:          String,
@@ -266,9 +265,7 @@ final class Client(
     flow:        Flow[ByteString, ByteString, Any],
     idleTimeout: FiniteDuration                    = defaultIdleTimeout
   ) =
-    containerAttachAsSource(id, streams, idleTimeout)
-      .join(flow)
-      .run()
+    containerAttachAsSource(id, streams, idleTimeout).join(flow).run()
 
   def containerWait(id: String) =
     apiJsonRequest(HttpMethods.POST, s"/containers/$id/wait")
@@ -283,14 +280,15 @@ final class Client(
       "force" → withForce.toString,
       "v" → withVolumes.toString
     )
-    apiRequestAsSource(HttpMethods.DELETE, s"/containers/$id", params)
-      .map(_ ⇒ ())
+    apiRequestAsSource(HttpMethods.DELETE, s"/containers/$id", params).map(_ ⇒
+      ())
   }
 
   def containerCopy(id: String, path: String) = {
     val entity = requestJsonEntity(CopyConfig(path))
-    apiRequestAsSource(HttpMethods.POST, s"/containers/$id/copy", entity = entity)
-      .map(_._1)
+    apiRequestAsSource(
+      HttpMethods.POST, s"/containers/$id/copy", entity = entity
+    ).map(_._1)
   }
 
   private def parseContainerPathStat(headers: Seq[HttpHeader]) = {
@@ -301,12 +299,17 @@ final class Client(
   }
 
   def containerArchiveInformation(id: String, path: String) =
-    apiRequestAsSource(HttpMethods.HEAD, s"/containers/$id/archive", Map("path" → path))
+    apiRequestAsSource(
+      HttpMethods.HEAD, s"/containers/$id/archive", Map("path" → path)
+    )
       .map(res ⇒ parseContainerPathStat(res._2))
 
   def containerArchive(id: String, path: String) =
-    apiRequestAsSource(HttpMethods.GET, s"/containers/$id/archive", Map("path" → path)).map { res ⇒
-      (res._1, parseContainerPathStat(res._2))
+    apiRequestAsSource(
+      HttpMethods.GET, s"/containers/$id/archive", Map("path" → path)
+    ).map {
+      res ⇒
+        (res._1, parseContainerPathStat(res._2))
     }
 
   def containerArchiveExtract(
@@ -320,8 +323,10 @@ final class Client(
       "noOverwriteDirNonDir" → (!withOverwrite).toString
     )
     val entity = requestTarEntity(source)
-    apiRequestAsSource(HttpMethods.PUT, s"/containers/$id/archive", params, entity)
-      .map(_ ⇒ ())
+    apiRequestAsSource(
+      HttpMethods.PUT, s"/containers/$id/archive", params, entity
+    ).map(_ ⇒
+      ())
   }
 
   def images(
@@ -355,23 +360,26 @@ final class Client(
     cpuQuota:        Option[Long]            = None,
     registryConfig:  Option[RegistryConfig]  = None
   ) = {
-    val params = Map(
-      "dockerfile" → dockerfile,
-      "t" → name.toParam(),
-      "remote" → remoteUri.toParam(),
-      "q" → (!showBuildOutput).toString,
-      "nocache" → (!withCache).toString,
-      "pull" → withPull.toString,
-      "memory" → memoryLimit.toParam(),
-      "memswap" → memorySwapLimit.toMemorySwapParam(),
-      "cpushares" → cpuShares.toParam(),
-      "cpusetcpus" → cpusetCpus.toParam(),
-      "cpuperiod" → cpuPeriod.toParam(),
-      "cpuquota" → cpuQuota.toParam()
-    ) ++ RemoveMode.mapToParams(removeMode)
+    val params =
+      Map(
+        "dockerfile" → dockerfile,
+        "t" → name.toParam(),
+        "remote" → remoteUri.toParam(),
+        "q" → (!showBuildOutput).toString,
+        "nocache" → (!withCache).toString,
+        "pull" → withPull.toString,
+        "memory" → memoryLimit.toParam(),
+        "memswap" → memorySwapLimit.toMemorySwapParam(),
+        "cpushares" → cpuShares.toParam(),
+        "cpusetcpus" → cpusetCpus.toParam(),
+        "cpuperiod" → cpuPeriod.toParam(),
+        "cpuquota" → cpuQuota.toParam()
+      ) ++ RemoveMode.mapToParams(removeMode)
     val entity = requestTarEntity(source)
     val headers = RegistryConfig.mapToHeaders(registryConfig)
-    apiJsonRequestAsSource(HttpMethods.POST, s"/build", params, entity, headers = headers)
+    apiJsonRequestAsSource(
+      HttpMethods.POST, s"/build", params, entity, headers = headers
+    )
       .map(_.map(_.convertTo[EventMessage]))
   }
 
@@ -469,7 +477,9 @@ final class Client(
       case Some(r) ⇒ s"${r.toParam}/$id"
       case None    ⇒ id
     }
-    apiJsonRequestAsSource(HttpMethods.POST, s"/images/$name/push", params, headers = headers)
+    apiJsonRequestAsSource(
+      HttpMethods.POST, s"/images/$name/push", params, headers = headers
+    )
       .map(_.map(_.convertTo[EventMessage]))
   }
 
@@ -484,8 +494,8 @@ final class Client(
       "repo" → repositoryName,
       "force" → withForce.toString
     )
-    apiRequestAsSource(HttpMethods.POST, s"/images/$id/tag", params)
-      .map(_ ⇒ ())
+    apiRequestAsSource(HttpMethods.POST, s"/images/$id/tag", params).map(_ ⇒
+      ())
   }
 
   def imageRemove(
@@ -497,8 +507,7 @@ final class Client(
       "noprune" → (!withPrune).toString(),
       "force" → withForce.toString()
     )
-    apiRequestAsSource(HttpMethods.DELETE, s"/images/$id", params)
-      .map(_ ⇒ ())
+    apiRequestAsSource(HttpMethods.DELETE, s"/images/$id", params).map(_ ⇒ ())
   }
 
   def imageSearch(term: String) =
@@ -540,8 +549,7 @@ final class Client(
       case Some(t) ⇒ s"$id:$t"
       case None    ⇒ id
     }
-    apiRequestAsSource(HttpMethods.GET, s"/images/$name/get")
-      .map(_._1)
+    apiRequestAsSource(HttpMethods.GET, s"/images/$name/get").map(_._1)
   }
 
   def imagesGet(names: List[String]) = {
@@ -549,8 +557,7 @@ final class Client(
       case (name, acc) ⇒ ("names", name) +: acc
     }
     val uri = Uri("/images/get").withQuery(Uri.Query(q: _*))
-    apiRequestAsSource(HttpMethods.GET, uri)
-      .map(_._1)
+    apiRequestAsSource(HttpMethods.GET, uri).map(_._1)
   }
 
   def imagesLoad(source: Source[ByteString, Any]) = {
@@ -560,12 +567,13 @@ final class Client(
   }
 
   def auth(config: AuthConfig) =
-    apiRequestAsSource(HttpMethods.POST, "/auth", entity = requestJsonEntity(config))
-      .map(_ ⇒ ())
+    apiRequestAsSource(
+      HttpMethods.POST, "/auth", entity = requestJsonEntity(config)
+    ).map(_ ⇒
+      ())
 
   def ping() =
-    apiRequestAsSource(HttpMethods.GET, "/_ping")
-      .map(_ ⇒ ())
+    apiRequestAsSource(HttpMethods.GET, "/_ping").map(_ ⇒ ())
 
   def eventsAsStream(
     since:       Option[ZonedDateTime] = None,
@@ -578,7 +586,9 @@ final class Client(
       "until" → since.toParamAsTimestamp(),
       "filters" → EventsFitler.mapToParam(filters)
     )
-    apiJsonRequestAsSource(HttpMethods.GET, "/events", params, idleTimeout = Some(idleTimeout))
+    apiJsonRequestAsSource(
+      HttpMethods.GET, "/events", params, idleTimeout = Some(idleTimeout)
+    )
       .map(_.map(_.convertTo[EventKindMessage]))
   }
 
@@ -602,7 +612,9 @@ final class Client(
       isDetach = false
     )
     val entity = requestJsonEntity(config)
-    apiJsonRequest(HttpMethods.POST, s"/containers/$containerId/exec", entity = entity)
+    apiJsonRequest(
+      HttpMethods.POST, s"/containers/$containerId/exec", entity = entity
+    )
       .map(_.convertTo[ContainerExecCreateResponse])
   }
 
@@ -610,10 +622,12 @@ final class Client(
     id:    String,
     isTty: Boolean
   ) = {
-    val entity = requestJsonEntity(ExecStartCheck(
-      isDetach = true,
-      isTty = isTty
-    ))
+    val entity = requestJsonEntity(
+      ExecStartCheck(
+        isDetach = true,
+        isTty = isTty
+      )
+    )
     apiRequestAsSource(HttpMethods.POST, s"/exec/$id/start", entity = entity)
       .map(_ ⇒ ())
   }
@@ -623,10 +637,12 @@ final class Client(
     isTty:       Boolean,
     idleTimeout: FiniteDuration
   ) = {
-    val entity = requestJsonEntity(ExecStartCheck(
-      isDetach = false,
-      isTty = isTty
-    ))
+    val entity = requestJsonEntity(
+      ExecStartCheck(
+        isDetach = false,
+        isTty = isTty
+      )
+    )
     val req = HttpRequest(
       method = HttpMethods.POST,
       uri = s"/exec/$id/start",
@@ -650,17 +666,15 @@ final class Client(
     flow:        Flow[ByteString, ByteString, Any],
     idleTimeout: FiniteDuration                    = defaultIdleTimeout
   ) =
-    execStartAsSource(id, true, idleTimeout)
-      .join(flow)
-      .run()
+    execStartAsSource(id, true, idleTimeout).join(flow).run()
 
   def execResizeTty(id: String, width: Int, height: Int) = {
     val params = Map(
       "w" → width.toString,
       "h" → height.toString
     )
-    apiRequestAsSource(HttpMethods.POST, s"/exec/$id/resize", params)
-      .map(_ ⇒ ())
+    apiRequestAsSource(HttpMethods.POST, s"/exec/$id/resize", params).map(_ ⇒
+      ())
   }
 
   def execInspect(id: String) =

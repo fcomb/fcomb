@@ -2,10 +2,10 @@ import sbt._
 
 object Dependencies {
   object V {
-    val akka = "2.4.4"
+    val akka = "2.4.6"
     val bouncyCastle = "1.53"
-    val cats = "0.5.0"
-    val circe = "0.4.1"
+    val cats = "0.6.0"
+    val circe = "0.5.0-SNAPSHOT"
     val enumeratum = "1.4.4"
     val slick = "3.1.1"
     val slickPg = "0.14.0"
@@ -144,7 +144,7 @@ object Dependencies {
     val akkaTestkit     = "com.typesafe.akka"             %% "akka-testkit"                  % V.akka % "test"
     val akkaHttpTestkit = "com.typesafe.akka"             %% "akka-http-testkit"             % V.akka % "test"
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.1" % "test"
-    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.8.2" % "test"
+    val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.8.3" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
     val slickTestkit    = "com.typesafe.slick"            %% "slick-testkit"                 % V.slick % "test"
   }

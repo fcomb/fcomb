@@ -1,7 +1,7 @@
 package io.fcomb
 
 import io.fcomb.db.Migration
-import io.fcomb.utils.{Config, Implicits}
+import io.fcomb.utils.{ Config, Implicits }
 import io.fcomb.RichPostgresDriver.api.Database
 import redis.RedisClient
 import scala.concurrent.ExecutionContext

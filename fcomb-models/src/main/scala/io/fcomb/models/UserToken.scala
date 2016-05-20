@@ -25,10 +25,10 @@ sealed trait Token {
 }
 
 case class UserToken(
-  token: String,
-  role: TokenRole.TokenRole,
-  state: TokenState.TokenState,
-  userId: Long,
+  token:     String,
+  role:      TokenRole.TokenRole,
+  state:     TokenState.TokenState,
+  userId:    Long,
   createdAt: ZonedDateTime,
   updatedAt: ZonedDateTime
 )

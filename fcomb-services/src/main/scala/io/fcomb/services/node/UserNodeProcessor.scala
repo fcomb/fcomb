@@ -2,23 +2,23 @@ package io.fcomb.services.node
 
 import io.fcomb.services.Exceptions._
 import io.fcomb.services._
-import io.fcomb.models.application.{DockerImage, DockerDeployOptions, ScaleStrategy, Application ⇒ MApplication}
-import io.fcomb.models.docker.{Container ⇒ MContainer}
-import io.fcomb.models.node.{NodeState, Node ⇒ MNode}
-import io.fcomb.persist.docker.{Container ⇒ PContainer}
-import io.fcomb.utils.{Config, Implicits, Random}
-import io.fcomb.crypto.{Certificate, Tls}
-import io.fcomb.persist.node.{Node ⇒ PNode}
+import io.fcomb.models.application.{ DockerImage, DockerDeployOptions, ScaleStrategy, Application ⇒ MApplication }
+import io.fcomb.models.docker.{ Container ⇒ MContainer }
+import io.fcomb.models.node.{ NodeState, Node ⇒ MNode }
+import io.fcomb.persist.docker.{ Container ⇒ PContainer }
+import io.fcomb.utils.{ Config, Implicits, Random }
+import io.fcomb.crypto.{ Certificate, Tls }
+import io.fcomb.persist.node.{ Node ⇒ PNode }
 import io.fcomb.persist.UserCertificate
 import akka.actor._
 import akka.stream.Materializer
 import akka.cluster.sharding._
-import akka.pattern.{after, ask, pipe}
+import akka.pattern.{ after, ask, pipe }
 import akka.util.Timeout
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.collection.immutable
 import scala.concurrent.duration._
-import scala.util.{Success, Failure, Random}
+import scala.util.{ Success, Failure, Random }
 import java.time.ZonedDateTime
 import java.net.InetAddress
 
@@ -65,8 +65,11 @@ object UserNodeMessages {
   case class State()
 }
 
-class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends Actor
-    with Stash with ActorLogging with ProcessorActor[UserNodeMessages.State] {
+class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer)
+    extends Actor
+    with Stash
+    with ActorLogging
+    with ProcessorActor[UserNodeMessages.State] {
   import context.dispatcher
   import context.system
   import UserNodeProcessor._
@@ -93,20 +96,21 @@ class UserNodeProcessor(timeout: Duration)(implicit mat: Materializer) extends A
   initializing()
 
   def receive: Receive = {
-    case msg: Entity ⇒ msg match {
-      case Reserve(scaleStrategy) ⇒
-        if (this.nodes.isEmpty)
-          sender() ! ReserveResult.NoNodesAvailable
-        else {
-          val idx = rand.nextInt(this.nodes.size)
-          val node = this.nodes.iterator.drop(idx).next
-          val reserved = ReserveResult.NodeReserve(
-            node.getId,
-            scaleStrategy.numberOfContainers
-          )
-          sender() ! ReserveResult.Reserved(List(reserved))
-        }
-    }
+    case msg: Entity ⇒
+      msg match {
+        case Reserve(scaleStrategy) ⇒
+          if (this.nodes.isEmpty)
+            sender() ! ReserveResult.NoNodesAvailable
+          else {
+            val idx = rand.nextInt(this.nodes.size)
+            val node = this.nodes.iterator.drop(idx).next
+            val reserved = ReserveResult.NodeReserve(
+              node.getId,
+              scaleStrategy.numberOfContainers
+            )
+            sender() ! ReserveResult.Reserved(List(reserved))
+          }
+      }
     case ReceiveTimeout ⇒
       if (this.nodes.isEmpty) annihilation()
   }

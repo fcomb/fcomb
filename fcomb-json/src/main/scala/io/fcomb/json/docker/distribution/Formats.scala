@@ -5,7 +5,7 @@ import enumeratum.Circe
 import io.circe.generic.auto._
 import io.circe.java8.time._
 import io.circe.parser._
-import io.circe.{Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printer}
+import io.circe.{ Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printer }
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.ErrorKind
 import io.fcomb.models.errors.docker.distribution._
@@ -42,8 +42,8 @@ object Formats {
   implicit final val encodeSchemaV1Compatibility = new Encoder[SchemaV1.Compatibility] {
     def apply(compatibility: SchemaV1.Compatibility) = {
       val layerJson = compatibility match {
-        case c: SchemaV1.Config => encodeSchemaV1Config.apply(c)
-        case l: SchemaV1.Layer => encodeSchemaV1Layer.apply(l)
+        case c: SchemaV1.Config ⇒ encodeSchemaV1Config.apply(c)
+        case l: SchemaV1.Layer  ⇒ encodeSchemaV1Layer.apply(l)
       }
       Json.obj(
         "v1Compatibility" → Encoder[String].apply(compactPrinter.pretty(layerJson))

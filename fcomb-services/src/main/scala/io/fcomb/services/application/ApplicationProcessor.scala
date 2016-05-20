@@ -1,23 +1,23 @@
 package io.fcomb.services.application
 
 import io.fcomb.services.Exceptions._
-import io.fcomb.services.node.{NodeProcessor, UserNodeProcessor, ReserveResult}
-import io.fcomb.models.application.{ApplicationState, ScaleStrategy, Application ⇒ MApplication}
-import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
+import io.fcomb.services.node.{ NodeProcessor, UserNodeProcessor, ReserveResult }
+import io.fcomb.models.application.{ ApplicationState, ScaleStrategy, Application ⇒ MApplication }
+import io.fcomb.models.docker.{ ContainerState, Container ⇒ MContainer }
 import io.fcomb.models.errors._
 import io.fcomb.utils.Config
-import io.fcomb.persist.application.{Application ⇒ PApplication}
-import io.fcomb.persist.docker.{Container ⇒ PContainer}
+import io.fcomb.persist.application.{ Application ⇒ PApplication }
+import io.fcomb.persist.docker.{ Container ⇒ PContainer }
 import akka.actor._
 import akka.stream.Materializer
 import akka.cluster.sharding._
 import akka.http.scaladsl.util.FastFuture
-import akka.pattern.{ask, pipe}
+import akka.pattern.{ ask, pipe }
 import akka.util.Timeout
-import scala.concurrent.{Future, Promise, ExecutionContext}
+import scala.concurrent.{ Future, Promise, ExecutionContext }
 import scala.collection.immutable
 import scala.concurrent.duration._
-import scala.util.{Success, Failure}
+import scala.util.{ Success, Failure }
 import java.time.ZonedDateTime
 import java.net.InetAddress
 import java.util.concurrent.TimeoutException
@@ -54,9 +54,11 @@ object ApplicationProcessor {
     implicit
     ec: ExecutionContext
   ) =
-    PApplication.findAllNonTerminated().map(_.foreach { app ⇒
-      actorRef ! EntityEnvelope(app.getId, WakeUp)
-    })
+    PApplication
+      .findAllNonTerminated()
+      .map(_.foreach { app ⇒
+        actorRef ! EntityEnvelope(app.getId, WakeUp)
+      })
 
   sealed trait Entity
 
@@ -66,7 +68,8 @@ object ApplicationProcessor {
 
   case object ApplicationStop extends Entity
 
-  case class ApplicationRedeploy(scaleStrategy: Option[ScaleStrategy]) extends Entity
+  case class ApplicationRedeploy(scaleStrategy: Option[ScaleStrategy])
+    extends Entity
 
   case class ApplicationScale(numberOfContainers: Int) extends Entity
 
@@ -77,7 +80,8 @@ object ApplicationProcessor {
   case class ContainerChangedState(
     id:    Long,
     state: ContainerState.ContainerState
-  ) extends Entity
+  )
+      extends Entity
 
   def props(timeout: Duration) =
     Props(new ApplicationProcessor(timeout))
@@ -152,8 +156,10 @@ case object Annihilation
 
 case class Failed(e: Throwable)
 
-class ApplicationProcessor(timeout: Duration) extends Actor
-    with Stash with ActorLogging {
+class ApplicationProcessor(timeout: Duration)
+    extends Actor
+    with Stash
+    with ActorLogging {
   import context.dispatcher
   import context.system
   import ApplicationProcessor._
@@ -224,68 +230,71 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   }
 
   def runningReceive(state: State): Receive = {
-    case msg: Entity ⇒ msg match {
-      case ApplicationStart ⇒
-        log.info("Already started")
-        sender.!(())
-      case ApplicationStop ⇒
-        applyStateTransition(stop(state), ApplicationState.Stopped)
-      case ApplicationRestart ⇒
-        applyStateTransition(restart(state), ApplicationState.Running)
-      case ApplicationTerminate ⇒
-        applyStateTransition(terminate(state), ApplicationState.Terminated)
-      case ApplicationRedeploy(scaleStrategy) ⇒
-        applyStateTransition(
-          redeploy(state, scaleStrategy),
-          ApplicationState.Running
-        )
-      case ApplicationScale(numberOfContainers) ⇒
-        applyStateTransition(
-          scale(state, Some(numberOfContainers)),
-          ApplicationState.Running
-        )
-      case ContainerChangedState(containerId, containerState) ⇒
-        // TODO
-        sender().!(())
-    }
+    case msg: Entity ⇒
+      msg match {
+        case ApplicationStart ⇒
+          log.info("Already started")
+          sender.!(())
+        case ApplicationStop ⇒
+          applyStateTransition(stop(state), ApplicationState.Stopped)
+        case ApplicationRestart ⇒
+          applyStateTransition(restart(state), ApplicationState.Running)
+        case ApplicationTerminate ⇒
+          applyStateTransition(terminate(state), ApplicationState.Terminated)
+        case ApplicationRedeploy(scaleStrategy) ⇒
+          applyStateTransition(
+            redeploy(state, scaleStrategy),
+            ApplicationState.Running
+          )
+        case ApplicationScale(numberOfContainers) ⇒
+          applyStateTransition(
+            scale(state, Some(numberOfContainers)),
+            ApplicationState.Running
+          )
+        case ContainerChangedState(containerId, containerState) ⇒
+          // TODO
+          sender().!(())
+      }
   }
 
   def stoppedReceive(state: State): Receive = {
-    case msg: Entity ⇒ msg match {
-      case ApplicationStart ⇒
-        applyStateTransition(start(state), ApplicationState.Running)
-      case ApplicationStop ⇒
-        log.info("Already stopped")
-        sender.!(())
-      case ApplicationRestart ⇒
-        applyStateTransition(restart(state), ApplicationState.Running)
-      case ApplicationTerminate ⇒
-        applyStateTransition(terminate(state), ApplicationState.Terminated)
-      case ApplicationRedeploy(scaleStrategy) ⇒
-        applyStateTransition(
-          redeploy(state, scaleStrategy),
-          ApplicationState.Running
-        )
-      case ApplicationScale(numberOfContainers) ⇒
-        applyStateTransition(
-          scale(state, Some(numberOfContainers)),
-          ApplicationState.Running
-        )
-      case ContainerChangedState(containerId, containerState) ⇒
-        // TODO
-        sender().!(())
-    }
+    case msg: Entity ⇒
+      msg match {
+        case ApplicationStart ⇒
+          applyStateTransition(start(state), ApplicationState.Running)
+        case ApplicationStop ⇒
+          log.info("Already stopped")
+          sender.!(())
+        case ApplicationRestart ⇒
+          applyStateTransition(restart(state), ApplicationState.Running)
+        case ApplicationTerminate ⇒
+          applyStateTransition(terminate(state), ApplicationState.Terminated)
+        case ApplicationRedeploy(scaleStrategy) ⇒
+          applyStateTransition(
+            redeploy(state, scaleStrategy),
+            ApplicationState.Running
+          )
+        case ApplicationScale(numberOfContainers) ⇒
+          applyStateTransition(
+            scale(state, Some(numberOfContainers)),
+            ApplicationState.Running
+          )
+        case ContainerChangedState(containerId, containerState) ⇒
+          // TODO
+          sender().!(())
+      }
   }
 
   val terminatedReceive: Receive = {
-    case msg: Entity ⇒ msg match {
-      case ApplicationTerminate ⇒
-        log.info("Already terminated")
-        sender().!(())
-      case s ⇒
-        log.error(s"Cannot `$s` when terminated state")
-        sender() ! Status.Failure(CannotDoAnythingWhenTerminated)
-    }
+    case msg: Entity ⇒
+      msg match {
+        case ApplicationTerminate ⇒
+          log.info("Already terminated")
+          sender().!(())
+        case s ⇒
+          log.error(s"Cannot `$s` when terminated state")
+          sender() ! Status.Failure(CannotDoAnythingWhenTerminated)
+      }
     case ReceiveTimeout ⇒ annihilation()
   }
 
@@ -317,21 +326,22 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       log.error(s"No retries")
       annihilation()
     }
-    else switchReceiveByCompletedState(state) { incompletedState ⇒
-      val newState = incompletedState match {
-        case ApplicationState.Starting    ⇒ start(state)
-        case ApplicationState.Stopping    ⇒ stop(state)
-        case ApplicationState.Restarting  ⇒ restart(state)
-        case ApplicationState.Redeploying ⇒ redeploy(state, None)
-        case ApplicationState.Scaling     ⇒ scale(state, None)
-        case ApplicationState.Terminating ⇒ terminate(state)
-        case s ⇒
-          val msg = s"This is cannot happen: unknown incompleted `$s` state"
-          log.error(msg)
-          throw new Throwable(msg)
+    else
+      switchReceiveByCompletedState(state) { incompletedState ⇒
+        val newState = incompletedState match {
+          case ApplicationState.Starting    ⇒ start(state)
+          case ApplicationState.Stopping    ⇒ stop(state)
+          case ApplicationState.Restarting  ⇒ restart(state)
+          case ApplicationState.Redeploying ⇒ redeploy(state, None)
+          case ApplicationState.Scaling     ⇒ scale(state, None)
+          case ApplicationState.Terminating ⇒ terminate(state)
+          case s ⇒
+            val msg = s"This is cannot happen: unknown incompleted `$s` state"
+            log.error(msg)
+            throw new Throwable(msg)
+        }
+        newState.map(Initialize(_, retryCount - 1)).pipeTo(self)
       }
-      newState.map(Initialize(_, retryCount - 1)).pipeTo(self)
-    }
   }
 
   def applyStateTransition(
@@ -383,7 +393,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
   def scale(state: State, numberOpt: Option[Int]) = {
     log.info(s"scale: $state")
     val containers = state.containers.filter(_.isPresent)
-    val numberOfContainers = numberOpt.getOrElse(state.app.scaleStrategy.numberOfContainers)
+    val numberOfContainers =
+      numberOpt.getOrElse(state.app.scaleStrategy.numberOfContainers)
     if (containers.size == numberOfContainers &&
       state.app.state != ApplicationState.Scaling &&
       state.app.scaleStrategy.numberOfContainers == numberOfContainers)
@@ -424,9 +435,10 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       FastFuture.successful(state)
     else {
       val updatedState = scaleStrategy match {
-        case Some(ss) ⇒ state.copy( // TODO: lens
-          app = state.app.copy(scaleStrategy = ss)
-        )
+        case Some(ss) ⇒
+          state.copy( // TODO: lens
+            app = state.app.copy(scaleStrategy = ss)
+          )
         case None ⇒ state
       }
       for {
@@ -481,12 +493,14 @@ class ApplicationProcessor(timeout: Duration) extends Actor
           NodeProcessor.containerRestart(c.nodeId, c.getId)
         })
         _ ← PContainer.updateState(idsSeq, ContainerState.Running)
-        newState = getStateByContainers(state.copy(
-          containers = state.containers.map { c ⇒
-            if (ids.contains(c.getId)) c.copy(state = ContainerState.Running)
-            else c
-          }
-        ))
+        newState = getStateByContainers(
+          state.copy(
+            containers = state.containers.map { c ⇒
+              if (ids.contains(c.getId)) c.copy(state = ContainerState.Running)
+              else c
+            }
+          )
+        )
         _ ← persistState(newState.app.state)
       } yield newState
     }
@@ -519,10 +533,12 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       val idsSeq = ids.toSeq
       for {
         _ ← PContainer.updateState(idsSeq, ContainerState.Starting)
-        _ ← Future.sequence(containers.map { c ⇒
-          log.info(s"start container: $c")
-          NodeProcessor.containerStart(c.nodeId, c.getId)
-        })
+        _ ← Future.sequence(
+          containers.map { c ⇒
+            log.info(s"start container: $c")
+            NodeProcessor.containerStart(c.nodeId, c.getId)
+          }
+        )
         _ ← PContainer.updateState(idsSeq, ContainerState.Running)
       } yield {
         val runningContainers = state.containers.map { c ⇒
@@ -561,9 +577,8 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     // default emptiest node strategy
     val ss = state.app.scaleStrategy
     val app = state.app
-    val containers = state.containers.toList
-      .filter(_.isPresent)
-      .sortBy(_.number)
+    val containers =
+      state.containers.toList.filter(_.isPresent).sortBy(_.number)
     if (containers.length < ss.numberOfContainers) {
       val existsIds = containers.map(_.number)
       val newIds = (1 to ss.numberOfContainers).toList.diff(existsIds)
@@ -572,11 +587,13 @@ class ApplicationProcessor(timeout: Duration) extends Actor
       )
       UserNodeProcessor.reserve(state.app.userId, scaleStrategy).flatMap {
         case ReserveResult.Reserved(nodes) ⇒
-          val assigned = nodes.foldLeft((newIds, List.empty[(Long, Int)])) {
-            case ((ids, acc), r) ⇒
-              (ids.drop(r.numberOfContainers),
-                ids.take(r.numberOfContainers).map(id ⇒ (r.id, id)) ::: acc)
-          }._2
+          val assigned = nodes
+            .foldLeft((newIds, List.empty[(Long, Int)])) {
+              case ((ids, acc), r) ⇒
+                (ids.drop(r.numberOfContainers),
+                  ids.take(r.numberOfContainers).map(id ⇒ (r.id, id)) ::: acc)
+            }
+            ._2
           for {
             containers ← PContainer.batchCreatePending(
               userId = app.userId,
@@ -585,9 +602,13 @@ class ApplicationProcessor(timeout: Duration) extends Actor
               assignedNumbers = assigned
             )
             createdContainers ← Future.sequence(containers.map { c ⇒
-              NodeProcessor.containerCreate(c, app.image, app.deployOptions)
+              NodeProcessor.containerCreate(
+                c, app.image, app.deployOptions
+              )
             })
-            updatedContainers ← PContainer.batchPartialUpdate(createdContainers)
+            updatedContainers ← PContainer.batchPartialUpdate(
+              createdContainers
+            )
           } yield state.copy(containers = state.containers ++ updatedContainers)
         case ReserveResult.NoNodesAvailable ⇒
           log.error("ReserveResult.NoNodesAvailable")
@@ -621,11 +642,13 @@ class ApplicationProcessor(timeout: Duration) extends Actor
     val idsSeq = containers.map(_.getId).toSeq
     for {
       _ ← PContainer.updateState(idsSeq, ContainerState.Terminating)
-      _ ← Future.sequence(containers.map { c ⇒
-        NodeProcessor.containerTerminate(c.nodeId, c.getId)
-      }).recoverWith {
-        case e: TimeoutException ⇒ FastFuture.successful(())
-      }
+      _ ← Future
+        .sequence(containers.map { c ⇒
+          NodeProcessor.containerTerminate(c.nodeId, c.getId)
+        })
+        .recoverWith {
+          case e: TimeoutException ⇒ FastFuture.successful(())
+        }
       _ ← PContainer.updateState(idsSeq, ContainerState.Terminated)
     } yield state
   }

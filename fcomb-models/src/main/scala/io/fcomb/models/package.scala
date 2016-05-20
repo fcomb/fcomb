@@ -10,7 +10,9 @@ package object models {
     val id: IdType
 
     def getId() =
-      id.getOrElse(throw new IllegalArgumentException("Column 'id' cannot be empty"))
+      id.getOrElse(
+        throw new IllegalArgumentException("Column 'id' cannot be empty")
+      )
   }
 
   trait ModelWithLongPk extends ModelWithPk {

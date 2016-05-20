@@ -11,8 +11,8 @@ import spray.json._
 
 object Mandrill {
   private[Mandrill] case class SentStatus(
-    email: Option[String],
-    status: String,
+    email:         Option[String],
+    status:        String,
     reject_reason: Option[String]
   )
 
@@ -21,15 +21,15 @@ object Mandrill {
   )
 
   private[Mandrill] case class Message(
-    to: List[Email],
+    to:   List[Email],
     html: String
   )
 
   private[Mandrill] case class SendTemplate(
-    key: String,
-    template_name: String,
+    key:              String,
+    template_name:    String,
     template_content: List[String],
-    message: Message
+    message:          Message
   )
 
   private[Mandrill] object JsonProtocol extends DefaultJsonProtocol {
@@ -42,22 +42,22 @@ object Mandrill {
 
   def sendTemplate(
     templateName: String,
-    messageTo: List[String],
-    messageHtml: String
+    messageTo:    List[String],
+    messageHtml:  String
   )(implicit sys: ActorSystem, mat: Materializer) = {
     import sys.dispatcher
 
     val entity = HttpEntity(
       contentType = ContentTypes.`application/json`,
       SendTemplate(
-        key = Config.mandrillKey,
-        template_name = templateName,
-        template_content = List(),
-        message = Message(
-          to = messageTo.distinct.map(Email),
-          html = messageHtml.trim
-        )
-      ).toJson.toString
+      key = Config.mandrillKey,
+      template_name = templateName,
+      template_content = List(),
+      message = Message(
+        to = messageTo.distinct.map(Email),
+        html = messageHtml.trim
+      )
+    ).toJson.toString
     )
     val request = HttpRequest(
       method = HttpMethods.POST,
@@ -66,7 +66,9 @@ object Mandrill {
     )
     val responseFuture: Future[String] = Http()
       .singleRequest(request)
-      .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _).map(_.utf8String))
+      .flatMap(_.entity.dataBytes
+        .runFold(ByteString.empty)(_ ++ _)
+        .map(_.utf8String))
     responseFuture.map(_.parseJson.convertTo[List[SentStatus]])
   }
 }

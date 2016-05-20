@@ -25,17 +25,18 @@ object ApplicationState extends Enumeration {
 
 @SerialVersionUID(1L)
 case class Application(
-    id:            Option[Long]                      = None,
-    userId:        Long,
-    state:         ApplicationState.ApplicationState,
-    name:          String,
-    image:         DockerImage,
-    deployOptions: DockerDeployOptions,
-    scaleStrategy: ScaleStrategy,
-    createdAt:     ZonedDateTime,
-    updatedAt:     ZonedDateTime,
-    terminatedAt:  Option[ZonedDateTime]             = None
-) extends ModelWithAutoLongPk {
+  id:            Option[Long]                      = None,
+  userId:        Long,
+  state:         ApplicationState.ApplicationState,
+  name:          String,
+  image:         DockerImage,
+  deployOptions: DockerDeployOptions,
+  scaleStrategy: ScaleStrategy,
+  createdAt:     ZonedDateTime,
+  updatedAt:     ZonedDateTime,
+  terminatedAt:  Option[ZonedDateTime]             = None
+)
+    extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 }
 
@@ -48,7 +49,8 @@ case class DockerImage(
   name:     String,
   tag:      Option[String] = None,
   registry: Option[String] = None
-) extends ContainerImage
+)
+    extends ContainerImage
 
 sealed trait DeployOptions
 
@@ -60,8 +62,7 @@ object NetworkPort extends Enumeration {
   val Tcp = Value("tcp")
   val Udp = Value("udp")
 
-  implicit val networkPortEq: Eq[NetworkPort] =
-    Eq.fromUniversalEquals
+  implicit val networkPortEq: Eq[NetworkPort] = Eq.fromUniversalEquals
 }
 
 case class DockerDeployPort(
@@ -84,7 +85,8 @@ case class DockerDeployOptions(
   entrypoint:  Option[String],
   memoryLimit: Option[Long],
   cpuShares:   Option[Long]
-) extends ContainerDeployOptions
+)
+    extends ContainerDeployOptions
 
 object ScaleStrategyKind extends Enumeration {
   type ScaleStrategyKind = Value
@@ -101,6 +103,6 @@ object ScaleStrategyKind extends Enumeration {
 
 @SerialVersionUID(1L)
 case class ScaleStrategy(
-  kind: ScaleStrategyKind.ScaleStrategyKind,
+  kind:               ScaleStrategyKind.ScaleStrategyKind,
   numberOfContainers: Int
 )

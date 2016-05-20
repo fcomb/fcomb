@@ -15,8 +15,7 @@ object StdStream extends Enumeration {
 
   val all = Set(In, Out, Err)
 
-  implicit val stdStreamEq: Eq[StdStream] =
-    Eq.fromUniversalEquals
+  implicit val stdStreamEq: Eq[StdStream] = Eq.fromUniversalEquals
 }
 
 object StdStreamFrame {
@@ -24,7 +23,8 @@ object StdStreamFrame {
 
   class FramingException(msg: String) extends RuntimeException(msg)
 
-  private class FromBytesStage(maximumFrameLength: Int) extends PushPullStage[ByteString, StdStreamFrame] {
+  private class FromBytesStage(maximumFrameLength: Int)
+      extends PushPullStage[ByteString, StdStreamFrame] {
     private var buffer = ByteString.empty
     private var stream = StdStream.Out
     private val minimumChunkSize = 8
@@ -43,13 +43,18 @@ object StdStreamFrame {
     }
 
     private def tryPull(ctx: Context[StdStreamFrame]): SyncDirective = {
-      if (ctx.isFinishing) ctx.fail(new FramingException(
-        "Stream finished but there was a truncated final frame in the buffer"
-      ))
+      if (ctx.isFinishing)
+        ctx.fail(
+          new FramingException(
+            "Stream finished but there was a truncated final frame in the buffer"
+          )
+        )
       else ctx.pull()
     }
 
-    override def onPush(chunk: ByteString, ctx: Context[StdStreamFrame]): SyncDirective = {
+    override def onPush(
+      chunk: ByteString, ctx: Context[StdStreamFrame]
+    ): SyncDirective = {
       buffer ++= chunk
       doParse(ctx)
     }
@@ -58,34 +63,39 @@ object StdStreamFrame {
       doParse(ctx)
     }
 
-    override def onUpstreamFinish(ctx: Context[StdStreamFrame]): TerminationDirective = {
+    override def onUpstreamFinish(
+      ctx: Context[StdStreamFrame]
+    ): TerminationDirective = {
       if (buffer.nonEmpty) ctx.absorbTermination()
       else ctx.finish()
     }
 
     private def emitFrame(ctx: Context[StdStreamFrame]): SyncDirective = {
-      val parsedFrame = buffer.drop(minimumChunkSize)
-        .take(frameSize)
-        .compact
+      val parsedFrame = buffer.drop(minimumChunkSize).take(frameSize).compact
       stream = StdStream(buffer.head.toInt)
       buffer = buffer.drop(frameSize)
       frameSize = Int.MaxValue
-      if (ctx.isFinishing && buffer.isEmpty) ctx.pushAndFinish((stream, parsedFrame))
+      if (ctx.isFinishing && buffer.isEmpty)
+        ctx.pushAndFinish((stream, parsedFrame))
       else ctx.push((stream, parsedFrame))
     }
 
     private def doParse(ctx: Context[StdStreamFrame]): SyncDirective = {
       if (buffer.size >= frameSize) {
         emitFrame(ctx)
-      } else if (buffer.size >= minimumChunkSize) {
+      }
+      else if (buffer.size >= minimumChunkSize) {
         frameSize = parseLength + minimumChunkSize
         if (frameSize > maximumFrameLength)
-          ctx.fail(new FramingException(s"Maximum allowed frame size is $maximumFrameLength " +
-            s"but decoded frame header reported size $frameSize"))
+          ctx.fail(new FramingException(
+            s"Maximum allowed frame size is $maximumFrameLength "+
+              s"but decoded frame header reported size $frameSize"
+          ))
         else if (buffer.size >= frameSize)
           emitFrame(ctx)
         else tryPull(ctx)
-      } else tryPull(ctx)
+      }
+      else tryPull(ctx)
     }
 
     override def postStop(): Unit = {
@@ -94,10 +104,12 @@ object StdStreamFrame {
   }
 
   def codec(maximumFrameLength: Int) =
-    BidiFlow.fromGraph(GraphDSL.create() { b =>
-      val outbound = b.add(Flow[ByteString])
-      val inbound = b.add(Flow[ByteString]
-        .transform(() ⇒ new FromBytesStage(maximumFrameLength)))
-      BidiShape.fromFlows(outbound, inbound)
-    })
+    BidiFlow.fromGraph(
+      GraphDSL.create() { b ⇒
+        val outbound = b.add(Flow[ByteString])
+        val inbound = b.add(Flow[ByteString].transform(() ⇒
+          new FromBytesStage(maximumFrameLength)))
+        BidiShape.fromFlows(outbound, inbound)
+      }
+    )
 }

@@ -5,32 +5,41 @@ import io.fcomb.RichPostgresDriver._
 import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
 import slick.jdbc.JdbcType
-import java.sql.{PreparedStatement, ResultSet}
+import java.sql.{ PreparedStatement, ResultSet }
 
 package object persist {
-  implicit val certificateKindColumnType =
-    createEnumJdbcType("certificate_kind", models.CertificateKind)
+  implicit val certificateKindColumnType = createEnumJdbcType(
+    "certificate_kind", models.CertificateKind
+  )
 
-  implicit val nodeStateColumnType =
-    createEnumJdbcType("node_state", models.node.NodeState)
+  implicit val nodeStateColumnType = createEnumJdbcType(
+    "node_state", models.node.NodeState
+  )
 
-  implicit val tokenRoleColumnType =
-    createEnumJdbcType("token_role", models.TokenRole)
+  implicit val tokenRoleColumnType = createEnumJdbcType(
+    "token_role", models.TokenRole
+  )
 
-  implicit val tokenStateColumnType =
-    createEnumJdbcType("token_state", models.TokenState)
+  implicit val tokenStateColumnType = createEnumJdbcType(
+    "token_state", models.TokenState
+  )
 
-  implicit val applicationStateColumnType =
-    createEnumJdbcType("application_state", models.application.ApplicationState)
+  implicit val applicationStateColumnType = createEnumJdbcType(
+    "application_state", models.application.ApplicationState
+  )
 
-  implicit val containerStateColumnType =
-    createEnumJdbcType("container_state", models.docker.ContainerState)
+  implicit val containerStateColumnType = createEnumJdbcType(
+    "container_state", models.docker.ContainerState
+  )
 
-  implicit val scaleStrategyKindColumnType =
-    createEnumJdbcType("scale_strategy_kind", models.application.ScaleStrategyKind)
+  implicit val scaleStrategyKindColumnType = createEnumJdbcType(
+    "scale_strategy_kind", models.application.ScaleStrategyKind
+  )
 
-  implicit val dockerDistributionImageBlobStateColumnType =
-    createEnumJdbcType("docker_distribution_image_blob_state", models.docker.distribution.ImageBlobState)
+  implicit val dockerDistributionImageBlobStateColumnType = createEnumJdbcType(
+    "docker_distribution_image_blob_state",
+    models.docker.distribution.ImageBlobState
+  )
 
   import io.fcomb.RichPostgresDriver.api._
   import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName

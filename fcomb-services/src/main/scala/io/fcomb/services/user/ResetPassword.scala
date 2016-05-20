@@ -10,7 +10,7 @@ import io.fcomb.utils.Random
 import akka.stream.Materializer
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import cats.data.Validated
 import java.time.LocalDateTime
@@ -31,12 +31,16 @@ object ResetPassword {
         val token = Random.random.alphanumeric.take(42).mkString
         val date = LocalDateTime.now.plusSeconds(ttl.get)
         redis.set(s"$prefix$token", user.id.toString, ttl).flatMap { _ ⇒
-          val template = templates.ResetPassword(s"title: token $token", s"date: $date", token)
-          Mandrill.sendTemplate(
-            template.mandrillTemplateName,
-            List(user.email),
-            template.toHtml
-          ).map(_ ⇒ Validated.Valid(()))
+          val template = templates.ResetPassword(
+            s"title: token $token", s"date: $date", token
+          )
+          Mandrill
+            .sendTemplate(
+              template.mandrillTemplateName,
+              List(user.email),
+              template.toHtml
+            )
+            .map(_ ⇒ Validated.Valid(()))
         }
       case None ⇒
         persist.User.validationErrorAsFuture("email", "not found")

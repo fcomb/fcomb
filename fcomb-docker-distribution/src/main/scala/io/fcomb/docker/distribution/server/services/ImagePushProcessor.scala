@@ -4,15 +4,15 @@ import io.fcomb.services._
 import io.fcomb.utils.StringUtils
 import akka.actor._
 import akka.cluster.sharding._
-import akka.stream.{Materializer, ClosedShape}
+import akka.stream.{ Materializer, ClosedShape }
 import akka.stream.scaladsl._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.util.{ByteString, Timeout}
+import akka.util.{ ByteString, Timeout }
 import cats.data.Xor
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import java.security.MessageDigest
 import java.util.UUID
@@ -50,7 +50,9 @@ object ImageBlobPushProcessor extends Processor[UUID] {
     } yield (length, StringUtils.hexify(fileDigest.digest))
   }
 
-  private def uploadChunkGraph(md: MessageDigest, source: Source[ByteString, Any], file: File) = {
+  private def uploadChunkGraph(
+    md: MessageDigest, source: Source[ByteString, Any], file: File
+  ) = {
     val fileOptions = Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
 
     val sink = Sink.fold[(Long, MessageDigest), ByteString]((0L, md)) {
@@ -59,18 +61,21 @@ object ImageBlobPushProcessor extends Processor[UUID] {
         (length + bs.length, md)
     }
 
-    RunnableGraph.fromGraph(GraphDSL.create(source.completionTimeout(25.minutes), sink)(Keep.right) { implicit b ⇒ (source, sink) ⇒
-      import GraphDSL.Implicits._
+    RunnableGraph
+      .fromGraph(GraphDSL.create(source.completionTimeout(25.minutes), sink)(
+        Keep.right
+      ) { implicit b ⇒ (source, sink) ⇒
+        import GraphDSL.Implicits._
 
-      val broadcast = b.add(Broadcast[ByteString](2))
+        val broadcast = b.add(Broadcast[ByteString](2))
 
-      source ~> broadcast.in
+        source ~> broadcast.in
 
-      broadcast.out(0) ~> FileIO.toFile(file, fileOptions)
-      broadcast.out(1) ~> sink
+        broadcast.out(0) ~> FileIO.toFile(file, fileOptions)
+        broadcast.out(1) ~> sink
 
-      ClosedShape
-    })
+        ClosedShape
+      })
   }
 
   final case object Begin extends Entity
@@ -105,7 +110,9 @@ object ImageBlobPushMessages {
   case class State(digest: MessageDigest)
 }
 
-class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLogging {
+class ImageBlobPushProcessor(timeout: Duration)
+    extends Actor
+    with ActorLogging {
   import context.dispatcher
   import ImageBlobPushProcessor._
   import ImageBlobPushMessages._

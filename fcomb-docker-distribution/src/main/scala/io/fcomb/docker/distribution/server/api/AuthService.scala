@@ -14,10 +14,10 @@ trait AuthDirectives {
   import FutureDirectives._
   import RouteDirectives._
 
-  import akka.http.scaladsl.server.AuthenticationFailedRejection.{CredentialsRejected, CredentialsMissing}
+  import akka.http.scaladsl.server.AuthenticationFailedRejection.{ CredentialsRejected, CredentialsMissing }
 
   import io.fcomb.persist.User
-  import io.fcomb.models.{User ⇒ MUser}
+  import io.fcomb.models.{ User ⇒ MUser }
 
   def authenticateUserBasic(realm: String): Directive1[MUser] =
     extractExecutionContext.flatMap { implicit ec ⇒
@@ -26,14 +26,17 @@ trait AuthDirectives {
           onSuccess(User.matchByUsernameAndPassword(username, password)).flatMap {
             case Some(user) ⇒ provide(user)
             case None ⇒
-              reject(AuthenticationFailedRejection(CredentialsRejected, challengeFor(realm)))
+              reject(AuthenticationFailedRejection(
+                CredentialsRejected,
+                challengeFor(realm)
+              ))
           }
         case _ ⇒
           // TODO
           onSuccess(User.findByPk(1L)).flatMap {
-            case Some(user) => provide(user)
+            case Some(user) ⇒ provide(user)
           }
-          // reject(AuthenticationFailedRejection(CredentialsMissing, challengeFor(realm)))
+        // reject(AuthenticationFailedRejection(CredentialsMissing, challengeFor(realm)))
       }
     }
 }

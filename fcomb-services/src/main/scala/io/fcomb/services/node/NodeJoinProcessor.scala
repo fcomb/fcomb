@@ -2,20 +2,20 @@ package io.fcomb.services.node
 
 import io.fcomb.services.Exceptions._
 import io.fcomb.services.UserCertificateProcessor
-import io.fcomb.models.node.{Node ⇒ MNode}
-import io.fcomb.utils.{Config, Implicits}
+import io.fcomb.models.node.{ Node ⇒ MNode }
+import io.fcomb.utils.{ Config, Implicits }
 import io.fcomb.crypto.Certificate
 import akka.http.scaladsl.util.FastFuture
-import io.fcomb.persist.node.{Node ⇒ PNode}
+import io.fcomb.persist.node.{ Node ⇒ PNode }
 import akka.actor._
 import akka.cluster.sharding._
-import akka.pattern.{ask, pipe}
+import akka.pattern.{ ask, pipe }
 import akka.util.Timeout
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ Future, Promise }
 import scala.collection.mutable.HashSet
 import scala.concurrent.duration._
-import scala.util.{Success, Failure}
-import sun.security.x509.{X500Name, CertificateExtensions}
+import scala.util.{ Success, Failure }
+import sun.security.x509.{ X500Name, CertificateExtensions }
 import sun.security.pkcs10.PKCS10
 import java.security.cert.X509Certificate
 import java.security.PrivateKey
@@ -63,14 +63,16 @@ object NodeJoinProcessor {
     Option(actorRef) match {
       case Some(ref) ⇒
         val hash = PNode.getPublicKeyHash(req.getSubjectPublicKeyInfo())
-        ask(ref, EntityEnvelope(hash, JoinNode(userId, req)))
-          .mapTo[MNode]
+        ask(ref, EntityEnvelope(hash, JoinNode(userId, req))).mapTo[MNode]
       case None ⇒ FastFuture.failed(EmptyActorRefException)
     }
   }
 }
 
-class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLogging {
+class NodeJoinProcessor(timeout: Duration)
+    extends Actor
+    with Stash
+    with ActorLogging {
   import context.dispatcher
   import NodeJoinProcessor._
   import ShardRegion.Passivate
@@ -101,10 +103,11 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
 
   def initializing(userId: Long, req: PKCS10) =
     PNode.findByPublicKeyHash(publicKeyHash).onComplete {
-      case Success(res) ⇒ res match {
-        case Some(node) ⇒ self ! Initialize(node)
-        case None       ⇒ joinNode(userId, req)
-      }
+      case Success(res) ⇒
+        res match {
+          case Some(node) ⇒ self ! Initialize(node)
+          case None       ⇒ joinNode(userId, req)
+        }
       case Failure(e) ⇒ handleThrowable(e)
     }
 
@@ -138,8 +141,9 @@ class NodeJoinProcessor(timeout: Duration) extends Actor with Stash with ActorLo
     (for {
       nodeId ← PNode.getNodeIdSequence()
       name = new X500Name(s"CN=node-$nodeId")
-      signed ← UserCertificateProcessor
-        .generateUserCertificates(userId, req, name)
+      signed ← UserCertificateProcessor.generateUserCertificates(
+        userId, req, name
+      )
       res ← PNode.create(
         nodeId,
         userId,

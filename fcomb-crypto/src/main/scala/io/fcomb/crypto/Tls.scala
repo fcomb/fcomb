@@ -1,18 +1,22 @@
 package io.fcomb.crypto
 
 import java.io.ByteArrayInputStream
-import java.nio.file.{Files, Path}
-import java.security.{KeyFactory, KeyStore, SecureRandom}
-import java.security.cert.{Certificate, CertificateFactory}
+import java.nio.file.{ Files, Path }
+import java.security.{ KeyFactory, KeyStore, SecureRandom }
+import java.security.cert.{ Certificate, CertificateFactory }
 import java.security.spec.PKCS8EncodedKeySpec
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
+import javax.net.ssl.{ KeyManagerFactory, SSLContext, TrustManagerFactory }
 
 object Tls {
-  def context(key: Array[Byte], cert: Array[Byte], ca: Option[Array[Byte]]): SSLContext = {
+  def context(
+    key:  Array[Byte],
+    cert: Array[Byte],
+    ca:   Option[Array[Byte]]
+  ): SSLContext = {
     def certificate(bytes: Array[Byte]): Certificate = {
       val is = new ByteArrayInputStream(bytes)
-      try CertificateFactory.getInstance("X.509").generateCertificate(is)
-      finally is.close()
+      try CertificateFactory.getInstance("X.509").generateCertificate(is) finally is
+        .close()
     }
 
     val keyManagers = {
@@ -33,14 +37,14 @@ object Tls {
     }
 
     val trustManager = ca match {
-      case Some(ca) =>
+      case Some(ca) ⇒
         val trustStore = KeyStore.getInstance(KeyStore.getDefaultType)
         trustStore.load(null, null)
         trustStore.setCertificateEntry("cacert", certificate(ca))
         val fact = TrustManagerFactory.getInstance("SunX509")
         fact.init(trustStore)
         fact.getTrustManagers
-      case None => null
+      case None ⇒ null
     }
 
     val ctx = SSLContext.getInstance("TLSv1.2")
@@ -52,7 +56,7 @@ object Tls {
     context(key.getBytes, cert.getBytes, ca.map(_.getBytes))
 
   def context(key: Path, cert: Path, ca: Option[Path]): SSLContext =
-    context(readFile(key), readFile(cert), ca.map(ca => readFile(ca)))
+    context(readFile(key), readFile(cert), ca.map(ca ⇒ readFile(ca)))
 
   private def readFile(p: Path) = Files.readAllBytes(p)
 }

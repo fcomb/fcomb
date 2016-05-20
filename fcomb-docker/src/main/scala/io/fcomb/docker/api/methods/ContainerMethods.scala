@@ -1,20 +1,20 @@
 package io.fcomb.docker.api.methods
 
 import spray.json.deserializationError
-import java.time.{LocalDateTime, ZonedDateTime}
+import java.time.{ LocalDateTime, ZonedDateTime }
 
 object ContainerMethods {
   final case class ContainerState(
-    isRunning: Boolean,
-    isPaused: Boolean,
+    isRunning:    Boolean,
+    isPaused:     Boolean,
     isRestarting: Boolean,
-    isOomKilled: Boolean,
-    isDead: Boolean,
-    pid: Option[Int],
-    exitCode: Int,
-    error: Option[String],
-    startedAt: Option[ZonedDateTime],
-    finishedAt: Option[ZonedDateTime]
+    isOomKilled:  Boolean,
+    isDead:       Boolean,
+    pid:          Option[Int],
+    exitCode:     Int,
+    error:        Option[String],
+    startedAt:    Option[ZonedDateTime],
+    finishedAt:   Option[ZonedDateTime]
   )
 
   object PortKind extends Enumeration {
@@ -26,22 +26,23 @@ object ContainerMethods {
 
   final case class Port(
     privatePort: Int,
-    publicPort: Option[Int],
-    kind: PortKind.PortKind,
-    ip: Option[String]
+    publicPort:  Option[Int],
+    kind:        PortKind.PortKind,
+    ip:          Option[String]
   )
 
   final case class ContainerItem(
-    id: String,
-    names: List[String],
-    image: String,
-    command: String,
-    createdAt: ZonedDateTime,
-    status: String,
-    ports: List[Port],
-    sizeRw: Option[Long],
+    id:         String,
+    names:      List[String],
+    image:      String,
+    command:    String,
+    createdAt:  ZonedDateTime,
+    status:     String,
+    ports:      List[Port],
+    sizeRw:     Option[Long],
     sizeRootFs: Option[Long]
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   object MountMode extends Enumeration {
     type MountMode = Value
@@ -53,15 +54,15 @@ object ContainerMethods {
   }
 
   final case class MountPoint(
-    source: String,
-    destination: String,
-    mode: Set[MountMode.MountMode],
+    source:         String,
+    destination:    String,
+    mode:           Set[MountMode.MountMode],
     isReadAndWrite: Boolean
   )
 
   final case class PortBinding(
     port: Int,
-    ip: Option[String]
+    ip:   Option[String]
   )
 
   sealed trait RestartPolicy {
@@ -94,34 +95,35 @@ object ContainerMethods {
   )
 
   final case class Container(
-    id: String,
-    names: List[String],
-    image: String,
-    command: String,
-    created: Int,
-    ports: List[Port],
-    sizeRw: Option[Int],
+    id:         String,
+    names:      List[String],
+    image:      String,
+    command:    String,
+    created:    Int,
+    ports:      List[Port],
+    sizeRw:     Option[Int],
     sizeRootFs: Option[Int],
-    labels: Map[String, String],
-    status: String,
+    labels:     Map[String, String],
+    status:     String,
     hostConfig: HostConfigNetworkMode
   )
 
   final case class CopyConfig(
     resource: String
-  ) extends DockerApiRequest
+  )
+      extends DockerApiRequest
 
   final case class ContainerPathStat(
-    name: String,
-    size: Long,
-    mode: Int, // TODO
+    name:       String,
+    size:       Long,
+    mode:       Int, // TODO
     modifiedAt: ZonedDateTime,
     linkTarget: Option[String]
   )
 
   final case class ContainerProcessList(
     processes: List[List[String]],
-    titles: List[String]
+    titles:    List[String]
   )
 
   sealed trait VolumeBindPath extends MapToString
@@ -133,68 +135,72 @@ object ContainerMethods {
 
     final case class VolumeHostPath(
       hostPath: String,
-      path: String,
-      mode: MountMode.MountMode
-    ) extends VolumeBindPath {
+      path:     String,
+      mode:     MountMode.MountMode
+    )
+        extends VolumeBindPath {
       def mapToString() = s"$hostPath:$path:$mode"
     }
 
     def parse(s: String) = s.split(':').toList match {
-      case path :: Nil => VolumePath(path)
-      case hostPath :: path :: xs =>
+      case path :: Nil ⇒ VolumePath(path)
+      case hostPath :: path :: xs ⇒
         val mode = xs.headOption match {
-          case Some("ro") => MountMode.ro
-          case _ => MountMode.rw
+          case Some("ro") ⇒ MountMode.ro
+          case _          ⇒ MountMode.rw
         }
         VolumeHostPath(hostPath, path, mode)
-      case _ => deserializationError(s"Unknown bind format: $s")
+      case _ ⇒ deserializationError(s"Unknown bind format: $s")
     }
   }
 
   final case class ContainerLink(
-    name: String,
+    name:  String,
     alias: String
-  ) extends MapToString {
+  )
+      extends MapToString {
     def mapToString() = s"$name:$alias"
   }
 
   object ContainerLink {
     def parse(s: String) = s.split(':').toList match {
-      case name :: alias :: Nil => ContainerLink(name, alias)
-      case _ => deserializationError(s"Unknown link format: $s")
+      case name :: alias :: Nil ⇒ ContainerLink(name, alias)
+      case _                    ⇒ deserializationError(s"Unknown link format: $s")
     }
   }
 
   final case class VolumeFrom(
     name: String,
     mode: MountMode.MountMode
-  ) extends MapToString {
+  )
+      extends MapToString {
     def mapToString() = s"$name:$mode"
   }
 
   object VolumeFrom {
     def parse(s: String) = s.split(':').toList match {
-      case name :: xs =>
+      case name :: xs ⇒
         val mode = xs.headOption match {
-          case Some("ro") => MountMode.ro
-          case _ => MountMode.rw
+          case Some("ro") ⇒ MountMode.ro
+          case _          ⇒ MountMode.rw
         }
         VolumeFrom(name, mode)
-      case _ => deserializationError(s"Unknown volume format: $s")
+      case _ ⇒ deserializationError(s"Unknown volume format: $s")
     }
   }
 
   final case class ExtraHost(
     hostname: String,
-    ip: String
-  ) extends MapToString {
+    ip:       String
+  )
+      extends MapToString {
     def mapToString() = s"$hostname:$ip"
   }
 
   object ExtraHost {
     def parse(s: String) = s.split(':').toList match {
-      case hostname :: ip :: Nil => ExtraHost(hostname, ip)
-      case _ => deserializationError(s"Unknown host format: $s")
+      case hostname :: ip :: Nil ⇒ ExtraHost(hostname, ip)
+      case _                     ⇒ deserializationError(s"Unknown host format: $s")
     }
   }
 
@@ -305,12 +311,12 @@ object ContainerMethods {
     }
 
     def parse(s: String) = s.split(':').toList match {
-      case "bridge" :: Nil => Bridge
-      case "host" :: Nil => Host
-      case "container" :: name :: Nil => ContainerHost(name)
-      case "none" :: Nil => None
-      case "default" :: Nil => Default
-      case m => deserializationError(s"Unknown network mode: $m")
+      case "bridge" :: Nil            ⇒ Bridge
+      case "host" :: Nil              ⇒ Host
+      case "container" :: name :: Nil ⇒ ContainerHost(name)
+      case "none" :: Nil              ⇒ None
+      case "default" :: Nil           ⇒ Default
+      case m                          ⇒ deserializationError(s"Unknown network mode: $m")
     }
   }
 
@@ -326,9 +332,9 @@ object ContainerMethods {
     }
 
     def parse(s: String) = s.split(':').toList match {
-      case "" :: Nil | "host" :: Nil => Host
-      case "container" :: name :: Nil => ContainerHost(name)
-      case m => deserializationError(s"Unknown IPC mode: $m")
+      case "" :: Nil | "host" :: Nil  ⇒ Host
+      case "container" :: name :: Nil ⇒ ContainerHost(name)
+      case m                          ⇒ deserializationError(s"Unknown IPC mode: $m")
     }
   }
 
@@ -340,8 +346,8 @@ object ContainerMethods {
     }
 
     def parse(s: String) = s.split(':').toList match {
-      case "" :: Nil | "host" :: Nil => Host
-      case m => deserializationError(s"Unknown UTS mode: $m")
+      case "" :: Nil | "host" :: Nil ⇒ Host
+      case m                         ⇒ deserializationError(s"Unknown UTS mode: $m")
     }
   }
 
@@ -353,14 +359,14 @@ object ContainerMethods {
     }
 
     def parse(s: String) = s.split(':').toList match {
-      case "" :: Nil | "host" :: Nil => Host
-      case m => deserializationError(s"Unknown PID mode: $m")
+      case "" :: Nil | "host" :: Nil ⇒ Host
+      case m                         ⇒ deserializationError(s"Unknown PID mode: $m")
     }
   }
 
   final case class DeviceMapping(
-    pathOnHost: String,
-    pathInContainer: String,
+    pathOnHost:        String,
+    pathInContainer:   String,
     cgroupPermissions: String
   )
 
@@ -381,7 +387,7 @@ object ContainerMethods {
   }
 
   final case class LogConfig(
-    kind: LogDriver.LogDriver,
+    kind:   LogDriver.LogDriver,
     config: Map[String, String] = Map.empty
   )
 
@@ -395,52 +401,52 @@ object ContainerMethods {
   }
 
   final case class ConsoleSize(
-    width: Int,
+    width:  Int,
     height: Int
   )
 
   type LxcConf = Map[String, String]
 
   final case class HostConfig(
-    binds: List[VolumeBindPath] = List.empty,
-    links: List[ContainerLink] = List.empty,
-    lxcConf: LxcConf = Map.empty,
-    memory: Option[Long] = None,
-    memorySwap: Option[Long] = None,
-    kernelMemory: Option[Long] = None,
-    cpuShares: Option[Int] = None,
-    cpuPeriod: Option[Long] = None,
-    cpusetCpus: Option[String] = None,
-    cpusetMems: Option[String] = None,
-    cpuQuota: Option[Long] = None,
-    blockIoWeight: Option[Int] = None,
-    memorySwappiness: Option[Int] = None,
-    isOomKillDisable: Boolean = false,
-    portBindings: PortBindings = Map.empty,
-    isPublishAllPorts: Boolean = false,
-    isPrivileged: Boolean = false,
-    isReadonlyRootfs: Boolean = false,
-    dns: List[String] = List.empty,
-    dnsOptions: List[String] = List.empty,
-    dnsSearch: List[String] = List.empty,
-    extraHosts: List[ExtraHost] = List.empty,
-    volumesFrom: List[VolumeFrom] = List.empty,
-    ipcMode: Option[IpcMode] = None,
-    pidMode: Option[PidMode] = None,
-    utsMode: Option[UtsMode] = None,
-    capacityAdd: List[Capacity.Capacity] = List.empty,
-    capacityDrop: List[Capacity.Capacity] = List.empty,
-    groupAdd: List[String] = List.empty,
-    restartPolicy: RestartPolicy = RestartPolicy.No,
-    networkMode: NetworkMode = NetworkMode.Bridge,
-    devices: List[DeviceMapping] = List.empty,
-    ulimits: List[Ulimit] = List.empty,
-    logConfig: Option[LogConfig] = None,
-    securityOpt: List[String] = List.empty,
-    cgroupParent: Option[String] = None,
-    consoleSize: Option[ConsoleSize] = None,
-    volumeDriver: Option[String] = None,
-    isolation: Option[IsolationLevel.IsolationLevel] = None
+    binds:             List[VolumeBindPath]                  = List.empty,
+    links:             List[ContainerLink]                   = List.empty,
+    lxcConf:           LxcConf                               = Map.empty,
+    memory:            Option[Long]                          = None,
+    memorySwap:        Option[Long]                          = None,
+    kernelMemory:      Option[Long]                          = None,
+    cpuShares:         Option[Int]                           = None,
+    cpuPeriod:         Option[Long]                          = None,
+    cpusetCpus:        Option[String]                        = None,
+    cpusetMems:        Option[String]                        = None,
+    cpuQuota:          Option[Long]                          = None,
+    blockIoWeight:     Option[Int]                           = None,
+    memorySwappiness:  Option[Int]                           = None,
+    isOomKillDisable:  Boolean                               = false,
+    portBindings:      PortBindings                          = Map.empty,
+    isPublishAllPorts: Boolean                               = false,
+    isPrivileged:      Boolean                               = false,
+    isReadonlyRootfs:  Boolean                               = false,
+    dns:               List[String]                          = List.empty,
+    dnsOptions:        List[String]                          = List.empty,
+    dnsSearch:         List[String]                          = List.empty,
+    extraHosts:        List[ExtraHost]                       = List.empty,
+    volumesFrom:       List[VolumeFrom]                      = List.empty,
+    ipcMode:           Option[IpcMode]                       = None,
+    pidMode:           Option[PidMode]                       = None,
+    utsMode:           Option[UtsMode]                       = None,
+    capacityAdd:       List[Capacity.Capacity]               = List.empty,
+    capacityDrop:      List[Capacity.Capacity]               = List.empty,
+    groupAdd:          List[String]                          = List.empty,
+    restartPolicy:     RestartPolicy                         = RestartPolicy.No,
+    networkMode:       NetworkMode                           = NetworkMode.Bridge,
+    devices:           List[DeviceMapping]                   = List.empty,
+    ulimits:           List[Ulimit]                          = List.empty,
+    logConfig:         Option[LogConfig]                     = None,
+    securityOpt:       List[String]                          = List.empty,
+    cgroupParent:      Option[String]                        = None,
+    consoleSize:       Option[ConsoleSize]                   = None,
+    volumeDriver:      Option[String]                        = None,
+    isolation:         Option[IsolationLevel.IsolationLevel] = None
   )
 
   sealed trait ExposePort extends MapToString {
@@ -460,139 +466,147 @@ object ContainerMethods {
     }
 
     def parse(s: String) = s.split('/').toList match {
-      case p :: "tcp" :: Nil => Tcp(p.toInt)
-      case p :: "udp" :: Nil => Udp(p.toInt)
-      case _ => deserializationError(s"Unknown port and protocol: $s")
+      case p :: "tcp" :: Nil ⇒ Tcp(p.toInt)
+      case p :: "udp" :: Nil ⇒ Udp(p.toInt)
+      case _                 ⇒ deserializationError(s"Unknown port and protocol: $s")
     }
   }
 
   type ExposedPorts = Set[ExposePort]
 
   final case class RunConfig(
-    hostname: Option[String] = None,
-    domainName: Option[String] = None,
-    user: Option[String] = None,
-    isAttachStdin: Boolean = false,
-    isAttachStdout: Boolean = false,
-    isAttachStderr: Boolean = false,
-    exposedPorts: ExposedPorts = Set.empty,
-    publishService: Option[String] = None,
-    isTty: Boolean = false,
-    isOpenStdin: Boolean = false,
-    isStdinOnce: Boolean = false,
-    env: List[String] = List.empty,
-    command: List[String] = List.empty,
-    image: Option[String],
-    volumes: Map[String, Unit] = Map.empty,
-    volumeDriver: Option[String] = None,
-    workingDirectory: Option[String] = None,
-    entrypoint: List[String] = List.empty,
-    isNetworkDisabled: Boolean = false,
-    macAddress: Option[String] = None,
-    labels: Map[String, String] = Map.empty,
-    onBuild: List[String] = List.empty
+    hostname:          Option[String]      = None,
+    domainName:        Option[String]      = None,
+    user:              Option[String]      = None,
+    isAttachStdin:     Boolean             = false,
+    isAttachStdout:    Boolean             = false,
+    isAttachStderr:    Boolean             = false,
+    exposedPorts:      ExposedPorts        = Set.empty,
+    publishService:    Option[String]      = None,
+    isTty:             Boolean             = false,
+    isOpenStdin:       Boolean             = false,
+    isStdinOnce:       Boolean             = false,
+    env:               List[String]        = List.empty,
+    command:           List[String]        = List.empty,
+    image:             Option[String],
+    volumes:           Map[String, Unit]   = Map.empty,
+    volumeDriver:      Option[String]      = None,
+    workingDirectory:  Option[String]      = None,
+    entrypoint:        List[String]        = List.empty,
+    isNetworkDisabled: Boolean             = false,
+    macAddress:        Option[String]      = None,
+    labels:            Map[String, String] = Map.empty,
+    onBuild:           List[String]        = List.empty
   )
 
   final case class ContainerCreate(
-    image: String,
-    hostname: Option[String] = None,
-    domainName: Option[String] = None,
-    user: Option[String] = None,
-    isAttachStdin: Boolean = false,
-    isAttachStdout: Boolean = false,
-    isAttachStderr: Boolean = false,
-    isTty: Boolean = false,
-    isOpenStdin: Boolean = false,
-    isStdinOnce: Boolean = false,
-    env: List[String] = List.empty,
-    command: List[String] = List.empty,
-    entrypoint: Option[String] = None,
-    labels: Map[String, String] = Map.empty,
-    mounts: List[MountPoint] = List.empty,
-    isNetworkDisabled: Boolean = false,
-    workingDirectory: Option[String] = None,
-    macAddress: Option[String] = None,
-    exposedPorts: ExposedPorts = Set.empty,
-    hostConfig: HostConfig = HostConfig()
-  ) extends DockerApiRequest
+    image:             String,
+    hostname:          Option[String]      = None,
+    domainName:        Option[String]      = None,
+    user:              Option[String]      = None,
+    isAttachStdin:     Boolean             = false,
+    isAttachStdout:    Boolean             = false,
+    isAttachStderr:    Boolean             = false,
+    isTty:             Boolean             = false,
+    isOpenStdin:       Boolean             = false,
+    isStdinOnce:       Boolean             = false,
+    env:               List[String]        = List.empty,
+    command:           List[String]        = List.empty,
+    entrypoint:        Option[String]      = None,
+    labels:            Map[String, String] = Map.empty,
+    mounts:            List[MountPoint]    = List.empty,
+    isNetworkDisabled: Boolean             = false,
+    workingDirectory:  Option[String]      = None,
+    macAddress:        Option[String]      = None,
+    exposedPorts:      ExposedPorts        = Set.empty,
+    hostConfig:        HostConfig          = HostConfig()
+  )
+      extends DockerApiRequest
 
   final case class Address(
-    address: String,
+    address:      String,
     prefixLength: Int
   )
 
   final case class NetworkSettings(
-    bridge: Option[String],
-    endpointId: Option[String],
-    gateway: Option[String],
-    globalIpv6Address: Option[String],
-    globalIpv6PrefixLength: Int,
-    hairpinMode: Boolean,
-    ipAddress: Option[String],
-    ipPrefixLength: Int,
-    ipv6Gateway: Option[String],
-    linkLocalIpv6Address: Option[String],
+    bridge:                    Option[String],
+    endpointId:                Option[String],
+    gateway:                   Option[String],
+    globalIpv6Address:         Option[String],
+    globalIpv6PrefixLength:    Int,
+    hairpinMode:               Boolean,
+    ipAddress:                 Option[String],
+    ipPrefixLength:            Int,
+    ipv6Gateway:               Option[String],
+    linkLocalIpv6Address:      Option[String],
     linkLocalIpv6PrefixLength: Int,
-    macAddress: Option[String],
-    networkId: Option[String],
-    ports: Map[String, List[PortBinding]],
-    sandboxKey: Option[String],
-    secondaryIpAddresses: List[Address],
-    secondaryIpv6Addresses: List[Address]
+    macAddress:                Option[String],
+    networkId:                 Option[String],
+    ports:                     Map[String, List[PortBinding]],
+    sandboxKey:                Option[String],
+    secondaryIpAddresses:      List[Address],
+    secondaryIpv6Addresses:    List[Address]
   )
 
   final case class ContainerBase(
-    id: String,
-    createdAt: ZonedDateTime,
-    path: String,
-    args: List[String],
-    state: ContainerState,
-    image: String,
+    id:              String,
+    createdAt:       ZonedDateTime,
+    path:            String,
+    args:            List[String],
+    state:           ContainerState,
+    image:           String,
     networkSettings: NetworkSettings,
-    resolvConfPath: Option[String],
-    hostnamePath: Option[String],
-    hostsPath: Option[String],
-    logPath: Option[String],
-    name: String,
-    restartCount: Int,
-    driver: String,
-    execDriver: String,
-    mountLabel: Option[String],
-    processLabel: Option[String],
-    volumes: Map[String, String],
-    volumesRw: Map[String, Boolean],
+    resolvConfPath:  Option[String],
+    hostnamePath:    Option[String],
+    hostsPath:       Option[String],
+    logPath:         Option[String],
+    name:            String,
+    restartCount:    Int,
+    driver:          String,
+    execDriver:      String,
+    mountLabel:      Option[String],
+    processLabel:    Option[String],
+    volumes:         Map[String, String],
+    volumesRw:       Map[String, Boolean],
     appArmorProfile: Option[String],
-    execIds: List[String],
-    hostConfig: HostConfig,
+    execIds:         List[String],
+    hostConfig:      HostConfig,
     // GraphDriver     GraphDriverData
     config: RunConfig
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   final case class ContainerCreateResponse(
-    id: String,
+    id:       String,
     warnings: List[String]
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   final case class ContainerExecCreateResponse(
     id: String
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   final case class AuthResponse(
     status: String
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   final case class ContainerWaitResponse(
     statusCode: Int
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   final case class ContainerCommitResponse(
     id: String
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   final case class ContainerChange(
     kind: Int,
     path: String
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   final case class GraphDriverData(
     name: String,
@@ -614,107 +628,111 @@ object ContainerMethods {
 
   final case class ContainerChanges(
     changes: List[FileChange]
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   final case class NetworkStats(
-    rxBytes: Long,
+    rxBytes:   Long,
     rxPackets: Long,
-    rxErrors: Long,
+    rxErrors:  Long,
     rxDropped: Long,
-    txBytes: Long,
+    txBytes:   Long,
     txPackets: Long,
-    txErrors: Long,
+    txErrors:  Long,
     txDropped: Long
   )
 
   final case class ThrottlingData(
-    periods: Long,
+    periods:          Long,
     throttledPeriods: Long,
-    throttledTime: Long
+    throttledTime:    Long
   )
 
   final case class CpuUsage(
-    total: Long,
-    perCpu: List[Long],
+    total:        Long,
+    perCpu:       List[Long],
     inKernelMode: Long,
-    inUserMode: Long
+    inUserMode:   Long
   )
 
   final case class CpuStats(
-    cpu: CpuUsage,
-    system: Long,
+    cpu:        CpuUsage,
+    system:     Long,
     throttling: ThrottlingData
   )
 
   final case class MemoryStats(
-    usage: Long,
+    usage:    Long,
     maxUsage: Long,
-    stats: Map[String, Long],
-    failcnt: Long,
-    limit: Long
+    stats:    Map[String, Long],
+    failcnt:  Long,
+    limit:    Long
   )
 
   final case class BlockIoStatEntry(
     major: Long,
     minor: Long,
-    op: Option[String],
+    op:    Option[String],
     value: Long
   )
 
   final case class BlockIoStats(
     ioServiceBytes: List[BlockIoStatEntry],
-    ioServiced: List[BlockIoStatEntry],
-    ioQueued: List[BlockIoStatEntry],
-    ioServiceTime: List[BlockIoStatEntry],
-    ioWaitTime: List[BlockIoStatEntry],
-    ioMerged: List[BlockIoStatEntry],
-    ioTime: List[BlockIoStatEntry],
-    sectors: List[BlockIoStatEntry]
+    ioServiced:     List[BlockIoStatEntry],
+    ioQueued:       List[BlockIoStatEntry],
+    ioServiceTime:  List[BlockIoStatEntry],
+    ioWaitTime:     List[BlockIoStatEntry],
+    ioMerged:       List[BlockIoStatEntry],
+    ioTime:         List[BlockIoStatEntry],
+    sectors:        List[BlockIoStatEntry]
   )
 
   final case class ContainerStats(
     readedAt: ZonedDateTime,
-    preCpu: CpuStats,
-    cpu: CpuStats,
-    memory: MemoryStats,
-    blockIo: BlockIoStats,
+    preCpu:   CpuStats,
+    cpu:      CpuStats,
+    memory:   MemoryStats,
+    blockIo:  BlockIoStats,
     networks: Option[Map[String, NetworkStats]],
-    network: Option[NetworkStats]
-  ) extends DockerApiResponse
+    network:  Option[NetworkStats]
+  )
+      extends DockerApiResponse
 
   final case class ExecConfig(
-    command: List[String],
-    user: Option[String],
-    isPrivileged: Boolean,
-    isTty: Boolean,
-    containerId: Option[String],
-    isAttachStdin: Boolean,
+    command:        List[String],
+    user:           Option[String],
+    isPrivileged:   Boolean,
+    isTty:          Boolean,
+    containerId:    Option[String],
+    isAttachStdin:  Boolean,
     isAttachStderr: Boolean,
     isAttachStdout: Boolean,
-    isDetach: Boolean
+    isDetach:       Boolean
   )
 
   final case class ExecStartCheck(
     isDetach: Boolean,
-    isTty: Boolean
-  ) extends DockerApiRequest
+    isTty:    Boolean
+  )
+      extends DockerApiRequest
 
   final case class ProcessConfig(
     isPrivileged: Boolean,
-	  user: Option[String],
-	  isTty: Boolean,
-	  entrypoint: Option[String],
-	  arguments: List[String]
+    user:         Option[String],
+    isTty:        Boolean,
+    entrypoint:   Option[String],
+    arguments:    List[String]
   )
 
   final case class ExecInspect(
-    id: String,
-	  isRunning: Boolean,
-	  exitCode: Option[Int],
-	  processConfig: ProcessConfig,
-	  isOpenStdin: Boolean,
-	  isOpenStderr: Boolean,
-	  isOpenStdout: Boolean,
-	  container: ContainerBase
-  ) extends DockerApiResponse
+    id:            String,
+    isRunning:     Boolean,
+    exitCode:      Option[Int],
+    processConfig: ProcessConfig,
+    isOpenStdin:   Boolean,
+    isOpenStderr:  Boolean,
+    isOpenStdout:  Boolean,
+    container:     ContainerBase
+  )
+      extends DockerApiResponse
 }

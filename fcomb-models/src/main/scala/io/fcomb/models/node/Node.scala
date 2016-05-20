@@ -15,23 +15,23 @@ object NodeState extends Enumeration {
   val Terminating = Value("terminating")
   val Terminated = Value("terminated")
 
-  implicit val nodeStateEq: Eq[NodeState] =
-    Eq.fromUniversalEquals
+  implicit val nodeStateEq: Eq[NodeState] = Eq.fromUniversalEquals
 }
 
 case class Node(
-    id:                Option[Long]          = None,
-    userId:            Long,
-    state:             NodeState.NodeState,
-    token:             String, // security token specific for node
-    rootCertificateId: Long,
-    signedCertificate: Array[Byte],
-    publicKeyHash:     String,
-    publicIpAddress:   Option[String]        = None,
-    createdAt:         ZonedDateTime,
-    updatedAt:         ZonedDateTime,
-    terminatedAt:      Option[ZonedDateTime] = None
-) extends ModelWithAutoLongPk {
+  id:                Option[Long]          = None,
+  userId:            Long,
+  state:             NodeState.NodeState,
+  token:             String, // security token specific for node
+  rootCertificateId: Long,
+  signedCertificate: Array[Byte],
+  publicKeyHash:     String,
+  publicIpAddress:   Option[String]        = None,
+  createdAt:         ZonedDateTime,
+  updatedAt:         ZonedDateTime,
+  terminatedAt:      Option[ZonedDateTime] = None
+)
+    extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 
   def publicIpInetAddress() =

@@ -1,14 +1,14 @@
 package io.fcomb.models.errors.docker.distribution
 
 import enumeratum.EnumEntry
-import io.fcomb.models.{Enum, EnumItem}
-import io.fcomb.models.errors.{Error, ErrorResponse}
+import io.fcomb.models.{ Enum, EnumItem }
+import io.fcomb.models.errors.{ Error, ErrorResponse }
 
 sealed trait DistributionErrorDetail
 
 sealed trait DistributionErrorCode extends EnumItem with EnumEntry.Uppercase
 
-final object DistributionErrorCode extends Enum[DistributionErrorCode] {
+object DistributionErrorCode extends Enum[DistributionErrorCode] {
   final case object BlobUnknown extends DistributionErrorCode
   final case object BlobUploadInvalid extends DistributionErrorCode
   final case object BlobUploadUnknown extends DistributionErrorCode
@@ -35,28 +35,37 @@ sealed trait DistributionError extends Error {
   val detail: Option[DistributionErrorDetail]
 }
 
-final object DistributionError {
-  final case class DigestInvalid(message: String = "provided digest did not match uploaded content") extends DistributionError {
+object DistributionError {
+  final case class DigestInvalid(
+    message: String = "provided digest did not match uploaded content"
+  )
+      extends DistributionError {
     val code = DistributionErrorCode.DigestInvalid
     val detail = None
   }
 
-  final case class Unknown(message: String = "unknown error") extends DistributionError {
+  final case class Unknown(message: String = "unknown error")
+      extends DistributionError {
     val code = DistributionErrorCode.Unknown
     val detail = None
   }
 
-  final case class NameInvalid(message: String = "invalid repository name") extends DistributionError {
+  final case class NameInvalid(message: String = "invalid repository name")
+      extends DistributionError {
     val code = DistributionErrorCode.NameInvalid
     val detail = None
   }
 
-  final case class ManifestUnverified(message: String = "manifest failed signature verification") extends DistributionError {
+  final case class ManifestUnverified(
+    message: String = "manifest failed signature verification"
+  )
+      extends DistributionError {
     val code = DistributionErrorCode.ManifestUnverified
     val detail = None
   }
 
-  final case class ManifestInvalid(message: String = "manifest invalid") extends DistributionError {
+  final case class ManifestInvalid(message: String = "manifest invalid")
+      extends DistributionError {
     val code = DistributionErrorCode.ManifestInvalid
     val detail = None
   }
@@ -64,9 +73,10 @@ final object DistributionError {
 
 final case class DistributionErrorResponse(
   errors: Seq[DistributionError]
-) extends ErrorResponse
+)
+    extends ErrorResponse
 
-final object DistributionErrorResponse {
+object DistributionErrorResponse {
   def from(error: DistributionError): DistributionErrorResponse =
     DistributionErrorResponse(Seq(error))
 }

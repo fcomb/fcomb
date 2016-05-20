@@ -3,16 +3,18 @@ package io.fcomb.persist.docker
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
+import io.fcomb.models.docker.{ ContainerState, Container ⇒ MContainer }
 import io.fcomb.request
 import io.fcomb.response
 import io.fcomb.persist._
 import io.fcomb.validations._
-import io.fcomb.utils.{StringUtils, Random}
-import scala.concurrent.{ExecutionContext, Future}
+import io.fcomb.utils.{ StringUtils, Random }
+import scala.concurrent.{ ExecutionContext, Future }
 import java.time.ZonedDateTime
 
-class ContainerTable(tag: Tag) extends Table[MContainer](tag, "containers") with PersistTableWithAutoLongPk {
+class ContainerTable(tag: Tag)
+    extends Table[MContainer](tag, "containers")
+    with PersistTableWithAutoLongPk {
   def state = column[ContainerState.ContainerState]("state")
   def userId = column[Long]("user_id")
   def applicationId = column[Long]("application_id")
@@ -25,12 +27,24 @@ class ContainerTable(tag: Tag) extends Table[MContainer](tag, "containers") with
   def terminatedAt = column[Option[ZonedDateTime]]("terminated_at")
 
   def * =
-    (id, state, userId, applicationId, nodeId, name,
-      number, dockerId, createdAt, updatedAt, terminatedAt) <>
+    (
+      id,
+      state,
+      userId,
+      applicationId,
+      nodeId,
+      name,
+      number,
+      dockerId,
+      createdAt,
+      updatedAt,
+      terminatedAt
+    ) <>
       ((MContainer.apply _).tupled, MContainer.unapply)
 }
 
-object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] {
+object Container
+    extends PersistModelWithAutoLongPk[MContainer, ContainerTable] {
   val table = TableQuery[ContainerTable]
 
   def create(
@@ -44,16 +58,18 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     ec: ExecutionContext
   ): Future[ValidationModel] = {
     val timeNow = ZonedDateTime.now
-    create(MContainer(
-      state = ContainerState.Pending,
-      userId = userId,
-      applicationId = applicationId,
-      nodeId = nodeId,
-      name = s"$name-$number",
-      number = number,
-      createdAt = timeNow,
-      updatedAt = timeNow
-    ))
+    create(
+      MContainer(
+        state = ContainerState.Pending,
+        userId = userId,
+        applicationId = applicationId,
+        nodeId = nodeId,
+        name = s"$name-$number",
+        number = number,
+        createdAt = timeNow,
+        updatedAt = timeNow
+      )
+    )
   }
 
   def batchCreatePending(
@@ -87,7 +103,8 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     ec: ExecutionContext
   ): Future[Seq[MContainer]] = {
     def f(container: MContainer) =
-      table.filter(_.id === container.getId)
+      table
+        .filter(_.id === container.getId)
         .map(t ⇒ (t.state, t.nodeId, t.dockerId))
         .update((container.state, container.nodeId, container.dockerId))
 
@@ -103,13 +120,12 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     state: ContainerState.ContainerState
   ) = db.run {
     println(s"updateState $state ids: $ids")
-    table.filter(_.id inSetBind ids)
-      .map(_.state)
-      .update(state)
+    table.filter(_.id inSetBind ids).map(_.state).update(state)
   }
 
-  private val findAllByApplicationIdCompiled = Compiled { applicationId: Rep[Long] ⇒
-    table.filter(_.applicationId === applicationId)
+  private val findAllByApplicationIdCompiled = Compiled {
+    applicationId: Rep[Long] ⇒
+      table.filter(_.applicationId === applicationId)
   }
 
   def findAllByApplicationId(applicationId: Long) = db.run {
@@ -140,7 +156,8 @@ object Container extends PersistModelWithAutoLongPk[MContainer, ContainerTable] 
     state:     ContainerState.ContainerState,
     updatedAt: ZonedDateTime
   ) = db.run {
-    table.filter(_.id === id)
+    table
+      .filter(_.id === id)
       .map(t ⇒ (t.state, t.updatedAt))
       .update((state, updatedAt))
   }

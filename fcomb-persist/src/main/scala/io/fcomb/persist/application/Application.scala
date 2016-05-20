@@ -4,17 +4,19 @@ import akka.stream.Materializer
 import io.circe.Json
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.json.{dockerDeployPortJsonProtocol, networkPortJsonProtocol}
-import io.fcomb.models.application.{ApplicationState, ScaleStrategy, ScaleStrategyKind, Application ⇒ MApplication, _}
+import io.fcomb.json.{ dockerDeployPortJsonProtocol, networkPortJsonProtocol }
+import io.fcomb.models.application.{ ApplicationState, ScaleStrategy, ScaleStrategyKind, Application ⇒ MApplication, _ }
 import io.fcomb.persist._
 import io.fcomb.request
 import io.fcomb.response
-import io.fcomb.utils.{StringUtils, Random}
+import io.fcomb.utils.{ StringUtils, Random }
 import io.fcomb.validations._
 import java.time.ZonedDateTime
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
-class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications") with PersistTableWithAutoLongPk {
+class ApplicationTable(tag: Tag)
+    extends Table[MApplication](tag, "applications")
+    with PersistTableWithAutoLongPk {
   def userId = column[Long]("user_id")
   def state = column[ApplicationState.ApplicationState]("state")
   def name = column[String]("name")
@@ -42,13 +44,29 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
   def ssNumberOfContainers = column[Int]("ss_number_of_containers")
 
   def * =
-    (id, userId, state, name, createdAt, updatedAt, terminatedAt,
+    (
+      id,
+      userId,
+      state,
+      name,
+      createdAt,
+      updatedAt,
+      terminatedAt,
       // docker image tuple
       (diName, diTag, diRegistry),
       // docker deploy options tuple
-      (ddoPorts, ddoIsAutoRestart, ddoIsAutoDestroy, ddoIsPrivileged,
-        ddoCommand, ddoEntrypoint, ddoMemoryLimit, ddoCpuShares),
-        (ssKind, ssNumberOfContainers)) <>
+      (
+        ddoPorts,
+        ddoIsAutoRestart,
+        ddoIsAutoDestroy,
+        ddoIsPrivileged,
+        ddoCommand,
+        ddoEntrypoint,
+        ddoMemoryLimit,
+        ddoCpuShares
+      ),
+        (ssKind, ssNumberOfContainers)
+    ) <>
         ((apply2 _).tupled, unapply2)
 
   def apply2(
@@ -64,7 +82,8 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
     ssTuple:      (ScaleStrategyKind.ScaleStrategyKind, Int)
   ) = {
     val image = DockerImage.tupled(diTuple)
-    val ports = ??? // ddoTuple._1.convertTo[Set[DockerDeployPort]] // TODO: handle serialize errors and case class changes
+    val ports =
+      ??? // ddoTuple._1.convertTo[Set[DockerDeployPort]] // TODO: handle serialize errors and case class changes
     val deployOptions = DockerDeployOptions.tupled(
       ddoTuple.copy(_1 = ports)
     )
@@ -86,19 +105,26 @@ class ApplicationTable(tag: Tag) extends Table[MApplication](tag, "applications"
   def unapply2(a: MApplication) = {
     val ports: Json = ??? // a.deployOptions.ports.toJson
     val deployOptionsTuple =
-      DockerDeployOptions.unapply(a.deployOptions)
-        .get
-        .copy(_1 = ports)
-    Some((
-      a.id, a.userId, a.state, a.name, a.createdAt, a.updatedAt, a.terminatedAt,
-      DockerImage.unapply(a.image).get,
-      deployOptionsTuple,
-      ScaleStrategy.unapply(a.scaleStrategy).get
-    ))
+      DockerDeployOptions.unapply(a.deployOptions).get.copy(_1 = ports)
+    Some(
+      (
+        a.id,
+        a.userId,
+        a.state,
+        a.name,
+        a.createdAt,
+        a.updatedAt,
+        a.terminatedAt,
+        DockerImage.unapply(a.image).get,
+        deployOptionsTuple,
+        ScaleStrategy.unapply(a.scaleStrategy).get
+      )
+    )
   }
 }
 
-object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationTable] {
+object Application
+    extends PersistModelWithAutoLongPk[MApplication, ApplicationTable] {
   val table = TableQuery[ApplicationTable]
 
   def createByRequest(
@@ -106,32 +132,33 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
     req:    request.ApplicationRequest
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeNow = ZonedDateTime.now()
-    create(MApplication(
-      userId = userId,
-      state = ApplicationState.Created,
-      name = req.name,
-      image = req.image,
-      deployOptions = req.deployOptions,
-      scaleStrategy = req.scaleStrategy,
-      createdAt = timeNow,
-      updatedAt = timeNow
-    ))
+    create(
+      MApplication(
+        userId = userId,
+        state = ApplicationState.Created,
+        name = req.name,
+        image = req.image,
+        deployOptions = req.deployOptions,
+        scaleStrategy = req.scaleStrategy,
+        createdAt = timeNow,
+        updatedAt = timeNow
+      )
+    )
   }
 
   def updateState(
     id:    Long,
     state: ApplicationState.ApplicationState
   ) = db.run {
-    table.filter(_.id === id)
-      .map(_.state)
-      .update(state)
+    table.filter(_.id === id).map(_.state).update(state)
   }
 
   def updateNumberOfContainers(
     id:                 Long,
     numberOfContainers: Int
   ) = db.run {
-    table.filter(_.id === id)
+    table
+      .filter(_.id === id)
       .map(_.ssNumberOfContainers)
       .update(numberOfContainers)
   }
@@ -140,16 +167,16 @@ object Application extends PersistModelWithAutoLongPk[MApplication, ApplicationT
     id:            Long,
     scaleStrategy: ScaleStrategy
   ) = db.run {
-    table.filter(_.id === id)
+    table
+      .filter(_.id === id)
       .map(t ⇒ (t.ssKind, t.ssNumberOfContainers))
       .update((scaleStrategy.kind, scaleStrategy.numberOfContainers))
   }
 
-  private val isOwnerCompiled = Compiled {
-    (userId: Rep[Long], id: Rep[Long]) ⇒
-      table.filter { q ⇒
-        q.id === id && q.userId === userId
-      }.exists
+  private val isOwnerCompiled = Compiled { (userId: Rep[Long], id: Rep[Long]) ⇒
+    table.filter { q ⇒
+      q.id === id && q.userId === userId
+    }.exists
   }
 
   def isOwner(userId: Long, id: Long) = db.run {

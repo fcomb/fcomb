@@ -4,11 +4,12 @@ import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models
 import cats.data.Validated
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import slick.jdbc.TransactionIsolation
 import java.time.ZonedDateTime
 
-class UserCertificateTable(tag: Tag) extends Table[models.UserCertificate](tag, "user_certificates")
+class UserCertificateTable(tag: Tag)
+    extends Table[models.UserCertificate](tag, "user_certificates")
     with PersistTableWithAutoLongPk {
 
   def userId = column[Long]("user_id")
@@ -23,7 +24,8 @@ class UserCertificateTable(tag: Tag) extends Table[models.UserCertificate](tag, 
       ((models.UserCertificate.apply _).tupled, models.UserCertificate.unapply)
 }
 
-object UserCertificate extends PersistModelWithAutoLongPk[models.UserCertificate, UserCertificateTable] {
+object UserCertificate
+    extends PersistModelWithAutoLongPk[models.UserCertificate, UserCertificateTable] {
   val table = TableQuery[UserCertificateTable]
 
   def createRootAndClient(
@@ -66,13 +68,14 @@ object UserCertificate extends PersistModelWithAutoLongPk[models.UserCertificate
     findRootCertByUserIdCompiled(userId).result.headOption
   }
 
-  private val findRootAndClientCertsByUserIdCompiled = Compiled { userId: Rep[Long] ⇒
-    table.filter { q ⇒
-      q.userId === userId && (
-        q.kind === models.CertificateKind.Root ||
-        q.kind === models.CertificateKind.Client
-      )
-    }.take(2)
+  private val findRootAndClientCertsByUserIdCompiled = Compiled {
+    userId: Rep[Long] ⇒
+      table.filter { q ⇒
+        q.userId === userId && (
+          q.kind === models.CertificateKind.Root ||
+          q.kind === models.CertificateKind.Client
+        )
+      }.take(2)
   }
 
   def findRootAndClientCertsByUserId(userId: Long)(

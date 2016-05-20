@@ -15,17 +15,19 @@ object UserService extends Service {
 
   def signUp(
     implicit
-    ec: ExecutionContext,
+    ec:  ExecutionContext,
     mat: Materializer
-  ) = action { implicit ctx =>
-    requestBodyAs[UserSignUpRequest] { req =>
+  ) = action { implicit ctx ⇒
+    requestBodyAs[UserSignUpRequest] { req ⇒
       completeValidation(
-        persist.User.create(
-          email = req.email,
-          username = req.username,
-          fullName = req.fullName,
-          password = req.password
-        ).map(_.map(_.toResponse[UserProfileResponse])),
+        persist.User
+          .create(
+            email = req.email,
+            username = req.username,
+            fullName = req.fullName,
+            password = req.password
+          )
+          .map(_.map(_.toResponse[UserProfileResponse])),
         StatusCodes.Created
       )
     }
@@ -33,10 +35,10 @@ object UserService extends Service {
 
   def me(
     implicit
-    ec: ExecutionContext,
+    ec:  ExecutionContext,
     mat: Materializer
-  ) = action { implicit ctx =>
-    authorizeUser { user =>
+  ) = action { implicit ctx ⇒
+    authorizeUser { user ⇒
       complete(
         user.toResponse[UserProfileResponse],
         StatusCodes.OK
@@ -46,11 +48,11 @@ object UserService extends Service {
 
   def updateProfile(
     implicit
-    ec: ExecutionContext,
+    ec:  ExecutionContext,
     mat: Materializer
-  ) = action { implicit ctx =>
-    authorizeUser { user =>
-      requestBodyAs[UserRequest] { req =>
+  ) = action { implicit ctx ⇒
+    authorizeUser { user ⇒
+      requestBodyAs[UserRequest] { req ⇒
         completeValidationWithoutContent(
           persist.User.updateByRequest(user.getId)(
             email = req.email,
@@ -64,11 +66,11 @@ object UserService extends Service {
 
   def changePassword(
     implicit
-    ec: ExecutionContext,
+    ec:  ExecutionContext,
     mat: Materializer
-  ) = action { implicit ctx =>
-    authorizeUser { user =>
-      requestBodyAs[ChangePasswordRequest] { req =>
+  ) = action { implicit ctx ⇒
+    authorizeUser { user ⇒
+      requestBodyAs[ChangePasswordRequest] { req ⇒
         completeWithoutContent(
           persist.User.changePassword(user, req.oldPassword, req.newPassword)
         )
@@ -80,9 +82,9 @@ object UserService extends Service {
     implicit
     sys: ActorSystem,
     mat: Materializer
-  ) = action { implicit ctx =>
+  ) = action { implicit ctx ⇒
     import sys.dispatcher
-    requestBodyAs[ResetPasswordRequest] { req =>
+    requestBodyAs[ResetPasswordRequest] { req ⇒
       completeWithoutContent(
         ResetPassword.reset(req.email)
       )
@@ -91,10 +93,10 @@ object UserService extends Service {
 
   def setPassword(
     implicit
-    ec: ExecutionContext,
+    ec:  ExecutionContext,
     mat: Materializer
-  ) = action { implicit ctx =>
-    requestBodyAs[ResetPasswordSetRequest] { req =>
+  ) = action { implicit ctx ⇒
+    requestBodyAs[ResetPasswordSetRequest] { req ⇒
       completeWithoutContent(
         ResetPassword.set(req.token, req.password)
       )

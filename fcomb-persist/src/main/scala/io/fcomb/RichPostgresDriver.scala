@@ -2,7 +2,8 @@ package io.fcomb
 
 import com.github.tminglei.slickpg._
 
-trait RichPostgresDriver extends ExPostgresDriver
+trait RichPostgresDriver
+    extends ExPostgresDriver
     with PgArraySupport
     with PgDateSupport
     with PgCirceJsonSupport

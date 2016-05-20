@@ -2,11 +2,11 @@ package io.fcomb.crypto
 
 import java.security.cert.X509Certificate
 import java.io.StringWriter
-import java.security.{PrivateKey, PublicKey, Signature}
-import java.util.{Calendar, Date, Vector ⇒ JavaVector}
+import java.security.{ PrivateKey, PublicKey, Signature }
+import java.util.{ Calendar, Date, Vector ⇒ JavaVector }
 import java.util.concurrent.ThreadLocalRandom
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter
-import java.security.cert.{Certificate ⇒ JavaCertificate}
+import java.security.cert.{ Certificate ⇒ JavaCertificate }
 import sun.security.tools.keytool.CertAndKeyGen
 import sun.security.x509._
 import sun.security.pkcs10.PKCS10
@@ -45,10 +45,13 @@ object Certificate {
     val info = x509CertInfo(issuer, expireAfterDays)
     info.set(X509CertInfo.KEY, new CertificateX509Key(keypair.getPublicKey()))
     info.set(X509CertInfo.SUBJECT, issuer)
-    val serialNumber = info.get(X509CertInfo.SERIAL_NUMBER)
+    val serialNumber = info
+      .get(X509CertInfo.SERIAL_NUMBER)
       .asInstanceOf[CertificateSerialNumber]
       .get(CertificateSerialNumber.NUMBER)
-    val ext = rootAuthorityExtensions(issuer, keypair.getPublicKey(), serialNumber)
+    val ext = rootAuthorityExtensions(
+      issuer, keypair.getPublicKey(), serialNumber
+    )
     info.set(X509CertInfo.EXTENSIONS, ext)
 
     val cert = new X509CertImpl(info)
@@ -98,14 +101,19 @@ object Certificate {
     expireAfterDays:  Int                           = defaultExpireAfterDays
   ) = {
     val signerCertImpl = new X509CertImpl(signerCert.getEncoded())
-    val signerCertInfo = signerCertImpl.get(s"${X509CertImpl.NAME}.${X509CertImpl.INFO}")
+    val signerCertInfo = signerCertImpl
+      .get(s"${X509CertImpl.NAME}.${X509CertImpl.INFO}")
       .asInstanceOf[X509CertInfo]
-    val issuer = signerCertInfo.get(s"${X509CertInfo.SUBJECT}.${X509CertInfo.DN_NAME}")
+    val issuer = signerCertInfo
+      .get(s"${X509CertInfo.SUBJECT}.${X509CertInfo.DN_NAME}")
       .asInstanceOf[X500Name]
     val signature = Signature.getInstance(keyAlgorithmName)
     signature.initSign(signerPrivateKey)
     val info = x509CertInfo(issuer, expireAfterDays)
-    info.set(X509CertInfo.KEY, new CertificateX509Key(request.getSubjectPublicKeyInfo()))
+    info.set(
+      X509CertInfo.KEY,
+      new CertificateX509Key(request.getSubjectPublicKeyInfo())
+    )
     info.set(X509CertInfo.SUBJECT, request.getSubjectName())
     extOpt.foreach(ext ⇒ info.set(X509CertInfo.EXTENSIONS, ext))
     val cert = new X509CertImpl(info)
@@ -140,8 +148,12 @@ object Certificate {
     val info = new X509CertInfo()
     info.set(X509CertInfo.VALIDITY, interval)
     val serialNumber = ThreadLocalRandom.current().nextInt() & 0x7fffffff
-    info.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(serialNumber))
-    info.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3))
+    info.set(
+      X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(serialNumber)
+    )
+    info.set(
+      X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3)
+    )
     val alg = AlgorithmId.get(keyAlgorithmName)
     info.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(alg))
     info.set(X509CertInfo.ISSUER, issuer)
@@ -157,16 +169,21 @@ object Certificate {
     keySize:          Int
   ) = {
     val signerCertImpl = new X509CertImpl(signerCert.getEncoded())
-    val signerCertInfo = signerCertImpl.get(s"${X509CertImpl.NAME}.${X509CertImpl.INFO}")
+    val signerCertInfo = signerCertImpl
+      .get(s"${X509CertImpl.NAME}.${X509CertImpl.INFO}")
       .asInstanceOf[X509CertInfo]
-    val issuer = signerCertInfo.get(s"${X509CertInfo.SUBJECT}.${X509CertInfo.DN_NAME}")
+    val issuer = signerCertInfo
+      .get(s"${X509CertInfo.SUBJECT}.${X509CertInfo.DN_NAME}")
       .asInstanceOf[X500Name]
     val signature = Signature.getInstance(keyAlgorithmName)
     signature.initSign(signerPrivateKey)
     val info = x509CertInfo(issuer, expireAfterDays)
     val keypair = generateCertAndKey(keySize)
     val req = keypair.getCertRequest(name)
-    info.set(X509CertInfo.KEY, new CertificateX509Key(req.getSubjectPublicKeyInfo()))
+    info.set(
+      X509CertInfo.KEY,
+      new CertificateX509Key(req.getSubjectPublicKeyInfo())
+    )
     info.set(X509CertInfo.SUBJECT, req.getSubjectName())
     info.set(X509CertInfo.EXTENSIONS, ext)
     val cert = new X509CertImpl(info)
@@ -181,7 +198,10 @@ object Certificate {
   ) = {
     val keyIdentifier = new KeyIdentifier(publicKey)
     val exts = new CertificateExtensions()
-    exts.set(BasicConstraintsExtension.NAME, new BasicConstraintsExtension(true, true, 0))
+    exts.set(
+      BasicConstraintsExtension.NAME,
+      new BasicConstraintsExtension(true, true, 0)
+    )
     val kue = new KeyUsageExtension()
     kue.set(KeyUsageExtension.CRL_SIGN, true)
     kue.set(KeyUsageExtension.KEY_CERTSIGN, true)
@@ -193,7 +213,9 @@ object Certificate {
     val generalNames = new GeneralNames().add(new GeneralName(issuer))
     exts.set(
       AuthorityKeyIdentifierExtension.NAME,
-      new AuthorityKeyIdentifierExtension(keyIdentifier, generalNames, serialNumber)
+      new AuthorityKeyIdentifierExtension(
+        keyIdentifier, generalNames, serialNumber
+      )
     )
     exts
   }
@@ -201,7 +223,10 @@ object Certificate {
   private def serverExtensions(hostname: String) = {
     val exts = new CertificateExtensions()
     val dns = new GeneralNames().add(new GeneralName(new DNSName(hostname)))
-    exts.set(SubjectAlternativeNameExtension.NAME, new SubjectAlternativeNameExtension(dns))
+    exts.set(
+      SubjectAlternativeNameExtension.NAME,
+      new SubjectAlternativeNameExtension(dns)
+    )
     val v = new JavaVector[ObjectIdentifier]()
     v.add(new ObjectIdentifier("1.3.6.1.5.5.7.3.1")) // serverAuth
     exts.set(ExtendedKeyUsageExtension.NAME, new ExtendedKeyUsageExtension(v))

@@ -4,15 +4,15 @@ import io.fcomb.api.services._
 import io.fcomb.json._
 import io.fcomb.request._
 import io.fcomb.response._
-import io.fcomb.persist.application.{Application ⇒ PApplication}
+import io.fcomb.persist.application.{ Application ⇒ PApplication }
 import io.fcomb.models.errors.ExpectedAuthorizationToken
 import io.fcomb.models.TokenRole
 import io.fcomb.services.application.ApplicationManager
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials}
-import scala.concurrent.{Future, ExecutionContext}
+import akka.http.scaladsl.model.headers.{ Authorization, GenericHttpCredentials }
+import scala.concurrent.{ Future, ExecutionContext }
 import cats.data.Validated
 
 object ApplicationService extends Service with ApplicationAuth {

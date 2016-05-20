@@ -28,12 +28,14 @@ private[api] object ParamHelpers {
       opt.getOrElse(-1L).toString
   }
 
-  implicit class OptionRegistryHelpers(val opt: Option[Registry]) extends AnyVal {
+  implicit class OptionRegistryHelpers(val opt: Option[Registry])
+      extends AnyVal {
     def toParam() =
       opt.map(_.toParam).getOrElse("")
   }
 
-  implicit class OptionZonedDateTimeHelpers(val opt: Option[ZonedDateTime]) extends AnyVal {
+  implicit class OptionZonedDateTimeHelpers(val opt: Option[ZonedDateTime])
+      extends AnyVal {
     def toParamAsTimestamp() =
       opt.map(_.toEpochSecond).toParam()
   }

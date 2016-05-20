@@ -11,13 +11,14 @@ object CertificateKind extends Enumeration {
 
 @SerialVersionUID(1L)
 case class UserCertificate(
-  id: Option[Long] = None,
-  userId: Long,
-  kind: CertificateKind.CertificateKind,
+  id:          Option[Long]                    = None,
+  userId:      Long,
+  kind:        CertificateKind.CertificateKind,
   certificate: Array[Byte],
-  key: Array[Byte],
-  createdAt: ZonedDateTime,
-  updatedAt: ZonedDateTime
-) extends ModelWithAutoLongPk {
+  key:         Array[Byte],
+  createdAt:   ZonedDateTime,
+  updatedAt:   ZonedDateTime
+)
+    extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 }

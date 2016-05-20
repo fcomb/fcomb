@@ -1,19 +1,19 @@
 package io.fcomb
 
-import akka.actor.{ActorSystem, Address}
+import akka.actor.{ ActorSystem, Address }
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
-import io.fcomb.api.services.{Routes => ApiRoutes}
+import io.fcomb.api.services.{ Routes ⇒ ApiRoutes }
 import io.fcomb.services.UserCertificateProcessor
-import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor, UserNodeProcessor}
+import io.fcomb.services.node.{ NodeJoinProcessor, NodeProcessor, UserNodeProcessor }
 import io.fcomb.services.application.ApplicationProcessor
-import io.fcomb.docker.distribution.server.api.{Routes => DockerDistributionRoutes}
+import io.fcomb.docker.distribution.server.api.{ Routes ⇒ DockerDistributionRoutes }
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
-import io.fcomb.utils.{Config, Implicits}
+import io.fcomb.utils.{ Config, Implicits }
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 import java.net.InetAddress
 // import kamon.Kamon
 
@@ -38,13 +38,16 @@ object Main extends App {
   val interface = Config.config.getString("rest-api.interface")
   val port = Config.config.getInt("rest-api.port")
 
-  val drInterface = Config.config.getString("docker.distribution.rest-api.interface")
+  val drInterface =
+    Config.config.getString("docker.distribution.rest-api.interface")
   val drPort = Config.config.getInt("docker.distribution.rest-api.port")
 
   (for {
     _ ← Db.migrate()
     _ ← server.HttpApiService.start(port, interface, ApiRoutes())
-    _ ← server.HttpApiService.start(drPort, drInterface, DockerDistributionRoutes())
+    _ ← server.HttpApiService.start(
+      drPort, drInterface, DockerDistributionRoutes()
+    )
   } yield ()).onComplete {
     case Success(_) ⇒
       UserCertificateProcessor.startRegion(5.minutes)
@@ -54,15 +57,15 @@ object Main extends App {
       // UserNodeProcessor.startRegion(1.day)
       ImageBlobPushProcessor.startRegion(25.minutes)
 
-      // (for {
-      //   _ ← ApplicationProcessor.initialize()
-      //   _ ← NodeProcessor.initialize()
-      // } yield ()).onComplete {
-      //   case Success(_) ⇒
-      //     logger.info("Initialization has been completed")
-      //   case Failure(e) ⇒
-      //     logger.error(e.getMessage(), e.getCause())
-      // }
+    // (for {
+    //   _ ← ApplicationProcessor.initialize()
+    //   _ ← NodeProcessor.initialize()
+    // } yield ()).onComplete {
+    //   case Success(_) ⇒
+    //     logger.info("Initialization has been completed")
+    //   case Failure(e) ⇒
+    //     logger.error(e.getMessage(), e.getCause())
+    // }
     case Failure(e) ⇒
       logger.error(e.getMessage(), e.getCause())
       try {

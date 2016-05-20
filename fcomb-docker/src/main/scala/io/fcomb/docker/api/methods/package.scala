@@ -10,10 +10,13 @@ package object methods {
 
   abstract class DockerApiException(msg: String) extends Throwable(msg)
   case class BadParameterException(msg: String) extends DockerApiException(msg)
-  case class PermissionDeniedException(msg: String) extends DockerApiException(msg)
+  case class PermissionDeniedException(msg: String)
+    extends DockerApiException(msg)
   case class ServerErrorException(msg: String) extends DockerApiException(msg)
-  case class ResouceOrContainerNotFoundException(msg: String) extends DockerApiException(msg)
-  case class ImpossibleToAttachException(msg: String) extends DockerApiException(msg)
+  case class ResouceOrContainerNotFoundException(msg: String)
+    extends DockerApiException(msg)
+  case class ImpossibleToAttachException(msg: String)
+    extends DockerApiException(msg)
   case class UnknownException(msg: String) extends DockerApiException(msg)
   case class ConflictException(msg: String) extends DockerApiException(msg)
 

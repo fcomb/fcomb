@@ -1,90 +1,93 @@
 package io.fcomb.docker.api.methods
 
 import akka.http.scaladsl.model.headers.RawHeader
-import scala.collection.{immutable, mutable}
+import scala.collection.{ immutable, mutable }
 import spray.json._
 import org.apache.commons.codec.binary.Base64
 import java.time.ZonedDateTime
 
 object MiscMethods {
   final case class IndexInfo(
-    name: String,
-    mirrors: List[String],
-    isSecure: Boolean,
+    name:       String,
+    mirrors:    List[String],
+    isSecure:   Boolean,
     isOfficial: Boolean
   )
 
   final case class ServiceConfig(
     insecureRegistryCidrs: List[String],
-    indexConfigs: Map[String, IndexInfo]
+    indexConfigs:          Map[String, IndexInfo]
   )
 
   final case class Information(
-    id: String,
-    continers: Int,
-    images: Int,
-    driver: String,
-    driverStatus: List[List[String]],
-    isMemoryLimit: Boolean,
-    isSwapLimit: Boolean,
-    isCpuCfsPeriod: Boolean,
-    isCpuCfsQuota: Boolean,
-    isIpv4Forwarding: Boolean,
-    isBridgeNfIptables: Boolean,
+    id:                  String,
+    continers:           Int,
+    images:              Int,
+    driver:              String,
+    driverStatus:        List[List[String]],
+    isMemoryLimit:       Boolean,
+    isSwapLimit:         Boolean,
+    isCpuCfsPeriod:      Boolean,
+    isCpuCfsQuota:       Boolean,
+    isIpv4Forwarding:    Boolean,
+    isBridgeNfIptables:  Boolean,
     isBridgeNfIp6tables: Boolean,
-    isDebug: Boolean,
-    fileDescriptors: Int,
-    isOomKillDisable: Boolean,
-    goroutines: Int,
-    systemTime: ZonedDateTime,
-    executionDriver: String,
-    loggingDriver: Option[String],
-    eventsListeners: Int,
-    kernelVersion: String,
-    operatingSystem: String,
-    indexServerAddress: String,
-    registryConfig: Option[ServiceConfig],
-    initSha1: String,
-    initPath: String,
-    cpus: Int,
-    memory: Long,
-    dockerRootDir: String,
-    httpProxy: Option[String],
-    httpsProxy: Option[String],
-    noProxy: Option[String],
-    name: Option[String],
-    labels: Map[String, String],
+    isDebug:             Boolean,
+    fileDescriptors:     Int,
+    isOomKillDisable:    Boolean,
+    goroutines:          Int,
+    systemTime:          ZonedDateTime,
+    executionDriver:     String,
+    loggingDriver:       Option[String],
+    eventsListeners:     Int,
+    kernelVersion:       String,
+    operatingSystem:     String,
+    indexServerAddress:  String,
+    registryConfig:      Option[ServiceConfig],
+    initSha1:            String,
+    initPath:            String,
+    cpus:                Int,
+    memory:              Long,
+    dockerRootDir:       String,
+    httpProxy:           Option[String],
+    httpsProxy:          Option[String],
+    noProxy:             Option[String],
+    name:                Option[String],
+    labels:              Map[String, String],
     isExperimentalBuild: Boolean
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   final case class Version(
-    version: String,
-    apiVersion: String,
-    gitCommit: String,
-    goVersion: String,
-    os: String,
-    arch: String,
+    version:       String,
+    apiVersion:    String,
+    gitCommit:     String,
+    goVersion:     String,
+    os:            String,
+    arch:          String,
     kernelVersion: Option[String],
-    experimental: Boolean,
-    buildTime: Option[String]
+    experimental:  Boolean,
+    buildTime:     Option[String]
   )
 
   final case class AuthConfig(
-    username: String,
-    password: String,
-    email: Option[String],
+    username:      String,
+    password:      String,
+    email:         Option[String],
     serverAddress: String
-  ) extends DockerApiRequest
+  )
+      extends DockerApiRequest
 
   object AuthConfig {
     import io.fcomb.docker.api.json.MiscMethodsFormat.authConfigFormat
 
-    private val emptyConfig = Base64.encodeBase64String(JsObject().compactPrint.getBytes)
+    private val emptyConfig =
+      Base64.encodeBase64String(JsObject().compactPrint.getBytes)
 
     def mapToHeaders(configOpt: Option[AuthConfig]) = {
       val value = configOpt match {
-        case Some(config) => mapToJsonAsBase64(config)
-        case None => emptyConfig
+        case Some(config) ⇒ mapToJsonAsBase64(config)
+        case None         ⇒ emptyConfig
       }
       immutable.Seq(RawHeader("X-Registry-Auth", value))
     }
@@ -100,7 +103,7 @@ object MiscMethods {
     val all: Set[DockerEvent] = ContainerEvent.all ++ ImageEvent.all
 
     private val values = mutable.OpenHashMap(
-      all.toSeq.map(e => (e.value.toLowerCase, e)): _*
+      all.toSeq.map(e ⇒ (e.value.toLowerCase, e)): _*
     )
 
     def fromString(e: String) =
@@ -131,9 +134,27 @@ object MiscMethods {
     case object Top extends ContainerEvent("top")
     case object Unpause extends ContainerEvent("unpause")
 
-    val all: Set[DockerEvent] = Set(Attach, Commit, Copy, Create, Destroy, Die,
-      ExecCreate, ExecStart, Export, Kill, Oom, Pause, Rename,
-      Resize, Restart, Start, Stop, Top, Unpause)
+    val all: Set[DockerEvent] = Set(
+      Attach,
+      Commit,
+      Copy,
+      Create,
+      Destroy,
+      Die,
+      ExecCreate,
+      ExecStart,
+      Export,
+      Kill,
+      Oom,
+      Pause,
+      Rename,
+      Resize,
+      Restart,
+      Start,
+      Stop,
+      Top,
+      Unpause
+    )
   }
 
   object ImageEvent {
@@ -156,43 +177,48 @@ object MiscMethods {
   }
 
   final case class EventKindMessage(
-    event: DockerEvent,
-    id: String,
-    from: Option[String],
+    event:  DockerEvent,
+    id:     String,
+    from:   Option[String],
     timeAt: ZonedDateTime
-  ) extends DockerApiResponse
+  )
+      extends DockerApiResponse
 
   type EventsFilter = Map[EventKind.EventKind, Set[DockerEvent]]
 
   object EventsFitler {
-    def mapToParam(f: EventsFilter) = JsObject(f.map {
-      case (k, events) =>
-        k.toString -> JsArray(events.map(e => JsString(e.value)).toSeq: _*)
-    }).compactPrint
+    def mapToParam(f: EventsFilter) =
+      JsObject(
+        f.map {
+          case (k, events) ⇒
+            k.toString → JsArray(events.map(e ⇒ JsString(e.value)).toSeq: _*)
+        }
+      ).compactPrint
   }
 
   final case class EventMessageProgress(
-    current: Long,
-    total: Option[Long],
+    current:   Long,
+    total:     Option[Long],
     startedAt: Option[ZonedDateTime]
   )
 
   final case class EventMessageError(
-    code: Option[Int],
+    code:    Option[Int],
     message: String
   )
 
   final case class EventMessage(
-    stream: Option[String],
-    status: Option[String],
-    progressDetail: Option[EventMessageProgress],
+    stream:          Option[String],
+    status:          Option[String],
+    progressDetail:  Option[EventMessageProgress],
     progressMessage: Option[String],
-    id: Option[String],
-    from: Option[String],
-    timeAt: Option[ZonedDateTime],
-    errorDetail: Option[EventMessageError],
-    errorMessage: Option[String]
-  ) extends DockerApiResponse {
+    id:              Option[String],
+    from:            Option[String],
+    timeAt:          Option[ZonedDateTime],
+    errorDetail:     Option[EventMessageError],
+    errorMessage:    Option[String]
+  )
+      extends DockerApiResponse {
     def isFailure() =
       errorDetail.nonEmpty || errorMessage.nonEmpty
   }

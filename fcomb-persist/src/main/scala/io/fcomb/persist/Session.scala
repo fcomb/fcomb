@@ -4,7 +4,7 @@ import io.fcomb.Db.redis
 import io.fcomb.models
 import io.fcomb.request.SessionRequest
 import io.fcomb.validations
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import scala.util.Random
 import redis._
@@ -35,17 +35,19 @@ object Session extends PersistTypes[models.Session] {
     implicit
     ec: ExecutionContext
   ): Future[ValidationModel] = {
-    val sessionId = s"$prefix${random.alphanumeric.take(sessionIdLength).mkString}"
+    val sessionId =
+      s"$prefix${random.alphanumeric.take(sessionIdLength).mkString}"
     redis.set(getKey(sessionId), id, ttl).map { _ ⇒
       Validated.Valid(models.Session(sessionId))
     }
   }
 
-  private val invalidEmailOrPassword =
-    FastFuture.successful(validations.validationErrors(
+  private val invalidEmailOrPassword = FastFuture.successful(
+    validations.validationErrors(
       "email" → s"invalid",
       "password" → "invalid"
-    ))
+    )
+  )
 
   def create(req: SessionRequest)(
     implicit

@@ -4,5 +4,5 @@ object RouteHelper {
   val schema = "https://"
   val url = "fcomb.io"
 
-  val resetPasswordUrl = s"$schema$url/users/reset_password" 
+  val resetPasswordUrl = s"$schema$url/users/reset_password"
 }

@@ -90,7 +90,8 @@ package object errors {
     )
   }
 
-  case class UnexpectedState(state: ApplicationState.ApplicationState) extends DtCemException {
+  case class UnexpectedState(state: ApplicationState.ApplicationState)
+      extends DtCemException {
     def toErrorMessage() = ErrorMessage(
       "Unxpected state",
       ErrorKind.Internal,
@@ -181,9 +182,10 @@ package object errors {
   }
 
   case class ValidationException(
-      param:   String,
-      message: String
-  ) extends DtCemException {
+    param:   String,
+    message: String
+  )
+      extends DtCemException {
     def toErrorMessage() = ErrorMessage(
       message,
       ErrorKind.Validation,

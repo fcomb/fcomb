@@ -2,24 +2,24 @@ package io.fcomb.services
 
 import io.fcomb.services.Exceptions._
 import io.fcomb.models
-import io.fcomb.utils.{Config, Implicits}
+import io.fcomb.utils.{ Config, Implicits }
 import io.fcomb.crypto.Certificate
 import io.fcomb.persist.UserCertificate
 import akka.actor._
 import akka.cluster.sharding._
-import akka.pattern.{ask, pipe}
+import akka.pattern.{ ask, pipe }
 import akka.http.scaladsl.util.FastFuture
 import akka.util.Timeout
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ Future, Promise }
 import scala.collection.mutable.HashSet
 import scala.concurrent.duration._
-import scala.util.{Success, Failure}
-import java.security.{KeyFactory, PrivateKey}
+import scala.util.{ Success, Failure }
+import java.security.{ KeyFactory, PrivateKey }
 import java.security.cert.X509Certificate
 import java.security.spec.PKCS8EncodedKeySpec
 import java.time.ZonedDateTime
 import sun.security.pkcs10.PKCS10
-import sun.security.x509.{CertificateExtensions, X500Name, X509CertImpl}
+import sun.security.x509.{ CertificateExtensions, X500Name, X509CertImpl }
 import cats.data.Validated
 
 // TODO: add router and distribution by userId
@@ -56,7 +56,8 @@ object UserCertificateProcessor {
     name:            X500Name,
     extOpt:          Option[CertificateExtensions],
     expireAfterDays: Int
-  ) extends Entity
+  )
+      extends Entity
 
   def props(timeout: Duration) =
     Props(classOf[UserCertificateProcessor], timeout)
@@ -89,7 +90,10 @@ object UserCertificateProcessor {
   }
 }
 
-class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with ActorLogging {
+class UserCertificateProcessor(timeout: Duration)
+    extends Actor
+    with Stash
+    with ActorLogging {
   import context.dispatcher
   import UserCertificateProcessor._
   import ShardRegion.Passivate
@@ -98,7 +102,9 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
 
   val userId = self.path.name.toLong
 
-  case class Initialize(cert: X509Certificate, key: PrivateKey, certificateId: Long)
+  case class Initialize(
+    cert: X509Certificate, key: PrivateKey, certificateId: Long
+  )
 
   case object Annihilation
 
@@ -117,18 +123,22 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
 
   def initializing(): Unit = {
     UserCertificate.findRootCertByUserId(userId).onComplete {
-      case Success(res) ⇒ res match {
-        case Some(cert) ⇒ self ! initializeWith(cert)
-        case None       ⇒ generateAndPersistCertificates()
-      }
+      case Success(res) ⇒
+        res match {
+          case Some(cert) ⇒ self ! initializeWith(cert)
+          case None       ⇒ generateAndPersistCertificates()
+        }
       case Failure(e) ⇒ handleThrowable(e)
     }
   }
 
-  def initialized(cert: X509Certificate, key: PrivateKey, certificateId: Long): Receive = {
+  def initialized(
+    cert: X509Certificate, key: PrivateKey, certificateId: Long
+  ): Receive = {
     case SignRequest(req, name, extOpt, expireAfterDays) ⇒
-      val signed = Certificate.signCertificationRequest(cert, key,
-        req, name, extOpt, expireAfterDays)
+      val signed = Certificate.signCertificationRequest(
+        cert, key, req, name, extOpt, expireAfterDays
+      )
       sender ! SignedCertificate(signed, certificateId)
     case ReceiveTimeout ⇒ annihilation()
   }
@@ -163,24 +173,24 @@ class UserCertificateProcessor(timeout: Duration) extends Actor with Stash with 
   }
 
   def generateAndPersistCertificates() = {
-    val (rootCert, rootKey) =
-      Certificate.generateRootAuthority(
-        commonName = s"User#$userId",
-        organizationalUnit = Config.certificateIssuer.organizationalUnit,
-        organization = Config.certificateIssuer.organization,
-        city = Config.certificateIssuer.city,
-        state = Config.certificateIssuer.state,
-        country = Config.certificateIssuer.country
+    val (rootCert, rootKey) = Certificate.generateRootAuthority(
+      commonName = s"User#$userId",
+      organizationalUnit = Config.certificateIssuer.organizationalUnit,
+      organization = Config.certificateIssuer.organization,
+      city = Config.certificateIssuer.city,
+      state = Config.certificateIssuer.state,
+      country = Config.certificateIssuer.country
+    )
+    val (clientCert, clientKey) = Certificate.generateClient(rootCert, rootKey)
+    UserCertificate
+      .createRootAndClient(
+        userId = userId,
+        rootCertificate = rootCert.getEncoded(),
+        rootKey = rootKey.getEncoded(),
+        clientCertificate = clientCert.getEncoded(),
+        clientKey = clientKey.getEncoded()
       )
-    val (clientCert, clientKey) =
-      Certificate.generateClient(rootCert, rootKey)
-    UserCertificate.createRootAndClient(
-      userId = userId,
-      rootCertificate = rootCert.getEncoded(),
-      rootKey = rootKey.getEncoded(),
-      clientCertificate = clientCert.getEncoded(),
-      clientKey = clientKey.getEncoded()
-    ).onComplete {
+      .onComplete {
         case Success(res) ⇒
           res match {
             case Validated.Valid(cert) ⇒ self ! initializeWith(cert)

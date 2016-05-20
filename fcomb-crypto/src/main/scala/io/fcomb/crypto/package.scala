@@ -7,7 +7,8 @@ package object crypto {
   private val initializeCryptoResult = {
     Security.addProvider(new BouncyCastleProvider())
 
-    val field = Class.forName("javax.crypto.JceSecurity")
+    val field = Class
+      .forName("javax.crypto.JceSecurity")
       .getDeclaredField("isRestricted")
     field.setAccessible(true)
     field.set(null, false)

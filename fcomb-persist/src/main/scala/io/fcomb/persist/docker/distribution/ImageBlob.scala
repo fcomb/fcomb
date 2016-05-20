@@ -4,15 +4,16 @@ import cats.data.Validated
 import cats.std.all._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageBlobState}
+import io.fcomb.models.docker.distribution.{ ImageBlob ⇒ MImageBlob, ImageBlobState }
 import io.fcomb.persist._
 import io.fcomb.validations.eitherT
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import slick.jdbc.TransactionIsolation
 
-class ImageBlobTable(tag: Tag) extends Table[MImageBlob](tag, "docker_distribution_image_blobs")
+class ImageBlobTable(tag: Tag)
+    extends Table[MImageBlob](tag, "docker_distribution_image_blobs")
     with PersistTableWithUuidPk {
   def imageId = column[Long]("image_id")
   def state = column[ImageBlobState.ImageBlobState]("state")
@@ -23,14 +24,25 @@ class ImageBlobTable(tag: Tag) extends Table[MImageBlob](tag, "docker_distributi
   def uploadedAt = column[Option[ZonedDateTime]]("uploaded_at")
 
   def * =
-    (id, imageId, state, sha256Digest, contentType, length, createdAt, uploadedAt) <>
+    (
+      id,
+      imageId,
+      state,
+      sha256Digest,
+      contentType,
+      length,
+      createdAt,
+      uploadedAt
+    ) <>
       ((MImageBlob.apply _).tupled, MImageBlob.unapply)
 }
 
 object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   val table = TableQuery[ImageBlobTable]
 
-  def mount(fromImageId: Long, toImageName: String, digest: String, userId: Long)(
+  def mount(
+    fromImageId: Long, toImageName: String, digest: String, userId: Long
+  )(
     implicit
     ec: ExecutionContext
   ): Future[Option[MImageBlob]] =
@@ -38,14 +50,14 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
       (for {
         blob ← findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption
         toImageId ← Image.findIdOrCreateByNameDBIO(toImageName, userId)
-      } yield (blob, toImageId))
-        .flatMap {
-          case (Some(blob), Validated.Valid(toImageId)) ⇒
-            findByImageIdAndDigestCompiled((toImageId, digest)).result.headOption.flatMap {
-              case Some(b) ⇒ DBIO.successful(Some(b))
-              case None ⇒
-                val timeNow = ZonedDateTime.now()
-                createDBIO(MImageBlob(
+      } yield (blob, toImageId)).flatMap {
+        case (Some(blob), Validated.Valid(toImageId)) ⇒
+          findByImageIdAndDigestCompiled((toImageId, digest)).result.headOption.flatMap {
+            case Some(b) ⇒ DBIO.successful(Some(b))
+            case None ⇒
+              val timeNow = ZonedDateTime.now()
+              createDBIO(
+                MImageBlob(
                   id = Some(UUID.randomUUID()),
                   state = ImageBlobState.Uploaded,
                   imageId = toImageId,
@@ -54,26 +66,29 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
                   length = blob.length,
                   createdAt = timeNow,
                   uploadedAt = None
-                )).map(Some(_))
-            }
-          case _ ⇒ DBIO.successful(None)
-        }
+                )
+              ).map(Some(_))
+          }
+        case _ ⇒ DBIO.successful(None)
+      }
     }
 
   def create(imageId: Long, contentType: String)(
     implicit
     ec: ExecutionContext
   ) =
-    super.create(MImageBlob(
-      id = Some(UUID.randomUUID()),
-      state = ImageBlobState.Created,
-      imageId = imageId,
-      sha256Digest = None,
-      contentType = contentType,
-      length = 0L,
-      createdAt = ZonedDateTime.now(),
-      uploadedAt = None
-    ))
+    super.create(
+      MImageBlob(
+        id = Some(UUID.randomUUID()),
+        state = ImageBlobState.Created,
+        imageId = imageId,
+        sha256Digest = None,
+        contentType = contentType,
+        length = 0L,
+        createdAt = ZonedDateTime.now(),
+        uploadedAt = None
+      )
+    )
 
   // TODO
   def createByImageName(name: String, userId: Long, contentType: String)(
@@ -88,11 +103,9 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
 
   private val findByImageIdAndUuidCompiled = Compiled {
     (imageId: Rep[Long], uuid: Rep[UUID]) ⇒
-      table
-        .filter { q ⇒
-          q.imageId === imageId && q.id === uuid
-        }
-        .take(1)
+      table.filter { q ⇒
+        q.imageId === imageId && q.id === uuid
+      }.take(1)
   }
 
   def findByImageIdAndUuid(imageId: Long, uuid: UUID)(
@@ -103,12 +116,9 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
 
   private val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Long], digest: Rep[String]) ⇒
-      table
-        .filter { q ⇒
-          q.imageId === imageId &&
-            q.sha256Digest === digest
-        }
-        .take(1)
+      table.filter { q ⇒
+        q.imageId === imageId && q.sha256Digest === digest
+      }.take(1)
   }
 
   def findByImageIdAndDigest(imageId: Long, digest: String)(
@@ -137,7 +147,12 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
     table
       .filter(_.id === id)
       .map(t ⇒ (t.state, t.length, t.sha256Digest, t.uploadedAt))
-      .update((ImageBlobState.Uploaded, length, Some(digest), Some(ZonedDateTime.now())))
+      .update((
+        ImageBlobState.Uploaded,
+        length,
+        Some(digest),
+        Some(ZonedDateTime.now())
+      ))
   }
 
   def updateState(
@@ -158,11 +173,12 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   def findByIds(ids: List[UUID]) =
     db.run(table.filter(_.id.inSetBind(ids)).result)
 
-  private val findOutdatedUploadsCompiled = Compiled { until: Rep[ZonedDateTime] ⇒
-    table.filter { q ⇒
-      q.createdAt <= until &&
-        (q.state === ImageBlobState.Created || q.state === ImageBlobState.Uploading)
-    }
+  private val findOutdatedUploadsCompiled = Compiled {
+    until: Rep[ZonedDateTime] ⇒
+      table.filter { q ⇒
+        q.createdAt <= until && (q.state === ImageBlobState.Created ||
+          q.state === ImageBlobState.Uploading)
+      }
   }
 
   def findOutdatedUploads(until: ZonedDateTime) =

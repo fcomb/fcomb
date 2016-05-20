@@ -88,16 +88,20 @@ object Routes {
     import de.heikoseeberger.akkahttpcirce.CirceSupport._
     import io.fcomb.json.docker.distribution.Formats._
     import io.circe.generic.auto._
-    import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
+    import io.fcomb.models.errors.docker.distribution.{ DistributionError, DistributionErrorResponse }
 
     val exceptionHandler = ExceptionHandler {
       case e ⇒
         println(e)
         e.printStackTrace()
         logger.error(e.getMessage(), e.getCause())
-        complete(StatusCodes.InternalServerError, DistributionErrorResponse.from(DistributionError.Unknown()))
+        complete(
+          StatusCodes.InternalServerError,
+          DistributionErrorResponse.from(DistributionError.Unknown())
+        )
     }
-    val rejectionHandler = RejectionHandler.newBuilder()
+    val rejectionHandler = RejectionHandler
+      .newBuilder()
       // .handle {
       //   case r =>
       //     logger.error(r.toString, r.toString)
@@ -133,7 +137,8 @@ object Routes {
 
   private val notFoundResponse = HttpResponse(StatusCodes.NotFound)
 
-  private val uuidRegEx = """[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r
+  private val uuidRegEx =
+    """[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r
 
   private def imageName(xs: List[String]) =
     xs.reverse.mkString("/")

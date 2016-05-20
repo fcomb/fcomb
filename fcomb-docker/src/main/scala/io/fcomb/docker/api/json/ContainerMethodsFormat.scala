@@ -2,99 +2,114 @@ package io.fcomb.docker.api.json
 
 import io.fcomb.docker.api.methods.ContainerMethods._
 import spray.json._
-import spray.json.DefaultJsonProtocol.{listFormat => _, _}
+import spray.json.DefaultJsonProtocol.{ listFormat ⇒ _, _ }
 import io.fcomb.json._
 import java.time.ZonedDateTime
 
 private[api] object ContainerMethodsFormat {
-  implicit val portKindFormat =
-    createStringEnumJsonFormat(PortKind)
+  implicit val portKindFormat = createStringEnumJsonFormat(PortKind)
 
   implicit object PortFormat extends RootJsonFormat[Port] {
     def write(p: Port) = JsObject(
-      "PrivatePort" -> p.privatePort.toJson,
-      "PublicPort" -> p.publicPort.toJson,
-      "Type" -> p.kind.toJson,
-      "IP" -> p.ip.toJson
+      "PrivatePort" → p.privatePort.toJson,
+      "PublicPort" → p.publicPort.toJson,
+      "Type" → p.kind.toJson,
+      "IP" → p.ip.toJson
     )
 
     def read(v: JsValue) = v match {
-      case obj: JsObject => Port(
-        privatePort = obj.get[Int]("PrivatePort").toInt,
-        publicPort = obj.getOpt[Int]("PublicPort"),
-        kind = obj.get[PortKind.PortKind]("Type"),
-        ip = obj.getOpt[String]("IP")
-      )
-      case x => deserializationError(s"Expected port as JsObject, but got $x")
+      case obj: JsObject ⇒
+        Port(
+          privatePort = obj.get[Int]("PrivatePort").toInt,
+          publicPort = obj.getOpt[Int]("PublicPort"),
+          kind = obj.get[PortKind.PortKind]("Type"),
+          ip = obj.getOpt[String]("IP")
+        )
+      case x ⇒ deserializationError(s"Expected port as JsObject, but got $x")
     }
   }
 
-  implicit val containerItemFormat =
-    jsonFormat(ContainerItem, "Id", "Names", "Image", "Command", "Created",
-      "Status", "Ports", "SizeRw", "SizeRootFs")
+  implicit val containerItemFormat = jsonFormat(
+    ContainerItem,
+    "Id",
+    "Names",
+    "Image",
+    "Command",
+    "Created",
+    "Status",
+    "Ports",
+    "SizeRw",
+    "SizeRootFs"
+  )
 
-  implicit object MountModeFormat extends RootJsonFormat[Set[MountMode.MountMode]] {
+  implicit object MountModeFormat
+      extends RootJsonFormat[Set[MountMode.MountMode]] {
     def write(s: Set[MountMode.MountMode]) =
       JsString(s.mkString(","))
 
     def read(v: JsValue) = v match {
-      case JsString(s) => s.split(',').map(MountMode.withName).toSet
-      case x => deserializationError(s"Expected mode as JsString, but got $x")
+      case JsString(s) ⇒ s.split(',').map(MountMode.withName).toSet
+      case x           ⇒ deserializationError(s"Expected mode as JsString, but got $x")
     }
   }
 
-  implicit val mountPointFormat =
-    jsonFormat(MountPoint, "Source", "Destination", "Mode", "RW")
+  implicit val mountPointFormat = jsonFormat(
+    MountPoint, "Source", "Destination", "Mode", "RW"
+  )
 
   implicit object PortBindingFormat extends RootJsonFormat[PortBinding] {
     def write(pb: PortBinding) = JsObject(
-      "HostPort" -> JsString(pb.port.toString),
-      "HostIp" -> pb.ip.toJson
+      "HostPort" → JsString(pb.port.toString),
+      "HostIp" → pb.ip.toJson
     )
 
     def read(v: JsValue) = v match {
-      case obj: JsObject => PortBinding(
-        port = obj.get[String]("HostPort").toInt,
-        ip = obj.getOpt[String]("HostIp")
-      )
-      case x => deserializationError(s"Expected port binding as JsObject, but got $x")
+      case obj: JsObject ⇒
+        PortBinding(
+          port = obj.get[String]("HostPort").toInt,
+          ip = obj.getOpt[String]("HostIp")
+        )
+      case x ⇒
+        deserializationError(s"Expected port binding as JsObject, but got $x")
     }
   }
 
   implicit object RestartPolicyFormat extends RootJsonFormat[RestartPolicy] {
     def write(p: RestartPolicy) = JsObject(
-      "Name" -> JsString(p.name),
-      "MaximumRetryCount" -> JsNumber(p.maximumRetryCount)
+      "Name" → JsString(p.name),
+      "MaximumRetryCount" → JsNumber(p.maximumRetryCount)
     )
 
     def read(v: JsValue) = v match {
-      case obj: JsObject =>
+      case obj: JsObject ⇒
         obj.getFields("Name", "MaximumRetryCount") match {
-          case Seq(JsString(RestartPolicy.No.name), _) =>
+          case Seq(JsString(RestartPolicy.No.name), _) ⇒
             RestartPolicy.No
-          case Seq(JsString(RestartPolicy.Always.name), _) =>
+          case Seq(JsString(RestartPolicy.Always.name), _) ⇒
             RestartPolicy.Always
-          case Seq(JsString(RestartPolicy.OnFailure.name), JsNumber(n)) =>
+          case Seq(JsString(RestartPolicy.OnFailure.name), JsNumber(n)) ⇒
             RestartPolicy.OnFailure(n.toInt)
-          case _ => deserializationError(s"Unknown policy: $obj")
+          case _ ⇒ deserializationError(s"Unknown policy: $obj")
         }
-      case x => deserializationError(s"Expected policy as JsObject, but got $x")
+      case x ⇒
+        deserializationError(s"Expected policy as JsObject, but got $x")
     }
   }
 
   object MemorySwapFormat extends JsonFormat[Option[Long]] {
     def write(opt: Option[Long]) = opt match {
-      case Some(n) if n >= 0 => JsNumber(n)
-      case _ => JsNumber(-1)
+      case Some(n) if n >= 0 ⇒ JsNumber(n)
+      case _                 ⇒ JsNumber(-1)
     }
 
     def read(v: JsValue) = v match {
-      case JsNumber(jn) => jn.toLong match {
-        case -1 => None
-        case n => Some(n)
-      }
-      case JsNull => None
-      case x => deserializationError(s"Expected value as JsNumber, but got $x")
+      case JsNumber(jn) ⇒
+        jn.toLong match {
+          case -1 ⇒ None
+          case n  ⇒ Some(n)
+        }
+      case JsNull ⇒ None
+      case x      ⇒ deserializationError(s"Expected value as JsNumber, but got $x")
     }
   }
 
@@ -102,8 +117,9 @@ private[api] object ContainerMethodsFormat {
     def write(p: VolumeBindPath) = JsString(p.mapToString())
 
     def read(v: JsValue) = v match {
-      case JsString(s) => VolumeBindPath.parse(s)
-      case x => deserializationError(s"Expected volume as JsString, but got $x")
+      case JsString(s) ⇒ VolumeBindPath.parse(s)
+      case x ⇒
+        deserializationError(s"Expected volume as JsString, but got $x")
     }
   }
 
@@ -111,8 +127,8 @@ private[api] object ContainerMethodsFormat {
     def write(l: ContainerLink) = JsString(l.mapToString())
 
     def read(v: JsValue) = v match {
-      case JsString(s) => ContainerLink.parse(s)
-      case x => deserializationError(s"Expected link as JsString, but got $x")
+      case JsString(s) ⇒ ContainerLink.parse(s)
+      case x           ⇒ deserializationError(s"Expected link as JsString, but got $x")
     }
   }
 
@@ -120,8 +136,8 @@ private[api] object ContainerMethodsFormat {
     def write(h: ExtraHost) = JsString(h.mapToString())
 
     def read(v: JsValue) = v match {
-      case JsString(s) => ExtraHost.parse(s)
-      case x => deserializationError(s"Expected host as JsString, but got $x")
+      case JsString(s) ⇒ ExtraHost.parse(s)
+      case x           ⇒ deserializationError(s"Expected host as JsString, but got $x")
     }
   }
 
@@ -129,8 +145,9 @@ private[api] object ContainerMethodsFormat {
     def write(v: VolumeFrom) = JsString(v.mapToString())
 
     def read(v: JsValue) = v match {
-      case JsString(s) => VolumeFrom.parse(s)
-      case x => deserializationError(s"Expected volume as JsString, but got $x")
+      case JsString(s) ⇒ VolumeFrom.parse(s)
+      case x ⇒
+        deserializationError(s"Expected volume as JsString, but got $x")
     }
   }
 
@@ -140,8 +157,8 @@ private[api] object ContainerMethodsFormat {
     def write(m: NetworkMode) = JsString(m.mapToString())
 
     def read(v: JsValue) = v match {
-      case JsString(s) => NetworkMode.parse(s)
-      case x => deserializationError(s"Expected mode as JsString, but got $x")
+      case JsString(s) ⇒ NetworkMode.parse(s)
+      case x           ⇒ deserializationError(s"Expected mode as JsString, but got $x")
     }
   }
 
@@ -149,8 +166,8 @@ private[api] object ContainerMethodsFormat {
     def write(m: IpcMode) = JsString(m.mapToString())
 
     def read(v: JsValue) = v match {
-      case JsString(s) => IpcMode.parse(s)
-      case x => deserializationError(s"Expected mode as JsString, but got $x")
+      case JsString(s) ⇒ IpcMode.parse(s)
+      case x           ⇒ deserializationError(s"Expected mode as JsString, but got $x")
     }
   }
 
@@ -158,8 +175,8 @@ private[api] object ContainerMethodsFormat {
     def write(m: PidMode) = JsString(m.mapToString())
 
     def read(v: JsValue) = v match {
-      case JsString(s) => PidMode.parse(s)
-      case x => deserializationError(s"Expected mode as JsString, but got $x")
+      case JsString(s) ⇒ PidMode.parse(s)
+      case x           ⇒ deserializationError(s"Expected mode as JsString, but got $x")
     }
   }
 
@@ -167,32 +184,34 @@ private[api] object ContainerMethodsFormat {
     def write(m: UtsMode) = JsString(m.mapToString())
 
     def read(v: JsValue) = v match {
-      case JsString(s) => UtsMode.parse(s)
-      case x => deserializationError(s"Expected mode as JsString, but got $x")
+      case JsString(s) ⇒ UtsMode.parse(s)
+      case x           ⇒ deserializationError(s"Expected mode as JsString, but got $x")
     }
   }
 
-  implicit val deviceMappingFormat =
-    jsonFormat(DeviceMapping, "PathOnHost", "PathInContainer", "CgroupPermissions")
+  implicit val deviceMappingFormat = jsonFormat(
+    DeviceMapping, "PathOnHost", "PathInContainer", "CgroupPermissions"
+  )
 
-  implicit val ulimitFormat =
-    jsonFormat(Ulimit, "Name", "Soft", "Hard")
+  implicit val ulimitFormat = jsonFormat(Ulimit, "Name", "Soft", "Hard")
 
   implicit val logDriverFormat = createStringEnumJsonFormat(LogDriver)
 
-  implicit val logConfigFormat =
-    jsonFormat(LogConfig, "Type", "Config")
+  implicit val logConfigFormat = jsonFormat(LogConfig, "Type", "Config")
 
   implicit object PortBindingsFormat extends RootJsonFormat[PortBindings] {
-    def write(pb: PortBindings) = pb.map {
-      case (k, v) => (k.mapToString(), v)
-    }.toJson
+    def write(pb: PortBindings) =
+      pb.map {
+        case (k, v) ⇒ (k.mapToString(), v)
+      }.toJson
 
     def read(v: JsValue) = v match {
-      case JsObject(m) => m.map {
-        case (k, v) => (ExposePort.parse(k), v.convertTo[List[PortBinding]])
-      }
-      case x => deserializationError(s"Expected bindings as JsObject, but got $x")
+      case JsObject(m) ⇒
+        m.map {
+          case (k, v) ⇒ (ExposePort.parse(k), v.convertTo[List[PortBinding]])
+        }
+      case x ⇒
+        deserializationError(s"Expected bindings as JsObject, but got $x")
     }
   }
 
@@ -201,322 +220,439 @@ private[api] object ContainerMethodsFormat {
       JsArray(Vector(JsNumber(s.width), JsNumber(s.height)))
 
     def read(v: JsValue) = v match {
-      case JsArray(Vector(JsNumber(w), JsNumber(h))) =>
+      case JsArray(Vector(JsNumber(w), JsNumber(h))) ⇒
         ConsoleSize(w.toInt, h.toInt)
-      case x => deserializationError(s"Expected size as JsArray, but got $x")
+      case x ⇒ deserializationError(s"Expected size as JsArray, but got $x")
     }
   }
 
-  implicit val isolationLevelFormat = createStringEnumJsonFormat(IsolationLevel)
+  implicit val isolationLevelFormat = createStringEnumJsonFormat(
+    IsolationLevel
+  )
 
   object LxcConfFormat extends RootJsonFormat[LxcConf] {
     def write(c: LxcConf) = c.toJson
 
     def read(v: JsValue) = v match {
-      case JsArray(xs) => xs.asInstanceOf[Vector[JsObject]].map { item =>
-        (item.get[String]("Key"), item.get[String]("Value"))
-      }.toMap
-      case JsNull => Map.empty
-      case x => deserializationError(s"Expected conf as JsArray, but got $x")
+      case JsArray(xs) ⇒
+        xs.asInstanceOf[Vector[JsObject]]
+          .map { item ⇒
+            (item.get[String]("Key"), item.get[String]("Value"))
+          }
+          .toMap
+      case JsNull ⇒ Map.empty
+      case x      ⇒ deserializationError(s"Expected conf as JsArray, but got $x")
     }
   }
 
   implicit object HostConfigFormat extends RootJsonFormat[HostConfig] {
     def write(c: HostConfig) = JsObject(
-      "Binds" -> c.binds.toJson,
-      "Links" -> c.links.toJson,
-      "LxcConf" -> LxcConfFormat.write(c.lxcConf),
-      "Memory" -> c.memory.toJson,
-      "MemorySwap" -> MemorySwapFormat.write(c.memorySwap),
-      "KernelMemory" -> c.kernelMemory.toJson,
-      "CpuShares" -> c.cpuShares.toJson,
-      "CpuPeriod" -> c.cpuPeriod.toJson,
-      "CpusetCpus" -> c.cpusetCpus.toJson,
-      "CpusetMems" -> c.cpusetMems.toJson,
-      "CpuQuota" -> c.cpuQuota.toJson,
-      "BlkioWeight" -> c.blockIoWeight.toJson,
-      "MemorySwappiness" -> c.memorySwappiness.toJson,
-      "OomKillDisable" -> c.isOomKillDisable.toJson,
-      "PortBindings" -> c.portBindings.toJson,
-      "PublishAllPorts" -> c.isPublishAllPorts.toJson,
-      "Privileged" -> c.isPrivileged.toJson,
-      "ReadonlyRootfs" -> c.isReadonlyRootfs.toJson,
-      "Dns" -> c.dns.toJson,
-      "DnsOptions" -> c.dnsOptions.toJson,
-      "DnsSearch" -> c.dnsSearch.toJson,
-      "ExtraHosts" -> c.extraHosts.toJson,
-      "VolumesFrom" -> c.volumesFrom.toJson,
-      "IpcMode" -> c.ipcMode.toJson,
-      "PidMode" -> c.pidMode.toJson,
-      "UTSMode" -> c.utsMode.toJson,
-      "CapAdd" -> c.capacityAdd.toJson,
-      "CapDrop" -> c.capacityDrop.toJson,
-      "GroupAdd" -> c.groupAdd.toJson,
-      "RestartPolicy" -> c.restartPolicy.toJson,
-      "NetworkMode" -> c.networkMode.toJson,
-      "Devices" -> c.devices.toJson,
-      "Ulimits" -> c.ulimits.toJson,
-      "LogConfig" -> c.logConfig.toJson,
-      "SecurityOpt" -> c.securityOpt.toJson,
-      "CgroupParent" -> c.cgroupParent.toJson,
-      "ConsoleSize" -> c.consoleSize.toJson,
-      "VolumeDriver" -> c.volumeDriver.toJson,
-      "Isolation" -> c.isolation.toJson
+      "Binds" → c.binds.toJson,
+      "Links" → c.links.toJson,
+      "LxcConf" → LxcConfFormat.write(c.lxcConf),
+      "Memory" → c.memory.toJson,
+      "MemorySwap" → MemorySwapFormat.write(c.memorySwap),
+      "KernelMemory" → c.kernelMemory.toJson,
+      "CpuShares" → c.cpuShares.toJson,
+      "CpuPeriod" → c.cpuPeriod.toJson,
+      "CpusetCpus" → c.cpusetCpus.toJson,
+      "CpusetMems" → c.cpusetMems.toJson,
+      "CpuQuota" → c.cpuQuota.toJson,
+      "BlkioWeight" → c.blockIoWeight.toJson,
+      "MemorySwappiness" → c.memorySwappiness.toJson,
+      "OomKillDisable" → c.isOomKillDisable.toJson,
+      "PortBindings" → c.portBindings.toJson,
+      "PublishAllPorts" → c.isPublishAllPorts.toJson,
+      "Privileged" → c.isPrivileged.toJson,
+      "ReadonlyRootfs" → c.isReadonlyRootfs.toJson,
+      "Dns" → c.dns.toJson,
+      "DnsOptions" → c.dnsOptions.toJson,
+      "DnsSearch" → c.dnsSearch.toJson,
+      "ExtraHosts" → c.extraHosts.toJson,
+      "VolumesFrom" → c.volumesFrom.toJson,
+      "IpcMode" → c.ipcMode.toJson,
+      "PidMode" → c.pidMode.toJson,
+      "UTSMode" → c.utsMode.toJson,
+      "CapAdd" → c.capacityAdd.toJson,
+      "CapDrop" → c.capacityDrop.toJson,
+      "GroupAdd" → c.groupAdd.toJson,
+      "RestartPolicy" → c.restartPolicy.toJson,
+      "NetworkMode" → c.networkMode.toJson,
+      "Devices" → c.devices.toJson,
+      "Ulimits" → c.ulimits.toJson,
+      "LogConfig" → c.logConfig.toJson,
+      "SecurityOpt" → c.securityOpt.toJson,
+      "CgroupParent" → c.cgroupParent.toJson,
+      "ConsoleSize" → c.consoleSize.toJson,
+      "VolumeDriver" → c.volumeDriver.toJson,
+      "Isolation" → c.isolation.toJson
     )
 
     def read(v: JsValue) = v match {
-      case obj: JsObject => HostConfig(
-        binds = obj.getList[VolumeBindPath]("Binds"),
-        links = obj.getList[ContainerLink]("Links"),
-        lxcConf = obj.get[Map[String, String]]("LxcConf")(LxcConfFormat),
-        memory = obj.getOpt[Long]("Memory")(ZeroOptLongFormat),
-        memorySwap = obj.getOpt[Long]("MemorySwap")(MemorySwapFormat),
-        kernelMemory = obj.getOpt[Long]("KernelMemory")(ZeroOptLongFormat),
-        cpuShares = obj.getOpt[Int]("CpuShares")(ZeroOptIntFormat),
-        cpuPeriod = obj.getOpt[Long]("CpuPeriod")(ZeroOptLongFormat),
-        cpusetCpus = obj.getOpt[String]("CpusetCpus"),
-        cpusetMems = obj.getOpt[String]("CpusetMems"),
-        cpuQuota = obj.getOpt[Long]("CpuQuota")(ZeroOptLongFormat),
-        blockIoWeight = obj.getOpt[Int]("BlkioWeight")(ZeroOptIntFormat),
-        memorySwappiness = obj.getOpt[Int]("MemorySwappiness"),
-        isOomKillDisable = obj.getOrElse("OomKillDisable", false),
-        portBindings = obj.get[Map[ExposePort, List[PortBinding]]]("PortBindings"),
-        isPublishAllPorts = obj.getOrElse[Boolean]("PublishAllPorts", false),
-        isPrivileged = obj.getOrElse[Boolean]("Privileged", false),
-        isReadonlyRootfs = obj.getOrElse[Boolean]("ReadonlyRootfs", false),
-        dns = obj.getList[String]("Dns"),
-        dnsOptions = obj.getList[String]("DnsOptions"),
-        dnsSearch = obj.getList[String]("DnsSearch"),
-        extraHosts = obj.getList[ExtraHost]("ExtraHosts"),
-        volumesFrom = obj.getList[VolumeFrom]("VolumesFrom"),
-        ipcMode = obj.getOpt[IpcMode]("IpcMode"),
-        pidMode = obj.getOpt[PidMode]("PidMode"),
-        utsMode = obj.getOpt[UtsMode]("UTSMode"),
-        capacityAdd = obj.getList[Capacity.Capacity]("CapAdd"),
-        capacityDrop = obj.getList[Capacity.Capacity]("CapDrop"),
-        groupAdd = obj.getList[String]("GroupAdd"),
-        restartPolicy = obj.get[RestartPolicy]("RestartPolicy"),
-        networkMode = obj.get[NetworkMode]("NetworkMode"),
-        devices = obj.getList[DeviceMapping]("Devices"),
-        ulimits = obj.getList[Ulimit]("Ulimits"),
-        logConfig = obj.getOpt[LogConfig]("LogConfig"),
-        securityOpt = obj.getList[String]("SecurityOpt"),
-        cgroupParent = obj.getOpt[String]("CgroupParent"),
-        consoleSize = obj.getOpt[ConsoleSize]("ConsoleSize"),
-        volumeDriver = obj.getOpt[String]("VolumeDriver"),
-        isolation = obj.getOpt[IsolationLevel.IsolationLevel]("Isolation")
-      )
-      case x => deserializationError(s"Expected JsObject, but got $x")
+      case obj: JsObject ⇒
+        HostConfig(
+          binds = obj.getList[VolumeBindPath]("Binds"),
+          links = obj.getList[ContainerLink]("Links"),
+          lxcConf =
+            obj.get[Map[String, String]]("LxcConf")(LxcConfFormat),
+          memory = obj.getOpt[Long]("Memory")(ZeroOptLongFormat),
+          memorySwap = obj.getOpt[Long]("MemorySwap")(MemorySwapFormat),
+          kernelMemory =
+            obj.getOpt[Long]("KernelMemory")(ZeroOptLongFormat),
+          cpuShares = obj.getOpt[Int]("CpuShares")(ZeroOptIntFormat),
+          cpuPeriod =
+            obj.getOpt[Long]("CpuPeriod")(ZeroOptLongFormat),
+          cpusetCpus =
+            obj.getOpt[String]("CpusetCpus"),
+          cpusetMems = obj.getOpt[String]("CpusetMems"),
+          cpuQuota = obj.getOpt[Long]("CpuQuota")(ZeroOptLongFormat),
+          blockIoWeight = obj.getOpt[Int]("BlkioWeight")(ZeroOptIntFormat),
+          memorySwappiness =
+            obj.getOpt[Int]("MemorySwappiness"),
+          isOomKillDisable = obj.getOrElse("OomKillDisable", false),
+          portBindings =
+            obj.get[Map[ExposePort, List[PortBinding]]]("PortBindings"),
+          isPublishAllPorts =
+            obj.getOrElse[Boolean]("PublishAllPorts", false),
+          isPrivileged =
+            obj.getOrElse[Boolean]("Privileged", false),
+          isReadonlyRootfs = obj.getOrElse[Boolean]("ReadonlyRootfs", false),
+          dns =
+            obj.getList[String]("Dns"),
+          dnsOptions =
+            obj.getList[String]("DnsOptions"),
+          dnsSearch = obj.getList[String]("DnsSearch"),
+          extraHosts = obj.getList[ExtraHost]("ExtraHosts"),
+          volumesFrom = obj.getList[VolumeFrom]("VolumesFrom"),
+          ipcMode = obj.getOpt[IpcMode]("IpcMode"),
+          pidMode = obj.getOpt[PidMode]("PidMode"),
+          utsMode = obj.getOpt[UtsMode]("UTSMode"),
+          capacityAdd = obj.getList[Capacity.Capacity]("CapAdd"),
+          capacityDrop = obj.getList[Capacity.Capacity]("CapDrop"),
+          groupAdd = obj.getList[String]("GroupAdd"),
+          restartPolicy = obj.get[RestartPolicy]("RestartPolicy"),
+          networkMode = obj.get[NetworkMode]("NetworkMode"),
+          devices = obj.getList[DeviceMapping]("Devices"),
+          ulimits = obj.getList[Ulimit]("Ulimits"),
+          logConfig = obj.getOpt[LogConfig]("LogConfig"),
+          securityOpt = obj.getList[String]("SecurityOpt"),
+          cgroupParent = obj.getOpt[String]("CgroupParent"),
+          consoleSize = obj.getOpt[ConsoleSize]("ConsoleSize"),
+          volumeDriver = obj.getOpt[String]("VolumeDriver"),
+          isolation = obj.getOpt[IsolationLevel.IsolationLevel]("Isolation")
+        )
+      case x ⇒ deserializationError(s"Expected JsObject, but got $x")
     }
   }
 
-  implicit val containerProcessListFormat =
-    jsonFormat(ContainerProcessList, "Processes", "Titles")
+  implicit val containerProcessListFormat = jsonFormat(
+    ContainerProcessList, "Processes", "Titles"
+  )
 
   implicit object ExposedPortsFormat extends RootJsonFormat[ExposedPorts] {
-    def write(ep: ExposedPorts) = JsObject(ep.map { p =>
-      p.mapToString -> JsObject()
-    }.toMap)
+    def write(ep: ExposedPorts) =
+      JsObject(ep.map { p ⇒
+        p.mapToString → JsObject()
+      }.toMap)
 
     def read(v: JsValue) = v match {
-      case JsObject(m) => m.keys.map(ExposePort.parse).toSet
-      case x => deserializationError(s"Expected JsObject, but got $x")
+      case JsObject(m) ⇒ m.keys.map(ExposePort.parse).toSet
+      case x           ⇒ deserializationError(s"Expected JsObject, but got $x")
     }
   }
 
-  implicit val containerCreateFormat =
-    jsonFormat(ContainerCreate.apply, "Image", "Hostname", "Domainname",
-      "User", "AttachStdin", "AttachStdout", "AttachStderr", "Tty", "OpenStdin",
-      "StdinOnce", "Env", "Cmd", "Entrypoint", "Labels", "Mounts",
-      "NetworkDisabled", "WorkingDir", "MacAddress", "ExposedPorts", "HostConfig")
+  implicit val containerCreateFormat = jsonFormat(
+    ContainerCreate.apply,
+    "Image",
+    "Hostname",
+    "Domainname",
+    "User",
+    "AttachStdin",
+    "AttachStdout",
+    "AttachStderr",
+    "Tty",
+    "OpenStdin",
+    "StdinOnce",
+    "Env",
+    "Cmd",
+    "Entrypoint",
+    "Labels",
+    "Mounts",
+    "NetworkDisabled",
+    "WorkingDir",
+    "MacAddress",
+    "ExposedPorts",
+    "HostConfig"
+  )
 
-  implicit val containerCreateResponseFormat =
-    jsonFormat(ContainerCreateResponse, "Id", "Warnings")
+  implicit val containerCreateResponseFormat = jsonFormat(
+    ContainerCreateResponse, "Id", "Warnings"
+  )
 
   implicit object ContainerStateFormat extends RootJsonReader[ContainerState] {
     def read(v: JsValue) = v match {
-      case obj: JsObject => ContainerState(
-        isRunning = obj.get[Boolean]("Running"),
-        isPaused = obj.get[Boolean]("Paused"),
-        isRestarting = obj.get[Boolean]("Restarting"),
-        isOomKilled = obj.get[Boolean]("OOMKilled"),
-        isDead = obj.get[Boolean]("Dead"),
-        pid = obj.getOpt[Int]("Pid")(ZeroOptIntFormat),
-        exitCode = obj.get[Int]("ExitCode"),
-        error = obj.getOpt[String]("Error"),
-        startedAt = obj.getOpt[ZonedDateTime]("StartedAt"),
-        finishedAt = obj.getOpt[ZonedDateTime]("FinishedAt")
-      )
-      case x => deserializationError(s"Expected JsObject, but got $x")
+      case obj: JsObject ⇒
+        ContainerState(
+          isRunning = obj.get[Boolean]("Running"),
+          isPaused = obj.get[Boolean]("Paused"),
+          isRestarting = obj.get[Boolean]("Restarting"),
+          isOomKilled = obj.get[Boolean]("OOMKilled"),
+          isDead = obj.get[Boolean]("Dead"),
+          pid = obj.getOpt[Int]("Pid")(ZeroOptIntFormat),
+          exitCode = obj.get[Int]("ExitCode"),
+          error = obj.getOpt[String]("Error"),
+          startedAt = obj.getOpt[ZonedDateTime]("StartedAt"),
+          finishedAt = obj.getOpt[ZonedDateTime]("FinishedAt")
+        )
+      case x ⇒ deserializationError(s"Expected JsObject, but got $x")
     }
   }
 
-  implicit val addressFormat =
-    jsonFormat(Address, "Addr", "PrefixLen")
+  implicit val addressFormat = jsonFormat(Address, "Addr", "PrefixLen")
 
-  implicit val networkSettingsFormat =
-    jsonFormat(NetworkSettings, "Bridge", "EndpointID", "Gateway", "GlobalIPv6Address",
-      "GlobalIPv6PrefixLen", "HairpinMode", "IPAddress", "IPPrefixLen", "IPv6Gateway",
-      "LinkLocalIPv6Address", "LinkLocalIPv6PrefixLen", "MacAddress", "NetworkID", "Ports",
-      "SandboxKey", "SecondaryIPAddresses", "SecondaryIPv6Addresses")
+  implicit val networkSettingsFormat = jsonFormat(
+    NetworkSettings,
+    "Bridge",
+    "EndpointID",
+    "Gateway",
+    "GlobalIPv6Address",
+    "GlobalIPv6PrefixLen",
+    "HairpinMode",
+    "IPAddress",
+    "IPPrefixLen",
+    "IPv6Gateway",
+    "LinkLocalIPv6Address",
+    "LinkLocalIPv6PrefixLen",
+    "MacAddress",
+    "NetworkID",
+    "Ports",
+    "SandboxKey",
+    "SecondaryIPAddresses",
+    "SecondaryIPv6Addresses"
+  )
 
   implicit object RunConfigFormat extends RootJsonFormat[RunConfig] {
     def read(v: JsValue) = v match {
-      case obj: JsObject => RunConfig(
-        hostname = obj.getOpt[String]("Hostname"),
-        domainName = obj.getOpt[String]("Domainname"),
-        user = obj.getOpt[String]("User"),
-        isAttachStdin = obj.getOrElse[Boolean]("AttachStdin", false),
-        isAttachStdout = obj.getOrElse[Boolean]("AttachStdout", false),
-        isAttachStderr = obj.getOrElse[Boolean]("AttachStderr", false),
-        exposedPorts = obj.get[ExposedPorts]("ExposedPorts"),
-        publishService = obj.getOpt[String]("PublishService"),
-        isTty = obj.getOrElse[Boolean]("Tty", false),
-        isOpenStdin = obj.getOrElse[Boolean]("OpenStdin", false),
-        isStdinOnce = obj.getOrElse[Boolean]("StdinOnce", false),
-        env = obj.getList[String]("Env"),
-        command = obj.getList[String]("Cmd"),
-        image = obj.getOpt[String]("Image"),
-        volumes = obj.get[Map[String, Unit]]("Volumes"),
-        volumeDriver = obj.getOpt[String]("VolumeDriver"),
-        workingDirectory = obj.getOpt[String]("WorkingDir"),
-        entrypoint = obj.getList[String]("Entrypoint"),
-        isNetworkDisabled = obj.getOrElse[Boolean]("NetworkDisabled", false),
-        macAddress = obj.getOpt[String]("MacAddress"),
-        labels = obj.get[Map[String, String]]("Labels"),
-        onBuild = obj.getList[String]("OnBuild")
-      )
-      case x => deserializationError(s"Expected JsObject, but got $x")
+      case obj: JsObject ⇒
+        RunConfig(
+          hostname = obj.getOpt[String]("Hostname"),
+          domainName =
+            obj.getOpt[String]("Domainname"),
+          user = obj.getOpt[String]("User"),
+          isAttachStdin = obj.getOrElse[Boolean]("AttachStdin", false),
+          isAttachStdout =
+            obj.getOrElse[Boolean]("AttachStdout", false),
+          isAttachStderr =
+            obj.getOrElse[Boolean]("AttachStderr", false),
+          exposedPorts =
+            obj.get[ExposedPorts]("ExposedPorts"),
+          publishService = obj.getOpt[String]("PublishService"),
+          isTty = obj.getOrElse[Boolean]("Tty", false),
+          isOpenStdin = obj.getOrElse[Boolean]("OpenStdin", false),
+          isStdinOnce =
+            obj.getOrElse[Boolean]("StdinOnce", false),
+          env = obj.getList[String]("Env"),
+          command = obj.getList[String]("Cmd"),
+          image = obj.getOpt[String]("Image"),
+          volumes = obj.get[Map[String, Unit]]("Volumes"),
+          volumeDriver = obj.getOpt[String]("VolumeDriver"),
+          workingDirectory = obj.getOpt[String]("WorkingDir"),
+          entrypoint =
+            obj.getList[String]("Entrypoint"),
+          isNetworkDisabled =
+            obj.getOrElse[Boolean]("NetworkDisabled", false),
+          macAddress = obj.getOpt[String]("MacAddress"),
+          labels = obj.get[Map[String, String]]("Labels"),
+          onBuild = obj.getList[String]("OnBuild")
+        )
+      case x ⇒ deserializationError(s"Expected JsObject, but got $x")
     }
 
     def write(c: RunConfig) = JsObject(
-      "Hostname" -> c.hostname.toJson,
-      "Domainname" -> c.domainName.toJson,
-      "User" -> c.user.toJson,
-      "AttachStdin" -> c.isAttachStdin.toJson,
-      "AttachStdout" -> c.isAttachStdout.toJson,
-      "AttachStderr" -> c.isAttachStderr.toJson,
-      "ExposedPorts" -> c.exposedPorts.toJson,
-      "PublishService" -> c.publishService.toJson,
-      "Tty" -> c.isTty.toJson,
-      "OpenStdin" -> c.isOpenStdin.toJson,
-      "StdinOnce" -> c.isStdinOnce.toJson,
-      "Env" -> c.env.toJson,
-      "Cmd" -> c.command.toJson,
-      "Image" -> c.image.toJson,
-      "Volumes" -> c.volumes.toJson,
-      "VolumeDriver" -> c.volumeDriver.toJson,
-      "WorkingDir" -> c.workingDirectory.toJson,
-      "Entrypoint" -> c.entrypoint.toJson,
-      "NetworkDisabled" -> c.isNetworkDisabled.toJson,
-      "MacAddress" -> c.macAddress.toJson,
-      "Labels" -> c.labels.toJson,
-      "OnBuild" -> c.onBuild.toJson
+      "Hostname" → c.hostname.toJson,
+      "Domainname" → c.domainName.toJson,
+      "User" → c.user.toJson,
+      "AttachStdin" → c.isAttachStdin.toJson,
+      "AttachStdout" → c.isAttachStdout.toJson,
+      "AttachStderr" → c.isAttachStderr.toJson,
+      "ExposedPorts" → c.exposedPorts.toJson,
+      "PublishService" → c.publishService.toJson,
+      "Tty" → c.isTty.toJson,
+      "OpenStdin" → c.isOpenStdin.toJson,
+      "StdinOnce" → c.isStdinOnce.toJson,
+      "Env" → c.env.toJson,
+      "Cmd" → c.command.toJson,
+      "Image" → c.image.toJson,
+      "Volumes" → c.volumes.toJson,
+      "VolumeDriver" → c.volumeDriver.toJson,
+      "WorkingDir" → c.workingDirectory.toJson,
+      "Entrypoint" → c.entrypoint.toJson,
+      "NetworkDisabled" → c.isNetworkDisabled.toJson,
+      "MacAddress" → c.macAddress.toJson,
+      "Labels" → c.labels.toJson,
+      "OnBuild" → c.onBuild.toJson
     )
   }
 
   implicit object ContainerBaseFormat extends RootJsonFormat[ContainerBase] {
     def read(v: JsValue) = v match {
-      case obj: JsObject => ContainerBase(
-        id = obj.get[String]("Id"),
-        createdAt = obj.get[ZonedDateTime]("Created"),
-        path = obj.get[String]("Path"),
-        args = obj.getList[String]("Args"),
-        state = obj.get[ContainerState]("State"),
-        image = obj.get[String]("Image"),
-        networkSettings = obj.get[NetworkSettings]("NetworkSettings"),
-        resolvConfPath = obj.getOpt[String]("ResolvConfPath"),
-        hostnamePath = obj.getOpt[String]("HostnamePath"),
-        hostsPath = obj.getOpt[String]("HostsPath"),
-        logPath = obj.getOpt[String]("LogPath"),
-        name = obj.get[String]("Name"),
-        restartCount = obj.get[Int]("RestartCount"),
-        driver = obj.get[String]("Driver"),
-        execDriver = obj.get[String]("ExecDriver"),
-        mountLabel = obj.getOpt[String]("MountLabel"),
-        processLabel = obj.getOpt[String]("ProcessLabel"),
-        volumes = obj.get[Map[String, String]]("Volumes"),
-        volumesRw = obj.get[Map[String, Boolean]]("VolumesRW"),
-        appArmorProfile = obj.getOpt[String]("AppArmorProfile"),
-        execIds = obj.getList[String]("ExecIDs"),
-        hostConfig = obj.get[HostConfig]("HostConfig"),
-        // GraphDriver     GraphDriverData
-        config = obj.get[RunConfig]("Config")
-      )
-      case x => deserializationError(s"Expected JsObject, but got $x")
+      case obj: JsObject ⇒
+        ContainerBase(
+          id = obj.get[String]("Id"),
+          createdAt =
+            obj.get[ZonedDateTime]("Created"),
+          path = obj.get[String]("Path"),
+          args = obj.getList[String]("Args"),
+          state =
+            obj.get[ContainerState]("State"),
+          image =
+            obj.get[String]("Image"),
+          networkSettings =
+            obj.get[NetworkSettings]("NetworkSettings"),
+          resolvConfPath = obj.getOpt[String]("ResolvConfPath"),
+          hostnamePath = obj.getOpt[String]("HostnamePath"),
+          hostsPath = obj.getOpt[String]("HostsPath"),
+          logPath = obj.getOpt[String]("LogPath"),
+          name = obj.get[String]("Name"),
+          restartCount = obj.get[Int]("RestartCount"),
+          driver = obj.get[String]("Driver"),
+          execDriver = obj.get[String]("ExecDriver"),
+          mountLabel = obj.getOpt[String]("MountLabel"),
+          processLabel = obj.getOpt[String]("ProcessLabel"),
+          volumes = obj.get[Map[String, String]]("Volumes"),
+          volumesRw = obj.get[Map[String, Boolean]]("VolumesRW"),
+          appArmorProfile = obj.getOpt[String]("AppArmorProfile"),
+          execIds = obj.getList[String]("ExecIDs"),
+          hostConfig = obj.get[HostConfig]("HostConfig"),
+          // GraphDriver     GraphDriverData
+          config = obj.get[RunConfig]("Config")
+        )
+      case x ⇒ deserializationError(s"Expected JsObject, but got $x")
     }
 
     def write(c: ContainerBase) = throw new NotImplementedError
   }
 
-  implicit val fileChangeKindFormat =
-    createIntEnumJsonFormat(FileChangeKind)
+  implicit val fileChangeKindFormat = createIntEnumJsonFormat(FileChangeKind)
 
-  implicit val fileChangeFormat =
-    jsonFormat(FileChange, "Path", "Kind")
+  implicit val fileChangeFormat = jsonFormat(FileChange, "Path", "Kind")
 
-  implicit object ContainerChangesFormat extends RootJsonReader[ContainerChanges] {
+  implicit object ContainerChangesFormat
+      extends RootJsonReader[ContainerChanges] {
     def read(v: JsValue) = ContainerChanges(v.convertTo[List[FileChange]])
   }
 
-  implicit val networkStatsFormat =
-    jsonFormat(NetworkStats, "rx_bytes", "rx_packets",
-      "rx_errors", "rx_dropped", "tx_bytes", "tx_packets", "tx_errors", "tx_dropped")
+  implicit val networkStatsFormat = jsonFormat(
+    NetworkStats,
+    "rx_bytes",
+    "rx_packets",
+    "rx_errors",
+    "rx_dropped",
+    "tx_bytes",
+    "tx_packets",
+    "tx_errors",
+    "tx_dropped"
+  )
 
-  implicit val cpuUsageFormat =
-    jsonFormat(CpuUsage, "total_usage", "percpu_usage",
-      "usage_in_kernelmode", "usage_in_usermode")
+  implicit val cpuUsageFormat = jsonFormat(
+    CpuUsage,
+    "total_usage",
+    "percpu_usage",
+    "usage_in_kernelmode",
+    "usage_in_usermode"
+  )
 
-  implicit val throttlingDataFormat =
-    jsonFormat(ThrottlingData, "periods", "throttled_periods", "throttled_time")
+  implicit val throttlingDataFormat = jsonFormat(
+    ThrottlingData, "periods", "throttled_periods", "throttled_time"
+  )
 
-  implicit val cpuStatsFormat =
-    jsonFormat(CpuStats, "cpu_usage", "system_cpu_usage", "throttling_data")
+  implicit val cpuStatsFormat = jsonFormat(
+    CpuStats, "cpu_usage", "system_cpu_usage", "throttling_data"
+  )
 
-  implicit val memoryStatsFormat =
-    jsonFormat(MemoryStats, "usage", "max_usage", "stats", "failcnt", "limit")
+  implicit val memoryStatsFormat = jsonFormat(
+    MemoryStats, "usage", "max_usage", "stats", "failcnt", "limit"
+  )
 
-  implicit val blockIoStatEntryFormat =
-    jsonFormat(BlockIoStatEntry, "major", "minor", "op", "value")
+  implicit val blockIoStatEntryFormat = jsonFormat(
+    BlockIoStatEntry, "major", "minor", "op", "value"
+  )
 
-  implicit val blockIoStatsFormat =
-    jsonFormat(BlockIoStats, "io_service_bytes_recursive", "io_serviced_recursive",
-      "io_queue_recursive", "io_service_time_recursive", "io_wait_time_recursive",
-      "io_merged_recursive", "io_time_recursive", "sectors_recursive")
+  implicit val blockIoStatsFormat = jsonFormat(
+    BlockIoStats,
+    "io_service_bytes_recursive",
+    "io_serviced_recursive",
+    "io_queue_recursive",
+    "io_service_time_recursive",
+    "io_wait_time_recursive",
+    "io_merged_recursive",
+    "io_time_recursive",
+    "sectors_recursive"
+  )
 
-  implicit val containerStatsFormat =
-    jsonFormat(ContainerStats, "read", "precpu_stats",
-      "cpu_stats", "memory_stats", "blkio_stats", "networks", "network")
+  implicit val containerStatsFormat = jsonFormat(
+    ContainerStats,
+    "read",
+    "precpu_stats",
+    "cpu_stats",
+    "memory_stats",
+    "blkio_stats",
+    "networks",
+    "network"
+  )
 
-  implicit val containerWaitResponseFormat =
-    jsonFormat(ContainerWaitResponse, "StatusCode")
+  implicit val containerWaitResponseFormat = jsonFormat(
+    ContainerWaitResponse, "StatusCode"
+  )
 
-  implicit val copyConfigFormat =
-    jsonFormat(CopyConfig, "Resource")
+  implicit val copyConfigFormat = jsonFormat(CopyConfig, "Resource")
 
-  implicit val containerPathStatFormat =
-    jsonFormat(ContainerPathStat, "name", "size", "mode", "mtime", "linkTarget")
+  implicit val containerPathStatFormat = jsonFormat(
+    ContainerPathStat, "name", "size", "mode", "mtime", "linkTarget"
+  )
 
-  implicit val graphDriverDataFormat =
-    jsonFormat(GraphDriverData, "Name", "Data")
+  implicit val graphDriverDataFormat = jsonFormat(
+    GraphDriverData, "Name", "Data"
+  )
 
-  implicit val containerCommitResponseFormat =
-    jsonFormat(ContainerCommitResponse, "Id")
+  implicit val containerCommitResponseFormat = jsonFormat(
+    ContainerCommitResponse, "Id"
+  )
 
-  implicit val execConfigFormat =
-    jsonFormat(ExecConfig, "Cmd", "User", "Privileged", "Tty", "Container",
-      "AttachStdin", "AttachStderr", "AttachStdout", "Detach")
+  implicit val execConfigFormat = jsonFormat(
+    ExecConfig,
+    "Cmd",
+    "User",
+    "Privileged",
+    "Tty",
+    "Container",
+    "AttachStdin",
+    "AttachStderr",
+    "AttachStdout",
+    "Detach"
+  )
 
-  implicit val containerExecCreateResponseFormat =
-    jsonFormat(ContainerExecCreateResponse, "Id")
+  implicit val containerExecCreateResponseFormat = jsonFormat(
+    ContainerExecCreateResponse, "Id"
+  )
 
-  implicit val execStartCheckFormat =
-    jsonFormat(ExecStartCheck, "Detach", "Tty")
+  implicit val execStartCheckFormat = jsonFormat(
+    ExecStartCheck, "Detach", "Tty"
+  )
 
-  implicit val processConfigFormat =
-    jsonFormat(ProcessConfig, "Privileged", "User", "Tty", "Entrypoint", "Arguments")
+  implicit val processConfigFormat = jsonFormat(
+    ProcessConfig, "Privileged", "User", "Tty", "Entrypoint", "Arguments"
+  )
 
-  implicit val execInspectFormat =
-    jsonFormat(ExecInspect, "ID", "Running", "ExitCode", "ProcessConfig", "OpenStdin",
-      "OpenStderr", "OpenStdout", "Container")
+  implicit val execInspectFormat = jsonFormat(
+    ExecInspect,
+    "ID",
+    "Running",
+    "ExitCode",
+    "ProcessConfig",
+    "OpenStdin",
+    "OpenStderr",
+    "OpenStdout",
+    "Container"
+  )
 }

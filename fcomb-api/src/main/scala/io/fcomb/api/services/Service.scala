@@ -2,14 +2,14 @@ package io.fcomb.api.services
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, GenericHttpCredentials, Location, `X-Forwarded-For`, `Remote-Address`}
-import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
-import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
+import akka.http.scaladsl.model.headers.{ Authorization, `Content-Disposition`, ContentDispositionTypes, GenericHttpCredentials, Location, `X-Forwarded-For`, `Remote-Address` }
+import akka.http.scaladsl.server.{ RequestContext, Route, RouteResult }
+import akka.http.scaladsl.unmarshalling.{ Unmarshal, Unmarshaller }
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Source, Sink, FileIO}
+import akka.stream.scaladsl.{ Source, Sink, FileIO }
 import akka.util.ByteString
-import io.circe.{Error ⇒ CirceError, _}
+import io.circe.{ Error ⇒ CirceError, _ }
 import io.circe.jawn._
 import io.fcomb.json._
 import io.fcomb.json.errors._
@@ -19,13 +19,13 @@ import io.fcomb.persist
 import io.fcomb.utils._
 import io.fcomb.validations.ValidationErrors
 import org.slf4j.LoggerFactory
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
-import cats.data.{Xor, Validated}
+import cats.data.{ Xor, Validated }
 import scala.util.Try
 import spray.json._
 import java.io.File
-import java.net.{InetAddress, UnknownHostException}
+import java.net.{ InetAddress, UnknownHostException }
 
 sealed trait RequestBody[R] {
   val body: Option[R]
@@ -36,7 +36,10 @@ case class JsonBody(body: Option[JsValue]) extends RequestBody[JsValue]
 // case class JsonBody2(body: Option[Json]) extends RequestBody[Json]
 
 sealed trait Marshaller {
-  def serialize[T](res: T)(implicit m: Manifest[T], jw: JsonWriter[T]): ByteString
+  def serialize[T](res: T)(
+    implicit
+    m: Manifest[T], jw: JsonWriter[T]
+  ): ByteString
 
   def deserialize(body: Source[ByteString, Any])(
     implicit
@@ -54,13 +57,13 @@ object JsonMarshaller extends Marshaller {
     ec:  ExecutionContext,
     mat: Materializer
   ): Future[Xor[Throwable, RequestBody[_]]] =
-    body
-      .runFold(ByteString.empty)(_ ++ _)
-      .map { data ⇒
-        if (data.isEmpty) Xor.Right(JsonBody(None))
-        else Xor.fromTry(Try(data.utf8String.parseJson))
+    body.runFold(ByteString.empty)(_ ++ _).map { data ⇒
+      if (data.isEmpty) Xor.Right(JsonBody(None))
+      else
+        Xor
+          .fromTry(Try(data.utf8String.parseJson))
           .map(res ⇒ JsonBody(Some(res)))
-      }
+    }
 }
 
 // object Json2Marshaller extends Marshaller {
@@ -98,18 +101,21 @@ object ServiceResult {
     statusCode:  StatusCode,
     contentType: ContentType,
     headers:     List[HttpHeader] = List.empty
-  ) extends CompleteResultItem
+  )
+      extends CompleteResultItem
 
   case class CompleteResult(
     response:    ByteString,
     statusCode:  StatusCode,
     contentType: ContentType,
     headers:     List[HttpHeader] = List.empty
-  ) extends CompleteResultItem
+  )
+      extends CompleteResultItem
 
   case class CompleteFutureResult(
     f: Future[ServiceResult]
-  ) extends ServiceResult
+  )
+      extends ServiceResult
 
   case class CompleteSourceResult(
     source:        Source[ByteString, Any],
@@ -117,7 +123,8 @@ object ServiceResult {
     contentType:   ContentType,
     headers:       List[HttpHeader]        = List.empty,
     contentLength: Option[Long]            = None
-  ) extends CompleteResultItem
+  )
+      extends CompleteResultItem
 }
 import ServiceResult._
 
@@ -150,27 +157,33 @@ object ServiceRoute {
     ec: ExecutionContext
   ): Future[RouteResult] = res match {
     case CompleteResult(res, status, ct, headers) ⇒
-      rCtx.complete(HttpResponse(
-        status = status,
-        headers = headers,
-        entity = HttpEntity(ct, res)
-      ))
+      rCtx.complete(
+        HttpResponse(
+          status = status,
+          headers = headers,
+          entity = HttpEntity(ct, res)
+        )
+      )
     case CompleteSourceResult(s, status, ct, headers, contentLength) ⇒
       val entity = contentLength match {
         case Some(length) ⇒ HttpEntity(ct, length, s)
         case None         ⇒ HttpEntity(ct, s)
       }
-      rCtx.complete(HttpResponse(
-        status = status,
-        headers = headers,
-        entity = entity
-      ))
+      rCtx.complete(
+        HttpResponse(
+          status = status,
+          headers = headers,
+          entity = entity
+        )
+      )
     case CompleteWithoutResult(status, ct, headers) ⇒
-      rCtx.complete(HttpResponse(
-        status = status,
-        headers = headers,
-        entity = HttpEntity.empty(ct)
-      ))
+      rCtx.complete(
+        HttpResponse(
+          status = status,
+          headers = headers,
+          entity = HttpEntity.empty(ct)
+        )
+      )
     case CompleteFutureResult(f) ⇒
       f.flatMap(serviceResultToRoute(rCtx, _))
   }
@@ -221,7 +234,9 @@ trait CompleteResultMethods {
     headers:       List[HttpHeader],
     contentLength: Option[Long]            = None
   ): ServiceResult =
-    CompleteSourceResult(source, statusCode, contentType, headers, contentLength)
+    CompleteSourceResult(
+      source, statusCode, contentType, headers, contentLength
+    )
 
   def completeFile(
     source: Source[ByteString, Any],
@@ -229,10 +244,12 @@ trait CompleteResultMethods {
   ): ServiceResult = {
     val headers = name match {
       case Some(filename) if filename.nonEmpty ⇒
-        List(`Content-Disposition`(
-          ContentDispositionTypes.attachment,
-          Map("filename" → filename)
-        ))
+        List(
+          `Content-Disposition`(
+            ContentDispositionTypes.attachment,
+            Map("filename" → filename)
+          )
+        )
       case _ ⇒ List.empty
     }
     CompleteSourceResult(
@@ -252,22 +269,25 @@ trait ServiceExceptionMethods {
   def mapThrowable(e: Throwable) = {
     e.printStackTrace() // TODO: debug only
     e match {
-      case _: DeserializationException |
-        _: ParsingException |
+      case _: DeserializationException | _: ParsingException |
         _: Unmarshaller.UnsupportedContentTypeException ⇒
         (
           InternalException(e.getMessage),
           StatusCodes.UnprocessableEntity
         )
-      case _ ⇒ (
-        InternalException(e.getMessage),
-        StatusCodes.InternalServerError
-      )
+      case _ ⇒
+        (
+          InternalException(e.getMessage),
+          StatusCodes.InternalServerError
+        )
     }
   }
 }
 
-trait Service extends CompleteResultMethods with ServiceExceptionMethods with ServiceLogging {
+trait Service
+    extends CompleteResultMethods
+    with ServiceExceptionMethods
+    with ServiceLogging {
   val apiPrefix = s"/${Routes.apiVersion}"
 
   def action(f: ServiceContext ⇒ ServiceResult) =
@@ -307,11 +327,13 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     tm:  Manifest[T],
     jr:  JsonReader[T]
   ): Future[Xor[Throwable, Option[T]]] =
-    ctx.requestBody().map(_.flatMap {
-      case JsonBody(Some(json)) ⇒
-        Xor.fromTry(Try(jr.read(json))).map(Some(_))
-      case _ ⇒ Xor.Right(None)
-    })
+    ctx
+      .requestBody()
+      .map(_.flatMap {
+        case JsonBody(Some(json)) ⇒
+          Xor.fromTry(Try(jr.read(json))).map(Some(_))
+        case _ ⇒ Xor.Right(None)
+      })
 
   def flatResult(res: ServiceResult)(
     implicit
@@ -336,10 +358,12 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     tm:  Manifest[T],
     jr:  JsonReader[T]
   ): ServiceResult =
-    complete(requestBodyTryAs[T]().map {
-      case Xor.Right(res) ⇒ f(res)
-      case Xor.Left(e)    ⇒ completeThrowable(e)
-    })
+    complete(
+      requestBodyTryAs[T]().map {
+        case Xor.Right(res) ⇒ f(res)
+        case Xor.Left(e)    ⇒ completeThrowable(e)
+      }
+    )
 
   def requestBodyAs[T](f: T ⇒ ServiceResult)(
     implicit
@@ -378,7 +402,9 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     m:   Manifest[T],
     jw:  JsonWriter[T]
   ): ServiceResult =
-    complete(ctx.marshaller.serialize(res), statusCode, ctx.contentType, List.empty)
+    complete(
+      ctx.marshaller.serialize(res), statusCode, ctx.contentType, List.empty
+    )
 
   def complete[T](f: Future[T], statusCode: StatusCode)(
     implicit
@@ -396,9 +422,12 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     m:   Manifest[T],
     jw:  JsonWriter[MultipleDataResponse[T]]
   ): ServiceResult =
-    complete(f.map(items ⇒ complete(MultipleDataResponse[T](items, None), statusCode)))
+    complete(f.map(items ⇒
+      complete(MultipleDataResponse[T](items, None), statusCode)))
 
-  def completeValidation[T](res: Validated[ValidationErrors, T], statusCode: StatusCode)(
+  def completeValidation[T](
+    res: Validated[ValidationErrors, T], statusCode: StatusCode
+  )(
     implicit
     ctx: ServiceContext,
     m:   Manifest[T],
@@ -418,7 +447,9 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       Location(uri) :: headers
     )
 
-  def completeValidationAsCreated(res: Validated[ValidationErrors, _], uri: Uri)(
+  def completeValidationAsCreated(
+    res: Validated[ValidationErrors, _], uri: Uri
+  )(
     implicit
     ctx: ServiceContext
   ): ServiceResult = res match {
@@ -426,7 +457,9 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     case Validated.Invalid(e) ⇒ complete(e)
   }
 
-  def completeValidationAsCreated(f: Future[Validated[ValidationErrors, _]], uri: Uri)(
+  def completeValidationAsCreated(
+    f: Future[Validated[ValidationErrors, _]], uri: Uri
+  )(
     implicit
     ctx: ServiceContext,
     ec:  ExecutionContext
@@ -461,9 +494,14 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     implicit
     ctx: ServiceContext
   ): ServiceResult =
-    complete(FailureResponse.fromExceptions(errors), StatusCodes.UnprocessableEntity)
+    complete(
+      FailureResponse.fromExceptions(errors),
+      StatusCodes.UnprocessableEntity
+    )
 
-  def completeValidation[T](f: Future[Validated[ValidationErrors, T]], statusCode: StatusCode)(
+  def completeValidation[T](
+    f: Future[Validated[ValidationErrors, T]], statusCode: StatusCode
+  )(
     implicit
     ctx: ServiceContext,
     ec:  ExecutionContext,
@@ -601,9 +639,11 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
     ec:  ExecutionContext,
     mat: Materializer
   ): ServiceResult =
-    complete(Unmarshal(ctx.requestContext.request.entity)
-      .to[Multipart.FormData]
-      .flatMap(body ⇒ f(body.parts)))
+    complete(
+      Unmarshal(ctx.requestContext.request.entity)
+        .to[Multipart.FormData]
+        .flatMap(body ⇒ f(body.parts))
+    )
 
   def requestAsBodyPart(
     f: Multipart.FormData.BodyPart ⇒ Future[ServiceResult]
@@ -655,7 +695,8 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       val file = makeTemporaryFile(part.filename.flatMap { n ⇒
         n.split('.').tail.lastOption.map(e ⇒ s".$e")
       })
-      part.entity.dataBytes.runWith(FileIO.toFile(file))
+      part.entity.dataBytes
+        .runWith(FileIO.toFile(file))
         .map(_ ⇒ f(file, part.filename, part.entity.contentType))
     }
 
@@ -671,11 +712,13 @@ trait Service extends CompleteResultMethods with ServiceExceptionMethods with Se
       .orElse(g { case `Remote-Address`(address) ⇒ address.toIP.map(_.ip) })
       .orElse(g {
         case h if h.is("x-real-ip") || h.is("cf-connecting-ip") ⇒
-          try Some(InetAddress.getByName(h.value))
-          catch { case _: UnknownHostException ⇒ None }
+          try Some(InetAddress.getByName(h.value)) catch {
+            case _: UnknownHostException ⇒ None
+          }
       }) match {
         case Some(ip) ⇒ f(ip)
-        case None     ⇒ completeException(CantExtractClientIpAddress)(StatusCodes.BadRequest)
+        case None ⇒
+          completeException(CantExtractClientIpAddress)(StatusCodes.BadRequest)
       }
   }
 }

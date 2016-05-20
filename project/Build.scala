@@ -9,6 +9,10 @@ import play.twirl.sbt._, Import._
 import com.sksamuel.scapegoat.sbt.ScapegoatSbtPlugin.autoImport.scapegoatVersion
 import net.virtualvoid.sbt.graph.DependencyGraphSettings
 // import io.ino.sbtpillar.Plugin.PillarKeys._
+import org.scalafmt.sbt.ScalaFmtPlugin.autoImport.scalafmtConfig
+import scalariform.formatter.preferences._
+import com.typesafe.sbt.SbtScalariform
+import com.typesafe.sbt.SbtScalariform.ScalariformKeys
 
 object Build extends sbt.Build {
   val Organization = "io.fcomb"
@@ -17,6 +21,7 @@ object Build extends sbt.Build {
 
   lazy val buildSettings =
     super.settings ++
+      SbtScalariform.scalariformSettings ++
       Seq(
         organization := Organization,
         version := Version,
@@ -27,7 +32,20 @@ object Build extends sbt.Build {
         ivyScala := ivyScala.value.map(_.copy(
           overrideScalaVersion = true
         )),
-        scapegoatVersion := "1.2.1"
+        scapegoatVersion := "1.2.1",
+        ScalariformKeys.preferences := ScalariformKeys.preferences.value
+          .setPreference(AlignParameters, true)
+          .setPreference(AlignSingleLineCaseStatements, true)
+          .setPreference(CompactControlReadability, true)
+          .setPreference(CompactStringConcatenation, true)
+          .setPreference(DoubleIndentClassDeclaration, true)
+          .setPreference(RewriteArrowSymbols, true)
+        //  .setPreference(IndentLocalDefs, true)
+          .setPreference(IndentSpaces, 2)
+          .setPreference(IndentPackageBlocks, true)
+          .setPreference(MultilineScaladocCommentsStartOnFirstLine, true)
+          .setPreference(PreserveDanglingCloseParenthesis, true)
+          .setPreference(SpacesWithinPatternBinders, true)
       )
 
   val compilerFlags = Seq(
@@ -77,7 +95,8 @@ object Build extends sbt.Build {
         javaOptions ++= Seq("-Dfile.encoding=UTF-8", "-Dscalac.patmat.analysisBudget=off"),
         javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion, "-Xlint:unchecked", "-Xlint:deprecation"),
         parallelExecution in Test := false,
-        fork in Test := true
+        fork in Test := true,
+        scalafmtConfig := Some(file(".scalafmt"))
         // publishArtifact in packageDoc := false,
         // publishArtifact in packageSrc := false,
         // publishArtifact in Test := false,

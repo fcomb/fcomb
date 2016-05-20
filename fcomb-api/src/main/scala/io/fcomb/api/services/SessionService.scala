@@ -7,15 +7,15 @@ import io.fcomb.json._
 import io.fcomb.request._
 import io.fcomb.response._
 import io.fcomb.persist
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 object SessionService extends Service {
   def create(
     implicit
-    ec: ExecutionContext,
+    ec:  ExecutionContext,
     mat: Materializer
-  ) = action { implicit ctx =>
-    requestBodyAs[SessionRequest] { req =>
+  ) = action { implicit ctx ⇒
+    requestBodyAs[SessionRequest] { req ⇒
       completeValidation(
         persist.Session.create(req),
         StatusCodes.OK
@@ -25,14 +25,14 @@ object SessionService extends Service {
 
   def destroy(
     implicit
-    ec: ExecutionContext,
+    ec:  ExecutionContext,
     mat: Materializer
-  ) = action { implicit ctx =>
-    authorizeUser { _ =>
+  ) = action { implicit ctx ⇒
+    authorizeUser { _ ⇒
       completeWithoutContent(
         getAuthToken match {
-          case Some(token) => persist.Session.destroy(token)
-          case None => FastFuture.successful(())
+          case Some(token) ⇒ persist.Session.destroy(token)
+          case None        ⇒ FastFuture.successful(())
         }
       )
     }

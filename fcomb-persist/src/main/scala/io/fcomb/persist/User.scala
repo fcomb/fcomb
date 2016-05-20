@@ -7,12 +7,14 @@ import io.fcomb.models
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import cats.data.Validated
 import slick.jdbc.GetResult
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 
-class UserTable(tag: Tag) extends Table[models.User](tag, "users") with PersistTableWithAutoLongPk {
+class UserTable(tag: Tag)
+    extends Table[models.User](tag, "users")
+    with PersistTableWithAutoLongPk {
   def email = column[String]("email")
   def username = column[String]("username")
   def fullName = column[Option[String]]("full_name")
@@ -39,14 +41,16 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = ZonedDateTime.now()
-    val user = mapModel(models.User(
-      email = email,
-      username = username,
-      fullName = fullName,
-      passwordHash = password.bcrypt(generateSalt),
-      createdAt = timeAt,
-      updatedAt = timeAt
-    ))
+    val user = mapModel(
+      models.User(
+        email = email,
+        username = username,
+        fullName = fullName,
+        passwordHash = password.bcrypt(generateSalt),
+        createdAt = timeAt,
+        updatedAt = timeAt
+      )
+    )
     validateThenApply(validate(userValidation(user, Some(password)))) {
       createDBIO(user)
     }.flatMap(createCallbacks)
@@ -65,17 +69,19 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     username: String,
     fullName: Option[String]
   )(implicit ec: ExecutionContext): Future[ValidationModel] =
-    update(id)(_.copy(
-      email = email,
-      username = username,
-      fullName = fullName,
-      updatedAt = ZonedDateTime.now()
-    ))
+    update(id)(
+      _.copy(
+        email = email,
+        username = username,
+        fullName = fullName,
+        updatedAt = ZonedDateTime.now()
+      )
+    )
 
   private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) ⇒
-    table
-      .filter(_.id === userId)
-      .map { t ⇒ (t.passwordHash, t.updatedAt) }
+    table.filter(_.id === userId).map { t ⇒
+      (t.passwordHash, t.updatedAt)
+    }
   }
 
   def updatePassword(
@@ -107,10 +113,10 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
   private val findByTokenCompiled = Compiled {
     (token: Rep[String], role: Rep[models.TokenRole.TokenRole]) ⇒
       table
-        .joinLeft(UserToken.table).on(_.id === _.userId)
+        .joinLeft(UserToken.table)
+        .on(_.id === _.userId)
         .filter { q ⇒
-          q._2.map(_.token) === token &&
-            q._2.map(_.role) === role &&
+          q._2.map(_.token) === token && q._2.map(_.role) === role &&
             q._2.map(_.state) === models.TokenState.Enabled
         }
         .map(_._1)
@@ -167,11 +173,16 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     passwordOpt: Option[String]
   )(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(
-      "username" → List(lengthRange(user.username, 1, 255), notUuid(user.username)),
+      "username" → List(
+        lengthRange(user.username, 1, 255),
+        notUuid(user.username)
+      ),
       "email" → List(maxLength(user.email, 255), email(user.email))
     )
     val dbioValidations = validateDBIO(
-      "username" → List(unique(uniqueUsernameCompiled(user.id, user.username))),
+      "username" → List(
+        unique(uniqueUsernameCompiled(user.id, user.username))
+      ),
       "email" → List(unique(uniqueEmailCompiled(user.id, user.email)))
     )
     passwordOpt match {
@@ -182,6 +193,9 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     }
   }
 
-  override def validate(user: models.User)(implicit ec: ExecutionContext): ValidationDBIOResult =
+  override def validate(user: models.User)(
+    implicit
+    ec: ExecutionContext
+  ): ValidationDBIOResult =
     validate(userValidation(user, None))
 }
