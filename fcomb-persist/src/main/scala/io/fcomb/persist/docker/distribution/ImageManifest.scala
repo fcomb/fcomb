@@ -142,7 +142,7 @@ object ImageManifest
           else {
             val schemaV2Details = ImageManifestSchemaV2Details(
               configBlobId = configBlob.id,
-              jsonBlob = Json.Null
+              jsonBlob = Json.Null // TODO
             )
             create(MImageManifest(
               sha256Digest = sha256Digest,

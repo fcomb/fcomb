@@ -29,12 +29,10 @@ object SchemaV1 {
         PImageManifest.upsertSchemaV1(image, manifest, schemaV1JsonBlob, sha256Digest)
           .fast
           .map {
-            case Validated.Valid(_) ⇒ Xor.right(sha256Digest)
-            case Validated.Invalid(e) ⇒
-              Xor.left(DistributionError.Unknown(e.map(_.message).mkString(";")))
+            case Validated.Valid(_)   ⇒ Xor.right(sha256Digest)
+            case Validated.Invalid(e) ⇒ Xor.left(Unknown(e.map(_.message).mkString(";")))
           }
-      case Xor.Left(e) ⇒
-        FastFuture.successful(Xor.left(DistributionError.Unknown(e.message)))
+      case Xor.Left(e) ⇒ FastFuture.successful(Xor.left(Unknown(e.message)))
     }
   }
 

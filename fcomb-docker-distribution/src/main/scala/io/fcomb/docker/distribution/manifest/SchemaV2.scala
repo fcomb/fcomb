@@ -4,20 +4,15 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl.{FileIO, Sink}
 import cats.data.{Validated, Xor}
-import cats.syntax.cartesian._
-import io.circe._, io.circe.parser._, io.circe.syntax._
-import io.fcomb.crypto.Jws
+import io.circe.syntax._
 import io.fcomb.json.docker.distribution.Formats._
-import io.fcomb.json.docker.distribution.Formats.decodeSchemaV1Protected
-import io.fcomb.models.docker.distribution.SchemaV1.{Manifest ⇒ ManifestV1, Protected, Layer, FsLayer, LayerContainerConfig, Config}
-import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest ⇒ ManifestV2}
-import io.fcomb.models.docker.distribution.{ImageManifest ⇒ MImageManifest, Image ⇒ MImage}, MImageManifest.sha256Prefix
+import io.fcomb.models.docker.distribution.SchemaV2.{Manifest ⇒ ManifestV2}
+import io.fcomb.models.docker.distribution.{Image ⇒ MImage}
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
 import io.fcomb.persist.docker.distribution.{ImageManifest ⇒ PImageManifest, ImageBlob ⇒ PImageBlob}
 import io.fcomb.docker.distribution.server.utils.BlobFile
-import io.fcomb.utils.{StringUtils, Units}, Units._
+import io.fcomb.utils.Units._
 import org.apache.commons.codec.digest.DigestUtils
-import org.jose4j.base64url.Base64Url
 import scala.concurrent.{ExecutionContext, Future}
 
 object SchemaV2 {
@@ -31,11 +26,7 @@ object SchemaV2 {
     PImageManifest.findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
       case _ ⇒ ???
       case None ⇒
-        val digests = (manifest.config :: manifest.layers)
-          .map(_.parseDigest)
-          .filterNot(_ == MImageManifest.emptyTarSha256Digest)
-          .distinct
-        val configDigest = digests.head
+        val configDigest = manifest.config.parseDigest
         (for {
           Some(configBlob) ← PImageBlob.findByImageIdAndDigest(image.getId, configDigest)
           _ = assert(configBlob.length <= 1.MB, "Config JSON size is more than 1 MB")
@@ -51,7 +42,7 @@ object SchemaV2 {
                   .map {
                     case Validated.Valid(_) ⇒ Xor.right(sha256Digest)
                     case Validated.Invalid(e) ⇒
-                      Xor.left(DistributionError.Unknown(e.map(_.message).mkString(";")))
+                      Xor.left(Unknown(e.map(_.message).mkString(";")))
                   }
               case _ ⇒ ???
             }
