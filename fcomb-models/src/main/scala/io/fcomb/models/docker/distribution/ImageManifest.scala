@@ -11,18 +11,17 @@ final case class ImageManifestSchemaV2Details(
 )
 
 final case class ImageManifest(
-  id:               Option[Long]                         = None,
-  sha256Digest:     String,
-  imageId:          Long,
-  tags:             List[String],
-  layersBlobId:     List[UUID],
-  schemaVersion:    Int,
-  schemaV1JsonBlob: Json,
-  schemaV2Details:  Option[ImageManifestSchemaV2Details],
-  createdAt:        ZonedDateTime,
-  updatedAt:        Option[ZonedDateTime]
-)
-    extends ModelWithAutoLongPk {
+    id:               Option[Long]                         = None,
+    sha256Digest:     String,
+    imageId:          Long,
+    tags:             List[String],
+    layersBlobId:     List[UUID],
+    schemaVersion:    Int,
+    schemaV1JsonBlob: Json,
+    schemaV2Details:  Option[ImageManifestSchemaV2Details],
+    createdAt:        ZonedDateTime,
+    updatedAt:        Option[ZonedDateTime]
+) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 }
 
@@ -34,38 +33,6 @@ object ImageManifest {
 
   val emptyTarSha256DigestFull = s"$sha256Prefix$emptyTarSha256Digest"
 
-  val emptyTar = Array[Byte](
-    31,
-    -117,
-    8,
-    0,
-    0,
-    9,
-    110,
-    -120,
-    0,
-    -1,
-    98,
-    24,
-    5,
-    -93,
-    96,
-    20,
-    -116,
-    88,
-    0,
-    8,
-    0,
-    0,
-    -1,
-    -1,
-    46,
-    -81,
-    -75,
-    -17,
-    0,
-    4,
-    0,
-    0
-  )
+  val emptyTar = Array[Byte](31, -117, 8, 0, 0, 9, 110, -120, 0, -1, 98, 24, 5,
+    -93, 96, 20, -116, 88, 0, 8, 0, 0, -1, -1, 46, -81, -75, -17, 0, 4, 0, 0)
 }

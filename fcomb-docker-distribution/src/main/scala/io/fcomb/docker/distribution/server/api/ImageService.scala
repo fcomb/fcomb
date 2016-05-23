@@ -436,7 +436,7 @@ object ImageService {
             PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)
           ) {
               case Some(blob) ⇒
-                val source = FileIO.fromFile(BlobFile.getFile(blob))
+                val source = FileIO.fromPath(BlobFile.getFile(blob).toPath)
                 val ct = contentType(blob.contentType)
                 req.header[Range] match {
                   case Some(range) ⇒
@@ -502,33 +502,17 @@ object ImageService {
             respondWithContentType(`application/json`) {
               entity(as[SchemaManifest]) { manifest ⇒
                 val rawManifest = rawManifestBs.utf8String
-                (manifest match {
+                val res = manifest match {
                   case m: SchemaV1.Manifest ⇒
-                    SchemaV1Manifest.verify(m, rawManifest)
-                  case m: SchemaV2.Manifest ⇒
-                    Xor.right(DigestUtils.sha256Hex(rawManifest))
-                }) match {
+                    SchemaV1Manifest.upsertAsImageManifest(image, reference, m, rawManifest)
+                }
+                onSuccess(res) {
                   case Xor.Right(sha256Digest) ⇒
-                    onSuccess(PImageManifest.upsertByRequest(
-                      imageName, reference, manifest, sha256Digest
-                    )) {
-                      case Validated.Valid(m) ⇒
-                        respondWithHeaders(
-                          `Docker-Content-Digest`("sha256", sha256Digest)
-                        ) {
-                            complete(StatusCodes.Created, HttpEntity.Empty)
-                          }
-                      case Validated.Invalid(e) ⇒
-                        complete(
-                          StatusCodes.BadRequest,
-                          FailureResponse.fromExceptions(e)
-                        )
+                    respondWithHeaders(`Docker-Content-Digest`("sha256", sha256Digest)) {
+                      complete(StatusCodes.Created, HttpEntity.Empty)
                     }
                   case Xor.Left(e) ⇒
-                    complete(
-                      StatusCodes.BadRequest,
-                      DistributionErrorResponse.from(e)
-                    )
+                    complete(StatusCodes.BadRequest, DistributionErrorResponse.from(e))
                 }
               }
             }

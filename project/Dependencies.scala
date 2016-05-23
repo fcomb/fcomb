@@ -15,8 +15,6 @@ object Dependencies {
   }
 
   object Compile {
-    val std             = "org.improving"                 %% "psp-std"                       % "0.6.1"
-
     val routeTrie       = "io.fcomb"                      %% "route-trie"                    % "0.4.0"
     val dbMigration     = "io.fcomb"                      %% "db-migration"                  % "0.3.1"
 
@@ -50,7 +48,7 @@ object Dependencies {
     val kamonSystemMetrics = "io.kamon"                   %% "kamon-system-metrics"          % V.kamon
     val kamonLogReporter = "io.kamon"                     %% "kamon-log-reporter"            % V.kamon
 
-    val javaCompat      = "org.scala-lang.modules"        %% "scala-java8-compat"            % "0.7.0"
+    val javaCompat      = "org.scala-lang.modules"        %% "scala-java8-compat"            % "0.8.0-RC1"
 
     val clump           = "io.getclump"                   %% "clump-scala"                   % "0.0.12"
 
@@ -152,8 +150,7 @@ object Dependencies {
   import Compile._, Test._
 
   val common = Seq(
-    // std,
-    // javaCompat,
+    javaCompat,
     logbackClassic, scalaLogging,
     config, configs,
     // pickling, upickle,

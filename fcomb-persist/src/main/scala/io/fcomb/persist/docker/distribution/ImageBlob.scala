@@ -24,25 +24,14 @@ class ImageBlobTable(tag: Tag)
   def uploadedAt = column[Option[ZonedDateTime]]("uploaded_at")
 
   def * =
-    (
-      id,
-      imageId,
-      state,
-      sha256Digest,
-      contentType,
-      length,
-      createdAt,
-      uploadedAt
-    ) <>
+    (id, imageId, state, sha256Digest, contentType, length, createdAt, uploadedAt) <>
       ((MImageBlob.apply _).tupled, MImageBlob.unapply)
 }
 
 object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   val table = TableQuery[ImageBlobTable]
 
-  def mount(
-    fromImageId: Long, toImageName: String, digest: String, userId: Long
-  )(
+  def mount(fromImageId: Long, toImageName: String, digest: String, userId: Long)(
     implicit
     ec: ExecutionContext
   ): Future[Option[MImageBlob]] =
@@ -103,9 +92,11 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
 
   private val findByImageIdAndUuidCompiled = Compiled {
     (imageId: Rep[Long], uuid: Rep[UUID]) ⇒
-      table.filter { q ⇒
-        q.imageId === imageId && q.id === uuid
-      }.take(1)
+      table
+        .filter { q ⇒
+          q.imageId === imageId && q.id === uuid
+        }
+        .take(1)
   }
 
   def findByImageIdAndUuid(imageId: Long, uuid: UUID)(
@@ -116,9 +107,11 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
 
   private val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Long], digest: Rep[String]) ⇒
-      table.filter { q ⇒
-        q.imageId === imageId && q.sha256Digest === digest
-      }.take(1)
+      table
+        .filter { q ⇒
+          q.imageId === imageId && q.sha256Digest === digest
+        }
+        .take(1)
   }
 
   def findByImageIdAndDigest(imageId: Long, digest: String)(
@@ -127,13 +120,23 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   ) =
     db.run(findByImageIdAndDigestCompiled(imageId, digest).result.headOption)
 
+  private def findByImageIdAndDigestsScope(imageId: Long, digests: List[String]) =
+    table
+      .filter { q ⇒
+        q.imageId === imageId && q.sha256Digest.inSetBind(digests)
+      }
+
+  def findIdsByImageIdAndDigests(imageId: Long, digests: List[String])(
+    implicit
+    ec: ExecutionContext
+  ) =
+    db.run(findByImageIdAndDigestsScope(imageId, digests).map(_.pk).result)
+
   def findByImageIdAndDigests(imageId: Long, digests: List[String])(
     implicit
     ec: ExecutionContext
   ) =
-    db.run(table.filter { q ⇒
-      q.imageId === imageId && q.sha256Digest.inSetBind(digests)
-    }.result)
+    db.run(findByImageIdAndDigestsScope(imageId, digests).result)
 
   // TODO: check for blob to exists with the same digest before !!!
   def completeUpload(

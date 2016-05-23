@@ -1,6 +1,7 @@
 package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
+import cats.data.{ Xor, Validated }
 import io.circe.Json
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
@@ -28,18 +29,9 @@ class ImageManifestTable(tag: Tag)
   def v2JsonBlob = column[Option[Json]]("v2_json_blob")
 
   def * =
-    (
-      id,
-      sha256Digest,
-      imageId,
-      tags,
-      layersBlobId,
-      schemaVersion,
-      schemaV1JsonBlob,
-      createdAt,
-      updatedAt,
-      (v2ConfigBlobId, v2JsonBlob)
-    ) <>
+    (id, sha256Digest, imageId, tags, layersBlobId, schemaVersion, schemaV1JsonBlob,
+      createdAt, updatedAt,
+      (v2ConfigBlobId, v2JsonBlob)) <>
       ((apply2 _).tupled, unapply2)
 
   private def apply2(
@@ -79,20 +71,8 @@ class ImageManifestTable(tag: Tag)
         (configBlobId, Some(v2JsonBlob))
       case None ⇒ (None, None)
     }
-    Some(
-      (
-        m.id,
-        m.sha256Digest,
-        m.imageId,
-        m.tags,
-        m.layersBlobId,
-        m.schemaVersion,
-        m.schemaV1JsonBlob,
-        m.createdAt,
-        m.updatedAt,
-        v2DetailsTuple
-      )
-    )
+    Some((m.id, m.sha256Digest, m.imageId, m.tags, m.layersBlobId, m.schemaVersion,
+      m.schemaV1JsonBlob, m.createdAt, m.updatedAt, v2DetailsTuple))
   }
 }
 
@@ -100,17 +80,57 @@ object ImageManifest
     extends PersistModelWithAutoLongPk[MImageManifest, ImageManifestTable] {
   val table = TableQuery[ImageManifestTable]
 
-  private val findIdByImageIdAndDigestCompiled = Compiled {
+  private val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Long], digest: Rep[String]) ⇒
-      table.filter { q ⇒
-        q.imageId === imageId && q.sha256Digest === digest
-      }.map(_.pk).take(1)
+      table
+        .filter { q ⇒
+          q.imageId === imageId && q.sha256Digest === digest
+        }
+        .take(1)
   }
 
-  def findIdByImageIdAndDigest(imageId: Long, digest: String) =
-    db.run(
-      findIdByImageIdAndDigestCompiled((imageId, digest)).result.headOption
-    )
+  def findByImageIdAndDigest(imageId: Long, digest: String) =
+    db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
+
+  def upsertSchemaV1(
+    image:            MImage,
+    manifest:         SchemaV1.Manifest,
+    schemaV1JsonBlob: Json,
+    sha256Digest:     String
+  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
+    findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
+      case Some(im) ⇒ FastFuture.successful(Validated.valid(im))
+      case None ⇒
+        val digests = manifest.fsLayers
+          .map(_.parseDigest)
+          .filterNot(_ == MImageManifest.emptyTarSha256Digest)
+          .distinct
+        ImageBlob.findIdsByImageIdAndDigests(image.getId, digests).flatMap { blobIds ⇒
+          if (blobIds.length != digests.length)
+            FastFuture.successful(Validated.invalid(???))
+          else create(MImageManifest(
+            sha256Digest = sha256Digest,
+            imageId = image.getId,
+            tags = List.empty, // TODO
+            layersBlobId = blobIds.toList,
+            schemaVersion = 1,
+            schemaV1JsonBlob = schemaV1JsonBlob,
+            schemaV2Details = None,
+            createdAt = ZonedDateTime.now,
+            updatedAt = None
+          ))
+        }
+    }
+  }
+
+  def upsertSchemaV2(
+    image:            MImage,
+    manifest:         SchemaV2.Manifest,
+    schemaV1JsonBlob: Json,
+    sha256Digest:     String
+  ) = {
+    ???
+  }
 
   def upsertByRequest(
     image:        MImage,
@@ -131,10 +151,10 @@ object ImageManifest
         ???
       case m: SchemaV2.Manifest ⇒ m
     }
-    val res = findIdByImageIdAndDigest(image.getId, sha256Digest).flatMap {
-      case Some(manifestId) ⇒
+    val res = findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
+      case Some(im) ⇒
         // TODO: update tags or do nothing
-        update(manifestId)(_.copy(
+        update(im.copy(
           updatedAt = Some(ZonedDateTime.now)
         ))
       case None ⇒
@@ -159,7 +179,7 @@ object ImageManifest
           Some(configBlob) = blobs.find(_.sha256Digest.contains(configDigest))
           _ = assert(configBlob.length <= 1.MB)
           imageConfigJson ← FileIO
-            .fromFile(configFile)
+            .fromPath(configFile.toPath)
             .map(_.utf8String)
             .runWith(Sink.head)
         } yield (blobs, imageConfigJson)).flatMap {
@@ -176,19 +196,17 @@ object ImageManifest
             )
 
             val schemaV1JsonBlob = ???
-            create(
-              MImageManifest(
-                sha256Digest = sha256Digest,
-                imageId = image.getId,
-                tags = List.empty, // TODO
-                layersBlobId = layersBlobId,
-                schemaVersion = 2,
-                schemaV1JsonBlob = schemaV1JsonBlob,
-                schemaV2Details = Some(schemaV2Details),
-                createdAt = ZonedDateTime.now,
-                updatedAt = None
-              )
-            )
+            create(MImageManifest(
+              sha256Digest = sha256Digest,
+              imageId = image.getId,
+              tags = List.empty, // TODO
+              layersBlobId = layersBlobId,
+              schemaVersion = 2,
+              schemaV1JsonBlob = schemaV1JsonBlob,
+              schemaV2Details = Some(schemaV2Details),
+              createdAt = ZonedDateTime.now,
+              updatedAt = None
+            ))
         }
     }
     res.onComplete {
