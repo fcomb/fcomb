@@ -3,27 +3,27 @@ package io.fcomb.services.node
 import io.fcomb.services.Exceptions._
 import io.fcomb.services._
 import io.fcomb.services.application.ApplicationProcessor
-import io.fcomb.models.application.{ DockerImage, DockerDeployOptions, Application ⇒ MApplication }
+import io.fcomb.models.application.{DockerImage, DockerDeployOptions, Application ⇒ MApplication}
 import io.fcomb.models.errors._
-import io.fcomb.models.docker.{ ContainerState, Container ⇒ MContainer }
-import io.fcomb.models.node.{ NodeState, Node ⇒ MNode }
-import io.fcomb.persist.docker.{ Container ⇒ PContainer }
-import io.fcomb.utils.{ Config, Implicits, Random }
-import io.fcomb.crypto.{ Certificate, Tls }
-import io.fcomb.persist.node.{ Node ⇒ PNode }
+import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
+import io.fcomb.models.node.{NodeState, Node ⇒ MNode}
+import io.fcomb.persist.docker.{Container ⇒ PContainer}
+import io.fcomb.utils.{Config, Implicits, Random}
+import io.fcomb.crypto.{Certificate, Tls}
+import io.fcomb.persist.node.{Node ⇒ PNode}
 import io.fcomb.persist.UserCertificate
-import io.fcomb.docker.api._, methods.{ ContainerMethods, ResouceOrContainerNotFoundException }
+import io.fcomb.docker.api._, methods.{ContainerMethods, ResouceOrContainerNotFoundException}
 import akka.actor._
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import akka.cluster.sharding._
-import akka.pattern.{ after, ask, pipe }
+import akka.pattern.{after, ask, pipe}
 import akka.util.Timeout
-import scala.concurrent.{ Future, Promise, ExecutionContext }
+import scala.concurrent.{Future, Promise, ExecutionContext}
 import scala.collection.immutable
 import scala.concurrent.duration._
-import scala.util.{ Success, Failure }
-import java.time.{ LocalDateTime, ZonedDateTime }
+import scala.util.{Success, Failure}
+import java.time.{LocalDateTime, ZonedDateTime}
 import java.net.InetAddress
 import javax.net.ssl.SSLContext
 import akka.http.scaladsl.util.FastFuture

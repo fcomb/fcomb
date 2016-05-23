@@ -99,7 +99,7 @@ object Fixtures {
             filename = if (state === ImageBlobState.Uploaded) digest
             else id.toString
             file = new File(s"${Config.docker.distribution.imageStorage}/$filename")
-            _ ← Source.single(bs).runWith(FileIO.toFile(file))
+            _ ← Source.single(bs).runWith(FileIO.toPath(file.toPath))
           } yield res)
         }
       }

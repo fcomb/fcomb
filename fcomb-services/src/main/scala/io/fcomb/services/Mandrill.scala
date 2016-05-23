@@ -3,7 +3,7 @@ package io.fcomb.services
 import io.fcomb.utils.Config
 import akka.actor.ActorSystem
 import akka.util.ByteString
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import akka.stream.Materializer
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.Http

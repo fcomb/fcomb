@@ -1,9 +1,9 @@
 package io.fcomb
 
 import io.fcomb.models.errors.ValidationException
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.matching.Regex
-import cats.data.{ XorT, Validated }, cats.std.all._
+import cats.data.{XorT, Validated}, cats.std.all._
 import cats.syntax.cartesian._
 import slick.driver.PostgresDriver.api._
 import slick.lifted.AppliedCompiledFunction

@@ -1,7 +1,7 @@
 package io.fcomb.crypto
 
-import java.security.{ Key, KeyFactory, PublicKey, PrivateKey }
-import java.security.spec.{ PKCS8EncodedKeySpec, X509EncodedKeySpec }
+import java.security.{Key, KeyFactory, PublicKey, PrivateKey}
+import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import javax.crypto.Cipher
 
 object Rsa {

@@ -3,16 +3,16 @@ package io.fcomb.api.services.agent
 import io.fcomb.api.services._
 import io.fcomb.json._
 import io.fcomb.request._
-import io.fcomb.persist.node.{ Node ⇒ PNode }
+import io.fcomb.persist.node.{Node ⇒ PNode}
 import io.fcomb.models.errors.ExpectedAuthorizationToken
 import io.fcomb.models.TokenRole
-import io.fcomb.models.node.{ Node ⇒ MNode }
+import io.fcomb.models.node.{Node ⇒ MNode}
 import io.fcomb.services.node.NodeManager
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.RawHeader
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import cats.data.Validated
 
 object NodeService extends Service {

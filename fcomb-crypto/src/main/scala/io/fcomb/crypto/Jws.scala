@@ -1,7 +1,7 @@
 package io.fcomb.crypto
 
 import org.jose4j.jca.ProviderContext
-import org.jose4j.jwk.{ EllipticCurveJsonWebKey, JsonWebKey }
+import org.jose4j.jwk.{EllipticCurveJsonWebKey, JsonWebKey}
 import org.jose4j.jws.EcdsaUsingShaAlgorithm
 import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._

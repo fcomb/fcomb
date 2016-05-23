@@ -88,7 +88,7 @@ object Routes {
     import de.heikoseeberger.akkahttpcirce.CirceSupport._
     import io.fcomb.json.docker.distribution.Formats._
     import io.circe.generic.auto._
-    import io.fcomb.models.errors.docker.distribution.{ DistributionError, DistributionErrorResponse }
+    import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 
     val exceptionHandler = ExceptionHandler {
       case e ⇒

@@ -5,7 +5,7 @@ import io.fcomb.RichPostgresDriver._
 import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
 import slick.jdbc.JdbcType
-import java.sql.{ PreparedStatement, ResultSet }
+import java.sql.{PreparedStatement, ResultSet}
 
 package object persist {
   implicit val certificateKindColumnType = createEnumJdbcType(

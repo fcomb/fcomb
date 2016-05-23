@@ -5,11 +5,11 @@ import akka.http.HijackTcp
 import akka.http.settings.clientSettingsWithIdleTimeout
 import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.http.scaladsl.util.FastFuture
-import akka.http.scaladsl.{ Http, ConnectionContext }
+import akka.http.scaladsl.{Http, ConnectionContext}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.MediaTypes.`application/x-tar`
-import akka.stream.{ Materializer, OverflowStrategy }
+import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import io.fcomb.docker.api.methods._

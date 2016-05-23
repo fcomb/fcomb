@@ -1,6 +1,6 @@
 package io.fcomb.utils
 
-import java.io.{ ByteArrayInputStream, InputStream }
+import java.io.{ByteArrayInputStream, InputStream}
 import java.nio.charset.StandardCharsets
 import net.jpountz.xxhash.XXHashFactory
 

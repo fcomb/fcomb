@@ -7,8 +7,8 @@ import akka.cluster.sharding._
 import akka.pattern.ask
 import akka.util.Timeout
 import io.fcomb.services.Exceptions._
-import scala.concurrent.{ ExecutionContext, Future, Promise }
-import scala.util.{ Success, Failure }
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Success, Failure}
 import org.slf4j.LoggerFactory
 
 object ProcessorMessages {}

@@ -2,20 +2,20 @@ package io.fcomb.services.node
 
 import io.fcomb.services.Exceptions._
 import io.fcomb.services.UserCertificateProcessor
-import io.fcomb.models.node.{ Node ⇒ MNode }
-import io.fcomb.utils.{ Config, Implicits }
+import io.fcomb.models.node.{Node ⇒ MNode}
+import io.fcomb.utils.{Config, Implicits}
 import io.fcomb.crypto.Certificate
 import akka.http.scaladsl.util.FastFuture
-import io.fcomb.persist.node.{ Node ⇒ PNode }
+import io.fcomb.persist.node.{Node ⇒ PNode}
 import akka.actor._
 import akka.cluster.sharding._
-import akka.pattern.{ ask, pipe }
+import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import scala.concurrent.{ Future, Promise }
+import scala.concurrent.{Future, Promise}
 import scala.collection.mutable.HashSet
 import scala.concurrent.duration._
-import scala.util.{ Success, Failure }
-import sun.security.x509.{ X500Name, CertificateExtensions }
+import scala.util.{Success, Failure}
+import sun.security.x509.{X500Name, CertificateExtensions}
 import sun.security.pkcs10.PKCS10
 import java.security.cert.X509Certificate
 import java.security.PrivateKey

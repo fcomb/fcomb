@@ -1,6 +1,6 @@
 package io.fcomb.docker.distribution.server.api
 
-import akka.http.scaladsl.model.ContentTypes.{ `application/octet-stream`, `application/json` }
+import akka.http.scaladsl.model.ContentTypes.{`application/octet-stream`, `application/json`}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
@@ -8,17 +8,17 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
-import cats.data.{ Validated, Xor }
+import cats.data.{Validated, Xor}
 import cats.syntax.eq._
-import io.fcomb.docker.distribution.manifest.{ SchemaV1 ⇒ SchemaV1Manifest }
+import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.server.utils.BlobFile
-import io.fcomb.models.docker.distribution.{ Image ⇒ MImage, _ }
-import io.fcomb.models.errors.docker.distribution.{ DistributionError, DistributionErrorResponse }
-import io.fcomb.models.{ User ⇒ MUser }
-import io.fcomb.persist.docker.distribution.{ ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest }
-import io.fcomb.utils.{ Config, StringUtils }, Config.docker.distribution.realm
+import io.fcomb.models.docker.distribution.{Image ⇒ MImage, _}
+import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
+import io.fcomb.models.{User ⇒ MUser}
+import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
+import io.fcomb.utils.{Config, StringUtils}, Config.docker.distribution.realm
 import java.io.File
 import java.security.MessageDigest
 import java.util.UUID
@@ -26,8 +26,8 @@ import org.apache.commons.codec.digest.DigestUtils
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future, blocking }
-import scala.util.{ Right, Left }
+import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.util.{Right, Left}
 
 import AuthDirectives._
 
@@ -218,7 +218,7 @@ object ImageService {
                 _ ← req.entity.dataBytes.map { chunk ⇒
                   md.update(chunk.toArray)
                   chunk
-                }.runWith(akka.stream.scaladsl.FileIO.toFile(file))
+                }.runWith(akka.stream.scaladsl.FileIO.toPath(file.toPath))
                 // TODO: check file for 0 size
                 digest = StringUtils.hexify(md.digest)
                 // TODO: check digest for unique
@@ -492,6 +492,7 @@ object ImageService {
 
   def uploadManifest(imageName: String, reference: String)(
     implicit
+    mat: Materializer,
     req: HttpRequest
   ) =
     authenticateUserBasic(realm) { user ⇒
@@ -505,6 +506,8 @@ object ImageService {
                 val res = manifest match {
                   case m: SchemaV1.Manifest ⇒
                     SchemaV1Manifest.upsertAsImageManifest(image, reference, m, rawManifest)
+                  case m: SchemaV2.Manifest ⇒
+                    SchemaV2Manifest.upsertAsImageManifest(image, reference, m, rawManifest)
                 }
                 onSuccess(res) {
                   case Xor.Right(sha256Digest) ⇒
@@ -587,7 +590,7 @@ object ImageService {
     source.map { chunk ⇒
       md.update(chunk.toArray)
       chunk
-    }.runWith(FileIO.toFile(file)).fast.map { _ ⇒
+    }.runWith(FileIO.toPath(file.toPath)).fast.map { _ ⇒
       StringUtils.hexify(md.digest)
     }
   }

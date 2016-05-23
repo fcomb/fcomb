@@ -4,16 +4,16 @@ import io.fcomb.api.services._
 import io.fcomb.json._
 import io.fcomb.request._
 import io.fcomb.response._
-import io.fcomb.persist.application.{ Application ⇒ PApplication }
-import io.fcomb.persist.docker.{ Container ⇒ PContainer }
+import io.fcomb.persist.application.{Application ⇒ PApplication}
+import io.fcomb.persist.docker.{Container ⇒ PContainer}
 import io.fcomb.models.errors.ExpectedAuthorizationToken
 import io.fcomb.models.TokenRole
 import io.fcomb.services.application.ApplicationManager
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.{ Authorization, GenericHttpCredentials }
-import scala.concurrent.{ Future, ExecutionContext }
+import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials}
+import scala.concurrent.{Future, ExecutionContext}
 
 object ApplicationContainersService extends Service with ApplicationAuth {
   val pathPrefix = "containers"

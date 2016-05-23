@@ -4,11 +4,11 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.{ Image ⇒ MImage }
+import io.fcomb.models.docker.distribution.{Image ⇒ MImage}
 import io.fcomb.persist._
 import io.fcomb.validations._
 import java.time.ZonedDateTime
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
 class ImageTable(tag: Tag)

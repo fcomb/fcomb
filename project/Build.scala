@@ -46,6 +46,7 @@ object Build extends sbt.Build {
           .setPreference(MultilineScaladocCommentsStartOnFirstLine, true)
           .setPreference(PreserveDanglingCloseParenthesis, true)
           .setPreference(SpacesWithinPatternBinders, true)
+          .setPreference(SpacesAroundMultiImports, false)
       )
 
   val compilerFlags = Seq(

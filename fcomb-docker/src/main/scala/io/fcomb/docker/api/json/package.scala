@@ -1,9 +1,9 @@
 package io.fcomb.docker.api
 
 import spray.json._
-import spray.json.DefaultJsonProtocol.{ listFormat ⇒ _, _ }
+import spray.json.DefaultJsonProtocol.{listFormat ⇒ _, _}
 import io.fcomb.json._
-import java.time.{ LocalDateTime, ZonedDateTime }
+import java.time.{LocalDateTime, ZonedDateTime}
 
 package object json {
   implicit object OptStringFormat extends JsonFormat[Option[String]] {

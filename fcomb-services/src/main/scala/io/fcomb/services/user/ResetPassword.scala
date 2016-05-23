@@ -10,7 +10,7 @@ import io.fcomb.utils.Random
 import akka.stream.Materializer
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import cats.data.Validated
 import java.time.LocalDateTime

@@ -3,13 +3,13 @@ package io.fcomb.persist
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models, models.{ TokenRole, TokenState }
+import io.fcomb.models, models.{TokenRole, TokenState}
 import io.fcomb.request
 import io.fcomb.persist._
 import io.fcomb.validations._
 import io.fcomb.utils.Random.random
 import java.time.LocalDateTime
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import java.time.ZonedDateTime
 import java.util.UUID
 

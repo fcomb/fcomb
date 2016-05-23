@@ -1,8 +1,8 @@
 package io.fcomb.models.errors.docker.distribution
 
 import enumeratum.EnumEntry
-import io.fcomb.models.{ Enum, EnumItem }
-import io.fcomb.models.errors.{ Error, ErrorResponse }
+import io.fcomb.models.{Enum, EnumItem}
+import io.fcomb.models.errors.{Error, ErrorResponse}
 
 sealed trait DistributionErrorDetail
 

@@ -1,7 +1,7 @@
 package io.fcomb.api.services.application
 
 import io.fcomb.api.services._
-import io.fcomb.persist.application.{ Application ⇒ PApplication }
+import io.fcomb.persist.application.{Application ⇒ PApplication}
 import scala.concurrent.ExecutionContext
 
 trait ApplicationAuth {

@@ -4,15 +4,15 @@ import io.fcomb.services._
 import io.fcomb.utils.StringUtils
 import akka.actor._
 import akka.cluster.sharding._
-import akka.stream.{ Materializer, ClosedShape }
+import akka.stream.{Materializer, ClosedShape}
 import akka.stream.scaladsl._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.util.{ ByteString, Timeout }
+import akka.util.{ByteString, Timeout}
 import cats.data.Xor
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import java.security.MessageDigest
 import java.util.UUID
@@ -71,7 +71,7 @@ object ImageBlobPushProcessor extends Processor[UUID] {
 
         source ~> broadcast.in
 
-        broadcast.out(0) ~> FileIO.toFile(file, fileOptions)
+        broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
         broadcast.out(1) ~> sink
 
         ClosedShape

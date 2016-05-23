@@ -1,23 +1,23 @@
 package io.fcomb.services.application
 
 import io.fcomb.services.Exceptions._
-import io.fcomb.services.node.{ NodeProcessor, UserNodeProcessor, ReserveResult }
-import io.fcomb.models.application.{ ApplicationState, ScaleStrategy, Application ⇒ MApplication }
-import io.fcomb.models.docker.{ ContainerState, Container ⇒ MContainer }
+import io.fcomb.services.node.{NodeProcessor, UserNodeProcessor, ReserveResult}
+import io.fcomb.models.application.{ApplicationState, ScaleStrategy, Application ⇒ MApplication}
+import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
 import io.fcomb.models.errors._
 import io.fcomb.utils.Config
-import io.fcomb.persist.application.{ Application ⇒ PApplication }
-import io.fcomb.persist.docker.{ Container ⇒ PContainer }
+import io.fcomb.persist.application.{Application ⇒ PApplication}
+import io.fcomb.persist.docker.{Container ⇒ PContainer}
 import akka.actor._
 import akka.stream.Materializer
 import akka.cluster.sharding._
 import akka.http.scaladsl.util.FastFuture
-import akka.pattern.{ ask, pipe }
+import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import scala.concurrent.{ Future, Promise, ExecutionContext }
+import scala.concurrent.{Future, Promise, ExecutionContext}
 import scala.collection.immutable
 import scala.concurrent.duration._
-import scala.util.{ Success, Failure }
+import scala.util.{Success, Failure}
 import java.time.ZonedDateTime
 import java.net.InetAddress
 import java.util.concurrent.TimeoutException

@@ -1,11 +1,11 @@
 package io.fcomb.crypto
 
 import java.io.ByteArrayInputStream
-import java.nio.file.{ Files, Path }
-import java.security.{ KeyFactory, KeyStore, SecureRandom }
-import java.security.cert.{ Certificate, CertificateFactory }
+import java.nio.file.{Files, Path}
+import java.security.{KeyFactory, KeyStore, SecureRandom}
+import java.security.cert.{Certificate, CertificateFactory}
 import java.security.spec.PKCS8EncodedKeySpec
-import javax.net.ssl.{ KeyManagerFactory, SSLContext, TrustManagerFactory }
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 
 object Tls {
   def context(

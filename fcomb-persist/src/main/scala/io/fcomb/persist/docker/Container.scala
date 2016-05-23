@@ -3,13 +3,13 @@ package io.fcomb.persist.docker
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.{ ContainerState, Container ⇒ MContainer }
+import io.fcomb.models.docker.{ContainerState, Container ⇒ MContainer}
 import io.fcomb.request
 import io.fcomb.response
 import io.fcomb.persist._
 import io.fcomb.validations._
-import io.fcomb.utils.{ StringUtils, Random }
-import scala.concurrent.{ ExecutionContext, Future }
+import io.fcomb.utils.{StringUtils, Random}
+import scala.concurrent.{ExecutionContext, Future}
 import java.time.ZonedDateTime
 
 class ContainerTable(tag: Tag)

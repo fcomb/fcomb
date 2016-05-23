@@ -4,15 +4,15 @@ import akka.stream.Materializer
 import io.circe.Json
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.json.{ dockerDeployPortJsonProtocol, networkPortJsonProtocol }
-import io.fcomb.models.application.{ ApplicationState, ScaleStrategy, ScaleStrategyKind, Application ⇒ MApplication, _ }
+import io.fcomb.json.{dockerDeployPortJsonProtocol, networkPortJsonProtocol}
+import io.fcomb.models.application.{ApplicationState, ScaleStrategy, ScaleStrategyKind, Application ⇒ MApplication, _}
 import io.fcomb.persist._
 import io.fcomb.request
 import io.fcomb.response
-import io.fcomb.utils.{ StringUtils, Random }
+import io.fcomb.utils.{StringUtils, Random}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class ApplicationTable(tag: Tag)
     extends Table[MApplication](tag, "applications")

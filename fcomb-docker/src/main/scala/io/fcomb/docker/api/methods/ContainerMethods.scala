@@ -1,7 +1,7 @@
 package io.fcomb.docker.api.methods
 
 import spray.json.deserializationError
-import java.time.{ LocalDateTime, ZonedDateTime }
+import java.time.{LocalDateTime, ZonedDateTime}
 
 object ContainerMethods {
   final case class ContainerState(

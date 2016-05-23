@@ -1,7 +1,7 @@
 package io.fcomb.docker.api.methods
 
 import akka.http.scaladsl.model.headers.RawHeader
-import scala.collection.{ immutable, mutable }
+import scala.collection.{immutable, mutable}
 import spray.json._
 import org.apache.commons.codec.binary.Base64
 import java.time.ZonedDateTime

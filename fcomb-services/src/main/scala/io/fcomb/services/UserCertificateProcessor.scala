@@ -2,24 +2,24 @@ package io.fcomb.services
 
 import io.fcomb.services.Exceptions._
 import io.fcomb.models
-import io.fcomb.utils.{ Config, Implicits }
+import io.fcomb.utils.{Config, Implicits}
 import io.fcomb.crypto.Certificate
 import io.fcomb.persist.UserCertificate
 import akka.actor._
 import akka.cluster.sharding._
-import akka.pattern.{ ask, pipe }
+import akka.pattern.{ask, pipe}
 import akka.http.scaladsl.util.FastFuture
 import akka.util.Timeout
-import scala.concurrent.{ Future, Promise }
+import scala.concurrent.{Future, Promise}
 import scala.collection.mutable.HashSet
 import scala.concurrent.duration._
-import scala.util.{ Success, Failure }
-import java.security.{ KeyFactory, PrivateKey }
+import scala.util.{Success, Failure}
+import java.security.{KeyFactory, PrivateKey}
 import java.security.cert.X509Certificate
 import java.security.spec.PKCS8EncodedKeySpec
 import java.time.ZonedDateTime
 import sun.security.pkcs10.PKCS10
-import sun.security.x509.{ CertificateExtensions, X500Name, X509CertImpl }
+import sun.security.x509.{CertificateExtensions, X500Name, X509CertImpl}
 import cats.data.Validated
 
 // TODO: add router and distribution by userId

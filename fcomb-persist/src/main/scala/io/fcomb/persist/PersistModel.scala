@@ -1,13 +1,13 @@
 package io.fcomb.persist
 
-import io.fcomb.{ models, validations }
-import io.fcomb.validations.{ DBIOT, ValidationResult, ValidationResultUnit }
+import io.fcomb.{models, validations}
+import io.fcomb.validations.{DBIOT, ValidationResult, ValidationResultUnit}
 import io.fcomb.Db._
 import io.fcomb.RichPostgresDriver.IntoInsertActionComposer
 import io.fcomb.RichPostgresDriver.api._
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import java.util.UUID
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import cats.data.Validated, cats.std.all._
 import cats.syntax.cartesian._
 import slick.jdbc.TransactionIsolation

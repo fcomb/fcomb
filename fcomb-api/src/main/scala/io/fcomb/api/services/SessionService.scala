@@ -7,7 +7,7 @@ import io.fcomb.json._
 import io.fcomb.request._
 import io.fcomb.response._
 import io.fcomb.persist
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 object SessionService extends Service {
   def create(

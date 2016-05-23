@@ -1,12 +1,12 @@
 package io.fcomb.docker.api.methods
 
-import ContainerMethods.{ GraphDriverData, RunConfig }
+import ContainerMethods.{GraphDriverData, RunConfig}
 import akka.http.scaladsl.model.headers.RawHeader
 import scala.collection.immutable
 import spray.json._
 import org.apache.commons.codec.binary.Base64
 import java.net.URL
-import java.time.{ LocalDateTime, ZonedDateTime }
+import java.time.{LocalDateTime, ZonedDateTime}
 
 object ImageMethods {
   final case class ImageItem(

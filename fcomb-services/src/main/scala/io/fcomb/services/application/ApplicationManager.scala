@@ -1,9 +1,9 @@
 package io.fcomb.services.application
 
-import io.fcomb.models.application.{ ScaleStrategy, Application ⇒ MApplication }
-import io.fcomb.persist.application.{ Application ⇒ PApplication }
+import io.fcomb.models.application.{ScaleStrategy, Application ⇒ MApplication}
+import io.fcomb.persist.application.{Application ⇒ PApplication}
 import io.fcomb.request.ApplicationRequest
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import cats.data.Validated
 
 object ApplicationManager {

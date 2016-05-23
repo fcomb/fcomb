@@ -4,7 +4,7 @@ import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models
 import cats.data.Validated
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 import java.time.ZonedDateTime
 

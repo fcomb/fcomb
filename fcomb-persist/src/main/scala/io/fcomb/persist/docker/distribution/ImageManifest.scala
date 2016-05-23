@@ -1,16 +1,15 @@
 package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
-import cats.data.{ Xor, Validated }
+import cats.data.Validated
 import io.circe.Json
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.{ ImageManifest ⇒ MImageManifest, Image ⇒ MImage, _ }, MImageManifest.sha256Prefix
+import io.fcomb.models.docker.distribution.{ImageManifest ⇒ MImageManifest, Image ⇒ MImage, _}
 import io.fcomb.persist._
 import java.time.ZonedDateTime
 import java.util.UUID
-import org.apache.commons.codec.digest.DigestUtils
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class ImageManifestTable(tag: Tag)
     extends Table[MImageManifest](tag, "docker_distribution_image_manifests")
@@ -111,7 +110,7 @@ object ImageManifest
           else create(MImageManifest(
             sha256Digest = sha256Digest,
             imageId = image.getId,
-            tags = List.empty, // TODO
+            tags = Nil, // TODO
             layersBlobId = blobIds.toList,
             schemaVersion = 1,
             schemaV1JsonBlob = schemaV1JsonBlob,
@@ -126,96 +125,39 @@ object ImageManifest
   def upsertSchemaV2(
     image:            MImage,
     manifest:         SchemaV2.Manifest,
+    configBlob:       ImageBlob,
     schemaV1JsonBlob: Json,
     sha256Digest:     String
-  ) = {
-    ???
-  }
-
-  def upsertByRequest(
-    image:        MImage,
-    reference:    String,
-    manifest:     SchemaManifest,
-    sha256Digest: String
-  )(
-    implicit
-    ec:  ExecutionContext,
-    mat: akka.stream.Materializer
-  ): Future[ValidationModel] = {
-    val mm = manifest match {
-      case m: SchemaV1.Manifest ⇒
-        println(m)
-        import io.circe.syntax._
-        import io.fcomb.json.docker.distribution.Formats._
-        println(m.asJson)
-        ???
-      case m: SchemaV2.Manifest ⇒ m
-    }
-    val res = findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
-      case Some(im) ⇒
-        // TODO: update tags or do nothing
-        update(im.copy(
-          updatedAt = Some(ZonedDateTime.now)
-        ))
+  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
+    findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
+      case Some(im) ⇒ FastFuture.successful(Validated.valid(im))
       case None ⇒
-        val digests = (mm.config.digest :: mm.layers.map(_.digest))
-          .map(_.drop(sha256Prefix.length))
+        val digests = manifest.layers
+          .map(_.parseDigest)
           .filterNot(_ == MImageManifest.emptyTarSha256Digest)
           .distinct
-        val configDigest = digests.head
-        val configFile = new java.io.File(
-          s"${io.fcomb.utils.Config.docker.distribution.imageStorage}/blobs/${
-            configDigest
-              .take(2)
-          }/$configDigest"
-        ) // TODO
-        import io.fcomb.utils.StringUtils
-        import io.fcomb.utils.Units._
-        import io.circe.syntax._
-        import io.fcomb.json.docker.distribution.Formats._
-        import akka.stream.scaladsl._
-        (for {
-          blobs ← ImageBlob.findByImageIdAndDigests(image.getId, digests)
-          Some(configBlob) = blobs.find(_.sha256Digest.contains(configDigest))
-          _ = assert(configBlob.length <= 1.MB)
-          imageConfigJson ← FileIO
-            .fromPath(configFile.toPath)
-            .map(_.utf8String)
-            .runWith(Sink.head)
-        } yield (blobs, imageConfigJson)).flatMap {
-          case (blobs, imageConfigJson) ⇒
-            val blobsMap = blobs
-              .map(b ⇒
-                (s"$sha256Prefix${b.sha256Digest.getOrElse("")}", b.getId))
-              .toMap
-            assert(blobsMap.size == digests.length) // TODO
-            val layersBlobId = blobsMap.values.toList
+        ImageBlob.findIdsByImageIdAndDigests(image.getId, digests).flatMap { blobIds ⇒
+          if (blobIds.length != digests.length)
+            FastFuture.successful(Validated.invalid(???))
+          else {
             val schemaV2Details = ImageManifestSchemaV2Details(
-              configBlobId = blobsMap.get(configDigest),
+              configBlobId = configBlob.id,
               jsonBlob = Json.Null
             )
-
-            val schemaV1JsonBlob = ???
             create(MImageManifest(
               sha256Digest = sha256Digest,
               imageId = image.getId,
-              tags = List.empty, // TODO
-              layersBlobId = layersBlobId,
+              tags = Nil, // TODO
+              layersBlobId = blobIds.toList,
               schemaVersion = 2,
               schemaV1JsonBlob = schemaV1JsonBlob,
               schemaV2Details = Some(schemaV2Details),
               createdAt = ZonedDateTime.now,
               updatedAt = None
             ))
+          }
         }
     }
-    res.onComplete {
-      case scala.util.Success(_) ⇒ println("ok")
-      case scala.util.Failure(e) ⇒
-        println(e)
-        e.printStackTrace()
-    }
-    res
   }
 
   def findByImageIdAndReferenceAsManifestV2(imageId: Long, reference: String)(

@@ -2,14 +2,14 @@ package io.fcomb.api.services
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.headers.{ Authorization, `Content-Disposition`, ContentDispositionTypes, GenericHttpCredentials, Location, `X-Forwarded-For`, `Remote-Address` }
-import akka.http.scaladsl.server.{ RequestContext, Route, RouteResult }
-import akka.http.scaladsl.unmarshalling.{ Unmarshal, Unmarshaller }
+import akka.http.scaladsl.model.headers.{Authorization, `Content-Disposition`, ContentDispositionTypes, GenericHttpCredentials, Location, `X-Forwarded-For`, `Remote-Address`}
+import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
+import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
-import akka.stream.scaladsl.{ Source, Sink, FileIO }
+import akka.stream.scaladsl.{Source, Sink, FileIO}
 import akka.util.ByteString
-import io.circe.{ Error ⇒ CirceError, _ }
+import io.circe.{Error ⇒ CirceError, _}
 import io.circe.jawn._
 import io.fcomb.json._
 import io.fcomb.json.errors._
@@ -19,13 +19,13 @@ import io.fcomb.persist
 import io.fcomb.utils._
 import io.fcomb.validations.ValidationErrors
 import org.slf4j.LoggerFactory
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
-import cats.data.{ Xor, Validated }
+import cats.data.{Xor, Validated}
 import scala.util.Try
 import spray.json._
 import java.io.File
-import java.net.{ InetAddress, UnknownHostException }
+import java.net.{InetAddress, UnknownHostException}
 
 sealed trait RequestBody[R] {
   val body: Option[R]
@@ -696,7 +696,7 @@ trait Service
         n.split('.').tail.lastOption.map(e ⇒ s".$e")
       })
       part.entity.dataBytes
-        .runWith(FileIO.toFile(file))
+        .runWith(FileIO.toPath(file.toPath))
         .map(_ ⇒ f(file, part.filename, part.entity.contentType))
     }
 

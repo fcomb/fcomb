@@ -2,7 +2,7 @@ package io.fcomb.docker.api.json
 
 import io.fcomb.docker.api.methods.ContainerMethods._
 import spray.json._
-import spray.json.DefaultJsonProtocol.{ listFormat ⇒ _, _ }
+import spray.json.DefaultJsonProtocol.{listFormat ⇒ _, _}
 import io.fcomb.json._
 import java.time.ZonedDateTime
 

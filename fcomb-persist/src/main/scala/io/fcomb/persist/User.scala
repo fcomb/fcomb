@@ -7,7 +7,7 @@ import io.fcomb.models
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import cats.data.Validated
 import slick.jdbc.GetResult
 import akka.http.scaladsl.util.FastFuture, FastFuture._

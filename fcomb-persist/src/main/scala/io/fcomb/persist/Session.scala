@@ -4,7 +4,7 @@ import io.fcomb.Db.redis
 import io.fcomb.models
 import io.fcomb.request.SessionRequest
 import io.fcomb.validations
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
 import redis._

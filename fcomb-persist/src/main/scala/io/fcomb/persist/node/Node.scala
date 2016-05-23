@@ -3,17 +3,17 @@ package io.fcomb.persist.node
 import akka.stream.Materializer
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.node.{ NodeState, Node ⇒ MNode }
+import io.fcomb.models.node.{NodeState, Node ⇒ MNode}
 import io.fcomb.request
 import io.fcomb.response
 import io.fcomb.persist._
 import io.fcomb.validations._
-import io.fcomb.utils.{ StringUtils, Random }
-import scala.concurrent.{ ExecutionContext, Future }
+import io.fcomb.utils.{StringUtils, Random}
+import scala.concurrent.{ExecutionContext, Future}
 import org.apache.commons.codec.digest.DigestUtils
 import java.time.ZonedDateTime
 import java.security.PublicKey
-import java.util.{ Base64, UUID }
+import java.util.{Base64, UUID}
 import java.net.InetAddress
 import java.io.StringWriter
 

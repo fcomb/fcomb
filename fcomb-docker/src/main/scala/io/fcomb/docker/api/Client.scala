@@ -3,7 +3,7 @@ package io.fcomb.docker.api
 import ParamHelpers._
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{ Upgrade, UpgradeProtocol }
+import akka.http.scaladsl.model.headers.{Upgrade, UpgradeProtocol}
 import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.util.ByteString

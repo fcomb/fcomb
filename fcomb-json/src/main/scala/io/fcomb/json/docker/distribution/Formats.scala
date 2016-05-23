@@ -5,7 +5,7 @@ import enumeratum.Circe
 import io.circe.generic.auto._
 import io.circe.java8.time._
 import io.circe.parser._
-import io.circe.{ Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printer }
+import io.circe.{Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printer}
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.ErrorKind
 import io.fcomb.models.errors.docker.distribution._

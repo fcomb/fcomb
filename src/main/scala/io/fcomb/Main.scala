@@ -1,19 +1,19 @@
 package io.fcomb
 
-import akka.actor.{ ActorSystem, Address }
+import akka.actor.{ActorSystem, Address}
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
-import io.fcomb.api.services.{ Routes ⇒ ApiRoutes }
+import io.fcomb.api.services.{Routes ⇒ ApiRoutes}
 import io.fcomb.services.UserCertificateProcessor
-import io.fcomb.services.node.{ NodeJoinProcessor, NodeProcessor, UserNodeProcessor }
+import io.fcomb.services.node.{NodeJoinProcessor, NodeProcessor, UserNodeProcessor}
 import io.fcomb.services.application.ApplicationProcessor
-import io.fcomb.docker.distribution.server.api.{ Routes ⇒ DockerDistributionRoutes }
+import io.fcomb.docker.distribution.server.api.{Routes ⇒ DockerDistributionRoutes}
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
-import io.fcomb.utils.{ Config, Implicits }
+import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 import java.net.InetAddress
 // import kamon.Kamon
 
