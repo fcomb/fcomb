@@ -20,9 +20,9 @@ class ClientSpec extends ActorSpec {
       val handler = pathPrefix("version") {
         get(complete(getFixtureAsString("docker/v1.19/version.json")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
-        dc.version().map { res =>
+        dc.version().map { res ⇒
           val version = Version(
             version = "1.7.1",
             apiVersion = "1.19",
@@ -43,12 +43,12 @@ class ClientSpec extends ActorSpec {
       val handler = pathPrefix("info") {
         get(complete(getFixtureAsString("docker/v1.19/info.json")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
-        dc.information().map { res =>
+        dc.information().map { res ⇒
           val serviceConfig = ServiceConfig(
             insecureRegistryCidrs = List("127.0.0.0/8"),
-            indexConfigs = Map("docker.io" -> IndexInfo(
+            indexConfigs = Map("docker.io" → IndexInfo(
               name = "docker.io",
               mirrors = List.empty,
               isSecure = true,
@@ -101,9 +101,9 @@ class ClientSpec extends ActorSpec {
       val handler = pathPrefix("containers" / "json") {
         get(complete(getFixtureAsString("docker/v1.19/containers.json")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
-        dc.containers().map { res =>
+        dc.containers().map { res ⇒
           val containers = List(
             ContainerItem(
               id = "c7c8678a5a0e0b503afed4c5f7c88332097b2d271a41722c4cc56fb98fbb5616",
@@ -145,18 +145,18 @@ class ClientSpec extends ActorSpec {
 
     "create container" in {
       val handler = pathPrefix("containers" / "create") {
-        post { ctx =>
+        post { ctx ⇒
           val name = ctx.request.uri.query().get("name")
           assert(name.contains("test_container"))
           ctx.request.entity.dataBytes.runFold(ByteString.empty)(_ ++ _)
-            .flatMap { bs =>
+            .flatMap { bs ⇒
               val req = getFixtureAsString("docker/v1.19/create_container_request.json").parseJson
               assert(bs.utf8String.parseJson == req)
               ctx.complete(getFixtureAsString("docker/v1.19/create_container.json"))
             }
         }
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
         val hostConfig = HostConfig(
           binds = List(VolumeBindPath.VolumeHostPath("/tmp", "/tmp", MountMode.rw)),
@@ -172,7 +172,7 @@ class ClientSpec extends ActorSpec {
           memorySwappiness = Some(50),
           isOomKillDisable = true,
           portBindings = Map(
-            ExposePort.Tcp(80) -> List(PortBinding(80, Some("0.0.0.0")))
+            ExposePort.Tcp(80) → List(PortBinding(80, Some("0.0.0.0")))
           ),
           isPublishAllPorts = true,
           isPrivileged = true,
@@ -208,7 +208,7 @@ class ClientSpec extends ActorSpec {
           env = List("TEST=test:ttest"),
           command = List("ls"),
           entrypoint = Some("ls"),
-          labels = Map("label1" -> "value"),
+          labels = Map("label1" → "value"),
           mounts = List(MountPoint("/etc", "/etc", Set(MountMode.ro), false)),
           isNetworkDisabled = true,
           workingDirectory = Some("/tmp"),
@@ -217,7 +217,7 @@ class ClientSpec extends ActorSpec {
           hostConfig = hostConfig
         )
         dc.containerCreate(config, name = Some("test_container")).map {
-          case res: ContainerCreateResponse =>
+          case res: ContainerCreateResponse ⇒
             assert(res.id.nonEmpty)
             assert(res.warnings.isEmpty)
         }
@@ -225,14 +225,14 @@ class ClientSpec extends ActorSpec {
     }
 
     "inspect container" in {
-      val handler = pathPrefix("containers" / Segment / "json") { containerIdPart =>
+      val handler = pathPrefix("containers" / Segment / "json") { containerIdPart ⇒
         assert(containerIdPart == containerId)
         get(complete(getFixtureAsString("docker/v1.19/container.json")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
         dc.containerInspect(containerId).map {
-          case res: ContainerBase =>
+          case res: ContainerBase ⇒
             val config = RunConfig(
               hostname = Some("hostname"),
               domainName = Some("domainname"),
@@ -254,7 +254,7 @@ class ClientSpec extends ActorSpec {
               entrypoint = List("ls"),
               isNetworkDisabled = true,
               macAddress = Some("bb:cc:ff:22:11:11"),
-              labels = Map("label1" -> "value"),
+              labels = Map("label1" → "value"),
               onBuild = List.empty
             )
             val hostConfig = HostConfig(
@@ -271,7 +271,7 @@ class ClientSpec extends ActorSpec {
               memorySwappiness = None,
               isOomKillDisable = true,
               portBindings = Map(
-                ExposePort.Tcp(80) -> List(PortBinding(80, Some("0.0.0.0")))
+                ExposePort.Tcp(80) → List(PortBinding(80, Some("0.0.0.0")))
               ),
               isPublishAllPorts = true,
               isPrivileged = true,
@@ -341,12 +341,12 @@ class ClientSpec extends ActorSpec {
               mountLabel = None,
               processLabel = None,
               volumes = Map(
-                "/tmp" -> "/tmp",
-                "/var/cache/nginx" -> "/var/lib/docker/volumes/e8b234d862623ab56c04f36639a4c5dbb19169d9dbdf13bff3f3a010480fd404/_data"
+                "/tmp" → "/tmp",
+                "/var/cache/nginx" → "/var/lib/docker/volumes/e8b234d862623ab56c04f36639a4c5dbb19169d9dbdf13bff3f3a010480fd404/_data"
               ),
               volumesRw = Map(
-                "/tmp" -> true,
-                "/var/cache/nginx" -> false
+                "/tmp" → true,
+                "/var/cache/nginx" → false
               ),
               appArmorProfile = None,
               execIds = List.empty,
@@ -359,14 +359,14 @@ class ClientSpec extends ActorSpec {
     }
 
     "get container processes" in {
-      val handler = pathPrefix("containers" / Segment / "top") { containerIdPart =>
+      val handler = pathPrefix("containers" / Segment / "top") { containerIdPart ⇒
         assert(containerIdPart == containerId)
         get(complete(getFixtureAsString("docker/v1.19/container_processes.json")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
         dc.containerProcesses(containerId).map {
-          case res: ContainerProcessList =>
+          case res: ContainerProcessList ⇒
             assert(res.processes == List(
               List("root", "1022", "742", "0", "16:33", "?", "00:00:00", "nginx: master process nginx -g daemon off;"),
               List("104", "1027", "1022", "0", "16:33", "?", "00:00:00", "nginx: worker process")
@@ -377,14 +377,14 @@ class ClientSpec extends ActorSpec {
     }
 
     "get container logs" in {
-      val handler = pathPrefix("containers" / Segment / "logs") { containerIdPart =>
+      val handler = pathPrefix("containers" / Segment / "logs") { containerIdPart ⇒
         assert(containerIdPart == containerId)
         get(complete(getFixtureAsString("docker/v1.19/logs")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
-        dc.containerLogs(containerId, Set(StdStream.Out)).flatMap { s =>
-          source2String(s).map { logs =>
+        dc.containerLogs(containerId, Set(StdStream.Out)).flatMap { s ⇒
+          source2String(s).map { logs ⇒
             assert(logs == "Log line 1\nLog line 2\n")
           }
         }
@@ -392,15 +392,15 @@ class ClientSpec extends ActorSpec {
     }
 
     "get container logs as stream" in {
-      val handler = pathPrefix("containers" / Segment / "logs") { containerIdPart =>
+      val handler = pathPrefix("containers" / Segment / "logs") { containerIdPart ⇒
         assert(containerIdPart == containerId)
         get(complete(getFixtureAsString("docker/v1.19/logs")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
         dc.containerLogsAsStream(containerId, Set(StdStream.Out), idleTimeout = timeout)
-          .flatMap { s =>
-            source2String(s).map { logs =>
+          .flatMap { s ⇒
+            source2String(s).map { logs ⇒
               assert(logs == "Log line 1\nLog line 2\n")
             }
           }
@@ -408,14 +408,14 @@ class ClientSpec extends ActorSpec {
     }
 
     "get container changes" in {
-      val handler = pathPrefix("containers" / Segment / "changes") { containerIdPart =>
+      val handler = pathPrefix("containers" / Segment / "changes") { containerIdPart ⇒
         assert(containerIdPart == containerId)
         get(complete(getFixtureAsString("docker/v1.19/changes.json")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
         dc.containerChanges(containerId).map {
-          case changes: ContainerChanges =>
+          case changes: ContainerChanges ⇒
             val fileChanges = ContainerChanges(List(
               FileChange("/root", FileChangeKind.Modified),
               FileChange("/root/.dbshell", FileChangeKind.Added),
@@ -429,14 +429,14 @@ class ClientSpec extends ActorSpec {
     }
 
     "container export" in {
-      val handler = pathPrefix("containers" / Segment / "export") { containerIdPart =>
+      val handler = pathPrefix("containers" / Segment / "export") { containerIdPart ⇒
         assert(containerIdPart == containerId)
         get(complete(getFixtureAsString("docker/v1.19/export")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
-        dc.containerExport(containerId).flatMap { s =>
-          source2ByteString(s).map { bs =>
+        dc.containerExport(containerId).flatMap { s ⇒
+          source2ByteString(s).map { bs ⇒
             assert(bs == ByteString("some data"))
           }
         }
@@ -444,27 +444,27 @@ class ClientSpec extends ActorSpec {
     }
 
     "container stats" in {
-      val handler = pathPrefix("containers" / Segment / "stats") { containerIdPart =>
+      val handler = pathPrefix("containers" / Segment / "stats") { containerIdPart ⇒
         assert(containerIdPart == containerId)
         get(complete(getFixtureAsString("docker/v1.19/stats.json")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
         dc.containerStats(containerId).map {
-          case stats: ContainerStats =>
+          case stats: ContainerStats ⇒
             assert(stats.readedAt == ZonedDateTime.parse("2015-11-09T17:13:24.902264505Z"))
         }
       }
     }
 
     "container stats as stream" in {
-      val handler = pathPrefix("containers" / Segment / "stats") { containerIdPart =>
+      val handler = pathPrefix("containers" / Segment / "stats") { containerIdPart ⇒
         assert(containerIdPart == containerId)
         get(complete(getFixtureAsString("docker/v1.19/stats.json")))
       }
-      startFakeHttpServer(handler) { port =>
+      startFakeHttpServer(handler) { port ⇒
         val dc = new Client("localhost", port)
-        dc.containerStatsAsStream(containerId).flatMap(_.map { stats =>
+        dc.containerStatsAsStream(containerId).flatMap(_.map { stats ⇒
           assert(stats.readedAt == ZonedDateTime.parse("2015-11-09T17:13:24.902264505Z"))
         }.runWith(Sink.head))
       }

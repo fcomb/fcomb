@@ -50,7 +50,6 @@ object SchemaV2 {
     }
   }
 
-  private def getImageConfig(configFile: java.io.File)(implicit mat: Materializer) = {
+  private def getImageConfig(configFile: java.io.File)(implicit mat: Materializer) =
     FileIO.fromPath(configFile.toPath).map(_.utf8String).runWith(Sink.head)
-  }
 }
