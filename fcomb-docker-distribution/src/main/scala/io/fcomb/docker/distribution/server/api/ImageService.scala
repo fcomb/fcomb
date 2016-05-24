@@ -22,7 +22,6 @@ import io.fcomb.utils.{Config, StringUtils}, Config.docker.distribution.realm
 import java.io.File
 import java.security.MessageDigest
 import java.util.UUID
-import org.apache.commons.codec.digest.DigestUtils
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._

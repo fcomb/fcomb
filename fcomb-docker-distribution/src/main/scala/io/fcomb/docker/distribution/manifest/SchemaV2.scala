@@ -24,7 +24,7 @@ object SchemaV2 {
   )(implicit ec: ExecutionContext, mat: Materializer): Future[Xor[DistributionError, String]] = {
     val sha256Digest = DigestUtils.sha256Hex(rawManifest)
     PImageManifest.findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
-      case _ ⇒ ???
+      case Some(m) ⇒ FastFuture.successful(Xor.right(m.sha256Digest)) // TODO
       case None ⇒
         val configDigest = manifest.config.parseDigest
         (for {
@@ -44,7 +44,9 @@ object SchemaV2 {
                     case Validated.Invalid(e) ⇒
                       Xor.left(Unknown(e.map(_.message).mkString(";")))
                   }
-              case _ ⇒ ???
+              case Xor.Left(e) ⇒
+                println(e)
+                ???
             }
         }
     }

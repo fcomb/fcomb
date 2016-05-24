@@ -5,12 +5,13 @@ import enumeratum.Circe
 import io.circe.generic.auto._
 import io.circe.java8.time._
 import io.circe.parser._
-import io.circe.{Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printer}
+import io.circe.{Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printer, HCursor, KeyDecoder}
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.ErrorKind
 import io.fcomb.models.errors.docker.distribution._
 import java.time.ZonedDateTime
 import java.util.Base64
+import scala.collection.generic.CanBuildFrom
 
 object Formats {
   private final val compactPrinter: Printer = Printer(
@@ -57,6 +58,29 @@ object Formats {
 
   implicit final val decodeDistributionErrorCode =
     Circe.decoder(DistributionErrorCode)
+
+  implicit final def decodeCanBuildFromWithNull[A, C[_]](
+    implicit
+    d:   Decoder[A],
+    cbf: CanBuildFrom[Nothing, A, C[A]]
+  ): Decoder[C[A]] = new Decoder[C[A]] {
+    final def apply(c: HCursor): Decoder.Result[C[A]] = {
+      if (c.focus.isNull) Xor.right(cbf.apply.result)
+      else Decoder.decodeCanBuildFrom(d, cbf).apply(c)
+    }
+  }
+
+  implicit final def decodeMapLikeWithNull[M[K, +V] <: Map[K, V], K, V](
+    implicit
+    dk:  KeyDecoder[K],
+    dv:  Decoder[V],
+    cbf: CanBuildFrom[Nothing, (K, V), M[K, V]]
+  ): Decoder[M[K, V]] = new Decoder[M[K, V]] {
+    final def apply(c: HCursor): Decoder.Result[M[K, V]] = {
+      if (c.focus.isNull) Xor.right(cbf.apply.result)
+      else Decoder.decodeMapLike(dk, dv, cbf).apply(c)
+    }
+  }
 
   implicit final val decodeDistributionError: Decoder[DistributionError] =
     Decoder.instance { c ⇒

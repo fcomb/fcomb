@@ -3,6 +3,7 @@ package io.fcomb.docker.distribution.manifest
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.{Validated, Xor}
 import cats.syntax.cartesian._
+import cats.syntax.show._
 import io.circe._, io.circe.parser._, io.circe.syntax._
 import io.fcomb.crypto.Jws
 import io.fcomb.json.docker.distribution.Formats._
@@ -44,8 +45,8 @@ object SchemaV1 {
         val original = printer(indent).pretty(manifestJson)
         if (manifest.signatures.isEmpty) Xor.left(Unknown("signatures cannot be empty"))
         else {
-          val z = Xor.right[DistributionError, (Json, String)]((Json.Null, ""))
-          manifest.signatures.foldLeft(z) {
+          val rightAcc = Xor.right[DistributionError, (Json, String)]((Json.Null, ""))
+          manifest.signatures.foldLeft(rightAcc) {
             case (acc, signature) ⇒
               val `protected` = new String(base64url.base64UrlDecode(signature.`protected`))
               acc *> (decode[Protected](`protected`) match {
@@ -63,12 +64,12 @@ object SchemaV1 {
                     else Xor.left(ManifestUnverified())
                   }
                   else Xor.left(ManifestInvalid("formatted length does not match with fortmatLength"))
-                case Xor.Left(e) ⇒ Xor.left(Unknown(e.getMessage))
+                case Xor.Left(e) ⇒ Xor.left(Unknown(e.show))
               })
           }
         }
       case Xor.Right(None) ⇒ Xor.left(ManifestInvalid())
-      case Xor.Left(e)     ⇒ Xor.left(Unknown(e.getMessage))
+      case Xor.Left(e)     ⇒ Xor.left(Unknown(e.show))
     }
   }
 
@@ -142,7 +143,7 @@ object SchemaV1 {
             signatures = Nil
           ))
         }
-      case Xor.Left(e) ⇒ Xor.left(e.getMessage)
+      case Xor.Left(e) ⇒ Xor.left(e.show)
     }
   }
 
