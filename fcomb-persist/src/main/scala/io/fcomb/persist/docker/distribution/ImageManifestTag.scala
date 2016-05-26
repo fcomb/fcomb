@@ -4,6 +4,7 @@ import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{ImageManifestTag ⇒ MImageManifestTag}
 import io.fcomb.persist._
 import scala.concurrent.ExecutionContext
+import slick.jdbc.TransactionIsolation
 
 class ImageManifestTagTable(_tag: Tag) extends Table[MImageManifestTag](_tag, "dd_image_manifest_tags") {
   def imageId = column[Long]("image_id")
@@ -31,6 +32,14 @@ object ImageManifestTag extends PersistModel[MImageManifestTag, ImageManifestTag
       _ ← table ++= newTags
     } yield ()
   }
+
+  def upsertTags(imageId: Long, imageManifestId: Long, tags: List[String])(
+    implicit
+    ec: ExecutionContext
+  ) =
+    runInTransaction(TransactionIsolation.Serializable) {
+      upsertTagsDBIO(imageId, imageManifestId, tags)
+    }
 
   private def findAllExistingTagsDBIO(imageId: Long, imageManifestId: Long, tags: List[String]) =
     table

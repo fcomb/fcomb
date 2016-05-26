@@ -137,7 +137,10 @@ object ImageManifest
     sha256Digest:     String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
-      case Some(im) ⇒ FastFuture.successful(Validated.valid(im))
+      case Some(im) ⇒
+        updateTagsByReference(im, reference)
+          .fast
+          .map(_ ⇒ Validated.valid(im))
       case None ⇒
         val digests = manifest.layers
           .map(_.parseDigest)
@@ -168,6 +171,18 @@ object ImageManifest
           }
         }
     }
+  }
+
+  def updateTagsByReference(im: MImageManifest, reference: String)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    val tags =
+      if (reference.nonEmpty && !reference.startsWith(MImageManifest.sha256Prefix) &&
+        !im.tags.contains(reference)) List(reference)
+      else Nil
+    if (tags.nonEmpty) ImageManifestTag.upsertTags(im.imageId, im.getId, tags)
+    else FastFuture.successful(())
   }
 
   override def create(manifest: MImageManifest)(
