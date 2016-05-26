@@ -16,4 +16,8 @@ class ImageManifestTagTable(_tag: Tag) extends Table[MImageManifestTag](_tag, "d
 
 object ImageManifestTag extends PersistModel[MImageManifestTag, ImageManifestTagTable] {
   val table = TableQuery[ImageManifestTagTable]
+
+  def upsertTagsDBIO(imageId: Long, imageManifestId: Long, tags: List[String]) = {
+    table ++= tags.map(t ⇒ MImageManifestTag(imageId, imageManifestId, t))
+  }
 }

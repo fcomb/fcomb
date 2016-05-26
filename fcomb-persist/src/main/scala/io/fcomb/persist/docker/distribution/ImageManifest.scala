@@ -108,12 +108,15 @@ object ImageManifest
           .map(_.parseDigest)
           .filterNot(_ == MImageManifest.emptyTarSha256Digest)
           .distinct
+        val tags =
+          if (manifest.tag.nonEmpty) List(manifest.tag)
+          else Nil
         ImageBlob.findIdsByImageIdAndDigests(image.getId, digests).flatMap { blobIds ⇒
           if (blobIds.length != digests.length) blobsCountIsLessThanExpectedError
           else create(MImageManifest(
             sha256Digest = sha256Digest,
             imageId = image.getId,
-            tags = Nil, // TODO
+            tags = tags,
             layersBlobId = blobIds.toList,
             schemaVersion = 1,
             schemaV1JsonBlob = schemaV1JsonBlob,
@@ -147,10 +150,14 @@ object ImageManifest
               configBlobId = configBlob.id,
               jsonBlob = Json.Null // TODO
             )
+            val tags =
+              if (reference.nonEmpty && !reference.startsWith(MImageManifest.sha256Prefix))
+                List(reference)
+              else Nil
             create(MImageManifest(
               sha256Digest = sha256Digest,
               imageId = image.getId,
-              tags = List(reference), // TODO
+              tags = tags,
               layersBlobId = blobIds.toList,
               schemaVersion = 2,
               schemaV1JsonBlob = schemaV1JsonBlob,
@@ -168,11 +175,13 @@ object ImageManifest
     ec: ExecutionContext,
     m:  Manifest[MImageManifest]
   ): Future[ValidationModel] = {
-    runInTransaction(TransactionIsolation.ReadCommitted)(
+    runInTransaction(TransactionIsolation.Serializable)(
       createWithValidationDBIO(manifest).flatMap {
         case res @ Validated.Valid(im) ⇒
-          ImageManifestLayer.insertLayersDBIO(im.getId, im.layersBlobId)
-            .map(_ ⇒ res)
+          for {
+            _ ← ImageManifestLayer.insertLayersDBIO(im.getId, im.layersBlobId)
+            _ ← ImageManifestTag.upsertTagsDBIO(im.imageId, im.getId, im.tags)
+          } yield res
         case res ⇒ DBIO.successful(res)
       }
     )
