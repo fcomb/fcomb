@@ -4,8 +4,6 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl.{FileIO, Sink}
 import cats.data.{Validated, Xor}
-import io.circe.syntax._
-import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.SchemaV2.{Manifest ⇒ ManifestV2}
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage}
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
@@ -39,9 +37,9 @@ object SchemaV2 {
           case (configBlob, imageConfig) ⇒
             SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
               case Xor.Right(schemaV1Manifest) ⇒
-                val schemaV1Blob = schemaV1Manifest.asJson
+                val schemaV1JsonBlob = SchemaV1.prettyPrint(schemaV1Manifest)
                 PImageManifest.upsertSchemaV2(image, manifest, reference, configBlob,
-                  schemaV1Blob, sha256Digest)
+                  schemaV1JsonBlob, rawManifest, sha256Digest)
                   .fast
                   .map {
                     case Validated.Valid(_) ⇒ Xor.right(sha256Digest)

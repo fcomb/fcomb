@@ -1,13 +1,12 @@
 package io.fcomb.models.docker.distribution
 
-import io.circe.Json
 import io.fcomb.models.ModelWithAutoLongPk
 import java.time.ZonedDateTime
 import java.util.UUID
 
 final case class ImageManifestSchemaV2Details(
   configBlobId: Option[UUID],
-  jsonBlob:     Json
+  jsonBlob:     String
 )
 
 final case class ImageManifest(
@@ -17,7 +16,7 @@ final case class ImageManifest(
     tags:             List[String],
     layersBlobId:     List[UUID],
     schemaVersion:    Int,
-    schemaV1JsonBlob: Json,
+    schemaV1JsonBlob: String,
     schemaV2Details:  Option[ImageManifestSchemaV2Details],
     createdAt:        ZonedDateTime,
     updatedAt:        Option[ZonedDateTime]

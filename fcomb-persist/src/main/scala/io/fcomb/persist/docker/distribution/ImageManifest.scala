@@ -2,7 +2,6 @@ package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
-import io.circe.Json
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{ImageManifest ⇒ MImageManifest, Image ⇒ MImage, _}
@@ -20,13 +19,13 @@ class ImageManifestTable(tag: Tag)
   def tags = column[List[String]]("tags")
   def layersBlobId = column[List[UUID]]("layers_blob_id")
   def schemaVersion = column[Int]("schema_version")
-  def schemaV1JsonBlob = column[Json]("schema_v1_json_blob")
+  def schemaV1JsonBlob = column[String]("schema_v1_json_blob")
   def createdAt = column[ZonedDateTime]("created_at")
   def updatedAt = column[Option[ZonedDateTime]]("updated_at")
 
   // schema v2 details
   def v2ConfigBlobId = column[Option[UUID]]("v2_config_blob_id")
-  def v2JsonBlob = column[Option[Json]]("v2_json_blob")
+  def v2JsonBlob = column[Option[String]]("v2_json_blob")
 
   def * =
     (id, sha256Digest, imageId, tags, layersBlobId, schemaVersion, schemaV1JsonBlob,
@@ -41,10 +40,10 @@ class ImageManifestTable(tag: Tag)
     tags:             List[String],
     layersBlobId:     List[UUID],
     schemaVersion:    Int,
-    schemaV1JsonBlob: Json,
+    schemaV1JsonBlob: String,
     createdAt:        ZonedDateTime,
     updatedAt:        Option[ZonedDateTime],
-    v2DetailsTuple:   (Option[UUID], Option[Json])
+    v2DetailsTuple:   (Option[UUID], Option[String])
   ) = {
     val schemaV2Details = (schemaVersion, v2DetailsTuple) match {
       case (2, (configBlobId, Some(v2JsonBlob))) ⇒
@@ -98,7 +97,7 @@ object ImageManifest
   def upsertSchemaV1(
     image:            MImage,
     manifest:         SchemaV1.Manifest,
-    schemaV1JsonBlob: Json,
+    schemaV1JsonBlob: String,
     sha256Digest:     String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
@@ -133,7 +132,8 @@ object ImageManifest
     manifest:         SchemaV2.Manifest,
     reference:        String,
     configBlob:       ImageBlob,
-    schemaV1JsonBlob: Json,
+    schemaV1JsonBlob: String,
+    schemaV2JsonBlob: String,
     sha256Digest:     String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
@@ -151,7 +151,7 @@ object ImageManifest
           else {
             val schemaV2Details = ImageManifestSchemaV2Details(
               configBlobId = configBlob.id,
-              jsonBlob = Json.Null // TODO
+              jsonBlob = schemaV2JsonBlob
             )
             val tags =
               if (reference.nonEmpty && !reference.startsWith(MImageManifest.sha256Prefix))

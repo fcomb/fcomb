@@ -6,12 +6,12 @@ CREATE TABLE docker_distribution_image_manifests (
   schema_version smallint not null,
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone,
-  schema_v1_json_blob json not null,
+  schema_v1_json_blob text not null,
   layers_blob_id uuid[] not null,
 
   -- schema v2 details
   v2_config_blob_id uuid,
-  v2_json_blob json
+  v2_json_blob text
 );
 
 CREATE UNIQUE INDEX on docker_distribution_image_manifests(image_id, sha256_digest);

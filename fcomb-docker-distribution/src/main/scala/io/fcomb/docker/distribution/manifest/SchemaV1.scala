@@ -37,7 +37,7 @@ object SchemaV1 {
     }
   }
 
-  def verify(manifest: ManifestV1, rawManifest: String): Xor[DistributionError, (Json, String)] = {
+  def verify(manifest: ManifestV1, rawManifest: String): Xor[DistributionError, (String, String)] = {
     parse(rawManifest).map(_.asObject) match {
       case Xor.Right(Some(json)) ⇒
         val indent = rawManifest.dropWhile(_ != ' ').takeWhile(_ == ' ')
@@ -45,7 +45,7 @@ object SchemaV1 {
         val original = printer(indent).pretty(manifestJson)
         if (manifest.signatures.isEmpty) Xor.left(Unknown("signatures cannot be empty"))
         else {
-          val rightAcc = Xor.right[DistributionError, (Json, String)]((Json.Null, ""))
+          val rightAcc = Xor.right[DistributionError, (String, String)](("", ""))
           manifest.signatures.foldLeft(rightAcc) {
             case (acc, signature) ⇒
               val `protected` = new String(base64url.base64UrlDecode(signature.`protected`))
@@ -60,7 +60,7 @@ object SchemaV1 {
                     val signatureBytes = base64url.base64UrlDecode(signature.signature)
                     val (alg, jwk) = (signature.header.alg, signature.header.jwk)
                     if (Jws.verifySignature(alg, jwk, payload, signatureBytes))
-                      Xor.right((manifestJson, DigestUtils.sha256Hex(formatted)))
+                      Xor.right((original, DigestUtils.sha256Hex(formatted)))
                     else Xor.left(ManifestUnverified())
                   }
                   else Xor.left(ManifestInvalid("formatted length does not match with fortmatLength"))
@@ -146,6 +146,9 @@ object SchemaV1 {
       case Xor.Left(e) ⇒ Xor.left(e.show)
     }
   }
+
+  def prettyPrint(m: ManifestV1): String =
+    printer("   ").pretty(m.asJson)
 
   private val base64url = new Base64Url()
 
