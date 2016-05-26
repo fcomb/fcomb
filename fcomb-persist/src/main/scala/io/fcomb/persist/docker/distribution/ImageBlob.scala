@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
 class ImageBlobTable(tag: Tag)
-    extends Table[MImageBlob](tag, "docker_distribution_image_blobs")
+    extends Table[MImageBlob](tag, "dd_image_blobs")
     with PersistTableWithUuidPk {
   def imageId = column[Long]("image_id")
   def state = column[ImageBlobState.ImageBlobState]("state")

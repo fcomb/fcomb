@@ -37,7 +37,8 @@ object SchemaV2 {
             SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
               case Xor.Right(schemaV1Manifest) ⇒
                 val schemaV1Blob = schemaV1Manifest.asJson
-                PImageManifest.upsertSchemaV2(image, manifest, configBlob, schemaV1Blob, sha256Digest)
+                PImageManifest.upsertSchemaV2(image, manifest, reference, configBlob,
+                  schemaV1Blob, sha256Digest)
                   .fast
                   .map {
                     case Validated.Valid(_) ⇒ Xor.right(sha256Digest)

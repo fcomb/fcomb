@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
 class ImageTable(tag: Tag)
-    extends Table[MImage](tag, "docker_distribution_images")
+    extends Table[MImage](tag, "dd_images")
     with PersistTableWithAutoLongPk {
   def name = column[String]("name")
   def userId = column[Long]("user_id")

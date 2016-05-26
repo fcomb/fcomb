@@ -10,9 +10,10 @@ import io.fcomb.persist._
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import slick.jdbc.TransactionIsolation
 
 class ImageManifestTable(tag: Tag)
-    extends Table[MImageManifest](tag, "docker_distribution_image_manifests")
+    extends Table[MImageManifest](tag, "dd_image_manifests")
     with PersistTableWithAutoLongPk {
   def sha256Digest = column[String]("sha256_digest")
   def imageId = column[Long]("image_id")
@@ -91,6 +92,9 @@ object ImageManifest
   def findByImageIdAndDigest(imageId: Long, digest: String) =
     db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
+  private val blobsCountIsLessThanExpectedError =
+    validationErrorAsFuture("layersBlobId", "Blobs count is less than expected")
+
   def upsertSchemaV1(
     image:            MImage,
     manifest:         SchemaV1.Manifest,
@@ -105,8 +109,7 @@ object ImageManifest
           .filterNot(_ == MImageManifest.emptyTarSha256Digest)
           .distinct
         ImageBlob.findIdsByImageIdAndDigests(image.getId, digests).flatMap { blobIds ⇒
-          if (blobIds.length != digests.length)
-            FastFuture.successful(Validated.invalid(???))
+          if (blobIds.length != digests.length) blobsCountIsLessThanExpectedError
           else create(MImageManifest(
             sha256Digest = sha256Digest,
             imageId = image.getId,
@@ -125,6 +128,7 @@ object ImageManifest
   def upsertSchemaV2(
     image:            MImage,
     manifest:         SchemaV2.Manifest,
+    reference:        String,
     configBlob:       ImageBlob,
     schemaV1JsonBlob: Json,
     sha256Digest:     String
@@ -137,8 +141,7 @@ object ImageManifest
           .filterNot(_ == MImageManifest.emptyTarSha256Digest)
           .distinct
         ImageBlob.findIdsByImageIdAndDigests(image.getId, digests).flatMap { blobIds ⇒
-          if (blobIds.length != digests.length)
-            FastFuture.successful(Validated.invalid(???))
+          if (blobIds.length != digests.length) blobsCountIsLessThanExpectedError
           else {
             val schemaV2Details = ImageManifestSchemaV2Details(
               configBlobId = configBlob.id,
@@ -147,7 +150,7 @@ object ImageManifest
             create(MImageManifest(
               sha256Digest = sha256Digest,
               imageId = image.getId,
-              tags = Nil, // TODO
+              tags = List(reference), // TODO
               layersBlobId = blobIds.toList,
               schemaVersion = 2,
               schemaV1JsonBlob = schemaV1JsonBlob,
@@ -158,6 +161,21 @@ object ImageManifest
           }
         }
     }
+  }
+
+  override def create(manifest: MImageManifest)(
+    implicit
+    ec: ExecutionContext,
+    m:  Manifest[MImageManifest]
+  ): Future[ValidationModel] = {
+    runInTransaction(TransactionIsolation.ReadCommitted)(
+      createWithValidationDBIO(manifest).flatMap {
+        case res @ Validated.Valid(im) ⇒
+          ImageManifestLayer.insertLayersDBIO(im.getId, im.layersBlobId)
+            .map(_ ⇒ res)
+        case res ⇒ DBIO.successful(res)
+      }
+    )
   }
 
   def findByImageIdAndReferenceAsManifestV2(imageId: Long, reference: String)(
