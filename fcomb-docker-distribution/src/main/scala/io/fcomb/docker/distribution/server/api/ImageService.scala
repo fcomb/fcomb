@@ -102,9 +102,7 @@ object ImageService {
     req: HttpRequest
   ): Route = {
     imageByNameWithAcl(from, user) { fromImage ⇒
-      onSuccess(PImageBlob.mount(
-        fromImage.getId, imageName, parseDigest(mount), user.getId
-      )) {
+      onSuccess(PImageBlob.mount(fromImage.getId, imageName, parseDigest(mount), user.getId)) {
         case Some(blob) ⇒
           val sha256Digest = blob.sha256Digest.get
           val headers = immutable.Seq(
@@ -128,9 +126,7 @@ object ImageService {
       val source = req.entity.dataBytes
       val contentType = req.entity.contentType.mediaType.value
       onSuccess(for {
-        Validated.Valid(blob) ← PImageBlob.createByImageName(
-          imageName, user.getId, contentType
-        )
+        Validated.Valid(blob) ← PImageBlob.createByImageName(imageName, user.getId, contentType)
         file ← BlobFile.createUploadFile(blob.getId)
         sha256Digest ← writeFile(source, file)
         fileLength ← Future(blocking(file.length))
@@ -156,9 +152,7 @@ object ImageService {
             } yield ()) {
               complete(
                 StatusCodes.BadRequest,
-                DistributionErrorResponse.from(
-                  DistributionError.DigestInvalid()
-                )
+                DistributionErrorResponse.from(DistributionError.DigestInvalid())
               )
             }
           }

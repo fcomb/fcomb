@@ -4,7 +4,8 @@ import cats.data.Validated
 import cats.std.all._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageBlobState}
+import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob ⇒ MImageBlob}
+import io.fcomb.models.docker.distribution.ImageManifest.{emptyTarSha256Digest, emptyTar}
 import io.fcomb.persist._
 import io.fcomb.validations.eitherT
 import java.time.ZonedDateTime
@@ -12,8 +13,7 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
-class ImageBlobTable(tag: Tag)
-    extends Table[MImageBlob](tag, "dd_image_blobs")
+class ImageBlobTable(tag: Tag) extends Table[MImageBlob](tag, "dd_image_blobs")
     with PersistTableWithUuidPk {
   def imageId = column[Long]("image_id")
   def state = column[ImageBlobState.ImageBlobState]("state")
@@ -31,8 +31,10 @@ class ImageBlobTable(tag: Tag)
 object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   val table = TableQuery[ImageBlobTable]
 
+  val `application/octet-stream` = "application/octet-stream"
+
   private def mapContentType(contentType: String): String = {
-    if (contentType == "none/none") "application/octet-stream"
+    if (contentType == "none/none") `application/octet-stream`
     else contentType
   }
 
@@ -121,19 +123,19 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   ) =
     db.run(findByImageIdAndDigestCompiled(imageId, digest).result.headOption)
 
-  private def findByImageIdAndDigestsScope(imageId: Long, digests: List[String]) =
+  private def findByImageIdAndDigestsScope(imageId: Long, digests: Set[String]) =
     table
       .filter { q ⇒
         q.imageId === imageId && q.sha256Digest.inSetBind(digests)
       }
 
-  def findIdsByImageIdAndDigests(imageId: Long, digests: List[String])(
+  def findIdsByImageIdAndDigests(imageId: Long, digests: Set[String])(
     implicit
     ec: ExecutionContext
   ) =
     db.run(findByImageIdAndDigestsScope(imageId, digests).map(_.pk).result)
 
-  def findByImageIdAndDigests(imageId: Long, digests: List[String])(
+  def findByImageIdAndDigests(imageId: Long, digests: Set[String])(
     implicit
     ec: ExecutionContext
   ) =
@@ -177,14 +179,36 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   def findByIds(ids: List[UUID]) =
     db.run(table.filter(_.id.inSetBind(ids)).result)
 
-  private val findOutdatedUploadsCompiled = Compiled {
-    until: Rep[ZonedDateTime] ⇒
-      table.filter { q ⇒
-        q.createdAt <= until && (q.state === ImageBlobState.Created ||
-          q.state === ImageBlobState.Uploading)
-      }
+  private val findOutdatedUploadsCompiled = Compiled { until: Rep[ZonedDateTime] ⇒
+    table.filter { q ⇒
+      q.createdAt <= until &&
+        (q.state === ImageBlobState.Created || q.state === ImageBlobState.Uploading)
+    }
   }
 
   def findOutdatedUploads(until: ZonedDateTime) =
     db.stream(findOutdatedUploadsCompiled(until).result)
+
+  def createEmptyTarIfNotExists(imageId: Long)(implicit ec: ExecutionContext): Future[Unit] =
+    db.run {
+      findByImageIdAndDigestCompiled((imageId, emptyTarSha256Digest))
+        .result
+        .headOption
+        .flatMap {
+          case Some(_) ⇒ DBIO.successful(())
+          case None ⇒
+            val blob = MImageBlob(
+              id = Some(UUID.randomUUID()),
+              state = ImageBlobState.Uploaded,
+              imageId = imageId,
+              sha256Digest = Some(emptyTarSha256Digest),
+              contentType = `application/octet-stream`,
+              length = emptyTar.length.toLong,
+              createdAt = ZonedDateTime.now(),
+              uploadedAt = None
+            )
+            table += blob
+        }
+        .map(_ ⇒ ())
+    }
 }

@@ -103,15 +103,12 @@ object ImageManifest
     findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
       case Some(im) ⇒ FastFuture.successful(Validated.valid(im))
       case None ⇒
-        val digests = manifest.fsLayers
-          .map(_.parseDigest)
-          .filterNot(_ == MImageManifest.emptyTarSha256Digest)
-          .distinct
+        val digests = manifest.fsLayers.map(_.parseDigest).toSet
         val tags =
           if (manifest.tag.nonEmpty) List(manifest.tag)
           else Nil
         ImageBlob.findIdsByImageIdAndDigests(image.getId, digests).flatMap { blobIds ⇒
-          if (blobIds.length != digests.length) blobsCountIsLessThanExpectedError
+          if (blobIds.length != digests.size) blobsCountIsLessThanExpectedError
           else create(MImageManifest(
             sha256Digest = sha256Digest,
             imageId = image.getId,
@@ -142,12 +139,16 @@ object ImageManifest
           .fast
           .map(_ ⇒ Validated.valid(im))
       case None ⇒
-        val digests = manifest.layers
-          .map(_.parseDigest)
-          .filterNot(_ == MImageManifest.emptyTarSha256Digest)
-          .distinct
-        ImageBlob.findIdsByImageIdAndDigests(image.getId, digests).flatMap { blobIds ⇒
-          if (blobIds.length != digests.length) blobsCountIsLessThanExpectedError
+        val digests = manifest.layers.map(_.parseDigest).toSet
+        val emptyTarResFut =
+          if (digests.contains(MImageManifest.emptyTarSha256Digest))
+            ImageBlob.createEmptyTarIfNotExists(image.getId)
+          else FastFuture.successful(())
+        (for {
+          _ ← emptyTarResFut
+          blobIds ← ImageBlob.findIdsByImageIdAndDigests(image.getId, digests)
+        } yield blobIds).flatMap { blobIds ⇒
+          if (blobIds.length != digests.size) blobsCountIsLessThanExpectedError
           else {
             val schemaV2Details = ImageManifestSchemaV2Details(
               configBlobId = configBlob.id,
