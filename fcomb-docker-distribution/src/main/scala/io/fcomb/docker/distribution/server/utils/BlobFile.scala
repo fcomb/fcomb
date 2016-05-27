@@ -1,6 +1,6 @@
 package io.fcomb.docker.distribution.server.utils
 
-import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob}
+import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageManifest ⇒ MImageManifest}
 import io.fcomb.utils.Config
 import java.io.File
 import java.util.UUID
@@ -39,10 +39,13 @@ object BlobFile {
     ec: ExecutionContext
   ): Future[Unit] =
     Future(blocking {
-      val newFile = blobFile(digest)
-      if (!newFile.exists()) {
-        if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
-        file.renameTo(newFile)
+      if (digest == MImageManifest.emptyTarSha256Digest) file.delete()
+      else {
+        val newFile = blobFile(digest)
+        if (!newFile.exists()) {
+          if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
+          file.renameTo(newFile)
+        }
       }
     })
 }

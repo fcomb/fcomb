@@ -14,7 +14,7 @@ import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, Sch
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.server.utils.BlobFile
-import io.fcomb.models.docker.distribution.{Image ⇒ MImage, _}
+import io.fcomb.models.docker.distribution.{Image ⇒ MImage, ImageManifest ⇒ MImageManifest, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
 import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
@@ -47,10 +47,12 @@ object ImageService {
   import de.heikoseeberger.akkahttpcirce.CirceSupport._
   import io.circe.generic.auto._
 
-  def completeWithStatus(status: StatusCode): Route =
+  @inline
+  private def completeWithStatus(status: StatusCode): Route =
     complete(HttpResponse(status))
 
-  def completeNotFound(): Route =
+  @inline
+  private def completeNotFound(): Route =
     completeWithStatus(StatusCodes.NotFound)
 
   def createBlob(imageName: String)(implicit req: HttpRequest): Route =
@@ -328,12 +330,7 @@ object ImageService {
                         _ ← Future(blocking(file.delete))
                         _ ← PImageBlob.destroy(uuid)
                       } yield ()) {
-                        complete(
-                          StatusCodes.BadRequest,
-                          DistributionErrorResponse.from(
-                            DistributionError.DigestInvalid()
-                          )
-                        )
+                        complete(StatusCodes.BadRequest, DistributionErrorResponse.from(DistributionError.DigestInvalid()))
                       }
                     }
                 }
@@ -396,31 +393,32 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           val sha256Digest = parseDigest(digest)
-          onSuccess(
-            PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)
-          ) {
-              case Some(blob) ⇒
-                complete(
-                  HttpResponse(
-                    StatusCodes.OK,
-                    immutable.Seq(
-                      `Docker-Content-Digest`("sha256", sha256Digest),
-                      ETag(digest),
-                      `Accept-Ranges`(RangeUnits.Bytes), // TODO: spec
-                      cacheHeader
-                    ),
-                    HttpEntity(
-                      contentType(blob.contentType),
-                      blob.length,
-                      Source.empty
-                    )
+          onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
+            case Some(blob) ⇒
+              complete(
+                HttpResponse(
+                  StatusCodes.OK,
+                  immutable.Seq(
+                    `Docker-Content-Digest`("sha256", sha256Digest),
+                    ETag(digest),
+                    `Accept-Ranges`(RangeUnits.Bytes), // TODO: spec
+                    cacheHeader
+                  ),
+                  HttpEntity(
+                    contentType(blob.contentType),
+                    blob.length,
+                    Source.empty
                   )
                 )
-              case None ⇒ completeNotFound() // TODO
-            }
+              )
+            case None ⇒ completeNotFound() // TODO
+          }
         }
       }
     }
+
+  private val emptyTarSource =
+    Source.single(ByteString(MImageManifest.emptyTar))
 
   def downloadBlob(imageName: String, digest: String)(
     implicit
@@ -431,45 +429,35 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           val sha256Digest = parseDigest(digest)
-          onSuccess(
-            PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)
-          ) {
-              case Some(blob) ⇒
-                val source = FileIO.fromPath(BlobFile.getFile(blob).toPath)
-                val ct = contentType(blob.contentType)
-                req.header[Range] match {
-                  case Some(range) ⇒
-                    val r = range.ranges.head // TODO
-                    val offset: Long = r.getOffset.asScala
-                      .orElse(r.getSliceFirst.asScala)
-                      .getOrElse(0L)
-                    val limit: Long = r.getSliceLast.asScala
-                      .map(_ - offset)
-                      .getOrElse(blob.length)
-                    complete(
-                      HttpResponse(
-                        StatusCodes.PartialContent,
-                        immutable.Seq(`Content-Range`(
-                          ContentRange(offset, limit, blob.length)
-                        )),
-                        HttpEntity(
-                          ct, blob.length, source.drop(offset).take(limit)
-                        )
-                      )
-                    )
-                  case None ⇒
-                    complete(
-                      HttpResponse(
-                        StatusCodes.OK,
-                        immutable.Seq(
-                          `Docker-Content-Digest`("sha256", sha256Digest)
-                        ),
-                        HttpEntity(ct, blob.length, source)
-                      )
-                    )
-                }
-              case None ⇒ completeNotFound() // TODO
-            }
+          onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
+            case Some(blob) ⇒
+              val source =
+                if (digest == MImageManifest.emptyTarSha256Digest) emptyTarSource
+                else FileIO.fromPath(BlobFile.getFile(blob).toPath)
+              val ct = contentType(blob.contentType)
+              req.header[Range] match {
+                case Some(range) ⇒
+                  val r = range.ranges.head // TODO
+                  val offset: Long = r.getOffset.asScala
+                    .orElse(r.getSliceFirst.asScala)
+                    .getOrElse(0L)
+                  val limit: Long = r.getSliceLast.asScala
+                    .map(_ - offset)
+                    .getOrElse(blob.length)
+                  complete(HttpResponse(
+                    StatusCodes.PartialContent,
+                    immutable.Seq(`Content-Range`(ContentRange(offset, limit, blob.length))),
+                    HttpEntity(ct, blob.length, source.drop(offset).take(limit))
+                  ))
+                case None ⇒
+                  complete(HttpResponse(
+                    StatusCodes.OK,
+                    immutable.Seq(`Docker-Content-Digest`("sha256", sha256Digest)),
+                    HttpEntity(ct, blob.length, source)
+                  ))
+              }
+            case None ⇒ completeNotFound() // TODO
+          }
         }
       }
     }
@@ -479,9 +467,7 @@ object ImageService {
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
-          onSuccess(PImageManifest.findByImageIdAndReferenceAsManifestV2(
-            image.getId, reference
-          )) {
+          onSuccess(PImageManifest.findByImageIdAndReferenceAsManifestV2(image.getId, reference)) {
             case Some(manifest) ⇒ complete(manifest)
             case None           ⇒ completeNotFound() // TODO
           }
@@ -554,8 +540,7 @@ object ImageService {
             (repositories, limit, hasNext) ⇒
               val headers =
                 if (hasNext) {
-                  val uri =
-                    Uri(s"/v2/_catalog?n=$limit&last=${repositories.last}")
+                  val uri = Uri(s"/v2/_catalog?n=$limit&last=${repositories.last}")
                   immutable.Seq(Link(uri, LinkParams.next))
                 }
                 else Nil
