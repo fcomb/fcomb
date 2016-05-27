@@ -3,8 +3,8 @@ package io.fcomb.persist.docker.distribution
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{ImageManifestTag ⇒ MImageManifestTag}
 import io.fcomb.persist._
+import java.time.ZonedDateTime
 import scala.concurrent.ExecutionContext
-import slick.jdbc.TransactionIsolation
 
 class ImageManifestTagTable(_tag: Tag) extends Table[MImageManifestTag](_tag, "dd_image_manifest_tags") {
   def imageId = column[Long]("image_id")
@@ -33,14 +33,6 @@ object ImageManifestTag extends PersistModel[MImageManifestTag, ImageManifestTag
     } yield ()
   }
 
-  def upsertTags(imageId: Long, imageManifestId: Long, tags: List[String])(
-    implicit
-    ec: ExecutionContext
-  ) =
-    runInTransaction(TransactionIsolation.Serializable) {
-      upsertTagsDBIO(imageId, imageManifestId, tags)
-    }
-
   private def findAllExistingTagsDBIO(imageId: Long, imageManifestId: Long, tags: List[String]) =
     table
       .filter { q ⇒
@@ -53,11 +45,12 @@ object ImageManifestTag extends PersistModel[MImageManifestTag, ImageManifestTag
   private def updateTagDBIO(imt: MImageManifestTag, imageManifestId: Long)(
     implicit
     ec: ExecutionContext
-  ) =
+  ) = {
     for {
       _ ← sqlu"""
           UPDATE #${ImageManifest.table.baseTableRow.tableName}
-            SET tags = array_remove(tags, ${imt.tag})
+            SET tags = array_remove(tags, ${imt.tag}),
+                updated_at = ${ZonedDateTime.now()}
             WHERE id = ${imt.imageManifestId}
           """
       _ ← table
@@ -69,4 +62,5 @@ object ImageManifestTag extends PersistModel[MImageManifestTag, ImageManifestTag
         .map(_.imageManifestId)
         .update(imageManifestId)
     } yield ()
+  }
 }

@@ -31,6 +31,11 @@ class ImageBlobTable(tag: Tag)
 object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   val table = TableQuery[ImageBlobTable]
 
+  private def mapContentType(contentType: String): String = {
+    if (contentType == "none/none") "application/octet-stream"
+    else contentType
+  }
+
   def mount(fromImageId: Long, toImageName: String, digest: String, userId: Long)(
     implicit
     ec: ExecutionContext
@@ -45,18 +50,16 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
             case Some(b) ⇒ DBIO.successful(Some(b))
             case None ⇒
               val timeNow = ZonedDateTime.now()
-              createDBIO(
-                MImageBlob(
-                  id = Some(UUID.randomUUID()),
-                  state = ImageBlobState.Uploaded,
-                  imageId = toImageId,
-                  sha256Digest = blob.sha256Digest,
-                  contentType = blob.contentType,
-                  length = blob.length,
-                  createdAt = timeNow,
-                  uploadedAt = None
-                )
-              ).map(Some(_))
+              createDBIO(MImageBlob(
+                id = Some(UUID.randomUUID()),
+                state = ImageBlobState.Uploaded,
+                imageId = toImageId,
+                sha256Digest = blob.sha256Digest,
+                contentType = mapContentType(blob.contentType),
+                length = blob.length,
+                createdAt = timeNow,
+                uploadedAt = None
+              )).map(Some(_))
           }
         case _ ⇒ DBIO.successful(None)
       }
@@ -66,18 +69,16 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
     implicit
     ec: ExecutionContext
   ) =
-    super.create(
-      MImageBlob(
-        id = Some(UUID.randomUUID()),
-        state = ImageBlobState.Created,
-        imageId = imageId,
-        sha256Digest = None,
-        contentType = contentType,
-        length = 0L,
-        createdAt = ZonedDateTime.now(),
-        uploadedAt = None
-      )
-    )
+    super.create(MImageBlob(
+      id = Some(UUID.randomUUID()),
+      state = ImageBlobState.Created,
+      imageId = imageId,
+      sha256Digest = None,
+      contentType = mapContentType(contentType),
+      length = 0L,
+      createdAt = ZonedDateTime.now(),
+      uploadedAt = None
+    ))
 
   // TODO
   def createByImageName(name: String, userId: Long, contentType: String)(

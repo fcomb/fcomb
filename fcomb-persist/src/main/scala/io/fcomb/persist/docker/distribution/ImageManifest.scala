@@ -181,7 +181,16 @@ object ImageManifest
       if (reference.nonEmpty && !reference.startsWith(MImageManifest.sha256Prefix) &&
         !im.tags.contains(reference)) List(reference)
       else Nil
-    if (tags.nonEmpty) ImageManifestTag.upsertTags(im.imageId, im.getId, tags)
+    if (tags.nonEmpty)
+      runInTransaction(TransactionIsolation.Serializable)(for {
+        _ ← ImageManifestTag.upsertTagsDBIO(im.imageId, im.getId, tags)
+        _ ← sqlu"""
+          UPDATE #${ImageManifest.table.baseTableRow.tableName}
+            SET tags = tags || $reference,
+                updated_at = ${ZonedDateTime.now()}
+            WHERE id = ${im.getId}
+          """
+      } yield ())
     else FastFuture.successful(())
   }
 
