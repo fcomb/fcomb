@@ -34,7 +34,7 @@ object BlobFile {
     }
   }
 
-  def uploadToBlob(file: File, digest: String)(
+  def renameOrDelete(file: File, digest: String)(
     implicit
     ec: ExecutionContext
   ): Future[Unit] =

@@ -40,6 +40,7 @@ object ImageManifestTag extends PersistModel[MImageManifestTag, ImageManifestTag
           q.imageManifestId =!= imageManifestId &&
           q.tag.inSetBind(tags)
       }
+      // .forUpdate
       .result
 
   private def updateTagDBIO(imt: MImageManifestTag, imageManifestId: Long)(

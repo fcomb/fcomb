@@ -11,8 +11,7 @@ object SchemaV1 {
   final case class FsLayer(
       blobSum: String
   ) {
-    def parseDigest =
-      this.blobSum.drop(ImageManifest.sha256Prefix.length)
+    def getDigest = Reference.getDigest(this.blobSum)
   }
 
   final case class Protected(
@@ -106,8 +105,7 @@ object SchemaV2 {
       size:      Long,
       digest:    String
   ) {
-    def parseDigest =
-      this.digest.drop(ImageManifest.sha256Prefix.length)
+    def getDigest = Reference.getDigest(this.digest)
   }
 
   final case class Manifest(

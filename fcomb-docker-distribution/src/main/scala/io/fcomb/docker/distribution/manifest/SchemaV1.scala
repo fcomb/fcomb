@@ -10,7 +10,7 @@ import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.json.docker.distribution.Formats.decodeSchemaV1Protected
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest ⇒ ManifestV1, Protected, Layer, FsLayer, LayerContainerConfig, Config}
 import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest ⇒ ManifestV2}
-import io.fcomb.models.docker.distribution.{ImageManifest ⇒ MImageManifest, Image ⇒ MImage}, MImageManifest.sha256Prefix
+import io.fcomb.models.docker.distribution.{Reference, ImageManifest ⇒ MImageManifest, Image ⇒ MImage}, MImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
 import io.fcomb.persist.docker.distribution.{ImageManifest ⇒ PImageManifest}
 import io.fcomb.utils.StringUtils
@@ -21,7 +21,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object SchemaV1 {
   def upsertAsImageManifest(
     image:       MImage,
-    reference:   String,
+    reference:   Reference,
     manifest:    ManifestV1,
     rawManifest: String
   )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] = {
@@ -93,7 +93,7 @@ object SchemaV1 {
                 val (blobSum, layersTail) =
                   if (img.isEmptyLayer) (MImageManifest.emptyTarSha256DigestFull, layers)
                   else {
-                    val head = layers.headOption.map(_.parseDigest).getOrElse("")
+                    val head = layers.headOption.map(_.getDigest).getOrElse("")
                     (head, layers.tail)
                   }
                 val v1Id = DigestUtils.sha256Hex(s"$blobSum $parentId")
@@ -119,7 +119,7 @@ object SchemaV1 {
             val isEmptyLayer = imgConfig.history.last.isEmptyLayer
             val blobSum =
               if (isEmptyLayer) MImageManifest.emptyTarSha256DigestFull
-              else remainLayers.headOption.map(_.parseDigest).getOrElse("")
+              else remainLayers.headOption.map(_.getDigest).getOrElse("")
             val v1Id = DigestUtils.sha256Hex(s"$blobSum $lastParentId $imgConfig")
             val parent =
               if (lastParentId.isEmpty) config.parent

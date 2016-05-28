@@ -5,7 +5,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{FileIO, Sink}
 import cats.data.{Validated, Xor}
 import io.fcomb.models.docker.distribution.SchemaV2.{Manifest ⇒ ManifestV2}
-import io.fcomb.models.docker.distribution.{Image ⇒ MImage}
+import io.fcomb.models.docker.distribution.{Reference, Image ⇒ MImage}
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
 import io.fcomb.persist.docker.distribution.{ImageManifest ⇒ PImageManifest, ImageBlob ⇒ PImageBlob}
 import io.fcomb.docker.distribution.server.utils.BlobFile
@@ -16,7 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object SchemaV2 {
   def upsertAsImageManifest(
     image:       MImage,
-    reference:   String,
+    reference:   Reference,
     manifest:    ManifestV2,
     rawManifest: String
   )(implicit ec: ExecutionContext, mat: Materializer): Future[Xor[DistributionError, String]] = {
@@ -27,7 +27,7 @@ object SchemaV2 {
           .fast
           .map(_ ⇒ Xor.right(im.sha256Digest))
       case None ⇒
-        val configDigest = manifest.config.parseDigest
+        val configDigest = manifest.config.getDigest
         (for {
           Some(configBlob) ← PImageBlob.findByImageIdAndDigest(image.getId, configDigest)
           _ = assert(configBlob.length <= 1.MB, "Config JSON size is more than 1 MB")

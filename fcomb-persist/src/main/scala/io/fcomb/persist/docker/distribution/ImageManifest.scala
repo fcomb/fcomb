@@ -103,7 +103,7 @@ object ImageManifest
     findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
       case Some(im) ⇒ FastFuture.successful(Validated.valid(im))
       case None ⇒
-        val digests = manifest.fsLayers.map(_.parseDigest).toSet
+        val digests = manifest.fsLayers.map(_.getDigest).toSet
         val tags =
           if (manifest.tag.nonEmpty) List(manifest.tag)
           else Nil
@@ -127,7 +127,7 @@ object ImageManifest
   def upsertSchemaV2(
     image:            MImage,
     manifest:         SchemaV2.Manifest,
-    reference:        String,
+    reference:        Reference,
     configBlob:       ImageBlob,
     schemaV1JsonBlob: String,
     schemaV2JsonBlob: String,
@@ -139,7 +139,7 @@ object ImageManifest
           .fast
           .map(_ ⇒ Validated.valid(im))
       case None ⇒
-        val digests = manifest.layers.map(_.parseDigest).toSet
+        val digests = manifest.layers.map(_.getDigest).toSet
         val emptyTarResFut =
           if (digests.contains(MImageManifest.emptyTarSha256Digest))
             ImageBlob.createEmptyTarIfNotExists(image.getId)
@@ -154,10 +154,10 @@ object ImageManifest
               configBlobId = configBlob.id,
               jsonBlob = schemaV2JsonBlob
             )
-            val tags =
-              if (reference.nonEmpty && !reference.startsWith(MImageManifest.sha256Prefix))
-                List(reference)
-              else Nil
+            val tags = reference match {
+              case Reference.Tag(tag) ⇒ List(tag)
+              case _                  ⇒ Nil
+            }
             create(MImageManifest(
               sha256Digest = sha256Digest,
               imageId = image.getId,
@@ -174,20 +174,20 @@ object ImageManifest
     }
   }
 
-  def updateTagsByReference(im: MImageManifest, reference: String)(
+  def updateTagsByReference(im: MImageManifest, reference: Reference)(
     implicit
     ec: ExecutionContext
   ): Future[Unit] = {
-    val tags =
-      if (reference.nonEmpty && !reference.startsWith(MImageManifest.sha256Prefix) &&
-        !im.tags.contains(reference)) List(reference)
-      else Nil
+    val tags = reference match {
+      case Reference.Tag(tag) if !im.tags.contains(tag) ⇒ List(tag)
+      case _ ⇒ Nil
+    }
     if (tags.nonEmpty)
       runInTransaction(TransactionIsolation.Serializable)(for {
         _ ← ImageManifestTag.upsertTagsDBIO(im.imageId, im.getId, tags)
         _ ← sqlu"""
           UPDATE #${ImageManifest.table.baseTableRow.tableName}
-            SET tags = tags || $reference,
+            SET tags = tags || ${reference.value},
                 updated_at = ${ZonedDateTime.now()}
             WHERE id = ${im.getId}
           """
@@ -212,50 +212,44 @@ object ImageManifest
     )
   }
 
-  def findByImageIdAndReferenceAsManifestV2(imageId: Long, reference: String)(
+  def findByImageIdAndReference(imageId: Long, reference: Reference)(
     implicit
     ec: ExecutionContext
-  ): Future[Option[SchemaManifest]] = {
-    // TODO: find by tags
-    // for {
-    //   Some(manifest) ← db.run(table.filter { q ⇒
-    //     q.imageId === imageId &&
-    //       q.sha256Digest === reference.drop(MImageManifest.sha256Prefix.length)
-    //   }.result.headOption)
-    //   blobs ← ImageBlob.findByIds(manifest.configBlobId :: manifest.layersBlobId)
-    // } yield {
-    //   val blobsMap = blobs.map(b ⇒ (b.getId, b)).toMap
-
-    //   def descriptorByUuid(uuid: UUID) = {
-    //     val blob = blobsMap(uuid)
-    //     SchemaV2.Descriptor(
-    //       mediaType = Some(blob.contentType),
-    //       size = blob.length,
-    //       digest = blob.sha256Digest.get
-    //     )
-    //   }
-
-    //   Some(SchemaV2.Manifest(
-    //     config = descriptorByUuid(manifest.configBlobId),
-    //     layers = manifest.layersBlobId.map(descriptorByUuid)
-    //   ))
-    // }
-    ???
+  ): Future[Option[MImageManifest]] = reference match {
+    case Reference.Digest(dgst) ⇒ findByImageIdAndDigest(imageId, dgst)
+    case Reference.Tag(tag)     ⇒ findByImageIdAndTag(imageId, tag)
   }
+
+  private val findByImageIdAndTagCompiled = Compiled { (imageId: Rep[Long], tag: Rep[String]) ⇒
+    table
+      .join(ImageManifestTag.table).on(_.id === _.imageManifestId)
+      .filter(_._2.tag === tag)
+      .map(_._1)
+  }
+
+  def findByImageIdAndTag(imageId: Long, tag: String): Future[Option[MImageManifest]] =
+    db.run(findByImageIdAndTagCompiled((imageId, tag)).result.headOption)
 
   private val findIdAndTagsByImageIdAndTagCompiled = Compiled {
     (imageId: Rep[Long], tag: Rep[String]) ⇒
-      table.filter { q ⇒
-        q.imageId === imageId && tag === q.tags.any
-      }.map(m ⇒ (m.pk, m.tags))
+      table
+        .filter { q ⇒
+          q.imageId === imageId && tag === q.tags.any
+        }
+        .map(m ⇒ (m.pk, m.tags))
   }
 
   private val findTagsByImageIdCompiled = Compiled {
     (imageId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long],
     offset: ConstColumn[Long]) ⇒
-      table.filter { q ⇒
-        q.imageId === imageId && q.pk >= id
-      }.sortBy(_.id.asc).map(_.tags.unnest).drop(offset).take(limit)
+      table
+        .filter { q ⇒
+          q.imageId === imageId && q.pk >= id
+        }
+        .sortBy(_.id.asc)
+        .map(_.tags.unnest)
+        .drop(offset)
+        .take(limit)
   }
 
   val fetchLimit = 256

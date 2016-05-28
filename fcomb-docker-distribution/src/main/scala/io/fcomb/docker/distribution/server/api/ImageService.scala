@@ -94,15 +94,13 @@ object ImageService {
     }
   }
 
-  private def mountImageBlob(
-    user: MUser, imageName: String, mount: String, from: String
-  )(
+  private def mountImageBlob(user: MUser, imageName: String, digest: String, from: String)(
     implicit
     ec:  ExecutionContext,
     req: HttpRequest
   ): Route = {
     imageByNameWithAcl(from, user) { fromImage ⇒
-      onSuccess(PImageBlob.mount(fromImage.getId, imageName, parseDigest(mount), user.getId)) {
+      onSuccess(PImageBlob.mount(fromImage.getId, imageName, Reference.getDigest(digest), user.getId)) {
         case Some(blob) ⇒
           val sha256Digest = blob.sha256Digest.get
           val headers = immutable.Seq(
@@ -133,8 +131,8 @@ object ImageService {
         _ ← PImageBlob.completeUpload(blob.getId, fileLength, sha256Digest)
       } yield (blob, sha256Digest, file)) {
         case (blob, sha256Digest, file) ⇒
-          if (parseDigest(digest) == sha256Digest) {
-            onSuccess(BlobFile.uploadToBlob(file, sha256Digest)) {
+          if (Reference.getDigest(digest) == sha256Digest) {
+            onSuccess(BlobFile.renameOrDelete(file, sha256Digest)) {
               val headers = immutable.Seq(
                 Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
                 `Docker-Upload-Uuid`(blob.getId),
@@ -288,7 +286,7 @@ object ImageService {
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
-          val queryDigest = parseDigest(req.uri.query().get("digest").get)
+          val queryDigest = Reference.getDigest(req.uri.query().get("digest").get)
           val headers = immutable.Seq(
             Location(s"/v2/$imageName/blobs/sha256:$queryDigest"),
             `Docker-Content-Digest`("sha256", queryDigest)
@@ -309,7 +307,7 @@ object ImageService {
                   case (file, length, digest) ⇒
                     if (digest == queryDigest) {
                       onSuccess(for {
-                        _ ← BlobFile.uploadToBlob(file, digest)
+                        _ ← BlobFile.renameOrDelete(file, digest)
                         _ ← PImageBlob.completeUpload(
                           uuid, blob.length + length, digest
                         )
@@ -359,18 +357,16 @@ object ImageService {
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
-          val sha256Digest = parseDigest(digest)
-          onSuccess(
-            PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)
-          ) {
-              case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
-                val file = BlobFile.uploadFile(blob.getId)
-                complete(for {
-                  _ ← Future(blocking(file.delete)) // TODO: only if file exists once
-                  _ ← PImageBlob.destroy(blob.getId) // TODO: destroy only unlinked blob
-                } yield HttpResponse(StatusCodes.NoContent))
-              case None ⇒ completeNotFound() // TODO
-            }
+          val sha256Digest = Reference.getDigest(digest)
+          onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
+            case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
+              val file = BlobFile.uploadFile(blob.getId)
+              complete(for {
+                _ ← Future(blocking(file.delete)) // TODO: only if file exists once
+                _ ← PImageBlob.destroy(blob.getId) // TODO: destroy only unlinked blob
+              } yield HttpResponse(StatusCodes.NoContent))
+            case None ⇒ completeNotFound() // TODO
+          }
         }
       }
     }
@@ -386,7 +382,7 @@ object ImageService {
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
-          val sha256Digest = parseDigest(digest)
+          val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) ⇒
               complete(
@@ -422,7 +418,7 @@ object ImageService {
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
-          val sha256Digest = parseDigest(digest)
+          val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) ⇒
               val source =
@@ -456,20 +452,35 @@ object ImageService {
       }
     }
 
-  def getManifest(imageName: String, reference: String) =
+  def getManifest(imageName: String, reference: Reference)(
+    implicit
+    req: HttpRequest
+  ) =
     authenticateUserBasic(realm) { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
-          onSuccess(PImageManifest.findByImageIdAndReferenceAsManifestV2(image.getId, reference)) {
-            case Some(manifest) ⇒ complete(manifest)
-            case None           ⇒ completeNotFound() // TODO
+          onSuccess(PImageManifest.findByImageIdAndReference(image.getId, reference)) {
+            case Some(im) ⇒
+              val manifest = im.schemaVersion match {
+                case 1 ⇒ im.schemaV1JsonBlob
+                case 2 ⇒
+                  if (reference.isTag)
+                    req.entity.contentType match {
+                      case ContentTypes.`application/vnd.docker.distribution.manifest.v1+json` ⇒
+                        ???
+                      case _ ⇒ ???
+                    }
+                  else im.schemaV2Details.map(_.jsonBlob).getOrElse(im.schemaV1JsonBlob)
+              }
+              complete(HttpEntity(`application/json`, manifest))
+            case None ⇒ completeNotFound() // TODO
           }
         }
       }
     }
 
-  def uploadManifest(imageName: String, reference: String)(
+  def uploadManifest(imageName: String, reference: Reference)(
     implicit
     mat: Materializer,
     req: HttpRequest
@@ -511,12 +522,17 @@ object ImageService {
       )
     }
 
-  def destroyManifest(imageName: String, digest: String) =
+  def destroyManifest(imageName: String, reference: Reference) =
     authenticateUserBasic(realm) { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
-          onSuccess(PImageManifest.destroy(image.getId, parseDigest(digest))) {
-            case _ ⇒ complete(StatusCodes.NoContent, HttpEntity.Empty)
+          reference match {
+            case Reference.Digest(digest) ⇒
+              onSuccess(PImageManifest.destroy(image.getId, digest)) {
+                // TODO: not found
+                case _ ⇒ complete(StatusCodes.NoContent, HttpEntity.Empty)
+              }
+            case _ ⇒ ??? // TODO
           }
         }
       }
@@ -549,8 +565,6 @@ object ImageService {
   private val cacheHeader = `Cache-Control`(
     CacheDirectives.`max-age`(365.days.toSeconds)
   )
-
-  private def parseDigest(digest: String) = digest.split(':').last
 
   private def rangeHeader(from: Long, length: Long) = {
     val to =

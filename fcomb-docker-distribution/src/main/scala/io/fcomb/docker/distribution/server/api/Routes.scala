@@ -1,12 +1,13 @@
 package io.fcomb.docker.distribution.server.api
 
-import io.fcomb.api.services.headers._
-import io.fcomb.docker.distribution.server.api.headers._
 import akka.actor._
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server._
 import akka.stream.Materializer
+import io.fcomb.api.services.headers._
+import io.fcomb.docker.distribution.server.api.headers._
+import io.fcomb.models.docker.distribution.Reference
 import java.util.UUID
 import org.slf4j.LoggerFactory
 
@@ -63,8 +64,9 @@ object Routes {
                       ImageService.destroyBlob(imageName(xs), id)
                     case _ => complete(notFoundResponse)
                   }
-                case reference :: "manifests" :: xs =>
+                case ref :: "manifests" :: xs =>
                   val image = imageName(xs)
+                  val reference = Reference.apply(ref)
                   method match {
                     case HttpMethods.GET =>
                       ImageService.getManifest(image, reference)
