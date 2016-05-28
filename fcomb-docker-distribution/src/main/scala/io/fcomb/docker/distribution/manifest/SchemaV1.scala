@@ -147,6 +147,10 @@ object SchemaV1 {
     }
   }
 
+  def addTagAndSignature(manifest: String, tag: String): String = {
+    ???
+  }
+
   def prettyPrint(m: ManifestV1): String =
     printer("   ").pretty(m.asJson)
 

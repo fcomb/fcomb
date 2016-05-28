@@ -12,6 +12,7 @@ import cats.data.{Validated, Xor}
 import cats.syntax.eq._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
 import io.fcomb.docker.distribution.server.api.headers._
+import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+json`, `application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.server.utils.BlobFile
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage, ImageManifest ⇒ MImageManifest, _}
@@ -452,6 +453,11 @@ object ImageService {
       }
     }
 
+  private val v1ContentTypes = Set[ContentType](
+    `application/vnd.docker.distribution.manifest.v1+json`,
+    `application/vnd.docker.distribution.manifest.v1+prettyjws`
+  )
+
   def getManifest(imageName: String, reference: Reference)(
     implicit
     req: HttpRequest
@@ -462,18 +468,18 @@ object ImageService {
           import mat.executionContext
           onSuccess(PImageManifest.findByImageIdAndReference(image.getId, reference)) {
             case Some(im) ⇒
-              val manifest = im.schemaVersion match {
-                case 1 ⇒ im.schemaV1JsonBlob
-                case 2 ⇒
-                  if (reference.isTag)
-                    req.entity.contentType match {
-                      case ContentTypes.`application/vnd.docker.distribution.manifest.v1+json` ⇒
-                        ???
-                      case _ ⇒ ???
-                    }
-                  else im.schemaV2Details.map(_.jsonBlob).getOrElse(im.schemaV1JsonBlob)
+              val (ct: ContentType, manifest: String) = im.schemaVersion match {
+                case 1 ⇒
+                  (ContentTypes.`application/vnd.docker.distribution.manifest.v1+prettyjws`, im.schemaV1JsonBlob)
+                case 2 ⇒ reference match {
+                  case Reference.Tag(tag) if !v1ContentTypes.contains(req.entity.contentType) ⇒
+                    val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
+                    (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
+                  case _ ⇒
+                    (`application/vnd.docker.distribution.manifest.v2+json`, im.getSchemaV2JsonBlob)
+                }
               }
-              complete(HttpEntity(`application/json`, manifest))
+              complete(HttpEntity(ct, ByteString(manifest)))
             case None ⇒ completeNotFound() // TODO
           }
         }
