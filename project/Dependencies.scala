@@ -232,6 +232,7 @@ object Dependencies {
   val dockerDistribution = docker
 
   val crypto = akka ++ common ++ Seq(
+    commonsCodec,
     bcProvider, bcPkix, jose4s
   )
 

@@ -7,7 +7,6 @@ import cats.syntax.show._
 import io.circe._, io.circe.parser._, io.circe.syntax._
 import io.fcomb.crypto.Jws
 import io.fcomb.json.docker.distribution.Formats._
-import io.fcomb.json.docker.distribution.Formats.decodeSchemaV1Protected
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest ⇒ ManifestV1, Protected, Layer, FsLayer, LayerContainerConfig, Config}
 import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest ⇒ ManifestV2}
 import io.fcomb.models.docker.distribution.{Reference, ImageManifest ⇒ MImageManifest, Image ⇒ MImage}, MImageManifest.sha256Prefix
@@ -40,9 +39,8 @@ object SchemaV1 {
   def verify(manifest: ManifestV1, rawManifest: String): Xor[DistributionError, (String, String)] = {
     parse(rawManifest).map(_.asObject) match {
       case Xor.Right(Some(json)) ⇒
-        val indent = rawManifest.dropWhile(_ != ' ').takeWhile(_ == ' ')
         val manifestJson = json.remove("signatures").asJson
-        val original = printer(indent).pretty(manifestJson)
+        val original = indentPrint(rawManifest, manifestJson)
         if (manifest.signatures.isEmpty) Xor.left(Unknown("signatures cannot be empty"))
         else {
           val rightAcc = Xor.right[DistributionError, (String, String)](("", ""))
@@ -59,7 +57,7 @@ object SchemaV1 {
                     }"
                     val signatureBytes = base64url.base64UrlDecode(signature.signature)
                     val (alg, jwk) = (signature.header.alg, signature.header.jwk)
-                    if (Jws.verifySignature(alg, jwk, payload, signatureBytes))
+                    if (Jws.verify(alg, jwk, payload, signatureBytes))
                       Xor.right((rawManifest, DigestUtils.sha256Hex(formatted)))
                     else Xor.left(ManifestUnverified())
                   }
@@ -147,12 +145,32 @@ object SchemaV1 {
     }
   }
 
-  def addTagAndSignature(manifest: String, tag: String): String = {
-    ???
+  def addTagAndSignature(manifestV1: String, tag: String): String = {
+    parse(manifestV1).map(_.asObject) match {
+      case Xor.Right(opt) ⇒ opt match {
+        case Some(manifest) ⇒
+          val manifestWithTag = manifest.add("tag", Json.fromString(tag))
+          val formatted = prettyPrint(manifestWithTag.asJson)
+
+          val manifestWithSignature = manifestWithTag.add("signatures", Json.Null)
+          prettyPrint(manifestWithSignature.asJson)
+        case _ ⇒ ???
+      }
+      case Xor.Left(e) ⇒
+        ???
+    }
   }
 
+  def prettyPrint(json: Json): String =
+    printer("   ").pretty(json)
+
   def prettyPrint(m: ManifestV1): String =
-    printer("   ").pretty(m.asJson)
+    prettyPrint(m.asJson)
+
+  def indentPrint(original: String, json: Json) = {
+    val indent = original.dropWhile(_ != ' ').takeWhile(_ == ' ')
+    printer(indent).pretty(json)
+  }
 
   private val base64url = new Base64Url()
 
