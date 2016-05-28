@@ -60,7 +60,7 @@ object SchemaV1 {
                     val signatureBytes = base64url.base64UrlDecode(signature.signature)
                     val (alg, jwk) = (signature.header.alg, signature.header.jwk)
                     if (Jws.verifySignature(alg, jwk, payload, signatureBytes))
-                      Xor.right((original, DigestUtils.sha256Hex(formatted)))
+                      Xor.right((rawManifest, DigestUtils.sha256Hex(formatted)))
                     else Xor.left(ManifestUnverified())
                   }
                   else Xor.left(ManifestInvalid("formatted length does not match with fortmatLength"))
