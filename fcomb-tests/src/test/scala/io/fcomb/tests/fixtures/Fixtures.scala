@@ -110,16 +110,16 @@ object Fixtures {
           imageName: String,
           blob:      MImageBlob,
           tags:      List[String]
-        )(implicit ec: ExecutionContext) =
-          P.docker.distribution.ImageManifest.create(MImageManifest(
-            sha256Digest = blob.sha256Digest.get,
-            imageId = blob.imageId,
-            tags = tags,
-            configBlobId = blob.getId,
-            layersBlobId = List(blob.getId),
-            createdAt = ZonedDateTime.now,
-            updatedAt = None
-          )).map(getSuccess(_))
+        )(implicit ec: ExecutionContext): Future[MImageManifest] = ???
+        // P.docker.distribution.ImageManifest.create(MImageManifest(
+        //   sha256Digest = blob.sha256Digest.get,
+        //   imageId = blob.imageId,
+        //   tags = tags,
+        //   configBlobId = blob.getId,
+        //   layersBlobId = List(blob.getId),
+        //   createdAt = ZonedDateTime.now,
+        //   updatedAt = None
+        // )).map(getSuccess(_))
       }
     }
   }
