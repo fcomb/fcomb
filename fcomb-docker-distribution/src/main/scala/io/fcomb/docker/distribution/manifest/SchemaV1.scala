@@ -75,7 +75,7 @@ object SchemaV1 {
     image:       MImage,
     manifest:    ManifestV2,
     imageConfig: String
-  ): Xor[String, ManifestV1] = {
+  ): Xor[String, String] = {
     (for {
       imgConfig ← decode[ImageConfig](imageConfig)
       config ← decode[Config](imageConfig)(decodeSchemaV1Config)
@@ -132,14 +132,18 @@ object SchemaV1 {
             (historyLayer, fsLayer)
           }
 
-          Xor.right(ManifestV1(
+          val manifestV1 = ManifestV1(
             name = image.name,
             tag = "",
             fsLayers = configFsLayer :: fsLayers,
             architecture = imgConfig.architecture,
             history = configHistory :: history,
             signatures = Nil
-          ))
+          )
+          manifestV1.asJson.asObject match {
+            case Some(obj) ⇒ Xor.right(prettyPrint(obj.remove("signatures").asJson))
+            case None      ⇒ Xor.left("manifestV1 not an JSON object")
+          }
         }
       case Xor.Left(e) ⇒ Xor.left(e.show)
     }
@@ -168,13 +172,20 @@ object SchemaV1 {
     }
   }
 
+  private val spaceCharSet =
+    Set[Char]('\t', '\n', 0x0B, '\f', '\r', ' ', 0x85, 0xA0)
+
+  private def isSpace(c: Char): Boolean =
+    spaceCharSet.contains(c)
+
   private def protectedHeader(formatted: String): String = {
-    val formatLength = formatted.lastIndexWhere(_ != ' ', formatted.lastIndexOf('}'))
+    val cbIndex = formatted.lastIndexOf('}') - 1
+    val formatLength = formatted.lastIndexWhere(!isSpace(_), cbIndex) + 1
     val formatTail = formatted.drop(formatLength)
     val p = Protected(
       formatLength = formatLength,
       formatTail = base64Encode(formatTail),
-      time = ZonedDateTime.now()
+      time = ZonedDateTime.now().withFixedOffsetZone()
     )
     base64Encode(p.asJson.noSpaces)
   }

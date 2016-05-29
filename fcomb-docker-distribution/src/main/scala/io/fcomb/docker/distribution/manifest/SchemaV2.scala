@@ -36,8 +36,7 @@ object SchemaV2 {
         } yield (configBlob, imageConfig)).flatMap {
           case (configBlob, imageConfig) ⇒
             SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
-              case Xor.Right(schemaV1Manifest) ⇒
-                val schemaV1JsonBlob = SchemaV1.prettyPrint(schemaV1Manifest)
+              case Xor.Right(schemaV1JsonBlob) ⇒
                 PImageManifest.upsertSchemaV2(image, manifest, reference, configBlob,
                   schemaV1JsonBlob, rawManifest, sha256Digest)
                   .fast
