@@ -39,12 +39,21 @@ object Jws {
     }
   }
 
-  private lazy val defaultEcJwk = EcJwkGenerator.generateJwk(EllipticCurves.P256)
-  private lazy val defaultEcJwkKeyId = keyId(defaultEcJwk.getPublicKey)
+  private lazy val defaultEcJwk = {
+    val jwk = EcJwkGenerator.generateJwk(EllipticCurves.P256)
+    jwk.setKeyId(keyId(jwk.getPublicKey))
+    jwk
+  }
+  lazy val defaultEcJwkParams: immutable.Map[String, String] =
+    defaultEcJwk.toParams(JsonWebKey.OutputControlLevel.PUBLIC_ONLY)
+      .asScala
+      .map { case (k, v) ⇒ (k, v.asInstanceOf[String]) }
+      .toMap
 
-  def signWithDefaultEcJwk(bytes: Array[Byte]): Array[Byte] = {
+  def signWithDefaultJwk(bytes: Array[Byte]): (Array[Byte], String) = {
     val alg = new EcdsaUsingShaAlgorithm.EcdsaP256UsingSha256()
-    alg.sign(defaultEcJwk.getPrivateKey, bytes, ctx)
+    val signature = alg.sign(defaultEcJwk.getPrivateKey, bytes, ctx)
+    (signature, "ES256")
   }
 
   def keyId(pk: PublicKey): String = {

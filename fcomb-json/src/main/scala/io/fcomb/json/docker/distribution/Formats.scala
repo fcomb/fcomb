@@ -9,8 +9,6 @@ import io.circe.{Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printe
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.ErrorKind
 import io.fcomb.models.errors.docker.distribution._
-import java.time.ZonedDateTime
-import java.util.Base64
 import scala.collection.generic.CanBuildFrom
 
 object Formats {
@@ -52,9 +50,17 @@ object Formats {
     }
   }
 
+  implicit final val encodeSchemaV1Signature: Encoder[SchemaV1.Signature] =
+    Encoder.forProduct3("header", "signature",
+      "protected")(SchemaV1.Signature.unapply(_).get)
+
   implicit final val encodeSchemaV1Manifest: Encoder[SchemaV1.Manifest] =
     Encoder.forProduct7("name", "tag", "fsLayers", "architecture", "history",
       "signatures", "schemaVersion")(SchemaV1.Manifest.unapply(_).get)
+
+  implicit final val encodeSchemaV1Protected: Encoder[SchemaV1.Protected] =
+    Encoder.forProduct3("formatLength", "formatTail",
+      "time")(SchemaV1.Protected.unapply(_).get)
 
   implicit final val decodeDistributionErrorCode =
     Circe.decoder(DistributionErrorCode)
@@ -159,17 +165,7 @@ object Formats {
     }
 
   implicit final val decodeSchemaV1Protected: Decoder[SchemaV1.Protected] =
-    Decoder.instance { c ⇒
-      for {
-        formatLength ← c.get[Int]("formatLength")
-        formatTail ← c.get[String]("formatTail")
-        time ← c.get[ZonedDateTime]("time")
-      } yield SchemaV1.Protected(
-        formatLength = formatLength,
-        formatTail = new String(Base64.getDecoder.decode(formatTail)),
-        time = time
-      )
-    }
+    Decoder.forProduct3("formatLength", "formatTail", "time")(SchemaV1.Protected.apply)
 
   implicit final val decodeSchemaV2ImageRootFs: Decoder[SchemaV2.ImageRootFs] =
     Decoder.forProduct3("type", "diff_ids", "base_layer")(SchemaV2.ImageRootFs.apply)

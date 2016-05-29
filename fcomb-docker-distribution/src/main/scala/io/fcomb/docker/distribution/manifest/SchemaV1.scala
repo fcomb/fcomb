@@ -7,12 +7,13 @@ import cats.syntax.show._
 import io.circe._, io.circe.parser._, io.circe.syntax._
 import io.fcomb.crypto.Jws
 import io.fcomb.json.docker.distribution.Formats._
-import io.fcomb.models.docker.distribution.SchemaV1.{Manifest ⇒ ManifestV1, Protected, Layer, FsLayer, LayerContainerConfig, Config}
+import io.fcomb.models.docker.distribution.SchemaV1.{Manifest ⇒ ManifestV1, _}
 import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest ⇒ ManifestV2}
 import io.fcomb.models.docker.distribution.{Reference, ImageManifest ⇒ MImageManifest, Image ⇒ MImage}, MImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
 import io.fcomb.persist.docker.distribution.{ImageManifest ⇒ PImageManifest}
 import io.fcomb.utils.StringUtils
+import java.time.ZonedDateTime
 import org.apache.commons.codec.digest.DigestUtils
 import org.jose4j.base64url.Base64Url
 import scala.concurrent.{ExecutionContext, Future}
@@ -46,16 +47,15 @@ object SchemaV1 {
           val rightAcc = Xor.right[DistributionError, (String, String)](("", ""))
           manifest.signatures.foldLeft(rightAcc) {
             case (acc, signature) ⇒
-              val `protected` = new String(base64url.base64UrlDecode(signature.`protected`))
+              val `protected` = new String(base64Decode(signature.`protected`))
               acc *> (decode[Protected](`protected`) match {
                 case Xor.Right(p) ⇒
-                  val formatTailIndex = original.lastIndexOf(p.formatTail)
-                  val formatted = original.take(formatTailIndex + p.formatTail.length)
+                  val formatTail = new String(base64Decode(p.formatTail))
+                  val formatTailIndex = original.lastIndexOf(formatTail)
+                  val formatted = original.take(formatTailIndex + formatTail.length)
                   if (formatTailIndex == p.formatLength) {
-                    val payload = s"${signature.`protected`}.${
-                      base64url.base64UrlEncode(formatted.getBytes("utf-8"))
-                    }"
-                    val signatureBytes = base64url.base64UrlDecode(signature.signature)
+                    val payload = s"${signature.`protected`}.${base64Encode(formatted)}"
+                    val signatureBytes = base64Decode(signature.signature)
                     val (alg, jwk) = (signature.header.alg, signature.header.jwk)
                     if (Jws.verify(alg, jwk, payload, signatureBytes))
                       Xor.right((rawManifest, DigestUtils.sha256Hex(formatted)))
@@ -151,14 +151,32 @@ object SchemaV1 {
         case Some(manifest) ⇒
           val manifestWithTag = manifest.add("tag", Json.fromString(tag))
           val formatted = prettyPrint(manifestWithTag.asJson)
-
-          val manifestWithSignature = manifestWithTag.add("signatures", Json.Null)
+          val `protected` = protectedHeader(formatted)
+          val payload = s"${`protected`}.${base64Encode(formatted)}"
+          val (signature, alg) = Jws.signWithDefaultJwk(payload.getBytes("utf-8"))
+          val signatures = List(Signature(
+            header = SignatureHeader(Jws.defaultEcJwkParams, alg),
+            signature = base64Encode(signature),
+            `protected` = `protected`
+          ))
+          val manifestWithSignature = manifestWithTag.add("signatures", signatures.asJson)
           prettyPrint(manifestWithSignature.asJson)
         case _ ⇒ ???
       }
       case Xor.Left(e) ⇒
         ???
     }
+  }
+
+  private def protectedHeader(formatted: String): String = {
+    val formatLength = formatted.lastIndexWhere(_ != ' ', formatted.lastIndexOf('}'))
+    val formatTail = formatted.drop(formatLength)
+    val p = Protected(
+      formatLength = formatLength,
+      formatTail = base64Encode(formatTail),
+      time = ZonedDateTime.now()
+    )
+    base64Encode(p.asJson.noSpaces)
   }
 
   def prettyPrint(json: Json): String =
@@ -173,6 +191,15 @@ object SchemaV1 {
   }
 
   private val base64url = new Base64Url()
+
+  private def base64Encode(bytes: Array[Byte]): String =
+    base64url.base64UrlEncode(bytes)
+
+  private def base64Encode(s: String): String =
+    base64url.base64UrlEncode(s.getBytes("utf-8"))
+
+  private def base64Decode(s: String): Array[Byte] =
+    base64url.base64UrlDecode(s)
 
   private def printer(indent: String) = Printer(
     preserveOrder = true,
