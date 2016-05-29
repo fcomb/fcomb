@@ -17,6 +17,8 @@ class ImageManifestLayerTable(_tag: Tag) extends Table[MImageManifestLayer](_tag
 object ImageManifestLayer extends PersistModel[MImageManifestLayer, ImageManifestLayerTable] {
   val table = TableQuery[ImageManifestLayerTable]
 
-  def insertLayersDBIO(imageManifestId: Long, layers: List[UUID]) =
-    table ++= layers.map(l ⇒ MImageManifestLayer(imageManifestId, l))
+  def insertLayersDBIO(imageManifestId: Long, layers: List[UUID]) = {
+    if (layers.isEmpty) DBIO.successful(())
+    else table ++= layers.map(l ⇒ MImageManifestLayer(imageManifestId, l))
+  }
 }

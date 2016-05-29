@@ -29,7 +29,10 @@ object ImageManifestTag extends PersistModel[MImageManifestTag, ImageManifestTag
       existingTagsSet = existingTags.map(_.tag).toSet
       newTags = tags.filterNot(existingTagsSet.contains)
         .map(t ⇒ MImageManifestTag(imageId, imageManifestId, t))
-      _ ← table ++= newTags
+      _ ← {
+        if (newTags.isEmpty) DBIO.successful(())
+        else table ++= newTags
+      }
     } yield ()
   }
 
