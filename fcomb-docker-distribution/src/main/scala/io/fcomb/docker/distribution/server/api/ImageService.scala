@@ -230,7 +230,7 @@ object ImageService {
                 }
               case None ⇒
                 complete(
-                  StatusCodes.BadRequest,
+                  StatusCodes.NotFound,
                   DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
                 )
             }
@@ -245,35 +245,62 @@ object ImageService {
   ) =
     authenticateUserBasic(realm) { user ⇒
       extractMaterializer { implicit mat ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
-          import mat.executionContext
-          onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
-            case Some(blob) if blob.state === ImageBlobState.Created || blob.state === ImageBlobState.Uploading ⇒
-              // TODO: support content range and validate if it exists (Chunked and Streamed upload)
-              // val contentRange = ctx.requestContext.request.header[`Content-Range`].get
-              // val rangeFrom = contentRange.contentRange.getSatisfiableFirst.asScala.get
-              // val rangeTo = contentRange.contentRange.getSatisfiableLast.asScala.get
-              // assert(rangeFrom == blob.length)
-              // assert(rangeTo >= rangeFrom)
-
-              val totalLengthFut =
-                for {
-                  // .take(rangeTo - rangeFrom + 1),
-                  (length, digest) ← BlobFile.uploadBlobChunk(uuid, req.entity.dataBytes)
-                  totalLength = blob.length + length
-                  _ ← PImageBlob.updateState(uuid, totalLength, digest, ImageBlobState.Uploading)
-                } yield totalLength
-              onSuccess(totalLengthFut) { totalLength ⇒
-                val headers = immutable.Seq(
-                  Location(s"/v2/$imageName/blobs/$uuid"),
-                  `Docker-Upload-Uuid`(uuid),
-                  rangeHeader(0L, totalLength)
-                )
-                respondWithHeaders(headers) {
-                  complete(StatusCodes.Accepted, HttpEntity.Empty)
+        optionalHeaderValueByType[`Content-Range`]() { rangeOpt ⇒
+          imageByNameWithAcl(imageName, user) { image ⇒
+            import mat.executionContext
+            onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
+              case Some(blob) if blob.state === ImageBlobState.Created || blob.state === ImageBlobState.Uploading ⇒
+                val (rangeFrom, rangeTo) = rangeOpt match {
+                  case Some(r) ⇒
+                    val cr = r.contentRange
+                    (cr.getSatisfiableFirst.asScala, cr.getSatisfiableLast.asScala)
+                  case None ⇒ (None, None)
                 }
-              }
-            case None ⇒ completeNotFound() // TODO
+                val isRangeValid = (rangeFrom, rangeTo) match {
+                  case (Some(from), Some(to)) ⇒ from >= to
+                  case _                      ⇒ true
+                }
+                if (isRangeValid) {
+                  complete(
+                    StatusCodes.BadRequest,
+                    DistributionErrorResponse.from(DistributionError.Unknown("Range is invalid"))
+                  )
+                }
+                else if (rangeFrom.exists(_ != blob.length)) {
+                  complete(
+                    StatusCodes.BadRequest,
+                    DistributionErrorResponse.from(DistributionError.Unknown("Range start not satisfy a blob file length"))
+                  )
+                }
+                else {
+                  val data = (rangeFrom, rangeTo) match {
+                    case (Some(from), Some(to)) ⇒
+                      req.entity.dataBytes.take(to - from + 1)
+                    case _ ⇒ req.entity.dataBytes
+                  }
+                  val totalLengthFut =
+                    for {
+                      (length, digest) ← BlobFile.uploadBlobChunk(uuid, data)
+                      totalLength = blob.length + length
+                      _ ← PImageBlob.updateState(uuid, totalLength, digest, ImageBlobState.Uploading)
+                    } yield totalLength
+                  onSuccess(totalLengthFut) { totalLength ⇒
+                    val headers = immutable.Seq(
+                      Location(s"/v2/$imageName/blobs/$uuid"),
+                      `Docker-Upload-Uuid`(uuid),
+                      rangeHeader(0L, totalLength)
+                    )
+                    respondWithHeaders(headers) {
+                      complete(StatusCodes.Accepted, HttpEntity.Empty)
+                    }
+                  }
+                }
+              case _ ⇒
+                complete(
+                  StatusCodes.NotFound,
+                  DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
+                )
+            }
           }
         }
       }
