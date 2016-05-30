@@ -340,12 +340,26 @@ object ImageService {
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
-              val file = BlobFile.getUploadFilePath(blob.getId)
-              complete(for {
-                _ ← Future(blocking(file.delete)) // TODO: only if file exists once
-                _ ← PImageBlob.destroy(blob.getId) // TODO: destroy only unlinked blob
-              } yield HttpResponse(StatusCodes.NoContent))
-            case None ⇒ completeNotFound() // TODO
+              val res =
+                PImageBlob.tryDestroy(blob.getId).flatMap {
+                  case Xor.Right(_) ⇒
+                    PImageBlob.existByDigest(digest)
+                      .flatMap {
+                        case false ⇒ BlobFile.destroyBlob(blob.getId)
+                        case true  ⇒ FastFuture.successful(())
+                      }
+                      .fast
+                      .map(_ ⇒ HttpResponse(StatusCodes.NoContent))
+                  case Xor.Left(msg) ⇒
+                    val e = DistributionErrorResponse.from(DistributionError.Unknown(msg))
+                    Marshal(StatusCodes.InternalServerError → e).to[HttpResponse]
+                }
+              complete(res)
+            case _ ⇒
+              complete(
+                StatusCodes.NotFound,
+                DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
+              )
           }
         }
       }

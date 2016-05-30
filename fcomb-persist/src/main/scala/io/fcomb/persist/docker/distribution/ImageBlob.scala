@@ -1,6 +1,6 @@
 package io.fcomb.persist.docker.distribution
 
-import cats.data.Validated
+import cats.data.{Xor, Validated}
 import cats.std.all._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
@@ -226,4 +226,24 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
         }
         .map(_ ⇒ ())
     }
+
+  def tryDestroy(id: UUID)(implicit ec: ExecutionContext): Future[Xor[String, Unit]] =
+    runInTransaction(TransactionIsolation.ReadCommitted) {
+      ImageManifestLayer.isBlobLinkedCompiled(id).result.flatMap {
+        case true  ⇒ DBIO.successful(Xor.left("blob is linked with manifest"))
+        case false ⇒ findByPkQuery(id).delete.map(_ ⇒ Xor.right(()))
+      }
+    }.recover { case _ ⇒ Xor.right(()) }
+
+  private val existByDigestCompiled = Compiled { digest: Rep[String] ⇒
+    table
+      .filter(_.sha256Digest === digest)
+      .exists
+  }
+
+  def existByDigest(digest: String)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Boolean] =
+    db.run(existByDigestCompiled(digest).result)
 }

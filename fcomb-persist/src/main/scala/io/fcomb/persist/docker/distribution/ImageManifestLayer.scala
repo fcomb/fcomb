@@ -21,4 +21,8 @@ object ImageManifestLayer extends PersistModel[MImageManifestLayer, ImageManifes
     if (layers.isEmpty) DBIO.successful(())
     else table ++= layers.map(l ⇒ MImageManifestLayer(imageManifestId, l))
   }
+
+  val isBlobLinkedCompiled = Compiled { id: Rep[UUID] ⇒
+    table.filter(_.layerBlobId === id).exists
+  }
 }
