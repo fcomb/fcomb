@@ -87,4 +87,7 @@ object BlobFile {
       (length, digest) ← ImageBlobPushProcessor.uploadChunk(uuid, data, file)
     } yield (length, digest)
   }
+
+  def destroyBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] =
+    Future(blocking(getUploadFilePath(uuid).delete))
 }

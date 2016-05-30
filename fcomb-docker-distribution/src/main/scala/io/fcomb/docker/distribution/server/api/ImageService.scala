@@ -317,14 +317,16 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
-            case Some(blob) if blob.state === ImageBlobState.Created ||
-              blob.state === ImageBlobState.Uploading ⇒
-              val file = BlobFile.getUploadFilePath(blob.getId)
+            case Some(blob) if blob.state =!= ImageBlobState.Uploaded ⇒
               complete(for {
-                _ ← Future(blocking(file.delete))
+                _ ← BlobFile.destroyBlob(blob.getId)
                 _ ← PImageBlob.destroy(uuid)
               } yield HttpResponse(StatusCodes.NoContent))
-            case None ⇒ completeNotFound() // TODO
+            case _ ⇒
+              complete(
+                StatusCodes.NotFound,
+                DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
+              )
           }
         }
       }
