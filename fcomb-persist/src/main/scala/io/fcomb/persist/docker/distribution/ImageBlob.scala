@@ -141,25 +141,40 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   ) =
     db.run(findByImageIdAndDigestsScope(imageId, digests).result)
 
-  // TODO: check for blob to exists with the same digest before !!!
-  def completeUpload(
-    id:     UUID,
-    length: Long,
-    digest: String
+  private val findIdByImageIdAndDigestCompiled = Compiled {
+    (imageId: Rep[Long], digest: Rep[String]) ⇒
+      table
+        .filter { q ⇒
+          q.imageId === imageId && q.sha256Digest === digest
+        }
+        .map(_.pk)
+  }
+
+  def completeUploadOrDelete(
+    id:      UUID,
+    imageId: Long,
+    length:  Long,
+    digest:  String
   )(
     implicit
     ec: ExecutionContext
-  ) = db.run {
-    table
-      .filter(_.id === id)
-      .map(t ⇒ (t.state, t.length, t.sha256Digest, t.uploadedAt))
-      .update((
-        ImageBlobState.Uploaded,
-        length,
-        Some(digest),
-        Some(ZonedDateTime.now())
-      ))
-  }
+  ): Future[Unit] =
+    runInTransaction(TransactionIsolation.ReadCommitted) {
+      findIdByImageIdAndDigestCompiled((imageId, digest)).result.headOption.flatMap {
+        case None ⇒
+          table
+            .filter(_.id === id)
+            .map(t ⇒ (t.state, t.length, t.sha256Digest, t.uploadedAt))
+            .update((
+              ImageBlobState.Uploaded,
+              length,
+              Some(digest),
+              Some(ZonedDateTime.now())
+            ))
+            .map(_ ⇒ ())
+        case Some(_) ⇒ DBIO.successful(())
+      }
+    }
 
   def updateState(
     id:     UUID,

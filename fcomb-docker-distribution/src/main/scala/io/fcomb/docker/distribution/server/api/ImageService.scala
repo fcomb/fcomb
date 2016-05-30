@@ -1,5 +1,6 @@
 package io.fcomb.docker.distribution.server.api
 
+import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.ContentTypes.{`application/octet-stream`, `application/json`}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
@@ -11,8 +12,8 @@ import akka.util.ByteString
 import cats.data.{Validated, Xor}
 import cats.syntax.eq._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
-import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+json`, `application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
+import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.server.utils.BlobFile
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage, ImageManifest ⇒ MImageManifest, _}
@@ -129,7 +130,7 @@ object ImageService {
         file ← BlobFile.createUploadFile(blob.getId)
         sha256Digest ← writeFile(source, file)
         fileLength ← Future(blocking(file.length))
-        _ ← PImageBlob.completeUpload(blob.getId, fileLength, sha256Digest)
+        _ ← PImageBlob.completeUploadOrDelete(blob.getId, blob.imageId, fileLength, sha256Digest)
       } yield (blob, sha256Digest, file)) {
         case (blob, sha256Digest, file) ⇒
           if (Reference.getDigest(digest) == sha256Digest) {
@@ -200,32 +201,39 @@ object ImageService {
 
   def uploadBlob(imageName: String, uuid: UUID)(implicit req: HttpRequest) =
     authenticateUserBasic(realm) { user ⇒
-      extractMaterializer { implicit mat ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
-          import mat.executionContext
-          onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
-            case Some(blob) ⇒
-              assert(blob.state === ImageBlobState.Created) // TODO: monolithic cannot be uploaded through chunk;move into FSM
-              val md = MessageDigest.getInstance("SHA-256")
-              complete(for {
-                file ← BlobFile.createUploadFile(blob.getId)
-                _ ← req.entity.dataBytes.map { chunk ⇒
-                  md.update(chunk.toArray)
-                  chunk
-                }.runWith(akka.stream.scaladsl.FileIO.toPath(file.toPath))
-                // TODO: check file for 0 size
-                digest = StringUtils.hexify(md.digest)
-                // TODO: check digest for unique
-                _ ← PImageBlob.completeUpload(uuid, file.length, digest)
-              } yield HttpResponse(
-                StatusCodes.Created,
-                immutable.Seq(
-                  Location(s"/v2/$imageName/blobs/sha256:$digest"),
-                  `Docker-Upload-Uuid`(uuid),
-                  `Docker-Content-Digest`("sha256", digest)
+      parameters('digest) { dgst ⇒
+        extractMaterializer { implicit mat ⇒
+          imageByNameWithAcl(imageName, user) { image ⇒
+            import mat.executionContext
+            onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
+              case Some(blob) if blob.state === ImageBlobState.Created ⇒
+                val digest = Reference.getDigest(dgst)
+                complete {
+                  BlobFile.uploadBlobData(uuid, req.entity.dataBytes).flatMap {
+                    case (length, sha256Digest) ⇒
+                      if (sha256Digest == digest) {
+                        val headers = immutable.Seq(
+                          Location(s"/v2/$imageName/blobs/sha256:$digest"),
+                          `Docker-Upload-Uuid`(uuid),
+                          `Docker-Content-Digest`("sha256", digest)
+                        )
+                        for {
+                          _ ← BlobFile.renameOrDelete(uuid, digest)
+                          _ ← PImageBlob.completeUploadOrDelete(uuid, blob.imageId, length, sha256Digest)
+                        } yield HttpResponse(StatusCodes.Created, headers)
+                      }
+                      else {
+                        val e = DistributionErrorResponse.from(DistributionError.DigestInvalid())
+                        Marshal(StatusCodes.BadRequest → e).to[HttpResponse]
+                      }
+                  }
+                }
+              case None ⇒
+                complete(
+                  StatusCodes.BadRequest,
+                  DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
                 )
-              ))
-            case None ⇒ completeNotFound() // TODO
+            }
           }
         }
       }
@@ -309,8 +317,8 @@ object ImageService {
                     if (digest == queryDigest) {
                       onSuccess(for {
                         _ ← BlobFile.renameOrDelete(file, digest)
-                        _ ← PImageBlob.completeUpload(
-                          uuid, blob.length + length, digest
+                        _ ← PImageBlob.completeUploadOrDelete(
+                          uuid, blob.imageId, blob.length + length, digest
                         )
                       } yield ()) {
                         respondWithHeaders(headers) {
@@ -342,7 +350,7 @@ object ImageService {
           onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
             case Some(blob) if blob.state === ImageBlobState.Created ||
               blob.state === ImageBlobState.Uploading ⇒
-              val file = BlobFile.uploadFile(blob.getId)
+              val file = BlobFile.getUploadFilePath(blob.getId)
               complete(for {
                 _ ← Future(blocking(file.delete))
                 _ ← PImageBlob.destroy(uuid)
@@ -361,7 +369,7 @@ object ImageService {
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
-              val file = BlobFile.uploadFile(blob.getId)
+              val file = BlobFile.getUploadFilePath(blob.getId)
               complete(for {
                 _ ← Future(blocking(file.delete)) // TODO: only if file exists once
                 _ ← PImageBlob.destroy(blob.getId) // TODO: destroy only unlinked blob

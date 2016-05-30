@@ -31,7 +31,7 @@ object SchemaV2 {
         (for {
           Some(configBlob) ← PImageBlob.findByImageIdAndDigest(image.getId, configDigest)
           _ = assert(configBlob.length <= 1.MB, "Config JSON size is more than 1 MB")
-          configFile = BlobFile.blobFile(configDigest)
+          configFile = BlobFile.getBlobFilePath(configDigest)
           imageConfig ← getImageConfig(configFile)
         } yield (configBlob, imageConfig)).flatMap {
           case (configBlob, imageConfig) ⇒

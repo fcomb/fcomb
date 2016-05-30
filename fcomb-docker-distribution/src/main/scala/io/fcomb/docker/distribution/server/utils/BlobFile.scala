@@ -1,36 +1,40 @@
 package io.fcomb.docker.distribution.server.utils
 
+import akka.stream.Materializer
+import akka.stream.scaladsl.{Source, FileIO}
+import akka.util.ByteString
 import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageManifest ⇒ MImageManifest}
-import io.fcomb.utils.Config
+import io.fcomb.utils.{Config, StringUtils}
 import java.io.File
+import java.security.MessageDigest
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future, blocking}
 
 object BlobFile {
-  def uploadFile(uuid: UUID): File =
-    imageFile("uploads", uuid.toString)
+  def getUploadFilePath(uuid: UUID): File =
+    imageFilePath("uploads", uuid.toString)
 
   def createUploadFile(uuid: UUID)(
     implicit
     ec: ExecutionContext
   ): Future[File] = {
-    val file = uploadFile(uuid)
+    val file = getUploadFilePath(uuid)
     Future(blocking {
       if (!file.getParentFile.exists) file.getParentFile.mkdirs()
       file
     })
   }
 
-  def blobFile(digest: String): File =
-    imageFile("blobs", digest)
+  def getBlobFilePath(digest: String): File =
+    imageFilePath("blobs", digest)
 
-  private def imageFile(path: String, name: String): File =
+  private def imageFilePath(path: String, name: String): File =
     new File(s"${Config.docker.distribution.imageStorage}/$path/${name.take(2)}/$name")
 
   def getFile(blob: MImageBlob): File = {
     blob.sha256Digest match {
-      case Some(digest) if blob.isUploaded ⇒ blobFile(digest)
-      case _                               ⇒ uploadFile(blob.getId)
+      case Some(digest) if blob.isUploaded ⇒ getBlobFilePath(digest)
+      case _                               ⇒ getUploadFilePath(blob.getId)
     }
   }
 
@@ -41,11 +45,34 @@ object BlobFile {
     Future(blocking {
       if (digest == MImageManifest.emptyTarSha256Digest) file.delete()
       else {
-        val newFile = blobFile(digest)
+        val newFile = getBlobFilePath(digest)
         if (!newFile.exists()) {
           if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
           file.renameTo(newFile)
         }
       }
     })
+
+  def renameOrDelete(uuid: UUID, digest: String)(
+    implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    renameOrDelete(getUploadFilePath(uuid), digest)
+
+  def uploadBlobData(uuid: UUID, data: Source[ByteString, Any])(
+    implicit
+    mat: Materializer
+  ): Future[(Long, String)] = {
+    import mat.executionContext
+    val md = MessageDigest.getInstance("SHA-256")
+    for {
+      file ← createUploadFile(uuid)
+      _ ← data
+        .map { chunk ⇒
+          md.update(chunk.toArray)
+          chunk
+        }
+        .runWith(FileIO.toPath(file.toPath))
+    } yield (file.length, StringUtils.hexify(md.digest))
+  }
 }

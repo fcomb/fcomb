@@ -77,7 +77,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           blob.state shouldEqual ImageBlobState.Uploaded
           blob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = BlobFile.blobFile(blob.sha256Digest.get)
+          val file = BlobFile.getBlobFilePath(blob.sha256Digest.get)
           file.length shouldEqual bs.length
           val fis = new FileInputStream(file)
           val fileDigest = DigestUtils.sha256Hex(fis)
@@ -181,7 +181,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           blob.state shouldEqual ImageBlobState.Uploaded
           blob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = BlobFile.uploadFile(blob.getId)
+          val file = BlobFile.getUploadFilePath(blob.getId)
           file.length shouldEqual bs.length
           val fis = new FileInputStream(file)
           val fileDigest = DigestUtils.sha256Hex(fis)
@@ -214,7 +214,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           updatedBlob.state shouldEqual ImageBlobState.Uploading
           updatedBlob.sha256Digest shouldEqual Some(blobPart1Digest)
 
-          val file = BlobFile.uploadFile(blob.getId)
+          val file = BlobFile.getUploadFilePath(blob.getId)
           file.length shouldEqual blobPart1.length
           val fis = new FileInputStream(file)
           val fileDigest = DigestUtils.sha256Hex(fis)
@@ -239,7 +239,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           updatedBlob.state shouldEqual ImageBlobState.Uploading
           updatedBlob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = BlobFile.uploadFile(blob.getId)
+          val file = BlobFile.getUploadFilePath(blob.getId)
           file.length shouldEqual bs.length
           val fis = new FileInputStream(file)
           val fileDigest = DigestUtils.sha256Hex(fis)
@@ -271,7 +271,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     // //       updatedBlob.state shouldEqual BlobState.Uploading
     // //       updatedBlob.sha256Digest shouldEqual Some(bsDigest)
 
-    // //       val file = BlobFile.uploadFile(blob.getId)
+    // //       val file = BlobFile.getUploadFilePath(blob.getId)
     // //       file.length shouldEqual bs.length
     // //       val fis = new FileInputStream(file)
     // //       val fileDigest = DigestUtils.sha256Hex(fis)
@@ -326,7 +326,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         status shouldEqual StatusCodes.NoContent
         responseEntity shouldEqual HttpEntity.Empty
 
-        val file = BlobFile.uploadFile(blob.getId)
+        val file = BlobFile.getUploadFilePath(blob.getId)
         file.exists() should be(false)
       }
     }
@@ -343,7 +343,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         status shouldEqual StatusCodes.NoContent
         responseEntity shouldEqual HttpEntity.Empty
 
-        val file = BlobFile.uploadFile(blob.getId)
+        val file = BlobFile.getUploadFilePath(blob.getId)
         file.exists() should be(false)
       }
     }
