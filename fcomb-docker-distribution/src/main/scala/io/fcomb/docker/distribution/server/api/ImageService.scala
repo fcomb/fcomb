@@ -378,24 +378,20 @@ object ImageService {
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) ⇒
+            case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
               complete(
                 HttpResponse(
                   StatusCodes.OK,
                   immutable.Seq(
                     `Docker-Content-Digest`("sha256", sha256Digest),
                     ETag(digest),
-                    `Accept-Ranges`(RangeUnits.Bytes), // TODO: spec
+                    `Accept-Ranges`(RangeUnits.Bytes),
                     cacheHeader
                   ),
-                  HttpEntity(
-                    contentType(blob.contentType),
-                    blob.length,
-                    Source.empty
-                  )
+                  HttpEntity(contentType(blob.contentType), blob.length, Source.empty)
                 )
               )
-            case None ⇒ completeNotFound() // TODO
+            case _ ⇒ completeNotFound()
           }
         }
       }
@@ -414,33 +410,46 @@ object ImageService {
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) ⇒
+            case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
               val source =
                 if (digest == MImageManifest.emptyTarSha256Digest) emptyTarSource
                 else FileIO.fromPath(BlobFile.getFile(blob).toPath)
               val ct = contentType(blob.contentType)
-              req.header[Range] match {
-                case Some(range) ⇒
-                  val r = range.ranges.head // TODO
-                  val offset: Long = r.getOffset.asScala
-                    .orElse(r.getSliceFirst.asScala)
+              optionalHeaderValueByType[Range]() {
+                case Some(Range(_, range +: _)) ⇒
+                  val offset: Long = range.getOffset.asScala
+                    .orElse(range.getSliceFirst.asScala)
                     .getOrElse(0L)
-                  val limit: Long = r.getSliceLast.asScala
+                  val limit: Long = range.getSliceLast.asScala
                     .map(_ - offset)
                     .getOrElse(blob.length)
+                  val headers = immutable.Seq(
+                    `Content-Range`(ContentRange(offset, limit, blob.length))
+                  )
+                  val chunk = source.drop(offset).take(limit)
                   complete(HttpResponse(
                     StatusCodes.PartialContent,
-                    immutable.Seq(`Content-Range`(ContentRange(offset, limit, blob.length))),
-                    HttpEntity(ct, blob.length, source.drop(offset).take(limit))
+                    headers,
+                    HttpEntity(ct, blob.length, chunk)
                   ))
-                case None ⇒
-                  complete(HttpResponse(
-                    StatusCodes.OK,
-                    immutable.Seq(`Docker-Content-Digest`("sha256", sha256Digest)),
-                    HttpEntity(ct, blob.length, source)
-                  ))
+                case _ ⇒
+                  optionalHeaderValueByType[`If-None-Match`]() {
+                    case Some(`If-None-Match`(EntityTagRange.Default(EntityTag(digest, _) +: _))) ⇒
+                      completeWithStatus(StatusCodes.NotModified)
+                    case _ ⇒
+                      val headers = immutable.Seq(
+                        ETag(digest),
+                        `Docker-Content-Digest`("sha256", sha256Digest),
+                        cacheHeader
+                      )
+                      complete(HttpResponse(
+                        StatusCodes.OK,
+                        headers,
+                        HttpEntity(ct, blob.length, source)
+                      ))
+                  }
               }
-            case None ⇒ completeNotFound() // TODO
+            case _ ⇒ completeNotFound()
           }
         }
       }

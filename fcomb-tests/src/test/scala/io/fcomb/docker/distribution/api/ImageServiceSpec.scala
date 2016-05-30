@@ -160,6 +160,21 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       }
     }
 
+    "return not modified status for GET request to the blob download path" in {
+      Fixtures.await(for {
+        user ← Fixtures.User.create()
+        _ ← Fixtures.docker.distribution.ImageBlob.createAs(
+          user.getId, imageName, bs, ImageBlobState.Uploaded
+        )
+      } yield ())
+      val headers = `If-None-Match`(EntityTag(s"sha256:$bsDigest"))
+
+      Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> headers ~> addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.NotModified
+        responseAs[ByteString] shouldBe empty
+      }
+    }
+
     "return successful response for PUT request to monolithic blob upload path" in {
       val blob = Fixtures.await(for {
         user ← Fixtures.User.create()
