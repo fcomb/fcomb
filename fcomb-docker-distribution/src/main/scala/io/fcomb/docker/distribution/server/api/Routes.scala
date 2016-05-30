@@ -37,30 +37,25 @@ object Routes {
               segments.reverse match {
                 case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
                   ImageService.createBlob(imageName(xs))
-                case id :: "uploads" :: "blobs" :: xs if uuidRegEx.findFirstIn(id).nonEmpty =>
+                case id :: "uploads" :: "blobs" :: xs if isUuid(id) =>
                   val uuid = UUID.fromString(id)
                   method match {
                     case HttpMethods.PUT =>
-                      ImageService.uploadBlob(imageName(xs), uuid)
+                      ImageService.uploadComplete(imageName(xs), uuid)
                     case HttpMethods.PATCH =>
                       ImageService.uploadBlobChunk(imageName(xs), uuid)
                     case HttpMethods.DELETE =>
                       ImageService.destroyBlobUpload(imageName(xs), uuid)
                     case _ => complete(notFoundResponse)
                   }
-                case id :: "blobs" :: xs =>
+                case id :: "blobs" :: xs if Reference.isDigest(id) =>
                   val image = imageName(xs)
-                  println(req)
                   method match {
-                    case HttpMethods.HEAD if id.startsWith("sha256:") =>
-                      println(s"HEAD")
+                    case HttpMethods.HEAD =>
                       ImageService.showBlob(image, id)
-                    case HttpMethods.GET if id.startsWith("sha256:") =>
-                      println(s"GET")
+                    case HttpMethods.GET =>
                       ImageService.downloadBlob(image, id)
-                    case HttpMethods.PUT =>
-                      ImageService.uploadComplete(image, UUID.fromString(id))
-                    case HttpMethods.DELETE if id.startsWith("sha256:") =>
+                    case HttpMethods.DELETE =>
                       ImageService.destroyBlob(imageName(xs), id)
                     case _ => complete(notFoundResponse)
                   }
@@ -141,6 +136,9 @@ object Routes {
 
   private val uuidRegEx =
     """[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r
+
+  private def isUuid(s: String): Boolean =
+    uuidRegEx.findFirstIn(s).nonEmpty
 
   private def imageName(xs: List[String]) =
     xs.reverse.mkString("/")

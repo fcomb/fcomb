@@ -16,9 +16,12 @@ object Reference {
   }
 
   def apply(s: String): Reference = {
-    if (s.startsWith(ImageManifest.sha256Prefix)) Digest(getDigest(s))
+    if (isDigest(s)) Digest(getDigest(s))
     else Tag(s)
   }
+
+  def isDigest(s: String): Boolean =
+    s.startsWith(ImageManifest.sha256Prefix)
 
   def getDigest(digest: String): String =
     digest.drop(ImageManifest.sha256Prefix.length)
