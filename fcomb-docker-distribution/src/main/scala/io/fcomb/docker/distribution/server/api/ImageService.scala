@@ -270,7 +270,7 @@ object ImageService {
     req: HttpRequest
   ) =
     authenticateUserBasic(realm) { user ⇒
-      parameters('digest) { dgst ⇒
+      parameters('digest) { digest ⇒
         extractMaterializer { implicit mat ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
             import mat.executionContext
@@ -283,7 +283,7 @@ object ImageService {
                 onSuccess(uploadResFut) {
                   case (length, sha256Digest) ⇒
                     complete {
-                      if (sha256Digest == Reference.getDigest(dgst)) {
+                      if (sha256Digest == Reference.getDigest(digest)) {
                         val headers = immutable.Seq(
                           Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
                           `Docker-Upload-Uuid`(uuid),

@@ -33,7 +33,6 @@ object Routes {
           pathEndOrSingleSlash {
             extractRequest { implicit req ⇒
               val method = req.method
-              println(s"image action => $method uri: ${req.uri}, segments: $segments, headers: ${req.headers}")
               segments.reverse match {
                 case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
                   ImageService.createBlob(imageName(xs))
@@ -89,7 +88,6 @@ object Routes {
 
     val exceptionHandler = ExceptionHandler {
       case e ⇒
-        println(e)
         e.printStackTrace()
         logger.error(e.getMessage(), e.getCause())
         complete(
