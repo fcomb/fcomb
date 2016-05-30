@@ -3,6 +3,7 @@ package io.fcomb.docker.distribution.server.utils
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, FileIO}
 import akka.util.ByteString
+import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageManifest ⇒ MImageManifest}
 import io.fcomb.utils.{Config, StringUtils}
 import java.io.File
@@ -59,7 +60,7 @@ object BlobFile {
   ): Future[Unit] =
     renameOrDelete(getUploadFilePath(uuid), digest)
 
-  def uploadBlobData(uuid: UUID, data: Source[ByteString, Any])(
+  def uploadBlob(uuid: UUID, data: Source[ByteString, Any])(
     implicit
     mat: Materializer
   ): Future[(Long, String)] = {
@@ -74,5 +75,16 @@ object BlobFile {
         }
         .runWith(FileIO.toPath(file.toPath))
     } yield (file.length, StringUtils.hexify(md.digest))
+  }
+
+  def uploadBlobChunk(uuid: UUID, data: Source[ByteString, Any])(
+    implicit
+    mat: Materializer
+  ): Future[(Long, String)] = {
+    import mat.executionContext
+    for {
+      file ← createUploadFile(uuid)
+      (length, digest) ← ImageBlobPushProcessor.uploadChunk(uuid, data, file)
+    } yield (length, digest)
   }
 }

@@ -209,7 +209,7 @@ object ImageService {
               case Some(blob) if blob.state === ImageBlobState.Created ⇒
                 val digest = Reference.getDigest(dgst)
                 complete {
-                  BlobFile.uploadBlobData(uuid, req.entity.dataBytes).flatMap {
+                  BlobFile.uploadBlob(uuid, req.entity.dataBytes).flatMap {
                     case (length, sha256Digest) ⇒
                       if (sha256Digest == digest) {
                         val headers = immutable.Seq(
@@ -248,34 +248,26 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
-            case Some(blob) ⇒
-              assert(blob.state === ImageBlobState.Created ||
-                blob.state === ImageBlobState.Uploading) // TODO: move into FSM
+            case Some(blob) if blob.state === ImageBlobState.Created || blob.state === ImageBlobState.Uploading ⇒
               // TODO: support content range and validate if it exists (Chunked and Streamed upload)
               // val contentRange = ctx.requestContext.request.header[`Content-Range`].get
               // val rangeFrom = contentRange.contentRange.getSatisfiableFirst.asScala.get
               // val rangeTo = contentRange.contentRange.getSatisfiableLast.asScala.get
               // assert(rangeFrom == blob.length)
               // assert(rangeTo >= rangeFrom)
-              onSuccess(for {
-                file ← BlobFile.createUploadFile(blob.getId)
-                (length, digest) ← ImageBlobPushProcessor.uploadChunk(
-                  blob.getId,
-                  req.entity.dataBytes, // .take(rangeTo - rangeFrom + 1),
-                  file
-                )
-                // TODO: check file for 0 size
-                _ ← PImageBlob.updateState(
-                  uuid,
-                  blob.length + length,
-                  digest,
-                  ImageBlobState.Uploading
-                )
-              } yield file) { file ⇒
+
+              val totalLengthFut =
+                for {
+                  // .take(rangeTo - rangeFrom + 1),
+                  (length, digest) ← BlobFile.uploadBlobChunk(uuid, req.entity.dataBytes)
+                  totalLength = blob.length + length
+                  _ ← PImageBlob.updateState(uuid, totalLength, digest, ImageBlobState.Uploading)
+                } yield totalLength
+              onSuccess(totalLengthFut) { totalLength ⇒
                 val headers = immutable.Seq(
                   Location(s"/v2/$imageName/blobs/$uuid"),
                   `Docker-Upload-Uuid`(uuid),
-                  rangeHeader(0L, file.length)
+                  rangeHeader(0L, totalLength)
                 )
                 respondWithHeaders(headers) {
                   complete(StatusCodes.Accepted, HttpEntity.Empty)
