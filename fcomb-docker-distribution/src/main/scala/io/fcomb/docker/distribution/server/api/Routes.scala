@@ -40,24 +40,25 @@ object Routes {
                   ImageBlobUploadService.createBlob(imageName(xs))
                 case id :: "uploads" :: "blobs" :: xs if isUuid(id) =>
                   val uuid = UUID.fromString(id)
+                  val image = imageName(xs)
                   method match {
                     case HttpMethods.PUT =>
-                      ImageBlobUploadService.uploadComplete(imageName(xs), uuid)
+                      ImageBlobUploadService.uploadComplete(image, uuid)
                     case HttpMethods.PATCH =>
-                      ImageBlobUploadService.uploadBlobChunk(imageName(xs), uuid)
+                      ImageBlobUploadService.uploadBlobChunk(image, uuid)
                     case HttpMethods.DELETE =>
-                      ImageBlobUploadService.destroyBlobUpload(imageName(xs), uuid)
+                      ImageBlobUploadService.destroyBlobUpload(image, uuid)
                     case _ => complete(notFoundResponse)
                   }
                 case id :: "blobs" :: xs if Reference.isDigest(id) =>
                   val image = imageName(xs)
                   method match {
                     case HttpMethods.HEAD =>
-                      ImageService.showBlob(image, id)
+                      ImageBlobService.showBlob(image, id)
                     case HttpMethods.GET =>
-                      ImageService.downloadBlob(image, id)
+                      ImageBlobService.downloadBlob(image, id)
                     case HttpMethods.DELETE =>
-                      ImageService.destroyBlob(imageName(xs), id)
+                      ImageBlobService.destroyBlob(image, id)
                     case _ => complete(notFoundResponse)
                   }
                 case ref :: "manifests" :: xs =>

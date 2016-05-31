@@ -1,27 +1,20 @@
 package io.fcomb.docker.distribution.server.api
 
-import akka.http.scaladsl.marshalling.Marshal
-import akka.http.scaladsl.model.ContentTypes.{`application/octet-stream`, `application/json`}
+import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
-import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.Xor
 import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
 import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+json`, `application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.api.headers._
-import io.fcomb.docker.distribution.server.utils.BlobFile
-import io.fcomb.models.docker.distribution.{Image ⇒ MImage, ImageManifest ⇒ MImageManifest, _}
+import io.fcomb.models.docker.distribution.{Image ⇒ MImage, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
-import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
+import io.fcomb.persist.docker.distribution.{Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
 import scala.collection.immutable
-import scala.compat.java8.OptionConverters._
-import scala.concurrent.duration._
-import scala.util.{Right, Left}
 import akka.http.scaladsl.server.Directives._
 import io.fcomb.json.docker.distribution.Formats._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
@@ -47,9 +40,7 @@ trait ImageDirectives {
 object ImageDirectives extends ImageDirectives
 
 import ImageDirectives._
-import CommonDirectives._
 
-// TODO: move blob upload methods into BlobUploadService
 object ImageService {
   def tags(imageName: String) =
     authenticationUserBasic { user ⇒
@@ -74,134 +65,6 @@ object ImageService {
         }
       }
     }
-
-  def destroyBlob(imageName: String, digest: String) =
-    authenticationUserBasic { user ⇒
-      extractMaterializer { implicit mat ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
-          import mat.executionContext
-          val sha256Digest = Reference.getDigest(digest)
-          onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) if blob.isUploaded ⇒
-              val res =
-                PImageBlob.tryDestroy(blob.getId).flatMap {
-                  case Xor.Right(_) ⇒
-                    PImageBlob.existByDigest(digest)
-                      .flatMap {
-                        case false ⇒ BlobFile.destroyBlob(blob.getId)
-                        case true  ⇒ FastFuture.successful(())
-                      }
-                      .fast
-                      .map(_ ⇒ HttpResponse(StatusCodes.NoContent))
-                  case Xor.Left(msg) ⇒
-                    val e = DistributionErrorResponse.from(DistributionError.Unknown(msg))
-                    Marshal(StatusCodes.InternalServerError → e).to[HttpResponse]
-                }
-              complete(res)
-            case _ ⇒
-              complete(
-                StatusCodes.NotFound,
-                DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
-              )
-          }
-        }
-      }
-    }
-
-  private def contentType(contentType: String) =
-    ContentType.parse(contentType) match {
-      case Right(res) ⇒ res
-      case Left(_)    ⇒ `application/octet-stream`
-    }
-
-  def showBlob(imageName: String, digest: String) =
-    authenticationUserBasic { user ⇒
-      extractMaterializer { implicit mat ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
-          import mat.executionContext
-          val sha256Digest = Reference.getDigest(digest)
-          onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) if blob.isUploaded ⇒
-              complete(
-                HttpResponse(
-                  StatusCodes.OK,
-                  immutable.Seq(
-                    `Docker-Content-Digest`("sha256", sha256Digest),
-                    ETag(digest),
-                    `Accept-Ranges`(RangeUnits.Bytes),
-                    cacheHeader
-                  ),
-                  HttpEntity(contentType(blob.contentType), blob.length, Source.empty)
-                )
-              )
-            case _ ⇒ completeNotFound()
-          }
-        }
-      }
-    }
-
-  private val emptyTarSource =
-    Source.single(ByteString(MImageManifest.emptyTar))
-
-  def downloadBlob(imageName: String, digest: String)(
-    implicit
-    req: HttpRequest
-  ) =
-    authenticationUserBasic { user ⇒
-      extractMaterializer { implicit mat ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
-          import mat.executionContext
-          val sha256Digest = Reference.getDigest(digest)
-          onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) if blob.isUploaded ⇒
-              val source =
-                if (digest == MImageManifest.emptyTarSha256Digest) emptyTarSource
-                else FileIO.fromPath(BlobFile.getFile(blob).toPath)
-              val ct = contentType(blob.contentType)
-              optionalHeaderValueByType[Range]() {
-                case Some(Range(_, range +: _)) ⇒
-                  val offset: Long = range.getOffset.asScala
-                    .orElse(range.getSliceFirst.asScala)
-                    .getOrElse(0L)
-                  val limit: Long = range.getSliceLast.asScala
-                    .map(_ - offset)
-                    .getOrElse(blob.length)
-                  val headers = immutable.Seq(
-                    `Content-Range`(ContentRange(offset, limit, blob.length))
-                  )
-                  val chunk = source.drop(offset).take(limit)
-                  complete(HttpResponse(
-                    StatusCodes.PartialContent,
-                    headers,
-                    HttpEntity(ct, blob.length, chunk)
-                  ))
-                case _ ⇒
-                  optionalHeaderValueByType[`If-None-Match`]() {
-                    case Some(`If-None-Match`(EntityTagRange.Default(EntityTag(digest, _) +: _))) ⇒
-                      completeWithStatus(StatusCodes.NotModified)
-                    case _ ⇒
-                      val headers = immutable.Seq(
-                        ETag(digest),
-                        `Docker-Content-Digest`("sha256", sha256Digest),
-                        cacheHeader
-                      )
-                      complete(HttpResponse(
-                        StatusCodes.OK,
-                        headers,
-                        HttpEntity(ct, blob.length, source)
-                      ))
-                  }
-              }
-            case _ ⇒ completeNotFound()
-          }
-        }
-      }
-    }
-
-  private val v1ContentTypes = Set[ContentType](
-    `application/vnd.docker.distribution.manifest.v1+json`,
-    `application/vnd.docker.distribution.manifest.v1+prettyjws`
-  )
 
   def getManifest(imageName: String, reference: Reference)(
     implicit
@@ -301,10 +164,6 @@ object ImageService {
       }
     }
 
-  final case class DistributionImageCatalog(
-    repositories: Seq[String]
-  )
-
   def catalog =
     authenticationUserBasic { user ⇒
       parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
@@ -325,7 +184,8 @@ object ImageService {
       }
     }
 
-  private val cacheHeader = `Cache-Control`(
-    CacheDirectives.`max-age`(365.days.toSeconds)
+  private val v1ContentTypes = Set[ContentType](
+    `application/vnd.docker.distribution.manifest.v1+json`,
+    `application/vnd.docker.distribution.manifest.v1+prettyjws`
   )
 }

@@ -275,9 +275,7 @@ object ImageBlobUploadService {
     }
 
   private def rangeHeader(from: Long, length: Long) = {
-    val to =
-      if (from < length) length - 1
-      else from
+    val to = if (from < length) length - 1 else from
     RangeCustom(from, to)
   }
 }

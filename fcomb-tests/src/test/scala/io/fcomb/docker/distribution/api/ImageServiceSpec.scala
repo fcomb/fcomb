@@ -8,8 +8,6 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
-import io.fcomb.docker.distribution.server.api.headers._
-import io.fcomb.docker.distribution.server.utils.BlobFile
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.tests._
@@ -32,73 +30,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   val credentials = BasicHttpCredentials(Fixtures.User.username, Fixtures.User.password)
 
   "The image service" should {
-    // "return an info without content for HEAD request to the exist layer path" in {
-    //   Fixtures.await(for {
-    //     user ← Fixtures.User.create()
-    //     _ ← Fixtures.docker.distribution.ImageBlob.createWithImage(
-    //       user.getId, imageName, digest, bs, bs.length
-    //     )
-    //   } yield ())
-
-    //   Head(s"/v2/$imageName/blobs/sha256:$digest") ~> route ~> check {
-    //     status shouldEqual StatusCodes.OK
-    //     responseAs[String] shouldEqual ""
-    //     header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", digest)
-    //     // header[`Content-Length`].get shouldEqual bs.length
-    //   }
-    // }
-
-    "return a blob for GET request to the blob download path" in {
-      Fixtures.await(for {
-        user ← Fixtures.User.create()
-        _ ← Fixtures.docker.distribution.ImageBlob.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploaded
-        )
-      } yield ())
-
-      Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
-        status shouldEqual StatusCodes.OK
-        responseAs[ByteString] shouldEqual bs
-        header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
-        // header[`Content-Length`].get shouldEqual bs.length
-      }
-    }
-
-    "return not modified status for GET request to the blob download path" in {
-      Fixtures.await(for {
-        user ← Fixtures.User.create()
-        _ ← Fixtures.docker.distribution.ImageBlob.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploaded
-        )
-      } yield ())
-      val headers = `If-None-Match`(EntityTag(s"sha256:$bsDigest"))
-
-      Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> headers ~> addCredentials(credentials) ~> route ~> check {
-        status shouldEqual StatusCodes.NotModified
-        responseAs[ByteString] shouldBe empty
-      }
-    }
-
-    "return successful response for DELETE request to the blob path" in {
-      val blob = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploaded
-        )
-      } yield blob)
-
-      Delete(s"/v2/$imageName/blobs/sha256:${blob.sha256Digest.get}") ~> addCredentials(credentials) ~> route ~> check {
-        status shouldEqual StatusCodes.NoContent
-        responseEntity shouldEqual HttpEntity.Empty
-
-        val file = BlobFile.getUploadFilePath(blob.getId)
-        file.exists() should be(false)
-      }
-    }
-
     "return list of repositories for GET request to the catalog path" in {
-      import ImageService.DistributionImageCatalog
-
       Fixtures.await(for {
         user ← Fixtures.User.create()
         _ ← Fixtures.docker.distribution.ImageBlob.create(user.getId, "first/test1")
