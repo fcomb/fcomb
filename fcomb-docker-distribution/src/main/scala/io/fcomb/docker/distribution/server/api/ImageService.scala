@@ -51,11 +51,6 @@ import CommonDirectives._
 
 // TODO: move blob upload methods into BlobUploadService
 object ImageService {
-  final case class ImageTagsResponse(
-    name: String,
-    tags: Seq[String]
-  )
-
   def tags(imageName: String) =
     authenticationUserBasic { user ⇒
       parameters('n.as[Int].?, 'last.?) { (n, last) ⇒

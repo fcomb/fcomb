@@ -83,7 +83,7 @@ object Fixtures {
           userId:    Long,
           imageName: String,
           bs:        ByteString,
-          state:     M.docker.distribution.ImageBlobState.ImageBlobState
+          state:     M.docker.distribution.ImageBlobState
         )(implicit mat: Materializer) = {
           (for {
             imageId ← Image.create(userId, imageName)

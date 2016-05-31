@@ -1,7 +1,9 @@
 package io.fcomb
 
-import enumeratum._
+import com.github.tminglei.slickpg.utils.SimpleArrayUtils
+import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName
 import io.fcomb.RichPostgresDriver._
+import io.fcomb.models.{Enum, EnumItem}
 import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
 import slick.jdbc.JdbcType
@@ -36,15 +38,7 @@ package object persist {
     "scale_strategy_kind", models.application.ScaleStrategyKind
   )
 
-  implicit val dockerDistributionImageBlobStateColumnType = createEnumJdbcType(
-    "dd_image_blob_state",
-    models.docker.distribution.ImageBlobState
-  )
-
-  import io.fcomb.RichPostgresDriver.api._
-  import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName
-
-  private def createEnumJdbcMapping[T <: EnumEntry](
+  private def createEnumJdbcMapping[T <: EnumItem](
     sqlEnumTypeName: String,
     enum:            Enum[T],
     quoteName:       Boolean = false
@@ -73,9 +67,26 @@ package object persist {
     override def hasLiteralForm: Boolean = true
 
     override def valueToSQLLiteral(v: T) =
-      if (v == null) "NULL" else s"'${v.entryName}'"
+      if (v == null) "NULL" else s"'${v.value}'"
 
     private def toStr(v: T) =
-      if (v == null) null else v.entryName
+      if (v == null) null else v.value
   }
+
+  def createEnumListJdbcMapping[T <: EnumItem](
+    sqlEnumTypeName: String,
+    enumObject:      Enum[T],
+    quoteName:       Boolean = false
+  )(implicit tag: ClassTag[T]): JdbcType[List[T]] = {
+    new AdvancedArrayJdbcType[T](
+      sqlName(sqlEnumTypeName, quoteName),
+      fromString = s ⇒ SimpleArrayUtils.fromString(s1 ⇒ enumObject.withName(s1))(s).orNull,
+      mkString = v ⇒ SimpleArrayUtils.mkString[T](_.value)(v)
+    ).to(_.toList)
+  }
+
+  implicit val dockerDistributionImageBlobStateColumnType = createEnumJdbcMapping(
+    "dd_image_blob_state",
+    models.docker.distribution.ImageBlobState
+  )
 }

@@ -16,7 +16,7 @@ import slick.jdbc.TransactionIsolation
 class ImageBlobTable(tag: Tag) extends Table[MImageBlob](tag, "dd_image_blobs")
     with PersistTableWithUuidPk {
   def imageId = column[Long]("image_id")
-  def state = column[ImageBlobState.ImageBlobState]("state")
+  def state = column[ImageBlobState]("state")
   def sha256Digest = column[Option[String]]("sha256_digest")
   def contentType = column[String]("content_type")
   def length = column[Long]("length")
@@ -141,13 +141,16 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   ) =
     db.run(findByImageIdAndDigestsScope(imageId, digests).result)
 
-  private val findIdByImageIdAndDigestCompiled = Compiled {
-    (imageId: Rep[Long], digest: Rep[String]) ⇒
+  private val existUploadedByImageIdAndDigestCompiled = Compiled {
+    (imageId: Rep[Long], digest: Rep[String], exceptId: Rep[UUID]) ⇒
       table
         .filter { q ⇒
-          q.imageId === imageId && q.sha256Digest === digest
+          q.pk =!= exceptId &&
+            q.imageId === imageId &&
+            q.sha256Digest === digest &&
+            q.state === (ImageBlobState.Uploaded: ImageBlobState)
         }
-        .map(_.pk)
+        .exists
   }
 
   def completeUploadOrDelete(
@@ -155,15 +158,13 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
     imageId: Long,
     length:  Long,
     digest:  String
-  )(
-    implicit
-    ec: ExecutionContext
-  ): Future[Unit] =
+  )(implicit ec: ExecutionContext): Future[Unit] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
-      findIdByImageIdAndDigestCompiled((imageId, digest)).result.headOption.flatMap {
-        case None ⇒
+      existUploadedByImageIdAndDigestCompiled((imageId, digest, id)).result.flatMap { exists ⇒
+        if (exists) findByPkQuery(id).delete.map(_ ⇒ ())
+        else {
           table
-            .filter(_.id === id)
+            .filter(_.pk === id)
             .map(t ⇒ (t.state, t.length, t.sha256Digest, t.uploadedAt))
             .update((
               ImageBlobState.Uploaded,
@@ -172,7 +173,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
               Some(ZonedDateTime.now())
             ))
             .map(_ ⇒ ())
-        case Some(_) ⇒ DBIO.successful(())
+        }
       }
     }
 
@@ -180,7 +181,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
     id:     UUID,
     length: Long,
     digest: String,
-    state:  ImageBlobState.ImageBlobState
+    state:  ImageBlobState
   )(
     implicit
     ec: ExecutionContext
@@ -197,7 +198,8 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   private val findOutdatedUploadsCompiled = Compiled { until: Rep[ZonedDateTime] ⇒
     table.filter { q ⇒
       q.createdAt <= until &&
-        (q.state === ImageBlobState.Created || q.state === ImageBlobState.Uploading)
+        (q.state === (ImageBlobState.Created: ImageBlobState) ||
+          q.state === (ImageBlobState.Uploading: ImageBlobState))
     }
   }
 
