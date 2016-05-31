@@ -65,6 +65,11 @@ object DistributionError {
     val detail = None
   }
 
+  final case class ManifestUnknown(message: String = "manifest unknown") extends DistributionError {
+    val code = DistributionErrorCode.ManifestUnknown
+    val detail = None
+  }
+
   final case class BlobUploadInvalid(message: String = "blob upload invalid") extends DistributionError {
     val code = DistributionErrorCode.BlobUploadInvalid
     val detail = None

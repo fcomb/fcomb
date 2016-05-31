@@ -10,7 +10,6 @@ import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.{Validated, Xor}
-import cats.syntax.eq._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
 import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+json`, `application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.api.headers._
@@ -19,25 +18,15 @@ import io.fcomb.models.docker.distribution.{Image ⇒ MImage, ImageManifest ⇒ 
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
 import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
-import io.fcomb.utils.{Config, StringUtils}, Config.docker.distribution.realm
-import java.io.File
-import java.security.MessageDigest
+import io.fcomb.utils.Config.docker.distribution.realm
 import java.util.UUID
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.ExecutionContext
 import scala.util.{Right, Left}
 
 import AuthDirectives._
-
-// trait ValidationDirectives {
-
-// }
-
-// object ValidationDirectives extends ValidationDirectives
-
-// import ValidationDirectives._
 
 // TODO: move blob upload methods into BlobUploadService
 object ImageService {
@@ -122,21 +111,19 @@ object ImageService {
   ): Route =
     extractMaterializer { implicit mat ⇒
       import mat.executionContext
-      val source = req.entity.dataBytes
       val contentType = req.entity.contentType.mediaType.value
       onSuccess(for {
         Validated.Valid(blob) ← PImageBlob.createByImageName(imageName, user.getId, contentType)
-        file ← BlobFile.createUploadFile(blob.getId)
-        sha256Digest ← writeFile(source, file)
-        fileLength ← Future(blocking(file.length))
-        _ ← PImageBlob.completeUploadOrDelete(blob.getId, blob.imageId, fileLength, sha256Digest)
-      } yield (blob, sha256Digest, file)) {
-        case (blob, sha256Digest, file) ⇒
+        (length, sha256Digest) ← BlobFile.uploadBlob(blob.getId, req.entity.dataBytes)
+        _ ← PImageBlob.completeUploadOrDelete(blob.getId, blob.imageId, length, sha256Digest)
+      } yield (blob, sha256Digest)) {
+        case (blob, sha256Digest) ⇒
+          val uuid = blob.getId
           if (Reference.getDigest(digest) == sha256Digest) {
-            onSuccess(BlobFile.renameOrDelete(file, sha256Digest)) {
+            onSuccess(BlobFile.renameOrDelete(uuid, sha256Digest)) {
               val headers = immutable.Seq(
                 Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
-                `Docker-Upload-Uuid`(blob.getId),
+                `Docker-Upload-Uuid`(uuid),
                 `Docker-Content-Digest`("sha256", sha256Digest)
               )
               respondWithHeaders(headers) {
@@ -145,10 +132,12 @@ object ImageService {
             }
           }
           else {
-            onSuccess(for {
-              _ ← Future(blocking(file.delete()))
-              _ ← PImageBlob.destroy(blob.getId)
-            } yield ()) {
+            val res =
+              for {
+                _ ← BlobFile.destroyBlob(uuid)
+                _ ← PImageBlob.destroy(uuid)
+              } yield ()
+            onSuccess(res) {
               complete(
                 StatusCodes.BadRequest,
                 DistributionErrorResponse.from(DistributionError.DigestInvalid())
@@ -210,7 +199,7 @@ object ImageService {
           imageByNameWithAcl(imageName, user) { image ⇒
             import mat.executionContext
             onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
-              case Some(blob) if blob.state === ImageBlobState.Created || blob.state === ImageBlobState.Uploading ⇒
+              case Some(blob) if !blob.isUploaded ⇒
                 val (rangeFrom, rangeTo) = rangeOpt match {
                   case Some(r) ⇒
                     val cr = r.contentRange
@@ -277,10 +266,9 @@ object ImageService {
           imageByNameWithAcl(imageName, user) { image ⇒
             import mat.executionContext
             onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
-              case Some(blob) if blob.state =!= ImageBlobState.Uploaded ⇒
+              case Some(blob) if !blob.isUploaded ⇒
                 val uploadResFut =
-                  if (blob.state === ImageBlobState.Created)
-                    BlobFile.uploadBlob(uuid, req.entity.dataBytes)
+                  if (blob.isCreated) BlobFile.uploadBlob(uuid, req.entity.dataBytes)
                   else BlobFile.uploadBlobChunk(uuid, req.entity.dataBytes)
                 onSuccess(uploadResFut) {
                   case (length, sha256Digest) ⇒
@@ -319,7 +307,7 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
-            case Some(blob) if blob.state =!= ImageBlobState.Uploaded ⇒
+            case Some(blob) if !blob.isUploaded ⇒
               complete(for {
                 _ ← BlobFile.destroyBlob(blob.getId)
                 _ ← PImageBlob.destroy(uuid)
@@ -341,7 +329,7 @@ object ImageService {
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
+            case Some(blob) if blob.isUploaded ⇒
               val res =
                 PImageBlob.tryDestroy(blob.getId).flatMap {
                   case Xor.Right(_) ⇒
@@ -380,7 +368,7 @@ object ImageService {
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
+            case Some(blob) if blob.isUploaded ⇒
               complete(
                 HttpResponse(
                   StatusCodes.OK,
@@ -412,7 +400,7 @@ object ImageService {
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) if blob.state === ImageBlobState.Uploaded ⇒
+            case Some(blob) if blob.isUploaded ⇒
               val source =
                 if (digest == MImageManifest.emptyTarSha256Digest) emptyTarSource
                 else FileIO.fromPath(BlobFile.getFile(blob).toPath)
@@ -484,7 +472,11 @@ object ImageService {
                 }
               }
               complete(HttpEntity(ct, ByteString(manifest)))
-            case None ⇒ completeNotFound() // TODO
+            case _ ⇒
+              complete(
+                StatusCodes.NotFound,
+                DistributionErrorResponse.from(DistributionError.ManifestUnknown())
+              )
           }
         }
       }
@@ -535,14 +527,22 @@ object ImageService {
   def destroyManifest(imageName: String, reference: Reference) =
     authenticateUserBasic(realm) { user ⇒
       extractMaterializer { implicit mat ⇒
+        import mat.executionContext
         imageByNameWithAcl(imageName, user) { image ⇒
           reference match {
             case Reference.Digest(digest) ⇒
-              onSuccess(PImageManifest.destroy(image.getId, digest)) {
-                // TODO: not found
-                case _ ⇒ complete(StatusCodes.NoContent, HttpEntity.Empty)
+              onSuccess(PImageManifest.destroy(image.getId, digest)) { res ⇒
+                if (res) complete(StatusCodes.Accepted, HttpEntity.Empty)
+                else complete(
+                  StatusCodes.NotFound,
+                  DistributionErrorResponse.from(DistributionError.ManifestUnknown())
+                )
               }
-            case _ ⇒ ??? // TODO
+            case _ ⇒
+              complete(
+                StatusCodes.NotFound,
+                DistributionErrorResponse.from(DistributionError.ManifestInvalid())
+              )
           }
         }
       }
@@ -581,19 +581,5 @@ object ImageService {
       if (from < length) length - 1
       else from
     RangeCustom(from, to)
-  }
-
-  private def writeFile(source: Source[ByteString, Any], file: File)(
-    implicit
-    ec:  ExecutionContext,
-    mat: Materializer
-  ) = {
-    val md = MessageDigest.getInstance("SHA-256")
-    source.map { chunk ⇒
-      md.update(chunk.toArray)
-      chunk
-    }.runWith(FileIO.toPath(file.toPath)).fast.map { _ ⇒
-      StringUtils.hexify(md.digest)
-    }
   }
 }

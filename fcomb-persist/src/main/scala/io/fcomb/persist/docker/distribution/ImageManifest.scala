@@ -280,8 +280,13 @@ object ImageManifest
       }
   }
 
-  def destroy(imageId: Long, digest: String) =
-    db.run(table.filter { q ⇒
-      q.imageId === imageId && q.sha256Digest === digest
-    }.delete)
+  def destroy(imageId: Long, digest: String)(implicit ec: ExecutionContext): Future[Boolean] =
+    db.run {
+      table
+        .filter { q ⇒
+          q.imageId === imageId && q.sha256Digest === digest
+        }
+        .delete
+        .map(_ != 0)
+    }
 }
