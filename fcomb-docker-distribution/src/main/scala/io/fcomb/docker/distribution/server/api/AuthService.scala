@@ -4,14 +4,9 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.directives._
 import akka.http.scaladsl.server.Directives._
 
 trait AuthenticationDirectives {
-  import BasicDirectives._
-  import FutureDirectives._
-  import RouteDirectives._
-
   import io.fcomb.persist.User
   import io.fcomb.models.{User ⇒ MUser}
 
@@ -24,10 +19,6 @@ trait AuthenticationDirectives {
             case None       ⇒ reject(AuthorizationFailedRejection)
           }
         case _ ⇒ reject(AuthorizationFailedRejection)
-        // TODO
-        // onSuccess(User.findByPk(1L)).flatMap {
-        //   case Some(user) ⇒ provide(user)
-        // }
       }
     }
 }

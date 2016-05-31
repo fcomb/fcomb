@@ -37,16 +37,16 @@ object Routes {
               val method = req.method
               segments.reverse match {
                 case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
-                  ImageService.createBlob(imageName(xs))
+                  ImageBlobUploadService.createBlob(imageName(xs))
                 case id :: "uploads" :: "blobs" :: xs if isUuid(id) =>
                   val uuid = UUID.fromString(id)
                   method match {
                     case HttpMethods.PUT =>
-                      ImageService.uploadComplete(imageName(xs), uuid)
+                      ImageBlobUploadService.uploadComplete(imageName(xs), uuid)
                     case HttpMethods.PATCH =>
-                      ImageService.uploadBlobChunk(imageName(xs), uuid)
+                      ImageBlobUploadService.uploadBlobChunk(imageName(xs), uuid)
                     case HttpMethods.DELETE =>
-                      ImageService.destroyBlobUpload(imageName(xs), uuid)
+                      ImageBlobUploadService.destroyBlobUpload(imageName(xs), uuid)
                     case _ => complete(notFoundResponse)
                   }
                 case id :: "blobs" :: xs if Reference.isDigest(id) =>
