@@ -97,6 +97,12 @@ object Formats {
           Decoder[DistributionError.Unknown].apply(c)
         case DistributionErrorCode.NameInvalid ⇒
           Decoder[DistributionError.NameInvalid].apply(c)
+        case DistributionErrorCode.ManifestInvalid ⇒
+          Decoder[DistributionError.ManifestInvalid].apply(c)
+        case DistributionErrorCode.BlobUploadInvalid ⇒
+          Decoder[DistributionError.BlobUploadInvalid].apply(c)
+        case DistributionErrorCode.NameUnknown ⇒
+          Decoder[DistributionError.NameUnknown].apply(c)
       }
     }
 

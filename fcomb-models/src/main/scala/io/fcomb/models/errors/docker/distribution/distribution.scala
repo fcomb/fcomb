@@ -69,6 +69,11 @@ object DistributionError {
     val code = DistributionErrorCode.BlobUploadInvalid
     val detail = None
   }
+
+  final case class NameUnknown(message: String = "repository name not known to registry") extends DistributionError {
+    val code = DistributionErrorCode.NameUnknown
+    val detail = None
+  }
 }
 
 final case class DistributionErrorResponse(

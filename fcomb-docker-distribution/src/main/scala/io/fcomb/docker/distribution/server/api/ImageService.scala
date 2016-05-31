@@ -187,13 +187,15 @@ object ImageService {
       }
     }
 
-  private def imageByNameWithAcl(
-    imageName: String, user: MUser
-  ): Directive1[MImage] = {
+  private def imageByNameWithAcl(imageName: String, user: MUser): Directive1[MImage] = {
     extractExecutionContext.flatMap { implicit ec ⇒
       onSuccess(PImage.findByImageAndUserId(imageName, user.getId)).flatMap {
         case Some(user) ⇒ provide(user)
-        case None       ⇒ complete(HttpResponse(StatusCodes.NotFound)) // TODO
+        case None ⇒
+          complete(
+            StatusCodes.NotFound,
+            DistributionErrorResponse.from(DistributionError.NameUnknown())
+          )
       }
     }
   }
