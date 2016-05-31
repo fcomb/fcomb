@@ -18,7 +18,6 @@ import io.fcomb.models.docker.distribution.{Image ⇒ MImage, ImageManifest ⇒ 
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
 import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob, Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
-import io.fcomb.utils.Config.docker.distribution.realm
 import java.util.UUID
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
@@ -26,7 +25,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import scala.util.{Right, Left}
 
-import AuthDirectives._
+import AuthenticationDirectives._
 
 // TODO: move blob upload methods into BlobUploadService
 object ImageService {
@@ -46,7 +45,7 @@ object ImageService {
     completeWithStatus(StatusCodes.NotFound)
 
   def createBlob(imageName: String)(implicit req: HttpRequest): Route =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       parameters('mount.?, 'from.?, 'digest.?) {
         (mountOpt, fromOpt, digestOpt) ⇒
           extractExecutionContext { implicit ec ⇒
@@ -153,7 +152,7 @@ object ImageService {
   )
 
   def tags(imageName: String) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
         extractExecutionContext { implicit ec ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
@@ -193,7 +192,7 @@ object ImageService {
     implicit
     req: HttpRequest
   ) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         optionalHeaderValueByType[`Content-Range`]() { rangeOpt ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
@@ -260,7 +259,7 @@ object ImageService {
     implicit
     req: HttpRequest
   ) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       parameters('digest) { digest ⇒
         extractMaterializer { implicit mat ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
@@ -302,7 +301,7 @@ object ImageService {
     }
 
   def destroyBlobUpload(imageName: String, uuid: UUID) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
@@ -323,7 +322,7 @@ object ImageService {
     }
 
   def destroyBlob(imageName: String, digest: String) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
@@ -362,7 +361,7 @@ object ImageService {
     }
 
   def showBlob(imageName: String, digest: String) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
@@ -394,7 +393,7 @@ object ImageService {
     implicit
     req: HttpRequest
   ) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
@@ -454,7 +453,7 @@ object ImageService {
     implicit
     req: HttpRequest
   ) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
@@ -487,7 +486,7 @@ object ImageService {
     mat: Materializer,
     req: HttpRequest
   ) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
@@ -525,7 +524,7 @@ object ImageService {
     }
 
   def destroyManifest(imageName: String, reference: Reference) =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         import mat.executionContext
         imageByNameWithAcl(imageName, user) { image ⇒
@@ -553,7 +552,7 @@ object ImageService {
   )
 
   def catalog =
-    authenticateUserBasic(realm) { user ⇒
+    authenticationUserBasic { user ⇒
       parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
         extractExecutionContext { implicit ec ⇒
           onSuccess(PImage.findRepositoriesByUserId(user.getId, n, last)) {

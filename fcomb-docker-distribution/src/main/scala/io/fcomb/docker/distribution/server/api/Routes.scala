@@ -2,6 +2,7 @@ package io.fcomb.docker.distribution.server.api
 
 import akka.actor._
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.`WWW-Authenticate`
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.stream.Materializer
@@ -10,6 +11,7 @@ import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.models.docker.distribution.Reference
 import java.util.UUID
 import org.slf4j.LoggerFactory
+import io.fcomb.utils.Config.docker.distribution.realm
 
 object Routes {
   val apiVersion = "v2"
@@ -22,7 +24,7 @@ object Routes {
       } ~
       pathPrefix(apiVersion) {
         pathEndOrSingleSlash {
-          get(AuthService.versionCheck)
+          get(AuthenticationService.versionCheck)
         } ~
         pathPrefix("_catalog") {
           pathEndOrSingleSlash {
@@ -90,18 +92,23 @@ object Routes {
       case e ⇒
         e.printStackTrace()
         logger.error(e.getMessage(), e.getCause())
-        complete(
-          StatusCodes.InternalServerError,
-          DistributionErrorResponse.from(DistributionError.Unknown())
-        )
+        respondWithHeaders(defaultHeaders) {
+          complete(
+            StatusCodes.InternalServerError,
+            DistributionErrorResponse.from(DistributionError.Unknown())
+          )
+        }
     }
     val rejectionHandler = RejectionHandler
       .newBuilder()
-      // .handle {
-      //   case r =>
-      //     logger.error(r.toString, r.toString)
-      //     handleRejection(r)
-      // }
+      .handleAll[AuthorizationFailedRejection.type] { _ ⇒
+        respondWithHeaders(defaultAuthenticateHeaders) {
+          complete(
+            StatusCodes.Unauthorized,
+            DistributionErrorResponse.from(DistributionError.Unauthorized())
+          )
+        }
+      }
       .handleNotFound {
         complete(HttpResponse(StatusCodes.NotFound))
       }
@@ -114,13 +121,6 @@ object Routes {
 
   private val logger = LoggerFactory.getLogger(getClass)
 
-  // private def handleRejection(r: Rejection) = r match {
-  //   case _ => errorResponse(
-  //     InternalException(r.toString),
-  //     StatusCodes.BadRequest
-  //   )
-  // }
-
   private val versionHeader = `Docker-Distribution-Api-Version`("2.0")
 
   private val defaultHeaders = List(
@@ -129,6 +129,10 @@ object Routes {
     `X-Frame-Options`("sameorigin"),
     `X-XSS-Protection`("1; mode=block")
   )
+
+  private val authenticateHeader = `WWW-Authenticate`(challengeFor(realm))
+
+  private val defaultAuthenticateHeaders = authenticateHeader :: defaultHeaders
 
   private val notFoundResponse = HttpResponse(StatusCodes.NotFound)
 

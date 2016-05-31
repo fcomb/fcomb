@@ -6,48 +6,39 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.directives._
 import akka.http.scaladsl.server.Directives._
-import io.fcomb.utils.Config, Config.docker.distribution.realm
 
-// TODO: move
-trait AuthDirectives {
+trait AuthenticationDirectives {
   import BasicDirectives._
   import FutureDirectives._
   import RouteDirectives._
 
-  import akka.http.scaladsl.server.AuthenticationFailedRejection.{CredentialsRejected, CredentialsMissing}
-
   import io.fcomb.persist.User
   import io.fcomb.models.{User ⇒ MUser}
 
-  def authenticateUserBasic(realm: String): Directive1[MUser] =
+  def authenticationUserBasic: Directive1[MUser] =
     extractExecutionContext.flatMap { implicit ec ⇒
       extractCredentials.flatMap {
         case Some(BasicHttpCredentials(username, password)) ⇒
           onSuccess(User.matchByUsernameAndPassword(username, password)).flatMap {
             case Some(user) ⇒ provide(user)
-            case None ⇒
-              reject(AuthenticationFailedRejection(
-                CredentialsRejected,
-                challengeFor(realm)
-              ))
+            case None       ⇒ reject(AuthorizationFailedRejection)
           }
-        case _ ⇒
-          // TODO
-          onSuccess(User.findByPk(1L)).flatMap {
-            case Some(user) ⇒ provide(user)
-          }
-        // reject(AuthenticationFailedRejection(CredentialsMissing, challengeFor(realm)))
+        case _ ⇒ reject(AuthorizationFailedRejection)
+        // TODO
+        // onSuccess(User.findByPk(1L)).flatMap {
+        //   case Some(user) ⇒ provide(user)
+        // }
       }
     }
 }
 
-object AuthDirectives extends AuthDirectives
+object AuthenticationDirectives extends AuthenticationDirectives
 
-import AuthDirectives._
+import AuthenticationDirectives._
 
-object AuthService {
+object AuthenticationService {
   def versionCheck =
-    authenticateUserBasic(realm) { _ ⇒
+    authenticationUserBasic { _ ⇒
       complete(versionCheckResponse)
     }
 

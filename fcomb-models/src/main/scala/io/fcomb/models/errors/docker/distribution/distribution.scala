@@ -79,6 +79,11 @@ object DistributionError {
     val code = DistributionErrorCode.NameUnknown
     val detail = None
   }
+
+  final case class Unauthorized(message: String = "authentication required") extends DistributionError {
+    val code = DistributionErrorCode.Unauthorized
+    val detail = None
+  }
 }
 
 final case class DistributionErrorResponse(

@@ -105,6 +105,8 @@ object Formats {
           Decoder[DistributionError.BlobUploadInvalid].apply(c)
         case DistributionErrorCode.NameUnknown ⇒
           Decoder[DistributionError.NameUnknown].apply(c)
+        case DistributionErrorCode.Unauthorized ⇒
+          Decoder[DistributionError.Unauthorized].apply(c)
       }
     }
 
