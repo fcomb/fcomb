@@ -23,12 +23,10 @@ import java.io.FileInputStream
 import java.security.MessageDigest
 import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
-import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with ScalaFutures with PersistSpec with ActorClusterSpec {
+class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with PersistSpec with ActorClusterSpec with FutureSpec {
   val route = Routes()
   val imageName = "library/test-image_2016"
   val bs = ByteString(getFixture("docker/distribution/blob"))
@@ -40,10 +38,16 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
   // val digest = "300f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f"
   val credentials = BasicHttpCredentials(Fixtures.User.username, Fixtures.User.password)
   val clusterRef = ImageBlobPushProcessor.startRegion(30.seconds)
+  val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
 
   override def afterAll(): Unit = {
     super.afterAll()
     clusterRef ! PoisonPill
+  }
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    BlobFile.getBlobFilePath(bsDigest).delete()
   }
 
   "The image blob upload service" should {
@@ -56,6 +60,7 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
         val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
         header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/uploads/$uuid")
         header[RangeCustom].get shouldEqual RangeCustom(0L, 0L)
+        header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
       }
     }
 
@@ -70,9 +75,10 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
           responseEntity shouldEqual HttpEntity.Empty
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/sha256:$bsDigest")
           header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
+          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
           val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
 
-          val blob = Await.result(PImageBlob.findByPk(uuid), 5.seconds).get
+          val blob = await(PImageBlob.findByPk(uuid)).get
           blob.length shouldEqual bs.length
           blob.state shouldEqual ImageBlobState.Uploaded
           blob.sha256Digest shouldEqual Some(bsDigest)
@@ -115,13 +121,14 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
           responseEntity shouldEqual HttpEntity.Empty
           header[Location].get shouldEqual Location(s"/v2/$newImageName/blobs/sha256:$bsDigest")
           header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
+          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
 
-          val newBlob = Await.result({
+          val newBlob = await({
             for {
               Some(image) ← PImage.findByImageAndUserId(newImageName, user.getId)
               Some(blob) ← PImageBlob.findByImageIdAndDigest(image.getId, bsDigest)
             } yield blob
-          }, 5.seconds)
+          })
           newBlob.length shouldEqual bs.length
           newBlob.state shouldEqual ImageBlobState.Uploaded
           newBlob.sha256Digest shouldEqual Some(bsDigest)
@@ -142,14 +149,15 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
           responseEntity shouldEqual HttpEntity.Empty
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/sha256:$bsDigest")
           header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
+          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
           val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
 
-          val blob = Await.result(PImageBlob.findByPk(uuid), 5.seconds).get
+          val blob = await(PImageBlob.findByPk(uuid)).get
           blob.length shouldEqual bs.length
           blob.state shouldEqual ImageBlobState.Uploaded
           blob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = BlobFile.getUploadFilePath(blob.getId)
+          val file = BlobFile.getBlobFilePath(bsDigest)
           file.length shouldEqual bs.length
           val fis = new FileInputStream(file)
           val fileDigest = DigestUtils.sha256Hex(fis)
@@ -176,8 +184,9 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
           header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
           header[RangeCustom].get shouldEqual RangeCustom(0L, blobPart1.length - 1L)
+          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
 
-          val updatedBlob = Await.result(PImageBlob.findByPk(blob.getId), 5.seconds).get
+          val updatedBlob = await(PImageBlob.findByPk(blob.getId)).get
           updatedBlob.length shouldEqual blobPart1.length
           updatedBlob.state shouldEqual ImageBlobState.Uploading
           updatedBlob.sha256Digest shouldEqual Some(blobPart1Digest)
@@ -201,8 +210,9 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
           header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
           header[RangeCustom].get shouldEqual RangeCustom(0L, bs.length - 1L)
+          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
 
-          val updatedBlob = Await.result(PImageBlob.findByPk(blob.getId), 5.seconds).get
+          val updatedBlob = await(PImageBlob.findByPk(blob.getId)).get
           updatedBlob.length shouldEqual bs.length
           updatedBlob.state shouldEqual ImageBlobState.Uploading
           updatedBlob.sha256Digest shouldEqual Some(bsDigest)
@@ -214,49 +224,6 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
           fileDigest shouldEqual bsDigest
         }
     }
-
-    // TODO
-    // "return successful response for first PATCH request to blob upload path" in {
-    //   val blob = Fixtures.await(for {
-    //     user ← Fixtures.User.create()
-    //     blob ← Fixtures.DockerDistributionBlob.create(user.getId, imageName)
-    //   } yield blob)
-    //   val p = Promise[ByteString]()
-    //   val bsSource = Source.single(bs).concat(Source.fromFuture(p.future))
-
-    //   Patch(
-    //     s"/v2/$imageName/blobs/uploads/${blob.getId}",
-    //     HttpEntity(ContentTypes.`application/octet-stream`, bsSource)
-    //   ) ~> `Content-Range`(ContentRange(0L, bs.length - 1L)) ~> route ~> check {
-    //       status shouldEqual StatusCodes.Accepted
-    //       responseAs[String] shouldEqual ""
-    //       header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
-    //       header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
-    //       header[RangeCustom].get shouldEqual RangeCustom(0L, bs.length - 1)
-
-    //       val updatedBlob = Await.result(PBlob.findByPk(blob.getId), 5.seconds).get
-    //       updatedBlob.length shouldEqual bs.length
-    //       updatedBlob.state shouldEqual BlobState.Uploading
-    //       updatedBlob.sha256Digest shouldEqual Some(bsDigest)
-
-    //       val file = BlobFile.getUploadFilePath(blob.getId)
-    //       file.length shouldEqual bs.length
-    //       val fis = new FileInputStream(file)
-    //       val fileDigest = DigestUtils.sha256Hex(fis)
-    //       fileDigest shouldEqual bsDigest
-    //     }
-
-    //   val blobRandom = ByteString(Random.random.alphanumeric.take(1024).mkString)
-
-    //   Patch(
-    //     s"/v2/$imageName/blobs/uploads/${blob.getId}",
-    //     HttpEntity(ContentTypes.`application/octet-stream`, blobRandom)
-    //   ) ~> `Content-Range`(ContentRange(0L, blobRandom.length - 1L)) ~> route ~> check {
-    //       p.complete(Try(ByteString.empty))
-    //       status shouldEqual StatusCodes.BadRequest // TODO
-    //       // responseAs[String] shouldEqual ""
-    //     }
-    // }
 
     "return successful response for PUT request without final chunk to complete blob upload path" in {
       val blob = Fixtures.await(for {
@@ -274,8 +241,9 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
           responseAs[ByteString] shouldBe empty
           header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/sha256:$bsDigest")
           header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)) shouldEqual blob.id
+          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
 
-          val b = Await.result(PImageBlob.findByPk(blob.getId), 5.seconds).get
+          val b = await(PImageBlob.findByPk(blob.getId)).get
           b.length shouldEqual bs.length
           b.state shouldEqual ImageBlobState.Uploaded
           b.sha256Digest shouldEqual Some(bsDigest)

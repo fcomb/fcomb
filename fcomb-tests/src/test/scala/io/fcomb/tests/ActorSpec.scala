@@ -23,6 +23,13 @@ trait SpecHelpers {
     new String(getFixture(path))
 }
 
+trait FutureSpec {
+  implicit val timeout = 5.seconds // TODO: move into config
+
+  def await[T](f: Future[T]): T =
+    Await.result(f, timeout)
+}
+
 private object ActorSystemSpec {
   implicit lazy val system = ActorSystem("fcomb-server")
 
@@ -31,7 +38,7 @@ private object ActorSystemSpec {
   implicit lazy val ec = system.dispatcher
 }
 
-sealed trait ActorSystemSpec {
+sealed trait ActorSystemSpec extends FutureSpec {
   implicit val system: ActorSystem
 
   implicit lazy val mat = ActorSystemSpec.mat
@@ -42,12 +49,6 @@ sealed trait ActorSystemSpec {
 abstract class ActorSpec extends TestKit(ActorSystemSpec.system)
     with ImplicitSender with WordSpecLike with Matchers
     with BeforeAndAfterAll with ActorSystemSpec with SpecHelpers {
-
-  implicit val timeout = 5.seconds // TODO: move into config
-
-  def await[T](f: Future[T]): T =
-    Await.result(f, timeout)
-
   def startFakeHttpServer(handler: Route)(f: Int ⇒ Future[Unit]): Unit =
     await {
       val port = Random.random.nextInt(50000) + 10000
