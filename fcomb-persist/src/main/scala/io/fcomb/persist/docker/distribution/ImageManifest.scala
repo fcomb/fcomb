@@ -91,8 +91,19 @@ object ImageManifest
   def findByImageIdAndDigest(imageId: Long, digest: String) =
     db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
-  private val blobsCountIsLessThanExpectedError =
-    validationErrorAsFuture("layersBlobId", "Blobs count is less than expected")
+  private def blobsCountIsLessThanExpected(
+    blobs:   Seq[(UUID, Option[String])],
+    digests: Set[String]
+  ) = {
+    val existingDigests = blobs
+      .collect { case (_, Some(dgst)) ⇒ dgst }
+      .toSet
+    val notFound = digests
+      .filterNot(existingDigests.contains)
+      .map(dgst ⇒ s"${MImageManifest.sha256Prefix}$dgst")
+      .mkString(", ")
+    validationErrorAsFuture("layersBlobId", s"Unknown blobs: $notFound")
+  }
 
   def upsertSchemaV1(
     image:            MImage,
@@ -107,20 +118,21 @@ object ImageManifest
         val tags =
           if (manifest.tag.nonEmpty) List(manifest.tag)
           else Nil
-        ImageBlob.findIdsByImageIdAndDigests(image.getId, digests).flatMap { blobIds ⇒
-          if (blobIds.length != digests.size) blobsCountIsLessThanExpectedError
-          else create(MImageManifest(
-            sha256Digest = sha256Digest,
-            imageId = image.getId,
-            tags = tags,
-            layersBlobId = blobIds.toList,
-            schemaVersion = 1,
-            schemaV1JsonBlob = schemaV1JsonBlob,
-            schemaV2Details = None,
-            createdAt = ZonedDateTime.now,
-            updatedAt = None
-          ))
-        }
+        ImageBlob.findIdsWithDigestByImageIdAndDigests(image.getId, digests)
+          .flatMap { blobs ⇒
+            if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
+            else create(MImageManifest(
+              sha256Digest = sha256Digest,
+              imageId = image.getId,
+              tags = tags,
+              layersBlobId = blobs.map(_._1).toList,
+              schemaVersion = 1,
+              schemaV1JsonBlob = schemaV1JsonBlob,
+              schemaV2Details = None,
+              createdAt = ZonedDateTime.now,
+              updatedAt = None
+            ))
+          }
     }
   }
 
@@ -146,9 +158,9 @@ object ImageManifest
           else FastFuture.successful(())
         (for {
           _ ← emptyTarResFut
-          blobIds ← ImageBlob.findIdsByImageIdAndDigests(image.getId, digests)
-        } yield blobIds).flatMap { blobIds ⇒
-          if (blobIds.length != digests.size) blobsCountIsLessThanExpectedError
+          blobIds ← ImageBlob.findIdsWithDigestByImageIdAndDigests(image.getId, digests)
+        } yield blobIds).flatMap { blobs ⇒
+          if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
           else {
             val schemaV2Details = ImageManifestSchemaV2Details(
               configBlobId = configBlob.id,
@@ -162,7 +174,7 @@ object ImageManifest
               sha256Digest = sha256Digest,
               imageId = image.getId,
               tags = tags,
-              layersBlobId = blobIds.toList,
+              layersBlobId = blobs.map(_._1).toList,
               schemaVersion = 2,
               schemaV1JsonBlob = schemaV1JsonBlob,
               schemaV2Details = Some(schemaV2Details),

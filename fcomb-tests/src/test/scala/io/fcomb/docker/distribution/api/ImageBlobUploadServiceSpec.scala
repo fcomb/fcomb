@@ -51,9 +51,9 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
         status shouldEqual StatusCodes.Accepted
         responseEntity shouldEqual HttpEntity.Empty
         val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
-        header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/uploads/$uuid")
-        header[RangeCustom].get shouldEqual RangeCustom(0L, 0L)
-        header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+        header[Location] should contain(Location(s"/v2/$imageName/blobs/uploads/$uuid"))
+        header[RangeCustom] should contain(RangeCustom(0L, 0L))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
       }
     }
 
@@ -66,9 +66,9 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
       ) ~> addCredentials(credentials) ~> route ~> check {
           status shouldEqual StatusCodes.Created
           responseEntity shouldEqual HttpEntity.Empty
-          header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/sha256:$bsDigest")
-          header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
-          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+          header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
+          header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
+          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
           val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
 
           val blob = await(PImageBlob.findByPk(uuid)).get
@@ -112,9 +112,9 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
       ) ~> addCredentials(credentials) ~> route ~> check {
           status shouldEqual StatusCodes.Created
           responseEntity shouldEqual HttpEntity.Empty
-          header[Location].get shouldEqual Location(s"/v2/$newImageName/blobs/sha256:$bsDigest")
-          header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
-          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+          header[Location] should contain(Location(s"/v2/$newImageName/blobs/sha256:$bsDigest"))
+          header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
+          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
           val newBlob = await({
             for {
@@ -140,9 +140,9 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
       ) ~> addCredentials(credentials) ~> route ~> check {
           status shouldEqual StatusCodes.Created
           responseEntity shouldEqual HttpEntity.Empty
-          header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/sha256:$bsDigest")
-          header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
-          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+          header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
+          header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
+          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
           val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
 
           val blob = await(PImageBlob.findByPk(uuid)).get
@@ -174,10 +174,10 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
         addCredentials(credentials) ~> route ~> check {
           status shouldEqual StatusCodes.Accepted
           responseEntity shouldEqual HttpEntity.Empty
-          header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
-          header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
-          header[RangeCustom].get shouldEqual RangeCustom(0L, blobPart1.length - 1L)
-          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+          header[Location] should contain(Location(s"/v2/$imageName/blobs/${blob.getId}"))
+          header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+          header[RangeCustom] should contain(RangeCustom(0L, blobPart1.length - 1L))
+          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
           val updatedBlob = await(PImageBlob.findByPk(blob.getId)).get
           updatedBlob.length shouldEqual blobPart1.length
@@ -200,10 +200,10 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
         addCredentials(credentials) ~> route ~> check {
           status shouldEqual StatusCodes.Accepted
           responseEntity shouldEqual HttpEntity.Empty
-          header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/${blob.getId}")
-          header[`Docker-Upload-Uuid`].get shouldEqual `Docker-Upload-Uuid`(blob.getId)
-          header[RangeCustom].get shouldEqual RangeCustom(0L, bs.length - 1L)
-          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+          header[Location] should contain(Location(s"/v2/$imageName/blobs/${blob.getId}"))
+          header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+          header[RangeCustom] should contain(RangeCustom(0L, bs.length - 1L))
+          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
           val updatedBlob = await(PImageBlob.findByPk(blob.getId)).get
           updatedBlob.length shouldEqual bs.length
@@ -232,9 +232,9 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
       ) ~> addCredentials(credentials) ~> route ~> check {
           status shouldEqual StatusCodes.Created
           responseAs[ByteString] shouldBe empty
-          header[Location].get shouldEqual Location(s"/v2/$imageName/blobs/sha256:$bsDigest")
-          header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)) shouldEqual blob.id
-          header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+          header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
+          header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
           val b = await(PImageBlob.findByPk(blob.getId)).get
           b.length shouldEqual bs.length

@@ -81,12 +81,13 @@ object Fixtures {
           userId:    Long,
           imageName: String,
           bs:        ByteString,
-          state:     M.docker.distribution.ImageBlobState
+          state:     M.docker.distribution.ImageBlobState,
+          digestOpt: Option[String]                       = None
         )(implicit mat: Materializer) = {
           (for {
             imageId ← Image.create(userId, imageName)
             id = UUID.randomUUID()
-            digest = DigestUtils.sha256Hex(bs.toArray)
+            digest = digestOpt.getOrElse(DigestUtils.sha256Hex(bs.toArray))
             blob = MImageBlob(
               id = Some(id),
               state = state,

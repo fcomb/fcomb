@@ -129,11 +129,15 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
         q.imageId === imageId && q.sha256Digest.inSetBind(digests)
       }
 
-  def findIdsByImageIdAndDigests(imageId: Long, digests: Set[String])(
+  def findIdsWithDigestByImageIdAndDigests(imageId: Long, digests: Set[String])(
     implicit
     ec: ExecutionContext
   ) =
-    db.run(findByImageIdAndDigestsScope(imageId, digests).map(_.pk).result)
+    db.run {
+      findByImageIdAndDigestsScope(imageId, digests)
+        .map(t ⇒ (t.pk, t.sha256Digest))
+        .result
+    }
 
   def findByImageIdAndDigests(imageId: Long, digests: Set[String])(
     implicit

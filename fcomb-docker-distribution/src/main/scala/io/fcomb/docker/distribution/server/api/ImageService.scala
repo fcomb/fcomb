@@ -3,22 +3,22 @@ package io.fcomb.docker.distribution.server.api
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.stream.Materializer
 import akka.util.ByteString
 import cats.data.Xor
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.circe.generic.auto._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
 import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+json`, `application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.api.headers._
+import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.{Image ⇒ MImage, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
 import io.fcomb.persist.docker.distribution.{Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
 import scala.collection.immutable
-import akka.http.scaladsl.server.Directives._
-import io.fcomb.json.docker.distribution.Formats._
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
-import io.circe.generic.auto._
 
 import AuthenticationDirectives._
 
@@ -76,17 +76,16 @@ object ImageService {
           import mat.executionContext
           onSuccess(PImageManifest.findByImageIdAndReference(image.getId, reference)) {
             case Some(im) ⇒
-              val (ct: ContentType, manifest: String) = im.schemaVersion match {
-                case 1 ⇒
+              val (ct: ContentType, manifest: String) =
+                if (im.schemaVersion == 1)
                   (ContentTypes.`application/vnd.docker.distribution.manifest.v1+prettyjws`, im.schemaV1JsonBlob)
-                case 2 ⇒ reference match {
+                else reference match {
                   case Reference.Tag(tag) if !v1ContentTypes.contains(req.entity.contentType) ⇒
                     val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
                     (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
                   case _ ⇒
                     (`application/vnd.docker.distribution.manifest.v2+json`, im.getSchemaV2JsonBlob)
                 }
-              }
               complete(HttpEntity(ct, ByteString(manifest)))
             case _ ⇒
               complete(
@@ -119,7 +118,11 @@ object ImageService {
                 }
                 onSuccess(res) {
                   case Xor.Right(sha256Digest) ⇒
-                    respondWithHeaders(`Docker-Content-Digest`("sha256", sha256Digest)) {
+                    val headers = immutable.Seq(
+                      `Docker-Content-Digest`("sha256", sha256Digest),
+                      Location(s"/v2/$imageName/manifests/sha256:$sha256Digest")
+                    )
+                    respondWithHeaders(headers) {
                       complete(StatusCodes.Created, HttpEntity.Empty)
                     }
                   case Xor.Left(e) ⇒

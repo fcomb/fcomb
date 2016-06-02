@@ -13,9 +13,9 @@ import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures.Fixtures
+import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
-import org.apache.commons.codec.digest.DigestUtils
 
 class ImageBlobServiceSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with ScalaFutures with PersistSpec with ActorClusterSpec {
   val route = Routes()
@@ -42,10 +42,10 @@ class ImageBlobServiceSpec extends WordSpec with Matchers with ScalatestRouteTes
       Head(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[ByteString] shouldBe empty
-        header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
-        header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
-        header[`Accept-Ranges`].get shouldEqual `Accept-Ranges`(RangeUnits.Bytes)
-        header[ETag].get shouldEqual ETag(s"sha256:$bsDigest")
+        header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        header[`Accept-Ranges`] should contain(`Accept-Ranges`(RangeUnits.Bytes))
+        header[ETag] should contain(ETag(s"sha256:$bsDigest"))
         responseEntity.contentLengthOption shouldEqual Some(bs.length)
       }
     }
@@ -61,10 +61,10 @@ class ImageBlobServiceSpec extends WordSpec with Matchers with ScalatestRouteTes
       Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[ByteString] shouldEqual bs
-        header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
-        header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
-        header[`Accept-Ranges`].get shouldEqual `Accept-Ranges`(RangeUnits.Bytes)
-        header[ETag].get shouldEqual ETag(s"sha256:$bsDigest")
+        header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        header[`Accept-Ranges`] should contain(`Accept-Ranges`(RangeUnits.Bytes))
+        header[ETag] should contain(ETag(s"sha256:$bsDigest"))
         responseEntity.contentLengthOption shouldEqual Some(bs.length)
       }
     }
@@ -82,14 +82,14 @@ class ImageBlobServiceSpec extends WordSpec with Matchers with ScalatestRouteTes
       Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> Range(ByteRange(offset.toLong, limit.toLong)) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.PartialContent
         responseAs[ByteString] shouldEqual bs.drop(offset).take(limit - offset)
-        header[`Content-Range`].get shouldEqual `Content-Range`(ContentRange(
+        header[`Content-Range`] should contain(`Content-Range`(ContentRange(
           offset.toLong, limit.toLong, blob.length
-        ))
-        header[`Docker-Content-Digest`] shouldEqual None
-        header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
-        header[`Accept-Ranges`].get shouldEqual `Accept-Ranges`(RangeUnits.Bytes)
-        header[ETag] shouldEqual None
-        responseEntity.contentLengthOption shouldEqual Some(limit - offset)
+        )))
+        header[`Docker-Content-Digest`] shouldBe empty
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        header[`Accept-Ranges`] should contain(`Accept-Ranges`(RangeUnits.Bytes))
+        header[ETag] shouldBe empty
+        responseEntity.contentLengthOption should contain(limit - offset)
       }
     }
 
@@ -124,6 +124,5 @@ class ImageBlobServiceSpec extends WordSpec with Matchers with ScalatestRouteTes
         file.exists() should be(false)
       }
     }
-
   }
 }

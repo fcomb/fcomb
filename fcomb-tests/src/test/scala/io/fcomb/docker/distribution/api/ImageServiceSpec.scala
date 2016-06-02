@@ -8,12 +8,12 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
+import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures.Fixtures
-import io.fcomb.utils.StringUtils
-import java.security.MessageDigest
+import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 
@@ -21,13 +21,9 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   val route = Routes()
   val imageName = "library/test-image_2016"
   val bs = ByteString(getFixture("docker/distribution/blob"))
-  val bsDigest = {
-    val md = MessageDigest.getInstance("SHA-256")
-    md.update(bs.toArray)
-    StringUtils.hexify(md.digest)
-  }
-  // val digest = "300f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f"
+  val bsDigest = DigestUtils.sha256Hex(bs.toArray)
   val credentials = BasicHttpCredentials(Fixtures.User.username, Fixtures.User.password)
+  val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
 
   "The image service" should {
     "return list of repositories for GET request to the catalog path" in {
@@ -40,6 +36,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
       Get(s"/v2/_catalog") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val resp = responseAs[DistributionImageCatalog]
         resp shouldEqual DistributionImageCatalog(Seq("first/test1", "second/test2", "third/test3"))
       }
@@ -47,7 +44,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       Get(s"/v2/_catalog?n=2") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
         val uri = Uri(s"/v2/_catalog?n=2&last=second/test2")
-        header[Link].get shouldEqual Link(uri, LinkParams.next)
+        header[Link] should contain(Link(uri, LinkParams.next))
         val resp = responseAs[DistributionImageCatalog]
         resp shouldEqual DistributionImageCatalog(Seq("first/test1", "second/test2"))
       }
@@ -71,6 +68,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
       Get(s"/v2/$imageName/tags/list") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val resp = responseAs[ImageTagsResponse]
         resp shouldEqual ImageTagsResponse(imageName, Vector("1.0", "1.1", "2.0", "2.1"))
       }
@@ -78,7 +76,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       Get(s"/v2/$imageName/tags/list?n=2") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
         val uri = Uri(s"/v2/$imageName/tags/list?n=2&last=1.1")
-        header[Link].get shouldEqual Link(uri, LinkParams.next)
+        header[Link] should contain(Link(uri, LinkParams.next))
         val resp = responseAs[ImageTagsResponse]
         resp shouldEqual ImageTagsResponse(imageName, Vector("1.0", "1.1"))
       }
@@ -91,20 +89,26 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       }
     }
 
-    "return digest header for PUT request to manifest upload path" in {
+    "return digest header for PUT request with schema v1 to manifest upload path" in {
       val manifestV1 = ByteString(getFixture("docker/distribution/manifestV1.json"))
+      val digest = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
       Fixtures.await(for {
         user ← Fixtures.User.create()
-        blob1 ← Fixtures.docker.distribution.ImageBlob.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+        blob1 ← Fixtures.docker.distribution.ImageBlob.createAs(user.getId, imageName,
+          ByteString.empty, ImageBlobState.Uploaded,
+          digestOpt = Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
       } yield ())
 
       Put(
-        s"/v2/$imageName/manifests/sha256:xxxxxxxx",
+        s"/v2/$imageName/manifests/sha256:$digest",
         HttpEntity(`application/json`, manifestV1)
       ) ~> addCredentials(credentials) ~> route ~> check {
-          println(response)
-          status shouldEqual StatusCodes.OK
+          status shouldEqual StatusCodes.Created
+          responseEntity shouldEqual HttpEntity.Empty
+          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+          header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", digest))
+          header[Location] should contain(Location(s"/v2/$imageName/manifests/sha256:$digest"))
         }
     }
   }
