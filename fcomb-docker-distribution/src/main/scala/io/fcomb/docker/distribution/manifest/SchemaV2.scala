@@ -6,6 +6,7 @@ import akka.stream.scaladsl.{FileIO, Sink}
 import cats.data.{Validated, Xor}
 import io.fcomb.models.docker.distribution.SchemaV2.{Manifest ⇒ ManifestV2}
 import io.fcomb.models.docker.distribution.{Reference, Image ⇒ MImage}
+import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
 import io.fcomb.persist.docker.distribution.{ImageManifest ⇒ PImageManifest, ImageBlob ⇒ PImageBlob}
 import io.fcomb.docker.distribution.server.utils.BlobFile
@@ -49,7 +50,7 @@ object SchemaV2 {
               }
             }
           case None ⇒
-            FastFuture.successful(unknowError(s"Config blob `$configDigest` not found"))
+            FastFuture.successful(unknowError(s"Config blob `$sha256Prefix$configDigest` not found"))
         }
     }
   }

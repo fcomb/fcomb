@@ -88,8 +88,7 @@ object DistributionError {
 
 final case class DistributionErrorResponse(
   errors: Seq[DistributionError]
-)
-    extends ErrorResponse
+) extends ErrorResponse
 
 object DistributionErrorResponse {
   def from(error: DistributionError): DistributionErrorResponse =

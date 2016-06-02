@@ -11,6 +11,7 @@ import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
+import io.fcomb.models.errors.docker.distribution.{DistributionErrorResponse, DistributionError}
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures.Fixtures
 import org.apache.commons.codec.digest.DigestUtils
@@ -112,6 +113,26 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         }
     }
 
+    "return a failure reponse for PUT request with schema v1 to manifest upload path" in {
+      val manifestV1 = ByteString(getFixture("docker/distribution/manifestV1.json"))
+      val digest = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
+
+      Fixtures.await(for {
+        u ← Fixtures.User.create()
+        _ ← Fixtures.docker.distribution.Image.create(u.getId, imageName)
+      } yield u)
+
+      Put(
+        s"/v2/$imageName/manifests/sha256:$digest",
+        HttpEntity(`application/json`, manifestV1)
+      ) ~> addCredentials(credentials) ~> route ~> check {
+          status shouldEqual StatusCodes.BadRequest
+          val msg = s"Unknown blobs: sha256:09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"
+          val resp = responseAs[DistributionErrorResponse]
+          resp.errors.head shouldEqual DistributionError.Unknown(msg)
+        }
+    }
+
     "return digest header for PUT request with schema v2 to manifest upload path" in {
       val manifestV2 = ByteString(getFixture("docker/distribution/manifestV2.json"))
       val digest = "eeb39ca4e9565a6689fa1a6b79d130e058796359a1da88a6f3e3d0fc95ed3b0b"
@@ -136,6 +157,43 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
           header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", digest))
           header[Location] should contain(Location(s"/v2/$imageName/manifests/sha256:$digest"))
+        }
+    }
+
+    "return a failure reponse for PUT request with schema v2 to manifest upload path" in {
+      val manifestV2 = ByteString(getFixture("docker/distribution/manifestV2.json"))
+      val digest = "eeb39ca4e9565a6689fa1a6b79d130e058796359a1da88a6f3e3d0fc95ed3b0b"
+      val configBlobBs = ByteString(getFixture("docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
+      val configBlobDigest = "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08"
+
+      val user = Fixtures.await(for {
+        u ← Fixtures.User.create()
+        _ ← Fixtures.docker.distribution.Image.create(u.getId, imageName)
+      } yield u)
+
+      Put(
+        s"/v2/$imageName/manifests/sha256:$digest",
+        HttpEntity(`application/json`, manifestV2)
+      ) ~> addCredentials(credentials) ~> route ~> check {
+          status shouldEqual StatusCodes.BadRequest
+          val msg = s"Config blob `sha256:$configBlobDigest` not found"
+          val resp = responseAs[DistributionErrorResponse]
+          resp.errors.head shouldEqual DistributionError.Unknown(msg)
+        }
+
+      val configBlob = Fixtures.await(Fixtures.docker.distribution.ImageBlob.createAs(
+        user.getId, imageName, configBlobBs, ImageBlobState.Uploaded
+      ))
+      configBlob.sha256Digest should contain("13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
+
+      Put(
+        s"/v2/$imageName/manifests/sha256:$digest",
+        HttpEntity(`application/json`, manifestV2)
+      ) ~> addCredentials(credentials) ~> route ~> check {
+          status shouldEqual StatusCodes.BadRequest
+          val msg = s"Unknown blobs: sha256:d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"
+          val resp = responseAs[DistributionErrorResponse]
+          resp.errors.head shouldEqual DistributionError.Unknown(msg)
         }
     }
   }

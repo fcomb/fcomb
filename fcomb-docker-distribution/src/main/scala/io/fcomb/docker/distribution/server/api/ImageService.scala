@@ -42,30 +42,6 @@ object ImageDirectives extends ImageDirectives
 import ImageDirectives._
 
 object ImageService {
-  def tags(imageName: String) =
-    authenticationUserBasic { user ⇒
-      parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
-        extractExecutionContext { implicit ec ⇒
-          imageByNameWithAcl(imageName, user) { image ⇒
-            onSuccess(PImageManifest.findTagsByImageId(image.getId, n, last)) {
-              (tags, limit, hasNext) ⇒
-                val headers =
-                  if (hasNext) {
-                    val uri = Uri(
-                      s"/v2/$imageName/tags/list?n=$limit&last=${tags.last}"
-                    )
-                    immutable.Seq(Link(uri, LinkParams.next))
-                  }
-                  else Nil
-                respondWithHeaders(headers) {
-                  complete(ImageTagsResponse(imageName, tags))
-                }
-            }
-          }
-        }
-      }
-    }
-
   def getManifest(imageName: String, reference: Reference)(
     implicit
     req: HttpRequest
@@ -162,6 +138,28 @@ object ImageService {
                 StatusCodes.NotFound,
                 DistributionErrorResponse.from(DistributionError.ManifestInvalid())
               )
+          }
+        }
+      }
+    }
+
+  def tags(imageName: String) =
+    authenticationUserBasic { user ⇒
+      parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
+        extractExecutionContext { implicit ec ⇒
+          imageByNameWithAcl(imageName, user) { image ⇒
+            onSuccess(PImageManifest.findTagsByImageId(image.getId, n, last)) {
+              (tags, limit, hasNext) ⇒
+                val headers =
+                  if (hasNext) {
+                    val uri = Uri(s"/v2/$imageName/tags/list?n=$limit&last=${tags.last}")
+                    immutable.Seq(Link(uri, LinkParams.next))
+                  }
+                  else Nil
+                respondWithHeaders(headers) {
+                  complete(ImageTagsResponse(imageName, tags))
+                }
+            }
           }
         }
       }
