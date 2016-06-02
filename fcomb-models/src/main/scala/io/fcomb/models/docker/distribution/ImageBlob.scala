@@ -16,16 +16,15 @@ object ImageBlobState extends Enum[ImageBlobState] {
 }
 
 case class ImageBlob(
-  id:           Option[UUID]          = None,
-  imageId:      Long,
-  state:        ImageBlobState,
-  sha256Digest: Option[String],
-  contentType:  String,
-  length:       Long,
-  createdAt:    ZonedDateTime,
-  uploadedAt:   Option[ZonedDateTime]
-)
-    extends ModelWithUuidPk {
+    id:           Option[UUID]          = None,
+    imageId:      Long,
+    state:        ImageBlobState,
+    sha256Digest: Option[String],
+    contentType:  String,
+    length:       Long,
+    createdAt:    ZonedDateTime,
+    uploadedAt:   Option[ZonedDateTime]
+) extends ModelWithUuidPk {
   def withPk(id: UUID) = this.copy(id = Some(id))
 
   def isCreated =

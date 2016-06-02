@@ -67,26 +67,28 @@ object ImageBlobService {
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) if blob.isUploaded ⇒
-              val source =
-                if (digest == MImageManifest.emptyTarSha256Digest) emptyTarSource
-                else FileIO.fromPath(BlobFile.getFile(blob).toPath)
               val ct = contentType(blob.contentType)
               optionalHeaderValueByType[Range]() {
                 case Some(Range(_, range +: _)) ⇒
                   val offset: Long = range.getOffset.asScala
                     .orElse(range.getSliceFirst.asScala)
                     .getOrElse(0L)
-                  val limit: Long = range.getSliceLast.asScala
-                    .map(_ - offset)
-                    .getOrElse(blob.length)
+                  val limit: Long = range.getSliceLast.asScala.getOrElse(blob.length)
+                  val chunkLength = limit - offset
                   val headers = immutable.Seq(
-                    `Content-Range`(ContentRange(offset, limit, blob.length))
+                    `Content-Range`(ContentRange(offset, limit, blob.length)),
+                    `Accept-Ranges`(RangeUnits.Bytes)
                   )
-                  val chunk = source.drop(offset).take(limit)
+                  val source =
+                    if (digest == MImageManifest.emptyTarSha256Digest)
+                      Source.single(ByteString(MImageManifest.emptyTar
+                        .drop(offset.toInt)
+                        .take(chunkLength.toInt)))
+                    else BlobFile.streamBlob(sha256Digest, offset, chunkLength)
                   complete(HttpResponse(
                     StatusCodes.PartialContent,
                     headers,
-                    HttpEntity(ct, blob.length, chunk)
+                    HttpEntity(ct, chunkLength, source)
                   ))
                 case _ ⇒
                   optionalHeaderValueByType[`If-None-Match`]() {
@@ -94,10 +96,14 @@ object ImageBlobService {
                       completeWithStatus(StatusCodes.NotModified)
                     case _ ⇒
                       val headers = immutable.Seq(
+                        `Accept-Ranges`(RangeUnits.Bytes),
                         ETag(digest),
                         `Docker-Content-Digest`("sha256", sha256Digest),
                         cacheHeader
                       )
+                      val source =
+                        if (digest == MImageManifest.emptyTarSha256Digest) emptyTarSource
+                        else FileIO.fromPath(BlobFile.getFile(blob).toPath)
                       complete(HttpResponse(
                         StatusCodes.OK,
                         headers,

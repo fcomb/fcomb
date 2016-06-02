@@ -18,9 +18,7 @@ import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.{Image ⇒ PImage, ImageBlob ⇒ PImageBlob}
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures.Fixtures
-import io.fcomb.utils.StringUtils
 import java.io.FileInputStream
-import java.security.MessageDigest
 import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{Matchers, WordSpec}
@@ -30,12 +28,7 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
   val route = Routes()
   val imageName = "library/test-image_2016"
   val bs = ByteString(getFixture("docker/distribution/blob"))
-  val bsDigest = {
-    val md = MessageDigest.getInstance("SHA-256")
-    md.update(bs.toArray)
-    StringUtils.hexify(md.digest)
-  }
-  // val digest = "300f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f"
+  val bsDigest = DigestUtils.sha256Hex(bs.toArray)
   val credentials = BasicHttpCredentials(Fixtures.User.username, Fixtures.User.password)
   val clusterRef = ImageBlobPushProcessor.startRegion(30.seconds)
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")

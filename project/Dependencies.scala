@@ -121,6 +121,7 @@ object Dependencies {
 
     val xml             = "org.scala-lang.modules"        %% "scala-xml"                     % "1.0.3"
 
+    val guava           = "com.google.guava"              %  "guava"                         % "19.0"
     val commonsCodec    = "commons-codec"                 %  "commons-codec"                 % "1.10"
 
     val ffi             = "com.nativelibs4java"           %  "bridj"                         % "0.7.0"
@@ -128,7 +129,6 @@ object Dependencies {
     val betterFiles     = "com.github.pathikrit"          %% "better-files"                  % "1.0.0"
 
     val objectsize      = "com.twitter.common"            %  "objectsize"                    % "0.0.10"
-    val guava           = "com.google.guava"              %  "guava"                         % "18.0"
 
     val lz4             = "net.jpountz.lz4"               %  "lz4"                           % "1.3.0"
 
@@ -163,6 +163,7 @@ object Dependencies {
     shapeless,
     kittens,
     monocleCore, monocleGeneric, monocleMacro, monocleState,
+    guava,
     pprint,
     atmos,
     objectsize

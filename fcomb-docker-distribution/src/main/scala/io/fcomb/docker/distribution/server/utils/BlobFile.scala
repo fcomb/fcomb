@@ -1,15 +1,17 @@
 package io.fcomb.docker.distribution.server.utils
 
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Source, FileIO}
+import akka.stream.scaladsl.{Source, StreamConverters, FileIO}
 import akka.util.ByteString
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
 import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageManifest ⇒ MImageManifest}
 import io.fcomb.utils.{Config, StringUtils}
 import java.io.File
+import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future, blocking}
+import com.google.common.io.ByteStreams
 
 object BlobFile {
   def getUploadFilePath(uuid: UUID): File =
@@ -86,6 +88,14 @@ object BlobFile {
       file ← createUploadFile(uuid)
       (length, digest) ← ImageBlobPushProcessor.uploadChunk(uuid, data, file)
     } yield (length, digest)
+  }
+
+  def streamBlob(digest: String, offset: Long, limit: Long): Source[ByteString, Any] = {
+    val file = getBlobFilePath(digest)
+    val is = Files.newInputStream(file.toPath)
+    if (offset > 0) is.skip(offset)
+    val bs = ByteStreams.limit(is, limit)
+    StreamConverters.fromInputStream(() ⇒ bs, 8192)
   }
 
   def destroyBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] =

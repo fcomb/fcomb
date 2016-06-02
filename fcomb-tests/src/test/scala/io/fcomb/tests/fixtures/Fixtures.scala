@@ -4,16 +4,14 @@ import akka.stream._
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.{Xor, Validated}
-import cats.syntax.eq._
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.fcomb.Db.db
+import io.fcomb.docker.distribution.server.utils.BlobFile
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.errors.{FailureResponse, DtCemException}
-import io.fcomb.utils.Config
 import io.fcomb.{models ⇒ M}
 import io.fcomb.{persist ⇒ P}
-import java.io.File
 import java.time.ZonedDateTime
 import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
@@ -100,9 +98,8 @@ object Fixtures {
               uploadedAt = None
             )
             Validated.Valid(res) ← P.docker.distribution.ImageBlob.create(blob)
-            filename = if (state === ImageBlobState.Uploaded) digest
-            else id.toString
-            file = new File(s"${Config.docker.distribution.imageStorage}/$filename")
+            file = BlobFile.getFile(blob)
+            _ = file.getParentFile.mkdirs()
             _ ← Source.single(bs).runWith(FileIO.toPath(file.toPath))
           } yield res)
         }

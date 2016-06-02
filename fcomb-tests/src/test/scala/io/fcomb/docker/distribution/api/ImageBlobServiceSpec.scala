@@ -13,22 +13,22 @@ import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures.Fixtures
-import io.fcomb.utils.StringUtils
-import java.security.MessageDigest
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
+import org.apache.commons.codec.digest.DigestUtils
 
 class ImageBlobServiceSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with ScalaFutures with PersistSpec with ActorClusterSpec {
   val route = Routes()
   val imageName = "library/test-image_2016"
   val bs = ByteString(getFixture("docker/distribution/blob"))
-  val bsDigest = {
-    val md = MessageDigest.getInstance("SHA-256")
-    md.update(bs.toArray)
-    StringUtils.hexify(md.digest)
-  }
-  // val digest = "300f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f"
+  val bsDigest = DigestUtils.sha256Hex(bs.toArray)
   val credentials = BasicHttpCredentials(Fixtures.User.username, Fixtures.User.password)
+  val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    BlobFile.getBlobFilePath(bsDigest).delete()
+  }
 
   "The image blob service" should {
     "return an info without content for HEAD request to the exist layer path" in {
@@ -43,7 +43,10 @@ class ImageBlobServiceSpec extends WordSpec with Matchers with ScalatestRouteTes
         status shouldEqual StatusCodes.OK
         responseAs[ByteString] shouldBe empty
         header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
-        // header[`Content-Length`].get shouldEqual bs.length
+        header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+        header[`Accept-Ranges`].get shouldEqual `Accept-Ranges`(RangeUnits.Bytes)
+        header[ETag].get shouldEqual ETag(s"sha256:$bsDigest")
+        responseEntity.contentLengthOption shouldEqual Some(bs.length)
       }
     }
 
@@ -59,7 +62,34 @@ class ImageBlobServiceSpec extends WordSpec with Matchers with ScalatestRouteTes
         status shouldEqual StatusCodes.OK
         responseAs[ByteString] shouldEqual bs
         header[`Docker-Content-Digest`].get shouldEqual `Docker-Content-Digest`("sha256", bsDigest)
-        // header[`Content-Length`].get shouldEqual bs.length
+        header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+        header[`Accept-Ranges`].get shouldEqual `Accept-Ranges`(RangeUnits.Bytes)
+        header[ETag].get shouldEqual ETag(s"sha256:$bsDigest")
+        responseEntity.contentLengthOption shouldEqual Some(bs.length)
+      }
+    }
+
+    "return a part of blob for GET request to the blob download path" in {
+      val blob = Fixtures.await(for {
+        user ← Fixtures.User.create()
+        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
+          user.getId, imageName, bs, ImageBlobState.Uploaded
+        )
+      } yield blob)
+      val offset = 5
+      val limit = 10
+
+      Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> Range(ByteRange(offset.toLong, limit.toLong)) ~> addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.PartialContent
+        responseAs[ByteString] shouldEqual bs.drop(offset).take(limit - offset)
+        header[`Content-Range`].get shouldEqual `Content-Range`(ContentRange(
+          offset.toLong, limit.toLong, blob.length
+        ))
+        header[`Docker-Content-Digest`] shouldEqual None
+        header[`Docker-Distribution-Api-Version`].get shouldEqual apiVersionHeader
+        header[`Accept-Ranges`].get shouldEqual `Accept-Ranges`(RangeUnits.Bytes)
+        header[ETag] shouldEqual None
+        responseEntity.contentLengthOption shouldEqual Some(limit - offset)
       }
     }
 
