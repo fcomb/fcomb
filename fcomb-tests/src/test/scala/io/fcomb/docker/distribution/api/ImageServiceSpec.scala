@@ -191,7 +191,7 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         HttpEntity(`application/json`, manifestV2)
       ) ~> addCredentials(credentials) ~> route ~> check {
           status shouldEqual StatusCodes.BadRequest
-          val msg = s"Unknown blobs: sha256:d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"
+          val msg = "Unknown blobs: sha256:d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"
           val resp = responseAs[DistributionErrorResponse]
           resp.errors.head shouldEqual DistributionError.Unknown(msg)
         }

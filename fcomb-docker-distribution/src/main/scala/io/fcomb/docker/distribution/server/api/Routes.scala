@@ -50,14 +50,19 @@ object Routes {
                       ImageBlobUploadService.destroyBlobUpload(image, uuid)
                     case _ => complete(notFoundResponse)
                   }
-                case id :: "blobs" :: xs if Reference.isDigest(id) =>
+                case id :: "blobs" :: xs =>
                   val image = imageName(xs)
                   method match {
-                    case HttpMethods.HEAD =>
+                    // TODO: official spec
+                    case HttpMethods.PUT if isUuid(id) =>
+                      val uuid = UUID.fromString(id)
+                      ImageBlobUploadService.uploadComplete(image, uuid)
+                    case HttpMethods.HEAD if Reference.isDigest(id) =>
+                      println(s"HEAD: $id")
                       ImageBlobService.showBlob(image, id)
-                    case HttpMethods.GET =>
+                    case HttpMethods.GET if Reference.isDigest(id) =>
                       ImageBlobService.downloadBlob(image, id)
-                    case HttpMethods.DELETE =>
+                    case HttpMethods.DELETE if Reference.isDigest(id) =>
                       ImageBlobService.destroyBlob(image, id)
                     case _ => complete(notFoundResponse)
                   }

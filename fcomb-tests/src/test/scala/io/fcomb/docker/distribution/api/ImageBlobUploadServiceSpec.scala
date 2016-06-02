@@ -243,6 +243,31 @@ class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRo
         }
     }
 
+    "return successful response for PUT request without final chunk to complete blob path" in {
+      val blob = Fixtures.await(for {
+        user ← Fixtures.User.create()
+        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
+          user.getId, imageName, bs, ImageBlobState.Uploading
+        )
+      } yield blob)
+
+      Put(
+        s"/v2/$imageName/blobs/${blob.getId}?digest=sha256:$bsDigest",
+        HttpEntity(`application/octet-stream`, bs)
+      ) ~> addCredentials(credentials) ~> route ~> check {
+          status shouldEqual StatusCodes.Created
+          responseAs[ByteString] shouldBe empty
+          header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
+          header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+
+          val b = await(PImageBlob.findByPk(blob.getId)).get
+          b.length shouldEqual bs.length
+          b.state shouldEqual ImageBlobState.Uploaded
+          b.sha256Digest shouldEqual Some(bsDigest)
+        }
+    }
+
     "return successful response for DELETE request to the blob upload path" in {
       val blob = Fixtures.await(for {
         user ← Fixtures.User.create()
