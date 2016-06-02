@@ -111,5 +111,32 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           header[Location] should contain(Location(s"/v2/$imageName/manifests/sha256:$digest"))
         }
     }
+
+    "return digest header for PUT request with schema v2 to manifest upload path" in {
+      val manifestV2 = ByteString(getFixture("docker/distribution/manifestV2.json"))
+      val digest = "eeb39ca4e9565a6689fa1a6b79d130e058796359a1da88a6f3e3d0fc95ed3b0b"
+      val configBlobBs = ByteString(getFixture("docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
+
+      val configBlob = Fixtures.await(for {
+        user ← Fixtures.User.create()
+        blob1 ← Fixtures.docker.distribution.ImageBlob.createAs(user.getId, imageName,
+          ByteString.empty, ImageBlobState.Uploaded,
+          digestOpt = Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
+        cb ← Fixtures.docker.distribution.ImageBlob.createAs(user.getId, imageName,
+          configBlobBs, ImageBlobState.Uploaded)
+      } yield cb)
+      configBlob.sha256Digest should contain("13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
+
+      Put(
+        s"/v2/$imageName/manifests/sha256:$digest",
+        HttpEntity(`application/json`, manifestV2)
+      ) ~> addCredentials(credentials) ~> route ~> check {
+          status shouldEqual StatusCodes.Created
+          responseEntity shouldEqual HttpEntity.Empty
+          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+          header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", digest))
+          header[Location] should contain(Location(s"/v2/$imageName/manifests/sha256:$digest"))
+        }
+    }
   }
 }

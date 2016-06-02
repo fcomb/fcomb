@@ -28,30 +28,35 @@ object SchemaV2 {
           .map(_ ⇒ Xor.right(im.sha256Digest))
       case None ⇒
         val configDigest = manifest.config.getDigest
-        (for {
-          Some(configBlob) ← PImageBlob.findByImageIdAndDigest(image.getId, configDigest)
-          _ = assert(configBlob.length <= 1.MB, "Config JSON size is more than 1 MB")
-          configFile = BlobFile.getBlobFilePath(configDigest)
-          imageConfig ← getImageConfig(configFile)
-        } yield (configBlob, imageConfig)).flatMap {
-          case (configBlob, imageConfig) ⇒
-            SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
-              case Xor.Right(schemaV1JsonBlob) ⇒
-                PImageManifest.upsertSchemaV2(image, manifest, reference, configBlob,
-                  schemaV1JsonBlob, rawManifest, sha256Digest)
-                  .fast
-                  .map {
-                    case Validated.Valid(_) ⇒ Xor.right(sha256Digest)
-                    case Validated.Invalid(e) ⇒
-                      Xor.left(Unknown(e.map(_.message).mkString(";")))
-                  }
-              case Xor.Left(e) ⇒
-                println(e)
-                ???
+        PImageBlob.findByImageIdAndDigest(image.getId, configDigest).flatMap {
+          case Some(configBlob) ⇒
+            if (configBlob.length > 1.MB)
+              FastFuture.successful(unknowError("Config JSON size is more than 1 MB"))
+            else {
+              val configFile = BlobFile.getBlobFilePath(configDigest)
+              getImageConfig(configFile).flatMap { imageConfig ⇒
+                SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
+                  case Xor.Right(schemaV1JsonBlob) ⇒
+                    PImageManifest.upsertSchemaV2(image, manifest, reference, configBlob,
+                      schemaV1JsonBlob, rawManifest, sha256Digest)
+                      .fast
+                      .map {
+                        case Validated.Valid(_)   ⇒ Xor.right(sha256Digest)
+                        case Validated.Invalid(e) ⇒ unknowError(e.map(_.message).mkString(";"))
+                      }
+                  case Xor.Left(e) ⇒ FastFuture.successful(unknowError(e))
+                }
+              }
             }
+          case None ⇒
+            FastFuture.successful(unknowError(s"Config blob `$configDigest` not found"))
         }
     }
   }
+
+  @inline
+  private def unknowError(msg: String) =
+    Xor.left[DistributionError, String](Unknown(msg))
 
   private def getImageConfig(configFile: java.io.File)(implicit mat: Materializer) =
     FileIO.fromPath(configFile.toPath).map(_.utf8String).runWith(Sink.head)
