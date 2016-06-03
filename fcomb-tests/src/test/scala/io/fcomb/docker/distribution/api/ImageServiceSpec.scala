@@ -6,8 +6,12 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
+import cats.data.Xor
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
+import io.circe.parser.decode
+import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
+import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+json`, `application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
@@ -62,9 +66,9 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       Fixtures.await(for {
         user ← Fixtures.User.create()
         blob1 ← Fixtures.docker.distribution.ImageBlob.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
-        _ ← Fixtures.docker.distribution.ImageManifest.create(user.getId, imageName, blob1, List("1.0", "1.1"))
+        _ ← Fixtures.docker.distribution.ImageManifest.createV2(user.getId, imageName, blob1, List("1.0", "1.1"))
         blob2 ← Fixtures.docker.distribution.ImageBlob.createAs(user.getId, imageName, bs ++ bs, ImageBlobState.Uploaded)
-        _ ← Fixtures.docker.distribution.ImageManifest.create(user.getId, imageName, blob2, List("2.0", "2.1"))
+        _ ← Fixtures.docker.distribution.ImageManifest.createV2(user.getId, imageName, blob2, List("2.0", "2.1"))
       } yield ())
 
       Get(s"/v2/$imageName/tags/list") ~> addCredentials(credentials) ~> route ~> check {
@@ -195,6 +199,34 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
           val resp = responseAs[DistributionErrorResponse]
           resp.errors.head shouldEqual DistributionError.Unknown(msg)
         }
+    }
+
+    "return a manifest v1 for GET request to manifest path by tag and digest" in {
+      val im = Fixtures.await(for {
+        user ← Fixtures.User.create()
+        blob1 ← Fixtures.docker.distribution.ImageBlob.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+        im ← Fixtures.docker.distribution.ImageManifest.createV1(user.getId, imageName, blob1, "1.0")
+      } yield im)
+
+      def checkResponse(): Unit = {
+        status shouldEqual StatusCodes.OK
+        contentType shouldEqual `application/vnd.docker.distribution.manifest.v1+prettyjws`
+        header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", im.sha256Digest))
+        header[ETag] should contain(ETag(s"sha256:${im.sha256Digest}"))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        val rawManifest = responseAs[ByteString].utf8String
+        val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
+        manifest.tag shouldEqual "1.0"
+        SchemaV1Manifest.verify(manifest, rawManifest) shouldBe (Xor.right((rawManifest, im.sha256Digest)))
+      }
+
+      Get(s"/v2/$imageName/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {
+        checkResponse()
+      }
+
+      Get(s"/v2/$imageName/manifests/1.0") ~> addCredentials(credentials) ~> route ~> check {
+        checkResponse()
+      }
     }
   }
 }

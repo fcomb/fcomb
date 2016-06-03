@@ -14,7 +14,7 @@ import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, Sch
 import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+json`, `application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.json.docker.distribution.Formats._
-import io.fcomb.models.docker.distribution.{Image ⇒ MImage, _}
+import io.fcomb.models.docker.distribution.{Image ⇒ MImage, ImageManifest ⇒ MImageManifest, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.{User ⇒ MUser}
 import io.fcomb.persist.docker.distribution.{Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
@@ -53,8 +53,10 @@ object ImageService {
           onSuccess(PImageManifest.findByImageIdAndReference(image.getId, reference)) {
             case Some(im) ⇒
               val (ct: ContentType, manifest: String) =
-                if (im.schemaVersion == 1)
-                  (ContentTypes.`application/vnd.docker.distribution.manifest.v1+prettyjws`, im.schemaV1JsonBlob)
+                if (im.schemaVersion == 1) {
+                  val jb = SchemaV1Manifest.addSignature(im.schemaV1JsonBlob)
+                  (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
+                }
                 else reference match {
                   case Reference.Tag(tag) if !v1ContentTypes.contains(req.entity.contentType) ⇒
                     val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
@@ -62,7 +64,13 @@ object ImageService {
                   case _ ⇒
                     (`application/vnd.docker.distribution.manifest.v2+json`, im.getSchemaV2JsonBlob)
                 }
-              complete(HttpEntity(ct, ByteString(manifest)))
+              val headers = immutable.Seq(
+                ETag(s"${MImageManifest.sha256Prefix}${im.sha256Digest}"),
+                `Docker-Content-Digest`("sha256", im.sha256Digest)
+              )
+              respondWithHeaders(headers) {
+                complete(HttpEntity(ct, ByteString(manifest)))
+              }
             case _ ⇒
               complete(
                 StatusCodes.NotFound,

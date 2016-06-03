@@ -5,8 +5,9 @@ import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.{Xor, Validated}
 import io.circe.generic.auto._
-import io.circe.parser.decode
+import io.circe.parser._
 import io.fcomb.Db.db
+import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest}
 import io.fcomb.docker.distribution.server.utils.BlobFile
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.errors.{FailureResponse, DtCemException}
@@ -107,26 +108,58 @@ object Fixtures {
       }
 
       object ImageManifest {
-        def create(
+        def createV1(
           userId:    Long,
           imageName: String,
           blob:      MImageBlob,
-          tags:      List[String]
+          tag:       String
         )(implicit ec: ExecutionContext): Future[MImageManifest] = {
-          val schemaV1JsonBlob = s"""
+          val schemaV1JsonBlob = getSchemaV1JsonBlob(imageName, tag, blob)
+          val sha256Digest = DigestUtils.sha256Hex(schemaV1JsonBlob)
+          val manifest = SchemaV1.Manifest(
+            name = imageName,
+            tag = tag,
+            fsLayers = List(SchemaV1.FsLayer(s"sha256:${blob.sha256Digest.get}")),
+            architecture = "amd64",
+            history = Nil,
+            signatures = Nil
+          )
+          for {
+            Some(image) ← P.docker.distribution.Image.findByPk(blob.imageId)
+            Validated.Valid(im) ← P.docker.distribution.ImageManifest.upsertSchemaV1(
+              image = image,
+              manifest = manifest,
+              schemaV1JsonBlob = schemaV1JsonBlob,
+              sha256Digest = sha256Digest
+            )
+          } yield im
+        }
+
+        private def getSchemaV1JsonBlob(imageName: String, tag: String, blob: MImageBlob) = {
+          val Xor.Right(jsonBlob) = parse(s"""
           {
             "name": "$imageName",
-            "tag": "",
+            "tag": "$tag",
             "fsLayers": [
               {"blobSum": "sha256:${blob.sha256Digest.get}"}
             ],
             "architecture": "amd64",
             "history": [
-             {"v1Compatibility": "{\"id\":\"1968f6a1578f3116f73716b4fea030ac3c52ed12dc04452cee9d8d3dadbdf53c\",\"created\":\"2016-05-06T14:56:49.723208146Z\",\"container\":\"27c9668b3d5e3a2abeefdb725e1ff739cedda4b19eff906336298608f635b00e\",\"container_config\":{\"hostname\":\"27c9668b3d5e\",\"domainname\":\"\",\"user\":\"\",\"attachStdin\":false,\"attachStdout\":false,\"attachStderr\":false,\"exposedPorts\":[],\"tty\":false,\"openStdin\":false,\"stdinOnce\":false,\"env\":[],\"cmd\":[\"/bin/sh\",\"-c\",\"#(nop) ADD file:614a9122187935fccfa72039b9efa3ddbf371f6b029bb01e2073325f00c80b9f in /\"],\"image\":\"\",\"volumes\":{},\"workingDir\":\"\",\"entrypoint\":[],\"onBuild\":[],\"labels\":{}},\"docker_version\":\"1.9.1\",\"config\":{\"hostname\":\"27c9668b3d5e\",\"domainname\":\"\",\"user\":\"\",\"attachStdin\":false,\"attachStdout\":false,\"attachStderr\":false,\"exposedPorts\":[],\"tty\":false,\"openStdin\":false,\"stdinOnce\":false,\"env\":[],\"cmd\":[],\"image\":\"\",\"volumes\":{},\"workingDir\":\"\",\"entrypoint\":[],\"onBuild\":[],\"labels\":{}},\"architecture\":\"amd64\",\"os\":\"linux\"}"}
+              {"v1Compatibility": "{\\"architecture\\":\\"amd64\\",\\"config\\":{\\"Hostname\\":\\"27c9668b3d5e\\",\\"Domainname\\":\\"\\",\\"User\\":\\"\\",\\"AttachStdin\\":false,\\"AttachStdout\\":false,\\"AttachStderr\\":false,\\"Tty\\":false,\\"OpenStdin\\":false,\\"StdinOnce\\":false,\\"Env\\":null,\\"Cmd\\":null,\\"Image\\":\\"\\",\\"Volumes\\":null,\\"WorkingDir\\":\\"\\",\\"Entrypoint\\":null,\\"OnBuild\\":null,\\"Labels\\":null},\\"container\\":\\"27c9668b3d5e3a2abeefdb725e1ff739cedda4b19eff906336298608f635b00e\\",\\"container_config\\":{\\"Hostname\\":\\"27c9668b3d5e\\",\\"Domainname\\":\\"\\",\\"User\\":\\"\\",\\"AttachStdin\\":false,\\"AttachStdout\\":false,\\"AttachStderr\\":false,\\"Tty\\":false,\\"OpenStdin\\":false,\\"StdinOnce\\":false,\\"Env\\":null,\\"Cmd\\":[\\"/bin/sh\\",\\"-c\\",\\"#(nop) ADD file:614a9122187935fccfa72039b9efa3ddbf371f6b029bb01e2073325f00c80b9f in /\\"],\\"Image\\":\\"\\",\\"Volumes\\":null,\\"WorkingDir\\":\\"\\",\\"Entrypoint\\":null,\\"OnBuild\\":null,\\"Labels\\":null},\\"created\\":\\"2016-05-06T14:56:49.723208146Z\\",\\"docker_version\\":\\"1.9.1\\",\\"history\\":[{\\"created\\":\\"2016-05-06T14:56:49.723208146Z\\",\\"created_by\\":\\"/bin/sh -c #(nop) ADD file:614a9122187935fccfa72039b9efa3ddbf371f6b029bb01e2073325f00c80b9f in /\\"}],\\"os\\":\\"linux\\",\\"rootfs\\":{\\"type\\":\\"layers\\",\\"diff_ids\\":[\\"sha256:8f01a53880b9b96424f0034d75102ed915cc2125d887c3b186a8122be08c09c0\\"]}}"}
             ],
             "schemaVersion": 1
           }
-          """
+          """)
+          SchemaV1Manifest.prettyPrint(jsonBlob)
+        }
+
+        def createV2(
+          userId:    Long,
+          imageName: String,
+          blob:      MImageBlob,
+          tags:      List[String]
+        )(implicit ec: ExecutionContext): Future[MImageManifest] = {
+          val schemaV1JsonBlob = getSchemaV1JsonBlob(imageName, tags.headOption.getOrElse(""), blob)
           val schemaV2JsonBlob = s"""
           {
             "schemaVersion": 2,

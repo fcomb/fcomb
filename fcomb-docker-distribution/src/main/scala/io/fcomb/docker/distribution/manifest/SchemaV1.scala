@@ -149,26 +149,38 @@ object SchemaV1 {
     }
   }
 
+  def addSignature(manifestV1: String): String = {
+    signManifestV1(parseManifestV1(manifestV1))
+  }
+
+  private def signManifestV1(manifest: JsonObject): String = {
+    val formatted = prettyPrint(manifest.asJson)
+    val `protected` = protectedHeader(formatted)
+    val payload = s"${`protected`}.${base64Encode(formatted)}"
+    val (signature, alg) = Jws.signWithDefaultJwk(payload.getBytes("utf-8"))
+    val signatures = List(Signature(
+      header = SignatureHeader(Jws.defaultEcJwkParams, alg),
+      signature = base64Encode(signature),
+      `protected` = `protected`
+    ))
+    val manifestWithSignature = manifest.add("signatures", signatures.asJson)
+    prettyPrint(manifestWithSignature.asJson)
+  }
+
   def addTagAndSignature(manifestV1: String, tag: String): String = {
+    val manifest = parseManifestV1(manifestV1)
+    val manifestWithTag = manifest.add("tag", Json.fromString(tag))
+    signManifestV1(manifestWithTag)
+  }
+
+  // TODO: add Xor
+  private def parseManifestV1(manifestV1: String): JsonObject = {
     parse(manifestV1).map(_.asObject) match {
       case Xor.Right(opt) ⇒ opt match {
-        case Some(manifest) ⇒
-          val manifestWithTag = manifest.add("tag", Json.fromString(tag))
-          val formatted = prettyPrint(manifestWithTag.asJson)
-          val `protected` = protectedHeader(formatted)
-          val payload = s"${`protected`}.${base64Encode(formatted)}"
-          val (signature, alg) = Jws.signWithDefaultJwk(payload.getBytes("utf-8"))
-          val signatures = List(Signature(
-            header = SignatureHeader(Jws.defaultEcJwkParams, alg),
-            signature = base64Encode(signature),
-            `protected` = `protected`
-          ))
-          val manifestWithSignature = manifestWithTag.add("signatures", signatures.asJson)
-          prettyPrint(manifestWithSignature.asJson)
-        case _ ⇒ ???
+        case Some(manifest) ⇒ manifest
+        case _              ⇒ throw new IllegalArgumentException("Manifest V1 not a JSON object")
       }
-      case Xor.Left(e) ⇒
-        ???
+      case Xor.Left(e) ⇒ throw new IllegalArgumentException(e.show)
     }
   }
 

@@ -75,8 +75,7 @@ class ImageManifestTable(tag: Tag)
   }
 }
 
-object ImageManifest
-    extends PersistModelWithAutoLongPk[MImageManifest, ImageManifestTable] {
+object ImageManifest extends PersistModelWithAutoLongPk[MImageManifest, ImageManifestTable] {
   val table = TableQuery[ImageManifestTable]
 
   private val findByImageIdAndDigestCompiled = Compiled {
