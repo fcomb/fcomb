@@ -11,12 +11,13 @@ import cats.scalatest.XorMatchers._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.circe.parser.decode
-import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
-import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+json`, `application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
+import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest}
+import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionErrorResponse, DistributionError}
+import io.fcomb.persist.docker.distribution.{ImageManifest ⇒ PImageManifest}
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures.Fixtures
 import org.apache.commons.codec.digest.DigestUtils
@@ -270,6 +271,20 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       val mt = MediaType.applicationWithOpenCharset("vnd.docker.distribution.manifest.v2+json")
       Get(s"/v2/$imageName/manifests/1.0") ~> `Accept`(mt) ~> addCredentials(credentials) ~> route ~> check {
         checkResponse()
+      }
+    }
+
+    "return an accepted for DELETE request to manifest path by digest" in {
+      val im = Fixtures.await(for {
+        user ← Fixtures.User.create()
+        blob1 ← Fixtures.docker.distribution.ImageBlob.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+        im ← Fixtures.docker.distribution.ImageManifest.createV2(user.getId, imageName, blob1, List("1.0"))
+      } yield im)
+
+      Delete(s"/v2/$imageName/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.Accepted
+
+        PImageManifest.findByPk(im.getId).futureValue shouldBe empty
       }
     }
   }
