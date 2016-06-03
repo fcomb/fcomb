@@ -144,6 +144,7 @@ object Dependencies {
     val scalacheck      = "org.scalacheck"                %% "scalacheck"                    % "1.13.1" % "test"
     val specs2          = "org.specs2"                    %% "specs2-core"                   % "3.8.3" % "test"
     val scalatest       = "org.scalatest"                 %% "scalatest"                     % "2.2.6" % "test"
+    val catsScalatest   = "com.ironcorelabs"              %% "cats-scalatest"                % "1.1.2" % "test"
     val slickTestkit    = "com.typesafe.slick"            %% "slick-testkit"                 % V.slick % "test"
   }
 
@@ -192,7 +193,8 @@ object Dependencies {
 
   val tests = common ++ Seq(
     akkaTestkit, akkaHttpTestkit,
-    scalacheck, specs2, scalatest, slickTestkit
+    scalacheck, specs2, scalatest, catsScalatest,
+    slickTestkit
   )
 
   val data = common ++ Seq(xml, shapeless)

@@ -7,6 +7,7 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import cats.data.Xor
+import cats.scalatest.XorMatchers._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.circe.parser.decode
@@ -225,6 +226,49 @@ class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       }
 
       Get(s"/v2/$imageName/manifests/1.0") ~> addCredentials(credentials) ~> route ~> check {
+        checkResponse()
+      }
+    }
+
+    "return a manifest v2 for GET request to manifest path by tag and digest" in {
+      val im = Fixtures.await(for {
+        user ← Fixtures.User.create()
+        blob1 ← Fixtures.docker.distribution.ImageBlob.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+        im ← Fixtures.docker.distribution.ImageManifest.createV2(user.getId, imageName, blob1, List("1.0"))
+      } yield im)
+
+      Get(s"/v2/$imageName/manifests/1.0") ~> addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.OK
+        contentType shouldEqual `application/vnd.docker.distribution.manifest.v1+prettyjws`
+        header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", im.sha256Digest))
+        header[ETag] should contain(ETag(s"sha256:${im.sha256Digest}"))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        val rawManifest = responseAs[ByteString].utf8String
+        val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
+        manifest.tag shouldEqual "1.0"
+        SchemaV1Manifest.verify(manifest, rawManifest) should be(right)
+      }
+
+      def checkResponse(): Unit = {
+        status shouldEqual StatusCodes.OK
+        contentType shouldEqual `application/vnd.docker.distribution.manifest.v2+json`
+        header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", im.sha256Digest))
+        header[ETag] should contain(ETag(s"sha256:${im.sha256Digest}"))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        val rawManifest = responseAs[ByteString].utf8String
+        val Xor.Right(manifest) = decode[SchemaV2.Manifest](rawManifest)
+        manifest.config shouldEqual SchemaV2.Descriptor(
+          Some("application/vnd.docker.container.image.v1+json"), 11209,
+          "sha256:a42e9dfd17b7e96bd880cb6e746c5bc8ef7611729164c74b010915fe7c224585"
+        )
+      }
+
+      Get(s"/v2/$imageName/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {
+        checkResponse()
+      }
+
+      val mt = MediaType.applicationWithOpenCharset("vnd.docker.distribution.manifest.v2+json")
+      Get(s"/v2/$imageName/manifests/1.0") ~> `Accept`(mt) ~> addCredentials(credentials) ~> route ~> check {
         checkResponse()
       }
     }

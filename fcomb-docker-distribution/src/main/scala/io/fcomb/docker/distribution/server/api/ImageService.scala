@@ -48,38 +48,46 @@ object ImageService {
   ) =
     authenticationUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
-          import mat.executionContext
-          onSuccess(PImageManifest.findByImageIdAndReference(image.getId, reference)) {
-            case Some(im) ⇒
-              val (ct: ContentType, manifest: String) =
-                if (im.schemaVersion == 1) {
-                  val jb = SchemaV1Manifest.addSignature(im.schemaV1JsonBlob)
-                  (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
-                }
-                else reference match {
-                  case Reference.Tag(tag) if !v1ContentTypes.contains(req.entity.contentType) ⇒
-                    val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
+        optionalHeaderValueByType[Accept]() { acceptOpt ⇒
+          imageByNameWithAcl(imageName, user) { image ⇒
+            import mat.executionContext
+            onSuccess(PImageManifest.findByImageIdAndReference(image.getId, reference)) {
+              case Some(im) ⇒
+                val (ct: ContentType, manifest: String) =
+                  if (im.schemaVersion == 1) {
+                    val jb = SchemaV1Manifest.addSignature(im.schemaV1JsonBlob)
                     (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
-                  case _ ⇒
-                    (`application/vnd.docker.distribution.manifest.v2+json`, im.getSchemaV2JsonBlob)
+                  }
+                  else reference match {
+                    case Reference.Tag(tag) if !acceptOpt.exists(acceptIsAManifestV2) ⇒
+                      val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
+                      (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
+                    case _ ⇒
+                      (`application/vnd.docker.distribution.manifest.v2+json`, im.getSchemaV2JsonBlob)
+                  }
+                val headers = immutable.Seq(
+                  ETag(s"${MImageManifest.sha256Prefix}${im.sha256Digest}"),
+                  `Docker-Content-Digest`("sha256", im.sha256Digest)
+                )
+                respondWithHeaders(headers) {
+                  complete(HttpEntity(ct, ByteString(manifest)))
                 }
-              val headers = immutable.Seq(
-                ETag(s"${MImageManifest.sha256Prefix}${im.sha256Digest}"),
-                `Docker-Content-Digest`("sha256", im.sha256Digest)
-              )
-              respondWithHeaders(headers) {
-                complete(HttpEntity(ct, ByteString(manifest)))
-              }
-            case _ ⇒
-              complete(
-                StatusCodes.NotFound,
-                DistributionErrorResponse.from(DistributionError.ManifestUnknown())
-              )
+              case _ ⇒
+                complete(
+                  StatusCodes.NotFound,
+                  DistributionErrorResponse.from(DistributionError.ManifestUnknown())
+                )
+            }
           }
         }
       }
     }
+
+  private def acceptIsAManifestV2(header: Accept) = {
+    header.mediaRanges.exists { r ⇒
+      r.matches(MediaTypes.`application/vnd.docker.distribution.manifest.v2+json`)
+    }
+  }
 
   def uploadManifest(imageName: String, reference: Reference)(
     implicit
@@ -192,9 +200,4 @@ object ImageService {
         }
       }
     }
-
-  private val v1ContentTypes = Set[ContentType](
-    `application/vnd.docker.distribution.manifest.v1+json`,
-    `application/vnd.docker.distribution.manifest.v1+prettyjws`
-  )
 }
