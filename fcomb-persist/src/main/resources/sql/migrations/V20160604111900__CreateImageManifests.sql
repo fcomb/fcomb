@@ -1,6 +1,6 @@
-CREATE TABLE docker_distribution_image_manifests (
+CREATE TABLE dd_image_manifests (
   id serial primary key,
-  image_id integer not null references docker_distribution_images(id),
+  image_id integer not null references dd_images(id),
   sha256_digest varchar(64) not null,
   tags varchar(255)[] not null default array[]::varchar[],
   schema_version smallint not null,
@@ -14,4 +14,4 @@ CREATE TABLE docker_distribution_image_manifests (
   v2_json_blob text
 );
 
-CREATE UNIQUE INDEX on docker_distribution_image_manifests(image_id, sha256_digest);
+CREATE UNIQUE INDEX on dd_image_manifests(image_id, sha256_digest);

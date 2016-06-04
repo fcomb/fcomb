@@ -1,4 +1,4 @@
-CREATE TABLE docker_distribution_images (
+CREATE TABLE dd_images (
   id serial primary key,
   name varchar(256) not null,
   user_id integer not null references users(id),
@@ -6,4 +6,4 @@ CREATE TABLE docker_distribution_images (
   updated_at timestamp with time zone not null
 );
 
-CREATE UNIQUE INDEX ON docker_distribution_images (lower(name));
+CREATE UNIQUE INDEX ON dd_images (lower(name));
