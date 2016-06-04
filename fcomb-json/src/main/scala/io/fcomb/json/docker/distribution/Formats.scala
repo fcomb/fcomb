@@ -7,7 +7,6 @@ import io.circe.java8.time._
 import io.circe.parser._
 import io.circe.{Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printer, HCursor, KeyDecoder}
 import io.fcomb.models.docker.distribution._
-import io.fcomb.models.errors.ErrorKind
 import io.fcomb.models.errors.docker.distribution._
 import scala.collection.generic.CanBuildFrom
 
@@ -17,11 +16,6 @@ object Formats {
     dropNullKeys = true,
     indent = ""
   )
-
-  implicit final val encodeErrorKind = new Encoder[ErrorKind.ErrorKind] {
-    def apply(kind: ErrorKind.ErrorKind) =
-      Encoder[String].apply(kind.toString)
-  }
 
   implicit final val encodeDistributionError: Encoder[DistributionError] =
     Encoder.forProduct2("code", "message")(e ⇒ (e.code.entryName, e.message))

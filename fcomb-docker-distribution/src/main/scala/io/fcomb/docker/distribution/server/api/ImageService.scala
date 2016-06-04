@@ -11,21 +11,21 @@ import cats.data.Xor
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
-import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+json`, `application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
+import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.json.docker.distribution.Formats._
-import io.fcomb.models.docker.distribution.{Image ⇒ MImage, ImageManifest ⇒ MImageManifest, _}
+import io.fcomb.models.docker.distribution.{Image ⇒ Image, ImageManifest ⇒ ImageManifest, _}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
-import io.fcomb.models.{User ⇒ MUser}
-import io.fcomb.persist.docker.distribution.{Image ⇒ PImage, ImageManifest ⇒ PImageManifest}
+import io.fcomb.models.User
+import io.fcomb.persist.docker.distribution.{ImagesRepo, ImageManifestsRepo}
 import scala.collection.immutable
 
 import AuthenticationDirectives._
 
 trait ImageDirectives {
-  def imageByNameWithAcl(imageName: String, user: MUser): Directive1[MImage] = {
+  def imageByNameWithAcl(imageName: String, user: User): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec ⇒
-      onSuccess(PImage.findByImageAndUserId(imageName, user.getId)).flatMap {
+      onSuccess(ImagesRepo.findByImageAndUserId(imageName, user.getId)).flatMap {
         case Some(user) ⇒ provide(user)
         case None ⇒
           complete(
@@ -51,7 +51,7 @@ object ImageService {
         optionalHeaderValueByType[Accept]() { acceptOpt ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
             import mat.executionContext
-            onSuccess(PImageManifest.findByImageIdAndReference(image.getId, reference)) {
+            onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId, reference)) {
               case Some(im) ⇒
                 val (ct: ContentType, manifest: String) =
                   if (im.schemaVersion == 1) {
@@ -66,7 +66,7 @@ object ImageService {
                       (`application/vnd.docker.distribution.manifest.v2+json`, im.getSchemaV2JsonBlob)
                   }
                 val headers = immutable.Seq(
-                  ETag(s"${MImageManifest.sha256Prefix}${im.sha256Digest}"),
+                  ETag(s"${ImageManifest.sha256Prefix}${im.sha256Digest}"),
                   `Docker-Content-Digest`("sha256", im.sha256Digest)
                 )
                 respondWithHeaders(headers) {
@@ -142,7 +142,7 @@ object ImageService {
         imageByNameWithAcl(imageName, user) { image ⇒
           reference match {
             case Reference.Digest(digest) ⇒
-              onSuccess(PImageManifest.destroy(image.getId, digest)) { res ⇒
+              onSuccess(ImageManifestsRepo.destroy(image.getId, digest)) { res ⇒
                 if (res) complete(StatusCodes.Accepted, HttpEntity.Empty)
                 else complete(
                   StatusCodes.NotFound,
@@ -164,7 +164,7 @@ object ImageService {
       parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
         extractExecutionContext { implicit ec ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
-            onSuccess(PImageManifest.findTagsByImageId(image.getId, n, last)) {
+            onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId, n, last)) {
               (tags, limit, hasNext) ⇒
                 val headers =
                   if (hasNext) {
@@ -185,7 +185,7 @@ object ImageService {
     authenticationUserBasic { user ⇒
       parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
         extractExecutionContext { implicit ec ⇒
-          onSuccess(PImage.findRepositoriesByUserId(user.getId, n, last)) {
+          onSuccess(ImagesRepo.findRepositoriesByUserId(user.getId, n, last)) {
             (repositories, limit, hasNext) ⇒
               val headers =
                 if (hasNext) {

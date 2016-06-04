@@ -7,14 +7,14 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 
 trait AuthenticationDirectives {
-  import io.fcomb.persist.User
-  import io.fcomb.models.{User ⇒ MUser}
+  import io.fcomb.persist.UsersRepo
+  import io.fcomb.models.User
 
-  def authenticationUserBasic: Directive1[MUser] =
+  def authenticationUserBasic: Directive1[User] =
     extractExecutionContext.flatMap { implicit ec ⇒
       extractCredentials.flatMap {
         case Some(BasicHttpCredentials(username, password)) ⇒
-          onSuccess(User.matchByUsernameAndPassword(username, password)).flatMap {
+          onSuccess(UsersRepo.matchByUsernameAndPassword(username, password)).flatMap {
             case Some(user) ⇒ provide(user)
             case None       ⇒ reject(AuthorizationFailedRejection)
           }

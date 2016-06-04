@@ -4,7 +4,7 @@ import cats.data.{Xor, Validated}
 import cats.std.all._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob ⇒ MImageBlob}
+import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob}
 import io.fcomb.models.docker.distribution.ImageManifest.{emptyTarSha256Digest, emptyTar}
 import io.fcomb.persist._
 import io.fcomb.validations.eitherT
@@ -13,7 +13,7 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
-class ImageBlobTable(tag: Tag) extends Table[MImageBlob](tag, "dd_image_blobs")
+class ImageBlobTable(tag: Tag) extends Table[ImageBlob](tag, "dd_image_blobs")
     with PersistTableWithUuidPk {
   def imageId = column[Long]("image_id")
   def state = column[ImageBlobState]("state")
@@ -25,10 +25,10 @@ class ImageBlobTable(tag: Tag) extends Table[MImageBlob](tag, "dd_image_blobs")
 
   def * =
     (id, imageId, state, sha256Digest, contentType, length, createdAt, uploadedAt) <>
-      ((MImageBlob.apply _).tupled, MImageBlob.unapply)
+      ((ImageBlob.apply _).tupled, ImageBlob.unapply)
 }
 
-object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
+object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] {
   val table = TableQuery[ImageBlobTable]
 
   val `application/octet-stream` = "application/octet-stream"
@@ -41,18 +41,18 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   def mount(fromImageId: Long, toImageName: String, digest: String, userId: Long)(
     implicit
     ec: ExecutionContext
-  ): Future[Option[MImageBlob]] =
+  ): Future[Option[ImageBlob]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
       (for {
         blob ← findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption
-        toImageId ← Image.findIdOrCreateByNameDBIO(toImageName, userId)
+        toImageId ← ImagesRepo.findIdOrCreateByNameDBIO(toImageName, userId)
       } yield (blob, toImageId)).flatMap {
         case (Some(blob), Validated.Valid(toImageId)) ⇒
           findByImageIdAndDigestCompiled((toImageId, digest)).result.headOption.flatMap {
             case Some(b) ⇒ DBIO.successful(Some(b))
             case None ⇒
               val timeNow = ZonedDateTime.now()
-              createDBIO(MImageBlob(
+              createDBIO(ImageBlob(
                 id = Some(UUID.randomUUID()),
                 state = ImageBlobState.Uploaded,
                 imageId = toImageId,
@@ -71,7 +71,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
     implicit
     ec: ExecutionContext
   ) =
-    super.create(MImageBlob(
+    super.create(ImageBlob(
       id = Some(UUID.randomUUID()),
       state = ImageBlobState.Created,
       imageId = imageId,
@@ -86,10 +86,10 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
   def createByImageName(name: String, userId: Long, contentType: String)(
     implicit
     ec: ExecutionContext,
-    m:  Manifest[MImageBlob]
+    m:  Manifest[ImageBlob]
   ): Future[ValidationModel] =
     (for {
-      imageId ← eitherT(Image.findIdOrCreateByName(name, userId))
+      imageId ← eitherT(ImagesRepo.findIdOrCreateByName(name, userId))
       blob ← eitherT(create(imageId, contentType))
     } yield blob).toValidated
 
@@ -218,7 +218,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
         .flatMap {
           case Some(_) ⇒ DBIO.successful(())
           case None ⇒
-            val blob = MImageBlob(
+            val blob = ImageBlob(
               id = Some(UUID.randomUUID()),
               state = ImageBlobState.Uploaded,
               imageId = imageId,
@@ -235,7 +235,7 @@ object ImageBlob extends PersistModelWithUuidPk[MImageBlob, ImageBlobTable] {
 
   def tryDestroy(id: UUID)(implicit ec: ExecutionContext): Future[Xor[String, Unit]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
-      ImageManifestLayer.isBlobLinkedCompiled(id).result.flatMap {
+      ImageManifestLayersRepo.isBlobLinkedCompiled(id).result.flatMap {
         case true  ⇒ DBIO.successful(Xor.left("blob is linked with manifest"))
         case false ⇒ findByPkQuery(id).delete.map(_ ⇒ Xor.right(()))
       }

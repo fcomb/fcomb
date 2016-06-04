@@ -49,7 +49,7 @@ object Fixtures {
 
   object docker {
     object distribution {
-      import M.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageManifest ⇒ MImageManifest, _}
+      import M.docker.distribution.{ImageBlob ⇒ ImageBlob, ImageManifest ⇒ ImageManifest, _}
 
       object Image {
         def create(userId: Long, imageName: String)(implicit ec: ExecutionContext) =
@@ -65,7 +65,7 @@ object Fixtures {
           (for {
             imageId ← Image.create(userId, imageName)
             id = UUID.randomUUID()
-            blob = MImageBlob(
+            blob = ImageBlob(
               id = Some(id),
               state = ImageBlobState.Created,
               imageId = imageId,
@@ -89,7 +89,7 @@ object Fixtures {
             imageId ← Image.create(userId, imageName)
             id = UUID.randomUUID()
             digest = digestOpt.getOrElse(DigestUtils.sha256Hex(bs.toArray))
-            blob = MImageBlob(
+            blob = ImageBlob(
               id = Some(id),
               state = state,
               imageId = imageId,
@@ -111,9 +111,9 @@ object Fixtures {
         def createV1(
           userId:    Long,
           imageName: String,
-          blob:      MImageBlob,
+          blob:      ImageBlob,
           tag:       String
-        )(implicit ec: ExecutionContext): Future[MImageManifest] = {
+        )(implicit ec: ExecutionContext): Future[ImageManifest] = {
           val schemaV1JsonBlob = getSchemaV1JsonBlob(imageName, tag, blob)
           val sha256Digest = DigestUtils.sha256Hex(schemaV1JsonBlob)
           val manifest = SchemaV1.Manifest(
@@ -135,7 +135,7 @@ object Fixtures {
           } yield im
         }
 
-        private def getSchemaV1JsonBlob(imageName: String, tag: String, blob: MImageBlob) = {
+        private def getSchemaV1JsonBlob(imageName: String, tag: String, blob: ImageBlob) = {
           val Xor.Right(jsonBlob) = parse(s"""
           {
             "name": "$imageName",
@@ -156,9 +156,9 @@ object Fixtures {
         def createV2(
           userId:    Long,
           imageName: String,
-          blob:      MImageBlob,
+          blob:      ImageBlob,
           tags:      List[String]
-        )(implicit ec: ExecutionContext): Future[MImageManifest] = {
+        )(implicit ec: ExecutionContext): Future[ImageManifest] = {
           val schemaV1JsonBlob = getSchemaV1JsonBlob(imageName, tags.headOption.getOrElse(""), blob)
           val schemaV2JsonBlob = s"""
           {

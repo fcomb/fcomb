@@ -9,8 +9,8 @@ import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.utils.BlobFile
 import io.fcomb.models.docker.distribution.{ImageBlobState, Reference}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
-import io.fcomb.models.{User ⇒ MUser}
-import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob}
+import io.fcomb.models.User
+import io.fcomb.persist.docker.distribution.ImageBlobsRepo
 import java.util.UUID
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
@@ -56,13 +56,13 @@ object ImageBlobUploadService {
       }
     }
 
-  private def createImageBlobUpload(user: MUser, imageName: String)(
+  private def createImageBlobUpload(user: User, imageName: String)(
     implicit
     ec:  ExecutionContext,
     req: HttpRequest
   ): Route = {
     val contentType = req.entity.contentType.mediaType.value
-    onSuccess(PImageBlob.createByImageName(imageName, user.getId, contentType)) {
+    onSuccess(ImageBlobsRepo.createByImageName(imageName, user.getId, contentType)) {
       case Validated.Valid(blob) ⇒
         val uuid = blob.getId
         val headers = immutable.Seq(
@@ -78,13 +78,13 @@ object ImageBlobUploadService {
     }
   }
 
-  private def mountImageBlob(user: MUser, imageName: String, digest: String, from: String)(
+  private def mountImageBlob(user: User, imageName: String, digest: String, from: String)(
     implicit
     ec:  ExecutionContext,
     req: HttpRequest
   ): Route = {
     imageByNameWithAcl(from, user) { fromImage ⇒
-      onSuccess(PImageBlob.mount(fromImage.getId, imageName, Reference.getDigest(digest), user.getId)) {
+      onSuccess(ImageBlobsRepo.mount(fromImage.getId, imageName, Reference.getDigest(digest), user.getId)) {
         case Some(blob) ⇒
           val sha256Digest = blob.sha256Digest.get
           val headers = immutable.Seq(
@@ -99,7 +99,7 @@ object ImageBlobUploadService {
     }
   }
 
-  private def createImageBlob(user: MUser, imageName: String, digest: String)(
+  private def createImageBlob(user: User, imageName: String, digest: String)(
     implicit
     req: HttpRequest
   ): Route =
@@ -107,9 +107,9 @@ object ImageBlobUploadService {
       import mat.executionContext
       val contentType = req.entity.contentType.mediaType.value
       onSuccess(for {
-        Validated.Valid(blob) ← PImageBlob.createByImageName(imageName, user.getId, contentType)
+        Validated.Valid(blob) ← ImageBlobsRepo.createByImageName(imageName, user.getId, contentType)
         (length, sha256Digest) ← BlobFile.uploadBlob(blob.getId, req.entity.dataBytes)
-        _ ← PImageBlob.completeUploadOrDelete(blob.getId, blob.imageId, length, sha256Digest)
+        _ ← ImageBlobsRepo.completeUploadOrDelete(blob.getId, blob.imageId, length, sha256Digest)
       } yield (blob, sha256Digest)) {
         case (blob, sha256Digest) ⇒
           val uuid = blob.getId
@@ -129,7 +129,7 @@ object ImageBlobUploadService {
             val res =
               for {
                 _ ← BlobFile.destroyBlob(uuid)
-                _ ← PImageBlob.destroy(uuid)
+                _ ← ImageBlobsRepo.destroy(uuid)
               } yield ()
             onSuccess(res) {
               complete(
@@ -150,7 +150,7 @@ object ImageBlobUploadService {
         optionalHeaderValueByType[`Content-Range`]() { rangeOpt ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
             import mat.executionContext
-            onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
+            onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId, uuid)) {
               case Some(blob) if !blob.isUploaded ⇒
                 val (rangeFrom, rangeTo) = rangeOpt match {
                   case Some(r) ⇒
@@ -184,7 +184,7 @@ object ImageBlobUploadService {
                     for {
                       (length, digest) ← BlobFile.uploadBlobChunk(uuid, data)
                       totalLength = blob.length + length
-                      _ ← PImageBlob.updateState(uuid, totalLength, digest, ImageBlobState.Uploading)
+                      _ ← ImageBlobsRepo.updateState(uuid, totalLength, digest, ImageBlobState.Uploading)
                     } yield totalLength
                   onSuccess(totalLengthFut) { totalLength ⇒
                     val headers = immutable.Seq(
@@ -217,7 +217,7 @@ object ImageBlobUploadService {
         extractMaterializer { implicit mat ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
             import mat.executionContext
-            onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
+            onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId, uuid)) {
               case Some(blob) if !blob.isUploaded ⇒
                 val uploadResFut =
                   if (blob.isCreated) BlobFile.uploadBlob(uuid, req.entity.dataBytes)
@@ -233,7 +233,7 @@ object ImageBlobUploadService {
                         )
                         for {
                           _ ← BlobFile.renameOrDelete(uuid, sha256Digest)
-                          _ ← PImageBlob.completeUploadOrDelete(uuid, blob.imageId, length, sha256Digest)
+                          _ ← ImageBlobsRepo.completeUploadOrDelete(uuid, blob.imageId, length, sha256Digest)
                         } yield HttpResponse(StatusCodes.Created, headers)
                       }
                       else {
@@ -258,11 +258,11 @@ object ImageBlobUploadService {
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
-          onSuccess(PImageBlob.findByImageIdAndUuid(image.getId, uuid)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId, uuid)) {
             case Some(blob) if !blob.isUploaded ⇒
               complete(for {
                 _ ← BlobFile.destroyBlob(blob.getId)
-                _ ← PImageBlob.destroy(uuid)
+                _ ← ImageBlobsRepo.destroy(uuid)
               } yield HttpResponse(StatusCodes.NoContent))
             case _ ⇒
               complete(

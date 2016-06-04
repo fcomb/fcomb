@@ -4,7 +4,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters, FileIO}
 import akka.util.ByteString
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
-import io.fcomb.models.docker.distribution.{ImageBlob ⇒ MImageBlob, ImageManifest ⇒ MImageManifest}
+import io.fcomb.models.docker.distribution.{ImageBlob ⇒ ImageBlob, ImageManifest ⇒ ImageManifest}
 import io.fcomb.utils.{Config, StringUtils}
 import java.io.File
 import java.nio.file.Files
@@ -34,7 +34,7 @@ object BlobFile {
   private def imageFilePath(path: String, name: String): File =
     new File(s"${Config.docker.distribution.imageStorage}/$path/${name.take(2)}/$name")
 
-  def getFile(blob: MImageBlob): File = {
+  def getFile(blob: ImageBlob): File = {
     blob.sha256Digest match {
       case Some(digest) if blob.isUploaded ⇒ getBlobFilePath(digest)
       case _                               ⇒ getUploadFilePath(blob.getId)
@@ -46,7 +46,7 @@ object BlobFile {
     ec: ExecutionContext
   ): Future[Unit] =
     Future(blocking {
-      if (digest == MImageManifest.emptyTarSha256Digest) file.delete()
+      if (digest == ImageManifest.emptyTarSha256Digest) file.delete()
       else {
         val newFile = getBlobFilePath(digest)
         if (!newFile.exists()) {

@@ -4,7 +4,7 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.{Image ⇒ MImage}
+import io.fcomb.models.docker.distribution.Image
 import io.fcomb.persist._
 import io.fcomb.validations._
 import java.time.ZonedDateTime
@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
 class ImageTable(tag: Tag)
-    extends Table[MImage](tag, "dd_images")
+    extends Table[Image](tag, "dd_images")
     with PersistTableWithAutoLongPk {
   def name = column[String]("name")
   def userId = column[Long]("user_id")
@@ -21,10 +21,10 @@ class ImageTable(tag: Tag)
 
   def * =
     (id, name, userId, createdAt, updatedAt) <>
-      ((MImage.apply _).tupled, MImage.unapply)
+      ((Image.apply _).tupled, Image.unapply)
 }
 
-object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
+object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
   val table = TableQuery[ImageTable]
 
   private val findIdByNameCompiled = Compiled { name: Rep[String] ⇒
@@ -66,7 +66,7 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
         case None ⇒
           val timeNow = ZonedDateTime.now
           createWithValidationDBIO(
-            MImage(
+            Image(
               name = name,
               userId = userId,
               createdAt = timeNow,
@@ -139,14 +139,14 @@ object Image extends PersistModelWithAutoLongPk[MImage, ImageTable] {
 
   import Validations._
 
-  override def validate(i: MImage)(
+  override def validate(i: Image)(
     implicit
     ec: ExecutionContext
   ): ValidationDBIOResult = {
     val plainValidations = validatePlain(
       "name" → List(
         lengthRange(i.name, 1, 255),
-        matches(i.name, MImage.nameRegEx, "Invalid name format")
+        matches(i.name, Image.nameRegEx, "Invalid name format")
       )
     )
     val dbioValidations = validateDBIO(

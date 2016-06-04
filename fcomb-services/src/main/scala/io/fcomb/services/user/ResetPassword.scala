@@ -2,8 +2,7 @@ package io.fcomb.services.user
 
 import io.fcomb.Db.redis
 import io.fcomb.services.Mandrill
-import io.fcomb.models
-import io.fcomb.persist
+import io.fcomb.persist.UsersRepo
 import io.fcomb.templates
 import io.fcomb.validations.ValidationResultUnit
 import io.fcomb.utils.Random
@@ -14,7 +13,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import cats.data.Validated
 import java.time.LocalDateTime
-import java.util.UUID
 import redis._
 
 object ResetPassword {
@@ -26,7 +24,7 @@ object ResetPassword {
     sys: ActorSystem,
     mat: Materializer
   ): Future[ValidationResultUnit] = {
-    persist.User.findByEmail(email).flatMap {
+    UsersRepo.findByEmail(email).flatMap {
       case Some(user) ⇒
         val token = Random.random.alphanumeric.take(42).mkString
         val date = LocalDateTime.now.plusSeconds(ttl.get)
@@ -43,7 +41,7 @@ object ResetPassword {
             .map(_ ⇒ Validated.Valid(()))
         }
       case None ⇒
-        persist.User.validationErrorAsFuture("email", "not found")
+        UsersRepo.validationErrorAsFuture("email", "not found")
     }
   }
 
@@ -53,21 +51,21 @@ object ResetPassword {
     mat: Materializer
   ): Future[ValidationResultUnit] = {
     val key = s"$prefix$token"
-    persist.User.validatePassword(password) match {
+    UsersRepo.validatePassword(password) match {
       case Validated.Valid(_) ⇒
         redis.get(key).flatMap {
           case Some(id) ⇒
             val updateF =
-              persist.User.updatePassword(id.utf8String.toLong, password).map {
+              UsersRepo.updatePassword(id.utf8String.toLong, password).map {
                 case true  ⇒ Validated.Valid(())
-                case false ⇒ persist.User.validationError("id", "not found")
+                case false ⇒ UsersRepo.validationError("id", "not found")
               }
             for {
               res ← updateF
               _ ← redis.del(key)
             } yield res
           case _ ⇒
-            persist.User.validationErrorAsFuture("token", "not found")
+            UsersRepo.validationErrorAsFuture("token", "not found")
         }
       case e @ Validated.Invalid(_) ⇒ FastFuture.successful(e)
     }

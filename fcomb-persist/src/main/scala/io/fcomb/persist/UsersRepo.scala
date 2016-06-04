@@ -3,17 +3,15 @@ package io.fcomb.persist
 import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models
+import io.fcomb.models.User
 import io.fcomb.validations._
 import java.time.ZonedDateTime
-import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import cats.data.Validated
-import slick.jdbc.GetResult
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 
 class UserTable(tag: Tag)
-    extends Table[models.User](tag, "users")
+    extends Table[User](tag, "users")
     with PersistTableWithAutoLongPk {
   def email = column[String]("email")
   def username = column[String]("username")
@@ -24,15 +22,11 @@ class UserTable(tag: Tag)
 
   def * =
     (id, email, username, fullName, passwordHash, createdAt, updatedAt) <>
-      ((models.User.apply _).tupled, models.User.unapply)
+      ((User.apply _).tupled, User.unapply)
 }
 
-object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
+object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
   val table = TableQuery[UserTable]
-
-  // TODO: for test only!!!
-  def first() =
-    db.run(table.take(1).result.head)
 
   def create(
     email:    String,
@@ -42,7 +36,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = ZonedDateTime.now()
     val user = mapModel(
-      models.User(
+      User(
         email = email,
         username = username,
         fullName = fullName,
@@ -53,15 +47,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     )
     validateThenApply(validate(userValidation(user, Some(password)))) {
       createDBIO(user)
-    }.flatMap(createCallbacks)
-  }
-
-  private def createCallbacks(res: ValidationModel)(
-    implicit
-    ec: ExecutionContext
-  ) = res match {
-    case s @ Validated.Valid(u)   ⇒ UserToken.createDefaults(u.getId).map(_ ⇒ s)
-    case e @ Validated.Invalid(_) ⇒ FastFuture.successful(e)
+    }
   }
 
   def updateByRequest(id: Long)(
@@ -98,7 +84,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
   }
 
   def changePassword(
-    user:        models.User,
+    user:        User,
     oldPassword: String,
     newPassword: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
@@ -109,22 +95,6 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     else
       validationErrorAsFuture("password", "doesn't match")
   }
-
-  private val findByTokenCompiled = Compiled {
-    (token: Rep[String], role: Rep[models.TokenRole.TokenRole]) ⇒
-      table
-        .joinLeft(UserToken.table)
-        .on(_.id === _.userId)
-        .filter { q ⇒
-          q._2.map(_.token) === token && q._2.map(_.role) === role &&
-            q._2.map(_.state) === models.TokenState.Enabled
-        }
-        .map(_._1)
-        .take(1)
-  }
-
-  def findByToken(token: String, role: models.TokenRole.TokenRole) =
-    db.run(findByTokenCompiled(token, role).result.headOption)
 
   private val findByEmailCompiled = Compiled { email: Rep[String] ⇒
     table.filter(_.email === email).take(1)
@@ -140,7 +110,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
   def matchByUsernameAndPassword(username: String, password: String)(
     implicit
     ec: ExecutionContext
-  ): Future[Option[models.User]] = {
+  ): Future[Option[User]] = {
     val un = username.toLowerCase
     val q =
       if (un.indexOf('@') == -1) findByUsernameCompiled(un)
@@ -169,7 +139,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     )
 
   def userValidation(
-    user:        models.User,
+    user:        User,
     passwordOpt: Option[String]
   )(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(
@@ -193,7 +163,7 @@ object User extends PersistModelWithAutoLongPk[models.User, UserTable] {
     }
   }
 
-  override def validate(user: models.User)(
+  override def validate(user: User)(
     implicit
     ec: ExecutionContext
   ): ValidationDBIOResult =

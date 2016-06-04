@@ -10,9 +10,9 @@ import akka.util.ByteString
 import cats.data.Xor
 import io.fcomb.docker.distribution.server.api.headers._
 import io.fcomb.docker.distribution.server.utils.BlobFile
-import io.fcomb.models.docker.distribution.{ImageManifest ⇒ MImageManifest, _}
+import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
-import io.fcomb.persist.docker.distribution.{ImageBlob ⇒ PImageBlob}
+import io.fcomb.persist.docker.distribution.ImageBlobsRepo
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
@@ -33,7 +33,7 @@ object ImageBlobService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
-          onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) if blob.isUploaded ⇒
               complete(
                 HttpResponse(
@@ -54,7 +54,7 @@ object ImageBlobService {
     }
 
   private val emptyTarSource =
-    Source.single(ByteString(MImageManifest.emptyTar))
+    Source.single(ByteString(ImageManifest.emptyTar))
 
   def downloadBlob(imageName: String, digest: String)(
     implicit
@@ -65,7 +65,7 @@ object ImageBlobService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
-          onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) if blob.isUploaded ⇒
               val ct = contentType(blob.contentType)
               optionalHeaderValueByType[Range]() {
@@ -80,8 +80,8 @@ object ImageBlobService {
                     `Accept-Ranges`(RangeUnits.Bytes)
                   )
                   val source =
-                    if (digest == MImageManifest.emptyTarSha256Digest)
-                      Source.single(ByteString(MImageManifest.emptyTar
+                    if (digest == ImageManifest.emptyTarSha256Digest)
+                      Source.single(ByteString(ImageManifest.emptyTar
                         .drop(offset.toInt)
                         .take(chunkLength.toInt)))
                     else BlobFile.streamBlob(sha256Digest, offset, chunkLength)
@@ -102,7 +102,7 @@ object ImageBlobService {
                         cacheHeader
                       )
                       val source =
-                        if (digest == MImageManifest.emptyTarSha256Digest) emptyTarSource
+                        if (digest == ImageManifest.emptyTarSha256Digest) emptyTarSource
                         else FileIO.fromPath(BlobFile.getFile(blob).toPath)
                       complete(HttpResponse(
                         StatusCodes.OK,
@@ -123,12 +123,12 @@ object ImageBlobService {
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
-          onSuccess(PImageBlob.findByImageIdAndDigest(image.getId, sha256Digest)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) if blob.isUploaded ⇒
               val res =
-                PImageBlob.tryDestroy(blob.getId).flatMap {
+                ImageBlobsRepo.tryDestroy(blob.getId).flatMap {
                   case Xor.Right(_) ⇒
-                    PImageBlob.existByDigest(digest)
+                    ImageBlobsRepo.existByDigest(digest)
                       .flatMap {
                         case false ⇒ BlobFile.destroyBlob(blob.getId)
                         case true  ⇒ FastFuture.successful(())

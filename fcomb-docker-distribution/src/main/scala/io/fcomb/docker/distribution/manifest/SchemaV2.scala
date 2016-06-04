@@ -5,10 +5,10 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{FileIO, Sink}
 import cats.data.{Validated, Xor}
 import io.fcomb.models.docker.distribution.SchemaV2.{Manifest ⇒ ManifestV2}
-import io.fcomb.models.docker.distribution.{Reference, Image ⇒ MImage}
+import io.fcomb.models.docker.distribution.{Reference, Image ⇒ Image}
 import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
-import io.fcomb.persist.docker.distribution.{ImageManifest ⇒ PImageManifest, ImageBlob ⇒ PImageBlob}
+import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImageBlobsRepo}
 import io.fcomb.docker.distribution.server.utils.BlobFile
 import io.fcomb.utils.Units._
 import org.apache.commons.codec.digest.DigestUtils
@@ -16,20 +16,20 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object SchemaV2 {
   def upsertAsImageManifest(
-    image:       MImage,
+    image:       Image,
     reference:   Reference,
     manifest:    ManifestV2,
     rawManifest: String
   )(implicit ec: ExecutionContext, mat: Materializer): Future[Xor[DistributionError, String]] = {
     val sha256Digest = DigestUtils.sha256Hex(rawManifest)
-    PImageManifest.findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
+    ImageManifestsRepo.findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
       case Some(im) ⇒
-        PImageManifest.updateTagsByReference(im, reference)
+        ImageManifestsRepo.updateTagsByReference(im, reference)
           .fast
           .map(_ ⇒ Xor.right(im.sha256Digest))
       case None ⇒
         val configDigest = manifest.config.getDigest
-        PImageBlob.findByImageIdAndDigest(image.getId, configDigest).flatMap {
+        ImageBlobsRepo.findByImageIdAndDigest(image.getId, configDigest).flatMap {
           case Some(configBlob) ⇒
             if (configBlob.length > 1.MB)
               FastFuture.successful(unknowError("Config JSON size is more than 1 MB"))
@@ -38,7 +38,7 @@ object SchemaV2 {
               getImageConfig(configFile).flatMap { imageConfig ⇒
                 SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
                   case Xor.Right(schemaV1JsonBlob) ⇒
-                    PImageManifest.upsertSchemaV2(image, manifest, reference, configBlob,
+                    ImageManifestsRepo.upsertSchemaV2(image, manifest, reference, configBlob,
                       schemaV1JsonBlob, rawManifest, sha256Digest)
                       .fast
                       .map {

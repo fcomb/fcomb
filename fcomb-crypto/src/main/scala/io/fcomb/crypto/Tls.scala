@@ -3,7 +3,7 @@ package io.fcomb.crypto
 import java.io.ByteArrayInputStream
 import java.nio.file.{Files, Path}
 import java.security.{KeyFactory, KeyStore, SecureRandom}
-import java.security.cert.{Certificate, CertificateFactory}
+import java.security.cert.{Certificate ⇒ JavaCertificate, CertificateFactory}
 import java.security.spec.PKCS8EncodedKeySpec
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 
@@ -13,7 +13,7 @@ object Tls {
     cert: Array[Byte],
     ca:   Option[Array[Byte]]
   ): SSLContext = {
-    def certificate(bytes: Array[Byte]): Certificate = {
+    def certificate(bytes: Array[Byte]): JavaCertificate = {
       val is = new ByteArrayInputStream(bytes)
       try CertificateFactory.getInstance("X.509").generateCertificate(is) finally is
         .close()

@@ -8,7 +8,6 @@ import com.typesafe.sbt.SbtAspectj, SbtAspectj.AspectjKeys
 import play.twirl.sbt._, Import._
 import com.sksamuel.scapegoat.sbt.ScapegoatSbtPlugin.autoImport.scapegoatVersion
 import net.virtualvoid.sbt.graph.DependencyGraphSettings
-// import io.ino.sbtpillar.Plugin.PillarKeys._
 import org.scalafmt.sbt.ScalaFmtPlugin.autoImport.scalafmtConfig
 import scalariform.formatter.preferences._
 import com.typesafe.sbt.SbtScalariform
@@ -134,7 +133,7 @@ object Build extends sbt.Build {
           fork in run := true,
           fork in reStart := true
         )
-  ).dependsOn(api/*, proxy*/, dockerDistribution)
+  ).dependsOn(api, dockerDistribution)
     .enablePlugins(SbtNativePackager)
     .aggregate(tests)
 
@@ -162,49 +161,19 @@ object Build extends sbt.Build {
      )
   ).dependsOn(json)
 
-  lazy val macros = Project(
-     id = "macros",
-     base = file("fcomb-macros"),
-     settings = defaultSettings ++ Seq(
-       libraryDependencies ++= Dependencies.macros
-     )
-  )
-
   lazy val persist = Project(
      id = "persist",
      base = file("fcomb-persist"),
-     settings = defaultSettings ++ /*pillarSettings ++*/ Seq(
-       libraryDependencies ++= Dependencies.persist // ,
-       // pillarConfigFile := file("conf/application.conf"),
-       // pillarConfigKey := "cassandra.url",
-       // pillarReplicationStrategyConfigKey := "cassandra.replicationStrategy",
-       // pillarReplicationFactorConfigKey := "cassandra.replicationFactor",
-       // pillarDefaultConsistencyLevelConfigKey := "cassandra.defaultConsistencyLevel",
-       // pillarMigrationsDir := file("conf/migrations")
+     settings = defaultSettings ++ Seq(
+       libraryDependencies ++= Dependencies.persist
      )
-  ).dependsOn(macros, models, utils, validations)
+  ).dependsOn(models, utils, validations)
 
   lazy val json = Project(
     id = "json",
     base = file("fcomb-json"),
     settings = defaultSettings ++ Seq(
       libraryDependencies ++= Dependencies.json
-    )
-  ).dependsOn(models, request, response)
-
-  lazy val request = Project(
-    id = "request",
-    base = file("fcomb-request"),
-    settings = defaultSettings ++ Seq(
-      libraryDependencies ++= Dependencies.request
-    )
-  ).dependsOn(models)
-
-  lazy val response = Project(
-    id = "response",
-    base = file("fcomb-response"),
-    settings = defaultSettings ++ Seq(
-      libraryDependencies ++= Dependencies.response
     )
   ).dependsOn(models)
 
@@ -222,7 +191,7 @@ object Build extends sbt.Build {
     settings = defaultSettings ++ Seq(
       libraryDependencies ++= Dependencies.services
     )
-  ).dependsOn(persist, utils, docker, crypto, templates)
+  ).dependsOn(persist, utils, crypto, templates)
 
   lazy val templates = Project(
     id = "templates",
@@ -238,24 +207,6 @@ object Build extends sbt.Build {
   private def getJamm = update map { report =>
     report.matching(moduleFilter(organization = "com.github.jbellis", name = "jamm")).headOption
   }
-
-  lazy val proxy = Project(
-    id = "proxy",
-    base = file("fcomb-proxy"),
-    settings =
-      defaultSettings ++ Seq(
-        libraryDependencies ++= Dependencies.proxy
-      )
-  ).dependsOn(persist)
-
-  lazy val docker = Project(
-    id = "docker",
-    base = file("fcomb-docker"),
-    settings =
-      defaultSettings ++ Seq(
-        libraryDependencies ++= Dependencies.docker
-      )
-  ).dependsOn(json, utils, crypto)
 
   lazy val dockerDistribution = Project(
     id = "docker-distribution",

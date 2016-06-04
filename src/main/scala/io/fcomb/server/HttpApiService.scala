@@ -7,19 +7,34 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
-import io.fcomb.api.services.ServiceExceptionMethods
 import io.fcomb.json.errors._
 import io.fcomb.models.errors._
 import org.slf4j.LoggerFactory
 import spray.json._
 
 class HttpApiService(routes: Route)(
-  implicit
-  sys: ActorSystem,
-  mat: Materializer
-)
-    extends ServiceExceptionMethods {
+    implicit
+    sys: ActorSystem,
+    mat: Materializer
+) {
   private val logger = LoggerFactory.getLogger(this.getClass)
+
+  private def mapThrowable(e: Throwable) = {
+    e.printStackTrace() // TODO: debug only
+    e match {
+      case _: DeserializationException | _: ParsingException |
+        _: Unmarshaller.UnsupportedContentTypeException ⇒
+        (
+          InternalException(e.getMessage),
+          StatusCodes.UnprocessableEntity
+        )
+      case _ ⇒
+        (
+          InternalException(e.getMessage),
+          StatusCodes.InternalServerError
+        )
+    }
+  }
 
   private def errorResponse[T <: DtCemException](
     error:  T,

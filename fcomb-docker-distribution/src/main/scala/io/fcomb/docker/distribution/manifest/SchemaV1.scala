@@ -9,9 +9,9 @@ import io.fcomb.crypto.Jws
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest ⇒ ManifestV1, _}
 import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest ⇒ ManifestV2}
-import io.fcomb.models.docker.distribution.{Reference, ImageManifest ⇒ MImageManifest, Image ⇒ MImage}, MImageManifest.sha256Prefix
+import io.fcomb.models.docker.distribution.{Reference, ImageManifest ⇒ ImageManifest, Image ⇒ Image}, ImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
-import io.fcomb.persist.docker.distribution.{ImageManifest ⇒ PImageManifest}
+import io.fcomb.persist.docker.distribution.ImageManifestsRepo
 import io.fcomb.utils.StringUtils
 import java.time.ZonedDateTime
 import org.apache.commons.codec.digest.DigestUtils
@@ -20,14 +20,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object SchemaV1 {
   def upsertAsImageManifest(
-    image:       MImage,
+    image:       Image,
     reference:   Reference,
     manifest:    ManifestV1,
     rawManifest: String
   )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] = {
     verify(manifest, rawManifest) match {
       case Xor.Right((schemaV1JsonBlob, sha256Digest)) ⇒
-        PImageManifest.upsertSchemaV1(image, manifest, schemaV1JsonBlob, sha256Digest)
+        ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, sha256Digest)
           .fast
           .map {
             case Validated.Valid(_)   ⇒ Xor.right(sha256Digest)
@@ -72,7 +72,7 @@ object SchemaV1 {
   }
 
   def convertFromSchemaV2(
-    image:       MImage,
+    image:       Image,
     manifest:    ManifestV2,
     imageConfig: String
   ): Xor[String, String] = {
@@ -89,7 +89,7 @@ object SchemaV1 {
             imgConfig.history.init.foldLeft(("", manifest.layers, List.empty[Layer], List.empty[FsLayer])) {
               case ((parentId, layers, historyList, fsLayersList), img) ⇒
                 val (blobSum, layersTail) =
-                  if (img.isEmptyLayer) (MImageManifest.emptyTarSha256DigestFull, layers)
+                  if (img.isEmptyLayer) (ImageManifest.emptyTarSha256DigestFull, layers)
                   else {
                     val head = layers.headOption.map(_.getDigest).getOrElse("")
                     (head, layers.tail)
@@ -116,7 +116,7 @@ object SchemaV1 {
           val (configHistory, configFsLayer) = {
             val isEmptyLayer = imgConfig.history.last.isEmptyLayer
             val blobSum =
-              if (isEmptyLayer) MImageManifest.emptyTarSha256DigestFull
+              if (isEmptyLayer) ImageManifest.emptyTarSha256DigestFull
               else remainLayers.headOption.map(_.getDigest).getOrElse("")
             val v1Id = DigestUtils.sha256Hex(s"$blobSum $lastParentId $imgConfig")
             val parent =
