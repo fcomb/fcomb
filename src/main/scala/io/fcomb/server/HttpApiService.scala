@@ -7,23 +7,24 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
-import io.fcomb.json.errors._
 import io.fcomb.models.errors._
 import org.slf4j.LoggerFactory
-import spray.json._
+import io.circe.generic.auto._
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
 
 class HttpApiService(routes: Route)(
     implicit
     sys: ActorSystem,
     mat: Materializer
 ) {
+  import sys.dispatcher
+
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   private def mapThrowable(e: Throwable) = {
     e.printStackTrace() // TODO: debug only
     e match {
-      case _: DeserializationException | _: ParsingException |
-        _: Unmarshaller.UnsupportedContentTypeException ⇒
+      case _: ParsingException | _: Unmarshaller.UnsupportedContentTypeException ⇒
         (
           InternalException(e.getMessage),
           StatusCodes.UnprocessableEntity
@@ -40,16 +41,7 @@ class HttpApiService(routes: Route)(
     error:  T,
     status: StatusCode
   ) = {
-    val e = FailureResponse.fromException(error)
-    complete(
-      HttpResponse(
-        status = status,
-        entity = HttpEntity(
-          ContentTypes.`application/json`,
-          e.toJson.compactPrint
-        )
-      )
-    )
+    complete(status, FailureResponse.fromException(error))
   }
 
   private def handleException(e: Throwable) =

@@ -15,7 +15,7 @@ import com.typesafe.sbt.SbtScalariform.ScalariformKeys
 
 object Build extends sbt.Build {
   val Organization = "io.fcomb"
-  val Version = "0.4.0-SNAPSHOT"
+  val Version = "0.9.0-SNAPSHOT"
   val ScalaVersion = "2.11.8"
 
   lazy val buildSettings =

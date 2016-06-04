@@ -25,8 +25,6 @@ object Dependencies {
     val akkaStream      = "com.typesafe.akka"             %% "akka-stream"                   % V.akka
     val akkaHttpCore    = "com.typesafe.akka"             %% "akka-http-core"                % V.akka
     val akkaHttp        = "com.typesafe.akka"             %% "akka-http-experimental"        % V.akka
-    val akkaHttpSwagger = "com.github.swagger-akka-http"  %% "swagger-akka-http"             % "0.6.2"
-    val akkaHttpSprayJson = "com.typesafe.akka"           %% "akka-http-spray-json-experimental" % V.akka
     val akkaHttpCirceJson = "de.heikoseeberger"           %% "akka-http-circe"               % "1.6.0"
     val akkaSlf4j       = "com.typesafe.akka"             %% "akka-slf4j"                    % V.akka
     val akkaPersistence = "com.typesafe.akka"             %% "akka-persistence"              % V.akka
@@ -58,7 +56,6 @@ object Dependencies {
     // "com.github.romix.akka" %% "akka-kryo-serialization" % "0.3.3"
 
     // val upickle         = "com.lihaoyi"                   %% "upickle"                       % "0.3.5"
-    val sprayJson       = "io.spray"                      %% "spray-json"                    % "1.3.2"
     val circeCore       = "io.circe"                      %% "circe-core"                    % V.circe
     val circeParser     = "io.circe"                      %% "circe-parser"                  % V.circe
     val circeGeneric    = "io.circe"                      %% "circe-generic"                 % V.circe
@@ -157,7 +154,6 @@ object Dependencies {
     // pickling, upickle,
     // pprint,
     enumeration, enumerationCirce,
-    sprayJson,
     circeCore, circeGeneric, circeJawn, circeParser, circeOptics, circeJava8,
     cats,
     // dogs
@@ -180,8 +176,7 @@ object Dependencies {
   val akka = Seq(
     akkaActor, akkaClusterSharding, akkaContrib,
     akkaDistributedData,
-    akkaStream, akkaHttpCore, akkaHttp, akkaHttpSprayJson, akkaHttpCirceJson,
-    // akkaHttpSwagger,
+    akkaStream, akkaHttpCore, akkaHttp, akkaHttpCirceJson,
     akkaSlf4j,
     akkaPersistence, akkaPersistenceJdbc //,
     // akkaSse

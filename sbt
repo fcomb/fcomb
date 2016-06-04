@@ -10,7 +10,7 @@ declare -r sbt_release_version="0.13.11"
 declare -r sbt_unreleased_version="0.13.11"
 declare -r buildProps="project/build.properties"
 
-declare sbt_jar sbt_dir sbt_create sbt_version
+declare sbt_jar sbt_dir sbt_create sbt_version sbt_script
 declare scala_version sbt_explicit_version
 declare verbose noshare batch trace_level log_level
 declare sbt_saved_stty debugUs
@@ -83,11 +83,14 @@ url_base () {
 
   case "$version" in
         0.7.*) echo "http://simple-build-tool.googlecode.com" ;;
-      0.10.* ) echo "$sbt_launch_release_repo" ;;
-    0.11.[12]) echo "$sbt_launch_release_repo" ;;
+      0.10.* ) echo "$sbt_launch_ivy_release_repo" ;;
+    0.11.[12]) echo "$sbt_launch_ivy_release_repo" ;;
+    0.*-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]) # ie "*-yyyymmdd-hhMMss"
+               echo "$sbt_launch_ivy_snapshot_repo" ;;
+          0.*) echo "$sbt_launch_ivy_release_repo" ;;
     *-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]) # ie "*-yyyymmdd-hhMMss"
-               echo "$sbt_launch_snapshot_repo" ;;
-            *) echo "$sbt_launch_release_repo" ;;
+               echo "$sbt_launch_mvn_snapshot_repo" ;;
+            *) echo "$sbt_launch_mvn_release_repo" ;;
   esac
 }
 
@@ -100,7 +103,8 @@ make_url () {
         0.7.*) echo "$base/files/sbt-launch-0.7.7.jar" ;;
       0.10.* ) echo "$base/org.scala-tools.sbt/sbt-launch/$version/sbt-launch.jar" ;;
     0.11.[12]) echo "$base/org.scala-tools.sbt/sbt-launch/$version/sbt-launch.jar" ;;
-            *) echo "$base/org.scala-sbt/sbt-launch/$version/sbt-launch.jar" ;;
+          0.*) echo "$base/org.scala-sbt/sbt-launch/$version/sbt-launch.jar" ;;
+            *) echo "$base/org/scala-sbt/sbt-launch/$version/sbt-launch.jar" ;;
   esac
 }
 
@@ -123,10 +127,12 @@ declare -r noshare_opts="-Dsbt.global.base=project/.sbtboot -Dsbt.boot.directory
 declare -r latest_28="2.8.2"
 declare -r latest_29="2.9.3"
 declare -r latest_210="2.10.6"
-declare -r latest_211="2.11.7"
-declare -r latest_212="2.12.0-M3"
-declare -r sbt_launch_release_repo="http://repo.typesafe.com/typesafe/ivy-releases"
-declare -r sbt_launch_snapshot_repo="https://repo.scala-sbt.org/scalasbt/ivy-snapshots"
+declare -r latest_211="2.11.8"
+declare -r latest_212="2.12.0-M4"
+declare -r sbt_launch_ivy_release_repo="http://repo.typesafe.com/typesafe/ivy-releases"
+declare -r sbt_launch_ivy_snapshot_repo="https://repo.scala-sbt.org/scalasbt/ivy-snapshots"
+declare -r sbt_launch_mvn_release_repo="http://repo.scala-sbt.org/scalasbt/maven-releases"
+declare -r sbt_launch_mvn_snapshot_repo="http://repo.scala-sbt.org/scalasbt/maven-snapshots"
 
 declare -r script_path="$(get_script_path "$BASH_SOURCE")"
 declare -r script_name="${script_path##*/}"
@@ -182,7 +188,7 @@ setScalaVersion () {
 }
 setJavaHome () {
   java_cmd="$1/bin/java"
-  setThisBuild javaHome "scala.Some(file(\"$1\"))"
+  setThisBuild javaHome "_root_.scala.Some(file(\"$1\"))"
   export JAVA_HOME="$1"
   export JDK_HOME="$1"
   export PATH="$JAVA_HOME/bin:$PATH"
@@ -311,6 +317,7 @@ runner with the -x option.
   -jvm-debug <port>  Turn on JVM debugging, open at the given port.
   -batch             Disable interactive mode
   -prompt <expr>     Set the sbt prompt; in expr, 's' is the State and 'e' is Extracted
+  -script <file>     Run the specified file as a scala script
 
   # sbt version (default: sbt.version from $buildProps if present, otherwise $sbt_release_version)
   -sbt-force-latest         force the use of the latest release of sbt: $sbt_release_version
@@ -381,6 +388,7 @@ process_args () {
         -jvm-debug) require_arg port "$1" "$2" && addDebugger "$2" && shift 2 ;;
             -batch) batch=true && shift ;;
            -prompt) require_arg "expr" "$1" "$2" && setThisBuild shellPrompt "(s => { val e = Project.extract(s) ; $2 })" && shift 2 ;;
+           -script) require_arg file "$1" "$2" && sbt_script="$2" && addJava "-Dsbt.main.class=sbt.ScriptMain" && shift 2 ;;
 
        -sbt-create) sbt_create=true && shift ;;
           -sbt-jar) require_arg path "$1" "$2" && sbt_jar="$2" && shift 2 ;;
@@ -391,7 +399,7 @@ process_args () {
   -sbt-launch-repo) require_arg path "$1" "$2" && sbt_launch_repo="$2" && shift 2 ;;
     -scala-version) require_arg version "$1" "$2" && setScalaVersion "$2" && shift 2 ;;
    -binary-version) require_arg version "$1" "$2" && setThisBuild scalaBinaryVersion "\"$2\"" && shift 2 ;;
-       -scala-home) require_arg path "$1" "$2" && setThisBuild scalaHome "scala.Some(file(\"$2\"))" && shift 2 ;;
+       -scala-home) require_arg path "$1" "$2" && setThisBuild scalaHome "_root_.scala.Some(file(\"$2\"))" && shift 2 ;;
         -java-home) require_arg path "$1" "$2" && setJavaHome "$2" && shift 2 ;;
          -sbt-opts) require_arg path "$1" "$2" && sbt_opts_file="$2" && shift 2 ;;
          -jvm-opts) require_arg path "$1" "$2" && jvm_opts_file="$2" && shift 2 ;;
@@ -463,14 +471,18 @@ vlog "Detected sbt version $sbt_version"
 
 [[ -n "$scala_version" ]] && vlog "Overriding scala version to $scala_version"
 
-# no args - alert them there's stuff in here
-(( argumentCount > 0 )) || {
-  vlog "Starting $script_name: invoke with -help for other options"
-  residual_args=( shell )
-}
+if [[ -n "$sbt_script" ]]; then
+  residual_args=( $sbt_script ${residual_args[@]} )
+else
+  # no args - alert them there's stuff in here
+  (( argumentCount > 0 )) || {
+    vlog "Starting $script_name: invoke with -help for other options"
+    residual_args=( shell )
+  }
+fi
 
-# verify this is an sbt dir or -create was given
-[[ -r ./build.sbt || -d ./project || -n "$sbt_create" ]] || {
+# verify this is an sbt dir, -create was given or user attempts to run a scala script
+[[ -r ./build.sbt || -d ./project || -n "$sbt_create" || -n "$sbt_script" ]] || {
   cat <<EOM
 $(pwd) doesn't appear to be an sbt project.
 If you want to start sbt anyway, run:
