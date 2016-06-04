@@ -1,40 +1,35 @@
 package io.fcomb.api.services
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.util.FastFuture
-import akka.stream.Materializer
-import io.fcomb.json._
-import io.fcomb.persist
-import scala.concurrent.{ExecutionContext, Future}
-import akka.http.scaladsl.server._
+import io.fcomb.persist.SessionsRepo
+import io.fcomb.models.SessionCreateRequest
 import akka.http.scaladsl.server.Directives._
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.circe.generic.auto._
+import cats.data.Xor
+import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.headers.OAuth2BearerToken
 
 object SessionService {
-  def create(
-    implicit
-    ec:  ExecutionContext,
-    mat: Materializer
-  ) = complete("wow")
-  //   requestBodyAs[SessionRequest] { req ⇒
-  //     completeValidation(
-  //       SessionsRepo.create(req),
-  //       StatusCodes.OK
-  //     )
-  //   }
-  // }
+  def create =
+    extractExecutionContext { implicit ec ⇒
+      entity(as[SessionCreateRequest]) { req ⇒
+        onSuccess(SessionsRepo.create(req)) {
+          case Xor.Right(s) ⇒ complete(StatusCodes.OK, s)
+          case Xor.Left(e)  ⇒ complete(StatusCodes.BadRequest, e)
+        }
+      }
+    }
 
-  def destroy(
-    implicit
-    ec:  ExecutionContext,
-    mat: Materializer
-  ) = complete("wow")
-  //   authorizeUser { _ ⇒
-  //     completeWithoutContent(
-  //       getAuthToken match {
-  //         case Some(token) ⇒ SessionsRepo.destroy(token)
-  //         case None        ⇒ FastFuture.successful(())
-  //       }
-  //     )
-  //   }
-  // }
+  def destroy =
+    extractExecutionContext { implicit ec ⇒
+      extractCredentials {
+        case Some(OAuth2BearerToken(token)) ⇒
+          onSuccess(SessionsRepo.destroy(token)) { _ ⇒
+            complete(HttpResponse(StatusCodes.NoContent))
+          }
+        case Some(_) ⇒ complete(HttpResponse(StatusCodes.BadRequest))
+        case None    ⇒ complete(HttpResponse(StatusCodes.Unauthorized))
+      }
+    }
 }
