@@ -7,7 +7,7 @@ CREATE TABLE users (
   full_name varchar(255),
   password_hash varchar(255) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE,
   PRIMARY KEY (id)
 );
 

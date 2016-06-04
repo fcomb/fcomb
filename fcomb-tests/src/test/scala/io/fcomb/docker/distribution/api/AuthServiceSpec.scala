@@ -1,6 +1,6 @@
 package io.fcomb.docker.distribution.server.api
 
-import io.fcomb.docker.distribution.server.api.headers.`Docker-Distribution-Api-Version`
+import io.fcomb.docker.distribution.server.headers.`Docker-Distribution-Api-Version`
 import io.fcomb.tests.fixtures.Fixtures
 import io.fcomb.tests._
 import org.scalatest.{Matchers, WordSpec}

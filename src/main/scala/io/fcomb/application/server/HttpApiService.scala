@@ -1,4 +1,4 @@
-package io.fcomb.server
+package io.fcomb.application.server
 
 import akka.actor._
 import akka.http.scaladsl.Http

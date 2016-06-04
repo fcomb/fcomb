@@ -1,11 +1,12 @@
-package io.fcomb.api.services
+package io.fcomb.server
 
 import akka.actor._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.Materializer
-import io.fcomb.api.services.headers._
+import io.fcomb.server.api._
+import io.fcomb.server.headers._
 
 object Routes {
   val apiVersion = "v1"
@@ -19,44 +20,42 @@ object Routes {
   )
 
   def apply()(implicit sys: ActorSystem, mat: Materializer): Route = {
-    import sys.dispatcher
-
     // format: OFF
     respondWithDefaultHeaders(defaultHeaders) {
       pathPrefix(apiVersion) {
-        pathPrefix(UserService.pathPrefix) {
+        pathPrefix(UserHandler.pathPrefix) {
           pathPrefix("sign_up") {
             pathEndOrSingleSlash {
-              post(UserService.signUp)
+              post(UserHandler.signUp)
             }
           } ~
           pathPrefix("me") {
             pathEndOrSingleSlash {
-              get(UserService.me) ~
-              put(UserService.updateProfile)
+              get(UserHandler.me) /*~
+              put(UserHandler.updateProfile)
             } ~
             pathPrefix("password") {
               pathEndOrSingleSlash {
-                put(UserService.changePassword)
+                put(UserHandler.changePassword)
               }
             }
           } ~
           pathPrefix("reset_password") {
             pathEndOrSingleSlash {
-              post(UserService.resetPassword) ~
-              put(UserService.setPassword)
+              post(UserHandler.resetPassword) ~
+              put(UserHandler.setPassword) */
             }
           }
         } ~
         pathPrefix("sessions") {
           pathEndOrSingleSlash {
-            post(SessionService.create) ~
-            delete(SessionService.destroy)
+            post(SessionHandler.create) ~
+            delete(SessionHandler.destroy)
           }
         } ~
         pathPrefix("ping") {
           pathEndOrSingleSlash {
-            get(complete(pongJsonResponse))
+            complete(pongJsonResponse)
           }
         }
       }

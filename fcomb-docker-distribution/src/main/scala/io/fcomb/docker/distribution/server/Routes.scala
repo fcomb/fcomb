@@ -1,4 +1,4 @@
-package io.fcomb.docker.distribution.server.api
+package io.fcomb.docker.distribution.server
 
 import akka.actor._
 import akka.http.scaladsl.model._
@@ -6,12 +6,13 @@ import akka.http.scaladsl.model.headers.`WWW-Authenticate`
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.stream.Materializer
-import io.fcomb.api.services.headers._
-import io.fcomb.docker.distribution.server.api.headers._
+import io.fcomb.server.headers._
+import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.models.docker.distribution.Reference
 import java.util.UUID
 import org.slf4j.LoggerFactory
 import io.fcomb.utils.Config.docker.distribution.realm
+import io.fcomb.docker.distribution.server.api._
 
 object Routes {
   val apiVersion = "v2"
@@ -24,11 +25,11 @@ object Routes {
       } ~
       pathPrefix(apiVersion) {
         pathEndOrSingleSlash {
-          get(AuthenticationService.versionCheck)
+          get(AuthenticationHandler.versionCheck)
         } ~
         pathPrefix("_catalog") {
           pathEndOrSingleSlash {
-            get(ImageService.catalog)
+            get(ImageHandler.catalog)
           }
         } ~
         pathPrefix(Segments(2, 32)) { segments =>
@@ -37,17 +38,17 @@ object Routes {
               val method = req.method
               segments.reverse match {
                 case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
-                  ImageBlobUploadService.createBlob(imageName(xs))
+                  ImageBlobUploadHandler.createBlob(imageName(xs))
                 case id :: "uploads" :: "blobs" :: xs if isUuid(id) =>
                   val uuid = UUID.fromString(id)
                   val image = imageName(xs)
                   method match {
                     case HttpMethods.PUT =>
-                      ImageBlobUploadService.uploadComplete(image, uuid)
+                      ImageBlobUploadHandler.uploadComplete(image, uuid)
                     case HttpMethods.PATCH =>
-                      ImageBlobUploadService.uploadBlobChunk(image, uuid)
+                      ImageBlobUploadHandler.uploadBlobChunk(image, uuid)
                     case HttpMethods.DELETE =>
-                      ImageBlobUploadService.destroyBlobUpload(image, uuid)
+                      ImageBlobUploadHandler.destroyBlobUpload(image, uuid)
                     case _ => complete(notFoundResponse)
                   }
                 case id :: "blobs" :: xs =>
@@ -56,14 +57,14 @@ object Routes {
                     // TODO: official spec
                     case HttpMethods.PUT if isUuid(id) =>
                       val uuid = UUID.fromString(id)
-                      ImageBlobUploadService.uploadComplete(image, uuid)
+                      ImageBlobUploadHandler.uploadComplete(image, uuid)
                     case HttpMethods.HEAD if Reference.isDigest(id) =>
                       println(s"HEAD: $id")
-                      ImageBlobService.showBlob(image, id)
+                      ImageBlobHandler.showBlob(image, id)
                     case HttpMethods.GET if Reference.isDigest(id) =>
-                      ImageBlobService.downloadBlob(image, id)
+                      ImageBlobHandler.downloadBlob(image, id)
                     case HttpMethods.DELETE if Reference.isDigest(id) =>
-                      ImageBlobService.destroyBlob(image, id)
+                      ImageBlobHandler.destroyBlob(image, id)
                     case _ => complete(notFoundResponse)
                   }
                 case ref :: "manifests" :: xs =>
@@ -71,15 +72,15 @@ object Routes {
                   val reference = Reference.apply(ref)
                   method match {
                     case HttpMethods.GET =>
-                      ImageService.getManifest(image, reference)
+                      ImageHandler.getManifest(image, reference)
                     case HttpMethods.PUT =>
-                      ImageService.uploadManifest(image, reference)
+                      ImageHandler.uploadManifest(image, reference)
                     case HttpMethods.DELETE =>
-                      ImageService.destroyManifest(image, reference)
+                      ImageHandler.destroyManifest(image, reference)
                     case _ => complete(notFoundResponse)
                   }
                 case "list" :: "tags" :: xs if method == HttpMethods.GET =>
-                  ImageService.tags(imageName(xs))
+                  ImageHandler.tags(imageName(xs))
                 case _ => complete(notFoundResponse)
               }
             }

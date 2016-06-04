@@ -184,7 +184,7 @@ object Dependencies {
 
   val root = common // ++ monitoring
 
-  val api = common ++ akka ++ Seq(oauth)
+  val server = common ++ akka ++ Seq(oauth)
 
   val tests = common ++ Seq(
     akkaTestkit, akkaHttpTestkit,
@@ -236,7 +236,7 @@ object Dependencies {
 
   val validations = common ++ Seq(akkaHttpCore, slick)
 
-  val services = api
+  val services = server
 
   val proxy = common ++ akka ++ Seq(routeTrie)
 }

@@ -5,8 +5,8 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
 import cats.data.Validated
-import io.fcomb.docker.distribution.server.api.headers._
-import io.fcomb.docker.distribution.server.utils.BlobFile
+import io.fcomb.docker.distribution.server.headers._
+import io.fcomb.docker.distribution.utils.BlobFile
 import io.fcomb.models.docker.distribution.{ImageBlobState, Reference}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.models.User
@@ -20,27 +20,13 @@ import io.fcomb.models.errors._
 import io.fcomb.json.docker.distribution.Formats._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
+import io.fcomb.docker.distribution.server.AuthenticationDirectives._
+import io.fcomb.docker.distribution.server.ImageDirectives._
+import io.fcomb.docker.distribution.server.CommonDirectives._
 
-import AuthenticationDirectives._
-import ImageDirectives._
-
-trait CommonDirectives {
-  @inline
-  def completeWithStatus(status: StatusCode): Route =
-    complete(HttpResponse(status))
-
-  @inline
-  def completeNotFound(): Route =
-    completeWithStatus(StatusCodes.NotFound)
-}
-
-object CommonDirectives extends CommonDirectives
-
-import CommonDirectives._
-
-object ImageBlobUploadService {
+object ImageBlobUploadHandler {
   def createBlob(imageName: String)(implicit req: HttpRequest): Route =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       parameters('mount.?, 'from.?, 'digest.?) {
         (mountOpt, fromOpt, digestOpt) ⇒
           extractExecutionContext { implicit ec ⇒
@@ -145,7 +131,7 @@ object ImageBlobUploadService {
     implicit
     req: HttpRequest
   ) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         optionalHeaderValueByType[`Content-Range`]() { rangeOpt ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
@@ -212,7 +198,7 @@ object ImageBlobUploadService {
     implicit
     req: HttpRequest
   ) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       parameters('digest) { digest ⇒
         extractMaterializer { implicit mat ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
@@ -254,7 +240,7 @@ object ImageBlobUploadService {
     }
 
   def destroyBlobUpload(imageName: String, uuid: UUID) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext

@@ -17,7 +17,7 @@ class ImageTable(tag: Tag)
   def name = column[String]("name")
   def userId = column[Long]("user_id")
   def createdAt = column[ZonedDateTime]("created_at")
-  def updatedAt = column[ZonedDateTime]("updated_at")
+  def updatedAt = column[Option[ZonedDateTime]]("updated_at")
 
   def * =
     (id, name, userId, createdAt, updatedAt) <>
@@ -70,7 +70,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
               name = name,
               userId = userId,
               createdAt = timeNow,
-              updatedAt = timeNow
+              updatedAt = None
             )
           ).map(_.map(_.getId))
       }

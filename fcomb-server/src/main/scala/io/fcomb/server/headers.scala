@@ -1,10 +1,9 @@
-package io.fcomb.api.services
+package io.fcomb.server
 
 import akka.http.scaladsl.model.headers._
 
-package object headers {
-  final case class `X-Content-Type-Options`(options: String)
-      extends CustomHeader {
+object headers {
+  final case class `X-Content-Type-Options`(options: String) extends CustomHeader {
     def renderInRequests = false
     def renderInResponses = true
     def name: String = "X-Content-Type-Options"

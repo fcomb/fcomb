@@ -1,4 +1,4 @@
-package io.fcomb.docker.distribution.server.api
+package io.fcomb.docker.distribution.server
 
 import akka.http.scaladsl.model.MediaType
 

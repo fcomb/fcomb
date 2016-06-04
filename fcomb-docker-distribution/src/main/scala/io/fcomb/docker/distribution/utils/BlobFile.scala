@@ -1,9 +1,9 @@
-package io.fcomb.docker.distribution.server.utils
+package io.fcomb.docker.distribution.utils
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters, FileIO}
 import akka.util.ByteString
-import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
+import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
 import io.fcomb.models.docker.distribution.{ImageBlob ⇒ ImageBlob, ImageManifest ⇒ ImageManifest}
 import io.fcomb.utils.{Config, StringUtils}
 import java.io.File

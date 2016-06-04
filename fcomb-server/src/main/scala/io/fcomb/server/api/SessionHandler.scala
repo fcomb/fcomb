@@ -1,4 +1,4 @@
-package io.fcomb.api.services
+package io.fcomb.server.api
 
 import akka.http.scaladsl.model.StatusCodes
 import io.fcomb.persist.SessionsRepo
@@ -10,7 +10,7 @@ import cats.data.Xor
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 
-object SessionService {
+object SessionHandler {
   def create =
     extractExecutionContext { implicit ec ⇒
       entity(as[SessionCreateRequest]) { req ⇒

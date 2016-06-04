@@ -4,13 +4,12 @@ import io.fcomb.models.ModelWithAutoLongPk
 import java.time.ZonedDateTime
 
 case class Image(
-  id:        Option[Long]  = None,
-  name:      String,
-  userId:    Long,
-  createdAt: ZonedDateTime,
-  updatedAt: ZonedDateTime
-)
-    extends ModelWithAutoLongPk {
+    id:        Option[Long]          = None,
+    name:      String,
+    userId:    Long,
+    createdAt: ZonedDateTime,
+    updatedAt: Option[ZonedDateTime]
+) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 }
 

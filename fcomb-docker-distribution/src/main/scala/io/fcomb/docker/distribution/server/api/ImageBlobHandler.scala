@@ -8,8 +8,8 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.Xor
-import io.fcomb.docker.distribution.server.api.headers._
-import io.fcomb.docker.distribution.server.utils.BlobFile
+import io.fcomb.docker.distribution.server.headers._
+import io.fcomb.docker.distribution.utils.BlobFile
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
@@ -21,14 +21,13 @@ import akka.http.scaladsl.server.Directives._
 import io.fcomb.json.docker.distribution.Formats._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
+import io.fcomb.docker.distribution.server.AuthenticationDirectives._
+import io.fcomb.docker.distribution.server.ImageDirectives._
+import io.fcomb.docker.distribution.server.CommonDirectives._
 
-import AuthenticationDirectives._
-import ImageDirectives._
-import CommonDirectives._
-
-object ImageBlobService {
+object ImageBlobHandler {
   def showBlob(imageName: String, digest: String) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
@@ -60,7 +59,7 @@ object ImageBlobService {
     implicit
     req: HttpRequest
   ) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
@@ -118,7 +117,7 @@ object ImageBlobService {
     }
 
   def destroyBlob(imageName: String, digest: String) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext

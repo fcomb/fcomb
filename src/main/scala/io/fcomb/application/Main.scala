@@ -1,11 +1,12 @@
-package io.fcomb
+package io.fcomb.application
 
 import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
-import io.fcomb.api.services.{Routes ⇒ ApiRoutes}
-import io.fcomb.docker.distribution.server.api.{Routes ⇒ DockerDistributionRoutes}
-import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
+import io.fcomb.Db
+import io.fcomb.server.{Routes ⇒ ApiRoutes}
+import io.fcomb.docker.distribution.server.{Routes ⇒ DockerDistributionRoutes}
+import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
@@ -38,9 +39,7 @@ object Main extends App {
   (for {
     _ ← Db.migrate()
     _ ← server.HttpApiService.start(port, interface, ApiRoutes())
-    _ ← server.HttpApiService.start(
-      drPort, drInterface, DockerDistributionRoutes()
-    )
+    _ ← server.HttpApiService.start(drPort, drInterface, DockerDistributionRoutes())
   } yield ()).onComplete {
     case Success(_) ⇒
       ImageBlobPushProcessor.startRegion(25.minutes)

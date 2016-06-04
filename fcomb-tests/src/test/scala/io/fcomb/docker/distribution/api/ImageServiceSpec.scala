@@ -13,7 +13,7 @@ import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest}
 import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
-import io.fcomb.docker.distribution.server.api.headers._
+import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionErrorResponse, DistributionError}
@@ -24,7 +24,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 
-class ImageServiceSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with ScalaFutures with PersistSpec with ActorClusterSpec {
+class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with ScalaFutures with PersistSpec with ActorClusterSpec {
   val route = Routes()
   val imageName = "library/test-image_2016"
   val bs = ByteString(getFixture("docker/distribution/blob"))

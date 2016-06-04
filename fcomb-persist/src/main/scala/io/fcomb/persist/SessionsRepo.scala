@@ -1,7 +1,7 @@
 package io.fcomb.persist
 
 import io.fcomb.Db.redis
-import io.fcomb.models.{Session, SessionCreateRequest}
+import io.fcomb.models.{Session, SessionCreateRequest, User}
 import io.fcomb.models.errors.{FailureResponse, ValidationException}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -48,7 +48,7 @@ object SessionsRepo {
   def findById(sessionId: String)(
     implicit
     ec: ExecutionContext
-  ) = {
+  ): Future[Option[User]] = {
     redis.get(getKey(sessionId)).flatMap {
       case Some(userId) if sessionId.startsWith(prefix) ⇒
         UsersRepo.findByPk(userId.utf8String.toLong)

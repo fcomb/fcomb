@@ -8,7 +8,7 @@ import io.circe.generic.auto._
 import io.circe.parser._
 import io.fcomb.Db.db
 import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest}
-import io.fcomb.docker.distribution.server.utils.BlobFile
+import io.fcomb.docker.distribution.utils.BlobFile
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.errors.{FailureResponse, DtCemException}
 import io.fcomb.{models ⇒ M}

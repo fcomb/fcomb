@@ -11,42 +11,23 @@ import cats.data.Xor
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest, SchemaV2 ⇒ SchemaV2Manifest}
-import io.fcomb.docker.distribution.server.api.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
-import io.fcomb.docker.distribution.server.api.headers._
+import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
+import io.fcomb.docker.distribution.server.MediaTypes
+import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.docker.distribution.Formats._
-import io.fcomb.models.docker.distribution.{Image ⇒ Image, ImageManifest ⇒ ImageManifest, _}
+import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
-import io.fcomb.models.User
 import io.fcomb.persist.docker.distribution.{ImagesRepo, ImageManifestsRepo}
 import scala.collection.immutable
+import io.fcomb.docker.distribution.server.AuthenticationDirectives._
+import io.fcomb.docker.distribution.server.ImageDirectives._
 
-import AuthenticationDirectives._
-
-trait ImageDirectives {
-  def imageByNameWithAcl(imageName: String, user: User): Directive1[Image] = {
-    extractExecutionContext.flatMap { implicit ec ⇒
-      onSuccess(ImagesRepo.findByImageAndUserId(imageName, user.getId)).flatMap {
-        case Some(user) ⇒ provide(user)
-        case None ⇒
-          complete(
-            StatusCodes.NotFound,
-            DistributionErrorResponse.from(DistributionError.NameUnknown())
-          )
-      }
-    }
-  }
-}
-
-object ImageDirectives extends ImageDirectives
-
-import ImageDirectives._
-
-object ImageService {
+object ImageHandler {
   def getManifest(imageName: String, reference: Reference)(
     implicit
     req: HttpRequest
   ) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         optionalHeaderValueByType[Accept]() { acceptOpt ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
@@ -94,7 +75,7 @@ object ImageService {
     mat: Materializer,
     req: HttpRequest
   ) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         imageByNameWithAcl(imageName, user) { image ⇒
           import mat.executionContext
@@ -136,7 +117,7 @@ object ImageService {
     }
 
   def destroyManifest(imageName: String, reference: Reference) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       extractMaterializer { implicit mat ⇒
         import mat.executionContext
         imageByNameWithAcl(imageName, user) { image ⇒
@@ -160,7 +141,7 @@ object ImageService {
     }
 
   def tags(imageName: String) =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
         extractExecutionContext { implicit ec ⇒
           imageByNameWithAcl(imageName, user) { image ⇒
@@ -182,7 +163,7 @@ object ImageService {
     }
 
   def catalog =
-    authenticationUserBasic { user ⇒
+    authenticateUserBasic { user ⇒
       parameters('n.as[Int].?, 'last.?) { (n, last) ⇒
         extractExecutionContext { implicit ec ⇒
           onSuccess(ImagesRepo.findRepositoriesByUserId(user.getId, n, last)) {

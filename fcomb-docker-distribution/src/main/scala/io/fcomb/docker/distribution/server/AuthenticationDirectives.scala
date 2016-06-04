@@ -1,16 +1,13 @@
-package io.fcomb.docker.distribution.server.api
+package io.fcomb.docker.distribution.server
 
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.model.headers.BasicHttpCredentials
+import io.fcomb.persist.UsersRepo
+import io.fcomb.models.User
 
 trait AuthenticationDirectives {
-  import io.fcomb.persist.UsersRepo
-  import io.fcomb.models.User
-
-  def authenticationUserBasic: Directive1[User] =
+  def authenticateUserBasic: Directive1[User] =
     extractExecutionContext.flatMap { implicit ec ⇒
       extractCredentials.flatMap {
         case Some(BasicHttpCredentials(username, password)) ⇒
@@ -24,17 +21,3 @@ trait AuthenticationDirectives {
 }
 
 object AuthenticationDirectives extends AuthenticationDirectives
-
-import AuthenticationDirectives._
-
-object AuthenticationService {
-  def versionCheck =
-    authenticationUserBasic { _ ⇒
-      complete(versionCheckResponse)
-    }
-
-  private val versionCheckResponse = HttpResponse(
-    status = StatusCodes.OK,
-    entity = HttpEntity(`application/json`, "{}")
-  )
-}

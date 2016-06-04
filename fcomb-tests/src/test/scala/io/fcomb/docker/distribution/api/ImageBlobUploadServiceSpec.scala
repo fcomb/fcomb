@@ -9,9 +9,9 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
-import io.fcomb.docker.distribution.server.api.headers._
+import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
-import io.fcomb.docker.distribution.server.utils.BlobFile
+import io.fcomb.docker.distribution.utils.BlobFile
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
@@ -24,7 +24,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
 
-class ImageBlobUploadServiceSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with PersistSpec with ActorClusterSpec with FutureSpec {
+class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with PersistSpec with ActorClusterSpec with FutureSpec {
   val route = Routes()
   val imageName = "library/test-image_2016"
   val bs = ByteString(getFixture("docker/distribution/blob"))

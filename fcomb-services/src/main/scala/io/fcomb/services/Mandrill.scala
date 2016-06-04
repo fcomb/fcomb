@@ -2,7 +2,6 @@ package io.fcomb.services
 
 import io.fcomb.utils.Config
 import akka.actor.ActorSystem
-import akka.util.ByteString
 import scala.concurrent.Future
 import akka.stream.Materializer
 import akka.http.scaladsl.model._
@@ -11,8 +10,6 @@ import akka.stream.scaladsl.{Source, Sink}
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import io.circe.generic.auto._
-import io.circe.syntax._
-import io.circe.parser._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 
 object Mandrill {

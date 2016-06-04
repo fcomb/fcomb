@@ -3,22 +3,20 @@ package io.fcomb.persist
 import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.User
+import io.fcomb.models.{User, UserSignUpRequest, UserUpdateRequest}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import cats.data.Validated
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 
-class UserTable(tag: Tag)
-    extends Table[User](tag, "users")
-    with PersistTableWithAutoLongPk {
+class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWithAutoLongPk {
   def email = column[String]("email")
   def username = column[String]("username")
   def fullName = column[Option[String]]("full_name")
   def passwordHash = column[String]("password_hash")
   def createdAt = column[ZonedDateTime]("created_at")
-  def updatedAt = column[ZonedDateTime]("updated_at")
+  def updatedAt = column[Option[ZonedDateTime]]("updated_at")
 
   def * =
     (id, email, username, fullName, passwordHash, createdAt, updatedAt) <>
@@ -28,41 +26,30 @@ class UserTable(tag: Tag)
 object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
   val table = TableQuery[UserTable]
 
-  def create(
-    email:    String,
-    username: String,
-    password: String,
-    fullName: Option[String]
-  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
+  def create(req: UserSignUpRequest)(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = ZonedDateTime.now()
     val user = mapModel(
       User(
-        email = email,
-        username = username,
-        fullName = fullName,
-        passwordHash = password.bcrypt(generateSalt),
+        email = req.email,
+        username = req.username,
+        fullName = req.fullName,
+        passwordHash = req.password.bcrypt(generateSalt),
         createdAt = timeAt,
-        updatedAt = timeAt
+        updatedAt = None
       )
     )
-    validateThenApply(validate(userValidation(user, Some(password)))) {
+    validateThenApply(validate(userValidation(user, Some(req.password)))) {
       createDBIO(user)
     }
   }
 
-  def updateByRequest(id: Long)(
-    email:    String,
-    username: String,
-    fullName: Option[String]
-  )(implicit ec: ExecutionContext): Future[ValidationModel] =
-    update(id)(
-      _.copy(
-        email = email,
-        username = username,
-        fullName = fullName,
-        updatedAt = ZonedDateTime.now()
-      )
-    )
+  def update(id: Long, req: UserUpdateRequest)(implicit ec: ExecutionContext): Future[ValidationModel] =
+    update(id)(_.copy(
+      email = req.email,
+      username = req.username,
+      fullName = req.fullName,
+      updatedAt = Some(ZonedDateTime.now())
+    ))
 
   private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) ⇒
     table.filter(_.id === userId).map { t ⇒
@@ -78,7 +65,7 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
     val passwordHash = password.bcrypt(salt)
     db.run {
       updatePasswordCompiled(userId)
-        .update((passwordHash, ZonedDateTime.now))
+        .update((passwordHash, Some(ZonedDateTime.now)))
         .map(_ == 1)
     }
   }

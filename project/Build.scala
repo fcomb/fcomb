@@ -104,7 +104,7 @@ object Build extends sbt.Build {
       )
 
   lazy val root = Project(
-    "server",
+    "application",
     file("."),
     settings =
       defaultSettings ++
@@ -113,7 +113,7 @@ object Build extends sbt.Build {
       RevolverPlugin.settings ++
         Seq(
           libraryDependencies ++= Dependencies.root,
-          mainClass in reStart := Some("io.fcomb.Main"),
+          mainClass in reStart := Some("io.fcomb.application.Main"),
           autoCompilerPlugins := true,
           scalacOptions in (Compile,doc) := Seq(
             "-groups",
@@ -133,15 +133,15 @@ object Build extends sbt.Build {
           fork in run := true,
           fork in reStart := true
         )
-  ).dependsOn(api, dockerDistribution)
+  ).dependsOn(server, dockerDistribution)
     .enablePlugins(SbtNativePackager)
     .aggregate(tests)
 
-  lazy val api = Project(
-     id = "api",
-     base = file("fcomb-api"),
+  lazy val server = Project(
+     id = "server",
+     base = file("fcomb-server"),
      settings = defaultSettings ++ Seq(
-       libraryDependencies ++= Dependencies.api
+       libraryDependencies ++= Dependencies.server
      )
   ).dependsOn(persist, utils, json, validations, services)
 
@@ -215,7 +215,7 @@ object Build extends sbt.Build {
       defaultSettings ++ Seq(
         libraryDependencies ++= Dependencies.dockerDistribution
       )
-  ).dependsOn(api)
+  ).dependsOn(server)
 
   lazy val crypto = Project(
     id = "crypto",
@@ -233,5 +233,5 @@ object Build extends sbt.Build {
       defaultSettings ++ Seq(
         libraryDependencies ++= Dependencies.tests
       )
-  ).dependsOn(api, dockerDistribution)
+  ).dependsOn(server, dockerDistribution)
 }

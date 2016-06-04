@@ -1,4 +1,4 @@
-package io.fcomb.docker.distribution.server.services
+package io.fcomb.docker.distribution.services
 
 import io.fcomb.utils.StringUtils
 import akka.actor._
@@ -298,7 +298,6 @@ trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor ⇒
 import ImageBlobPushMessages._
 
 class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLogging {
-  import context.dispatcher
   import ImageBlobPushProcessor._
   import ShardRegion.Passivate
 

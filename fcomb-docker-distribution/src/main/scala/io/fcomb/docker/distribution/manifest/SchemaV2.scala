@@ -9,7 +9,7 @@ import io.fcomb.models.docker.distribution.{Reference, Image ⇒ Image}
 import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImageBlobsRepo}
-import io.fcomb.docker.distribution.server.utils.BlobFile
+import io.fcomb.docker.distribution.utils.BlobFile
 import io.fcomb.utils.Units._
 import org.apache.commons.codec.digest.DigestUtils
 import scala.concurrent.{ExecutionContext, Future}
