@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 fcomb. <https://fcomb.io>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.fcomb.crypto
 
 import java.security.cert.X509Certificate
@@ -16,30 +32,30 @@ object Certificate {
   initializeCrypto()
 
   // TODO: move these options into config {
-  val keyAlgorithmName = "SHA256WithRSA"
+  val keyAlgorithmName       = "SHA256WithRSA"
   val defaultExpireAfterDays = 365
-  val defaultKeySize = 2048
+  val defaultKeySize         = 2048
   // }
 
   def generateRootAuthority(
-    organizationalUnit: String,
-    organization:       String,
-    city:               String,
-    state:              String,
-    country:            String,
-    expireAfterDays:    Int    = defaultExpireAfterDays,
-    commonName:         String = "ROOT CA",
-    keySize:            Int    = defaultKeySize
+      organizationalUnit: String,
+      organization: String,
+      city: String,
+      state: String,
+      country: String,
+      expireAfterDays: Int = defaultExpireAfterDays,
+      commonName: String = "ROOT CA",
+      keySize: Int = defaultKeySize
   ) = {
     val issuer = new X500Name(
-      commonName,
-      organizationalUnit,
-      organization,
-      city,
-      state,
-      country
+        commonName,
+        organizationalUnit,
+        organization,
+        city,
+        state,
+        country
     )
-    val keypair = generateCertAndKey(keySize)
+    val keypair    = generateCertAndKey(keySize)
     val privateKey = keypair.getPrivateKey()
 
     val info = x509CertInfo(issuer, expireAfterDays)
@@ -50,7 +66,9 @@ object Certificate {
       .asInstanceOf[CertificateSerialNumber]
       .get(CertificateSerialNumber.NUMBER)
     val ext = rootAuthorityExtensions(
-      issuer, keypair.getPublicKey(), serialNumber
+        issuer,
+        keypair.getPublicKey(),
+        serialNumber
     )
     info.set(X509CertInfo.EXTENSIONS, ext)
 
@@ -61,58 +79,56 @@ object Certificate {
   }
 
   def generateClient(
-    signerCert:       JavaCertificate,
-    signerPrivateKey: PrivateKey,
-    commonName:       String          = "client",
-    expireAfterDays:  Int             = defaultExpireAfterDays,
-    keySize:          Int             = defaultKeySize
+      signerCert: JavaCertificate,
+      signerPrivateKey: PrivateKey,
+      commonName: String = "client",
+      expireAfterDays: Int = defaultExpireAfterDays,
+      keySize: Int = defaultKeySize
   ) =
     generateSignedCertificate(
-      signerCert,
-      signerPrivateKey,
-      new X500Name(s"CN=$commonName"),
-      clientExtensions,
-      expireAfterDays,
-      keySize
+        signerCert,
+        signerPrivateKey,
+        new X500Name(s"CN=$commonName"),
+        clientExtensions,
+        expireAfterDays,
+        keySize
     )
 
   def generateServer(
-    signerCert:       JavaCertificate,
-    signerPrivateKey: PrivateKey,
-    hostname:         String,
-    expireAfterDays:  Int             = defaultExpireAfterDays,
-    keySize:          Int             = defaultKeySize
+      signerCert: JavaCertificate,
+      signerPrivateKey: PrivateKey,
+      hostname: String,
+      expireAfterDays: Int = defaultExpireAfterDays,
+      keySize: Int = defaultKeySize
   ) =
     generateSignedCertificate(
-      signerCert,
-      signerPrivateKey,
-      new X500Name(s"CN=$hostname"),
-      serverExtensions(hostname),
-      expireAfterDays,
-      keySize
+        signerCert,
+        signerPrivateKey,
+        new X500Name(s"CN=$hostname"),
+        serverExtensions(hostname),
+        expireAfterDays,
+        keySize
     )
 
   def signCertificationRequest(
-    signerCert:       JavaCertificate,
-    signerPrivateKey: PrivateKey,
-    request:          PKCS10,
-    name:             X500Name,
-    extOpt:           Option[CertificateExtensions] = None,
-    expireAfterDays:  Int                           = defaultExpireAfterDays
+      signerCert: JavaCertificate,
+      signerPrivateKey: PrivateKey,
+      request: PKCS10,
+      name: X500Name,
+      extOpt: Option[CertificateExtensions] = None,
+      expireAfterDays: Int = defaultExpireAfterDays
   ) = {
     val signerCertImpl = new X509CertImpl(signerCert.getEncoded())
-    val signerCertInfo = signerCertImpl
-      .get(s"${X509CertImpl.NAME}.${X509CertImpl.INFO}")
-      .asInstanceOf[X509CertInfo]
-    val issuer = signerCertInfo
-      .get(s"${X509CertInfo.SUBJECT}.${X509CertInfo.DN_NAME}")
-      .asInstanceOf[X500Name]
+    val signerCertInfo =
+      signerCertImpl.get(s"${X509CertImpl.NAME}.${X509CertImpl.INFO}").asInstanceOf[X509CertInfo]
+    val issuer =
+      signerCertInfo.get(s"${X509CertInfo.SUBJECT}.${X509CertInfo.DN_NAME}").asInstanceOf[X500Name]
     val signature = Signature.getInstance(keyAlgorithmName)
     signature.initSign(signerPrivateKey)
     val info = x509CertInfo(issuer, expireAfterDays)
     info.set(
-      X509CertInfo.KEY,
-      new CertificateX509Key(request.getSubjectPublicKeyInfo())
+        X509CertInfo.KEY,
+        new CertificateX509Key(request.getSubjectPublicKeyInfo())
     )
     info.set(X509CertInfo.SUBJECT, request.getSubjectName())
     extOpt.foreach(ext ⇒ info.set(X509CertInfo.EXTENSIONS, ext))
@@ -129,7 +145,7 @@ object Certificate {
 
   private def getAsPem(key: Any) = {
     val writer = new StringWriter()
-    val pw = new JcaPEMWriter(writer)
+    val pw     = new JcaPEMWriter(writer)
     pw.writeObject(key)
     pw.flush()
     writer.toString()
@@ -145,14 +161,16 @@ object Certificate {
     val expireDate = Calendar.getInstance()
     expireDate.add(Calendar.DATE, expireAfterDays)
     val interval = new CertificateValidity(new Date(), expireDate.getTime())
-    val info = new X509CertInfo()
+    val info     = new X509CertInfo()
     info.set(X509CertInfo.VALIDITY, interval)
     val serialNumber = ThreadLocalRandom.current().nextInt() & 0x7fffffff
     info.set(
-      X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(serialNumber)
+        X509CertInfo.SERIAL_NUMBER,
+        new CertificateSerialNumber(serialNumber)
     )
     info.set(
-      X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3)
+        X509CertInfo.VERSION,
+        new CertificateVersion(CertificateVersion.V3)
     )
     val alg = AlgorithmId.get(keyAlgorithmName)
     info.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(alg))
@@ -161,28 +179,26 @@ object Certificate {
   }
 
   private def generateSignedCertificate(
-    signerCert:       JavaCertificate,
-    signerPrivateKey: PrivateKey,
-    name:             X500Name,
-    ext:              CertificateExtensions,
-    expireAfterDays:  Int,
-    keySize:          Int
+      signerCert: JavaCertificate,
+      signerPrivateKey: PrivateKey,
+      name: X500Name,
+      ext: CertificateExtensions,
+      expireAfterDays: Int,
+      keySize: Int
   ) = {
     val signerCertImpl = new X509CertImpl(signerCert.getEncoded())
-    val signerCertInfo = signerCertImpl
-      .get(s"${X509CertImpl.NAME}.${X509CertImpl.INFO}")
-      .asInstanceOf[X509CertInfo]
-    val issuer = signerCertInfo
-      .get(s"${X509CertInfo.SUBJECT}.${X509CertInfo.DN_NAME}")
-      .asInstanceOf[X500Name]
+    val signerCertInfo =
+      signerCertImpl.get(s"${X509CertImpl.NAME}.${X509CertImpl.INFO}").asInstanceOf[X509CertInfo]
+    val issuer =
+      signerCertInfo.get(s"${X509CertInfo.SUBJECT}.${X509CertInfo.DN_NAME}").asInstanceOf[X500Name]
     val signature = Signature.getInstance(keyAlgorithmName)
     signature.initSign(signerPrivateKey)
-    val info = x509CertInfo(issuer, expireAfterDays)
+    val info    = x509CertInfo(issuer, expireAfterDays)
     val keypair = generateCertAndKey(keySize)
-    val req = keypair.getCertRequest(name)
+    val req     = keypair.getCertRequest(name)
     info.set(
-      X509CertInfo.KEY,
-      new CertificateX509Key(req.getSubjectPublicKeyInfo())
+        X509CertInfo.KEY,
+        new CertificateX509Key(req.getSubjectPublicKeyInfo())
     )
     info.set(X509CertInfo.SUBJECT, req.getSubjectName())
     info.set(X509CertInfo.EXTENSIONS, ext)
@@ -192,40 +208,42 @@ object Certificate {
   }
 
   private def rootAuthorityExtensions(
-    issuer:       X500Name,
-    publicKey:    PublicKey,
-    serialNumber: SerialNumber
+      issuer: X500Name,
+      publicKey: PublicKey,
+      serialNumber: SerialNumber
   ) = {
     val keyIdentifier = new KeyIdentifier(publicKey)
-    val exts = new CertificateExtensions()
+    val exts          = new CertificateExtensions()
     exts.set(
-      BasicConstraintsExtension.NAME,
-      new BasicConstraintsExtension(true, true, 0)
+        BasicConstraintsExtension.NAME,
+        new BasicConstraintsExtension(true, true, 0)
     )
     val kue = new KeyUsageExtension()
     kue.set(KeyUsageExtension.CRL_SIGN, true)
     kue.set(KeyUsageExtension.KEY_CERTSIGN, true)
     exts.set(KeyUsageExtension.NAME, kue)
     exts.set(
-      SubjectKeyIdentifierExtension.NAME,
-      new SubjectKeyIdentifierExtension(keyIdentifier.getIdentifier())
+        SubjectKeyIdentifierExtension.NAME,
+        new SubjectKeyIdentifierExtension(keyIdentifier.getIdentifier())
     )
     val generalNames = new GeneralNames().add(new GeneralName(issuer))
     exts.set(
-      AuthorityKeyIdentifierExtension.NAME,
-      new AuthorityKeyIdentifierExtension(
-        keyIdentifier, generalNames, serialNumber
-      )
+        AuthorityKeyIdentifierExtension.NAME,
+        new AuthorityKeyIdentifierExtension(
+            keyIdentifier,
+            generalNames,
+            serialNumber
+        )
     )
     exts
   }
 
   private def serverExtensions(hostname: String) = {
     val exts = new CertificateExtensions()
-    val dns = new GeneralNames().add(new GeneralName(new DNSName(hostname)))
+    val dns  = new GeneralNames().add(new GeneralName(new DNSName(hostname)))
     exts.set(
-      SubjectAlternativeNameExtension.NAME,
-      new SubjectAlternativeNameExtension(dns)
+        SubjectAlternativeNameExtension.NAME,
+        new SubjectAlternativeNameExtension(dns)
     )
     val v = new JavaVector[ObjectIdentifier]()
     v.add(new ObjectIdentifier("1.3.6.1.5.5.7.3.1")) // serverAuth
@@ -235,7 +253,7 @@ object Certificate {
 
   private val clientExtensions = {
     val exts = new CertificateExtensions()
-    val v = new JavaVector[ObjectIdentifier]()
+    val v    = new JavaVector[ObjectIdentifier]()
     v.add(new ObjectIdentifier("1.3.6.1.5.5.7.3.2")) // clientAuth
     exts.set(ExtendedKeyUsageExtension.NAME, new ExtendedKeyUsageExtension(v))
     exts

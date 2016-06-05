@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 fcomb. <https://fcomb.io>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.fcomb.docker.distribution.manifest
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
@@ -9,7 +25,8 @@ import io.fcomb.crypto.Jws
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest ⇒ ManifestV1, _}
 import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest ⇒ ManifestV2}
-import io.fcomb.models.docker.distribution.{Reference, ImageManifest ⇒ ImageManifest, Image ⇒ Image}, ImageManifest.sha256Prefix
+import io.fcomb.models.docker.distribution.{Reference, ImageManifest ⇒ ImageManifest, Image ⇒ Image},
+ImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
 import io.fcomb.utils.StringUtils
@@ -20,14 +37,15 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object SchemaV1 {
   def upsertAsImageManifest(
-    image:       Image,
-    reference:   Reference,
-    manifest:    ManifestV1,
-    rawManifest: String
+      image: Image,
+      reference: Reference,
+      manifest: ManifestV1,
+      rawManifest: String
   )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] = {
     verify(manifest, rawManifest) match {
       case Xor.Right((schemaV1JsonBlob, sha256Digest)) ⇒
-        ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, sha256Digest)
+        ImageManifestsRepo
+          .upsertSchemaV1(image, manifest, schemaV1JsonBlob, sha256Digest)
           .fast
           .map {
             case Validated.Valid(_)   ⇒ Xor.right(sha256Digest)
@@ -41,7 +59,7 @@ object SchemaV1 {
     parse(rawManifest).map(_.asObject) match {
       case Xor.Right(Some(json)) ⇒
         val manifestJson = json.remove("signatures").asJson
-        val original = indentPrint(rawManifest, manifestJson)
+        val original     = indentPrint(rawManifest, manifestJson)
         if (manifest.signatures.isEmpty) Xor.left(Unknown("signatures cannot be empty"))
         else {
           val rightAcc = Xor.right[DistributionError, (String, String)](("", ""))
@@ -49,21 +67,22 @@ object SchemaV1 {
             case (acc, signature) ⇒
               val `protected` = new String(base64Decode(signature.`protected`))
               acc *> (decode[Protected](`protected`) match {
-                case Xor.Right(p) ⇒
-                  val formatTail = new String(base64Decode(p.formatTail))
-                  val formatTailIndex = original.lastIndexOf(formatTail)
-                  val formatted = original.take(formatTailIndex + formatTail.length)
-                  if (formatTailIndex == p.formatLength) {
-                    val payload = s"${signature.`protected`}.${base64Encode(formatted)}"
-                    val signatureBytes = base64Decode(signature.signature)
-                    val (alg, jwk) = (signature.header.alg, signature.header.jwk)
-                    if (Jws.verify(alg, jwk, payload, signatureBytes))
-                      Xor.right((rawManifest, DigestUtils.sha256Hex(formatted)))
-                    else Xor.left(ManifestUnverified())
-                  }
-                  else Xor.left(ManifestInvalid("formatted length does not match with fortmatLength"))
-                case Xor.Left(e) ⇒ Xor.left(Unknown(e.show))
-              })
+                    case Xor.Right(p) ⇒
+                      val formatTail      = new String(base64Decode(p.formatTail))
+                      val formatTailIndex = original.lastIndexOf(formatTail)
+                      val formatted       = original.take(formatTailIndex + formatTail.length)
+                      if (formatTailIndex == p.formatLength) {
+                        val payload        = s"${signature.`protected`}.${base64Encode(formatted)}"
+                        val signatureBytes = base64Decode(signature.signature)
+                        val (alg, jwk)     = (signature.header.alg, signature.header.jwk)
+                        if (Jws.verify(alg, jwk, payload, signatureBytes))
+                          Xor.right((rawManifest, DigestUtils.sha256Hex(formatted)))
+                        else Xor.left(ManifestUnverified())
+                      } else
+                        Xor.left(
+                            ManifestInvalid("formatted length does not match with fortmatLength"))
+                    case Xor.Left(e) ⇒ Xor.left(Unknown(e.show))
+                  })
           }
         }
       case Xor.Right(None) ⇒ Xor.left(ManifestInvalid())
@@ -72,32 +91,32 @@ object SchemaV1 {
   }
 
   def convertFromSchemaV2(
-    image:       Image,
-    manifest:    ManifestV2,
-    imageConfig: String
+      image: Image,
+      manifest: ManifestV2,
+      imageConfig: String
   ): Xor[String, String] = {
     (for {
       imgConfig ← decode[ImageConfig](imageConfig)
-      config ← decode[Config](imageConfig)(decodeSchemaV1Config)
+      config    ← decode[Config](imageConfig)(decodeSchemaV1Config)
     } yield (imgConfig, config)) match {
       case Xor.Right((imgConfig, config)) ⇒
         if (imgConfig.history.isEmpty) Xor.left("Image config history is empty")
         else if (imgConfig.rootFs.diffIds.isEmpty) Xor.left("Image config root fs is empty")
         else {
           val baseLayerId = imgConfig.rootFs.baseLayer.map(DigestUtils.sha384Hex(_).take(32))
-          val (lastParentId, remainLayers, history, fsLayers) =
-            imgConfig.history.init.foldLeft(("", manifest.layers, List.empty[Layer], List.empty[FsLayer])) {
-              case ((parentId, layers, historyList, fsLayersList), img) ⇒
-                val (blobSum, layersTail) =
-                  if (img.isEmptyLayer) (ImageManifest.emptyTarSha256DigestFull, layers)
-                  else {
-                    val head = layers.headOption.map(_.getDigest).getOrElse("")
-                    (head, layers.tail)
-                  }
-                val v1Id = DigestUtils.sha256Hex(s"$blobSum $parentId")
-                val createdBy = img.createdBy.map(List(_)).getOrElse(Nil)
-                val throwAway = if (img.isEmptyLayer) Some(true) else None
-                val historyLayer = Layer(
+          val (lastParentId, remainLayers, history, fsLayers) = imgConfig.history.init
+            .foldLeft(("", manifest.layers, List.empty[Layer], List.empty[FsLayer])) {
+            case ((parentId, layers, historyList, fsLayersList), img) ⇒
+              val (blobSum, layersTail) =
+                if (img.isEmptyLayer) (ImageManifest.emptyTarSha256DigestFull, layers)
+                else {
+                  val head = layers.headOption.map(_.getDigest).getOrElse("")
+                  (head, layers.tail)
+                }
+              val v1Id      = DigestUtils.sha256Hex(s"$blobSum $parentId")
+              val createdBy = img.createdBy.map(List(_)).getOrElse(Nil)
+              val throwAway = if (img.isEmptyLayer) Some(true) else None
+              val historyLayer = Layer(
                   id = v1Id,
                   parent = StringUtils.trim(Some(parentId)),
                   comment = img.comment,
@@ -105,13 +124,13 @@ object SchemaV1 {
                   containerConfig = Some(LayerContainerConfig(createdBy)),
                   author = img.author,
                   throwAway = throwAway
-                )
-                val fsLayer = FsLayer(s"$sha256Prefix$blobSum")
-                val currentId =
-                  if (parentId.isEmpty) baseLayerId.getOrElse(v1Id)
-                  else v1Id
-                (currentId, layersTail, historyLayer :: historyList, fsLayer :: fsLayersList)
-            }
+              )
+              val fsLayer = FsLayer(s"$sha256Prefix$blobSum")
+              val currentId =
+                if (parentId.isEmpty) baseLayerId.getOrElse(v1Id)
+                else v1Id
+              (currentId, layersTail, historyLayer :: historyList, fsLayer :: fsLayersList)
+          }
 
           val (configHistory, configFsLayer) = {
             val isEmptyLayer = imgConfig.history.last.isEmptyLayer
@@ -124,21 +143,21 @@ object SchemaV1 {
               else Some(lastParentId)
             val throwAway = if (isEmptyLayer) Some(true) else None
             val historyLayer = config.copy(
-              id = Some(v1Id),
-              parent = parent,
-              throwAway = throwAway
+                id = Some(v1Id),
+                parent = parent,
+                throwAway = throwAway
             )
             val fsLayer = FsLayer(s"$sha256Prefix$blobSum")
             (historyLayer, fsLayer)
           }
 
           val manifestV1 = ManifestV1(
-            name = image.name,
-            tag = "",
-            fsLayers = configFsLayer :: fsLayers,
-            architecture = imgConfig.architecture,
-            history = configHistory :: history,
-            signatures = Nil
+              name = image.name,
+              tag = "",
+              fsLayers = configFsLayer :: fsLayers,
+              architecture = imgConfig.architecture,
+              history = configHistory :: history,
+              signatures = Nil
           )
           manifestV1.asJson.asObject match {
             case Some(obj) ⇒ Xor.right(prettyPrint(obj.remove("signatures").asJson))
@@ -154,21 +173,22 @@ object SchemaV1 {
   }
 
   private def signManifestV1(manifest: JsonObject): String = {
-    val formatted = prettyPrint(manifest.asJson)
-    val `protected` = protectedHeader(formatted)
-    val payload = s"${`protected`}.${base64Encode(formatted)}"
+    val formatted        = prettyPrint(manifest.asJson)
+    val `protected`      = protectedHeader(formatted)
+    val payload          = s"${`protected`}.${base64Encode(formatted)}"
     val (signature, alg) = Jws.signWithDefaultJwk(payload.getBytes("utf-8"))
-    val signatures = List(Signature(
-      header = SignatureHeader(Jws.defaultEcJwkParams, alg),
-      signature = base64Encode(signature),
-      `protected` = `protected`
-    ))
+    val signatures = List(
+        Signature(
+            header = SignatureHeader(Jws.defaultEcJwkParams, alg),
+            signature = base64Encode(signature),
+            `protected` = `protected`
+        ))
     val manifestWithSignature = manifest.add("signatures", signatures.asJson)
     prettyPrint(manifestWithSignature.asJson)
   }
 
   def addTagAndSignature(manifestV1: String, tag: String): String = {
-    val manifest = parseManifestV1(manifestV1)
+    val manifest        = parseManifestV1(manifestV1)
     val manifestWithTag = manifest.add("tag", Json.fromString(tag))
     signManifestV1(manifestWithTag)
   }
@@ -176,28 +196,28 @@ object SchemaV1 {
   // TODO: add Xor
   private def parseManifestV1(manifestV1: String): JsonObject = {
     parse(manifestV1).map(_.asObject) match {
-      case Xor.Right(opt) ⇒ opt match {
-        case Some(manifest) ⇒ manifest
-        case _              ⇒ throw new IllegalArgumentException("Manifest V1 not a JSON object")
-      }
+      case Xor.Right(opt) ⇒
+        opt match {
+          case Some(manifest) ⇒ manifest
+          case _              ⇒ throw new IllegalArgumentException("Manifest V1 not a JSON object")
+        }
       case Xor.Left(e) ⇒ throw new IllegalArgumentException(e.show)
     }
   }
 
-  private val spaceCharSet =
-    Set[Char]('\t', '\n', 0x0B, '\f', '\r', ' ', 0x85, 0xA0)
+  private val spaceCharSet = Set[Char]('\t', '\n', 0x0B, '\f', '\r', ' ', 0x85, 0xA0)
 
   private def isSpace(c: Char): Boolean =
     spaceCharSet.contains(c)
 
   private def protectedHeader(formatted: String): String = {
-    val cbIndex = formatted.lastIndexOf('}') - 1
+    val cbIndex      = formatted.lastIndexOf('}') - 1
     val formatLength = formatted.lastIndexWhere(!isSpace(_), cbIndex) + 1
-    val formatTail = formatted.drop(formatLength)
+    val formatTail   = formatted.drop(formatLength)
     val p = Protected(
-      formatLength = formatLength,
-      formatTail = base64Encode(formatTail),
-      time = ZonedDateTime.now().withFixedOffsetZone()
+        formatLength = formatLength,
+        formatTail = base64Encode(formatTail),
+        time = ZonedDateTime.now().withFixedOffsetZone()
     )
     base64Encode(p.asJson.noSpaces)
   }
@@ -225,17 +245,17 @@ object SchemaV1 {
     base64url.base64UrlDecode(s)
 
   private def printer(indent: String) = Printer(
-    preserveOrder = true,
-    dropNullKeys = false,
-    indent = indent,
-    lbraceRight = "\n",
-    rbraceLeft = "\n",
-    lbracketRight = "\n",
-    rbracketLeft = "\n",
-    lrbracketsEmpty = "\n",
-    arrayCommaRight = "\n",
-    objectCommaRight = "\n",
-    colonLeft = "",
-    colonRight = " "
+      preserveOrder = true,
+      dropNullKeys = false,
+      indent = indent,
+      lbraceRight = "\n",
+      rbraceLeft = "\n",
+      lbracketRight = "\n",
+      rbracketLeft = "\n",
+      lrbracketsEmpty = "\n",
+      arrayCommaRight = "\n",
+      objectCommaRight = "\n",
+      colonLeft = "",
+      colonRight = " "
   )
 }

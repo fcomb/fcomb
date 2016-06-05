@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 fcomb. <https://fcomb.io>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.fcomb
 
 import io.fcomb.models.errors.ValidationException
@@ -11,19 +27,18 @@ import slick.lifted.AppliedCompiledFunction
 package object validations {
   type DBIOT[T] = DBIOAction[T, NoStream, Effect.Read]
 
-  type PlainValidationT[T] = Validated[String, T]
+  type PlainValidationT[T]  = Validated[String, T]
   type FutureValidationT[T] = Future[Validated[String, T]]
-  type DBIOValidationT[T] = DBIOT[Validated[String, T]]
+  type DBIOValidationT[T]   = DBIOT[Validated[String, T]]
 
-  type PlainValidation = Validated[String, Unit]
+  type PlainValidation  = Validated[String, Unit]
   type FutureValidation = Future[PlainValidation]
-  type DBIOValidation = DBIOT[PlainValidation]
+  type DBIOValidation   = DBIOT[PlainValidation]
 
   type DBIOActionValidator = DBIOAction[Boolean, NoStream, Effect.Read]
 
   def eitherT[R](fut: Future[ValidationResult[R]])(
-    implicit
-    ec: ExecutionContext
+      implicit ec: ExecutionContext
   ) = XorT(fut.map(_.toXor))
 
   def plainValidation(validations: Seq[PlainValidation]): PlainValidation =
@@ -35,16 +50,17 @@ package object validations {
   def dbioValidation(validations: Seq[DBIOValidation])(implicit ec: ExecutionContext) =
     DBIO.sequence(validations).map(plainValidation)
 
-  type ColumnValidation = Validated[ValidationException, Unit]
-  type ValidationErrors = List[ValidationException]
-  type ValidationResult[T] = Validated[ValidationErrors, T]
+  type ColumnValidation     = Validated[ValidationException, Unit]
+  type ValidationErrors     = List[ValidationException]
+  type ValidationResult[T]  = Validated[ValidationErrors, T]
   type ValidationResultUnit = ValidationResult[Unit]
 
   def successResult[E](res: E): validations.ValidationResult[E] =
     Validated.Valid(res)
 
   def validationErrors[M](errors: (String, String)*): ValidationResult[M] =
-    Validated.Invalid(errors.map {
+    Validated.Invalid(
+        errors.map {
       case (param, msg) ⇒ ValidationException(param, msg)
     }.toList)
 
@@ -55,12 +71,11 @@ package object validations {
     }
 
   def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResultUnit =
-    validations.foldLeft(List.empty[ValidationException]) {
-      (acc, v) ⇒
-        v match {
-          case Validated.Valid(_)   ⇒ acc
-          case Validated.Invalid(e) ⇒ e :: acc
-        }
+    validations.foldLeft(List.empty[ValidationException]) { (acc, v) ⇒
+      v match {
+        case Validated.Valid(_)   ⇒ acc
+        case Validated.Invalid(e) ⇒ e :: acc
+      }
     } match {
       case Nil ⇒ Validated.Valid(())
       case xs  ⇒ Validated.Invalid(xs)
@@ -68,33 +83,35 @@ package object validations {
 
   def validatePlain(result: (String, List[PlainValidation])*): ValidationResultUnit =
     result.foldLeft(List.empty[ValidationException]) {
-      case (m, (c, v)) ⇒ plainValidation(v) match {
-        case Validated.Valid(_)     ⇒ m
-        case Validated.Invalid(msg) ⇒ ValidationException(c, msg) :: m
-      }
+      case (m, (c, v)) ⇒
+        plainValidation(v) match {
+          case Validated.Valid(_)     ⇒ m
+          case Validated.Invalid(msg) ⇒ ValidationException(c, msg) :: m
+        }
     } match {
       case Nil ⇒ Validated.Valid(())
       case xs  ⇒ Validated.Invalid(xs)
     }
 
   def validateDBIO(
-    result: (String, List[DBIOValidation])*
+      result: (String, List[DBIOValidation])*
   )(
-    implicit
-    ec: ExecutionContext
+      implicit ec: ExecutionContext
   ): DBIOT[ValidationResultUnit] = {
-    val emptyList = DBIO
-      .successful(List.empty[ValidationException])
-      .asInstanceOf[DBIOT[ValidationErrors]]
-    result.foldLeft(emptyList) {
-      case (m, (c, v)) ⇒ dbioValidation(v).flatMap {
-        case Validated.Valid(_)     ⇒ m
-        case Validated.Invalid(msg) ⇒ m.map(ValidationException(c, msg) :: _)
+    val emptyList =
+      DBIO.successful(List.empty[ValidationException]).asInstanceOf[DBIOT[ValidationErrors]]
+    result
+      .foldLeft(emptyList) {
+        case (m, (c, v)) ⇒
+          dbioValidation(v).flatMap {
+            case Validated.Valid(_)     ⇒ m
+            case Validated.Invalid(msg) ⇒ m.map(ValidationException(c, msg) :: _)
+          }
       }
-    }.map {
-      case Nil ⇒ Validated.Valid(())
-      case xs  ⇒ Validated.Invalid(xs)
-    }
+      .map {
+        case Nil ⇒ Validated.Valid(())
+        case xs  ⇒ Validated.Invalid(xs)
+      }
   }
 
   object Validations {
@@ -102,7 +119,8 @@ package object validations {
       if (value.isEmpty) Validated.Invalid("is empty")
       else Validated.Valid(())
 
-    val emailRegEx = """\A([a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+)@([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*)\z""".r
+    val emailRegEx =
+      """\A([a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+)@([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*)\z""".r
 
     def email(value: String): PlainValidation =
       if (emailRegEx.findFirstIn(value).isDefined) Validated.Valid(())
@@ -113,7 +131,7 @@ package object validations {
       else Validated.Invalid(errorMessage)
 
     def unique(
-      action: AppliedCompiledFunction[_, Rep[Boolean], Boolean]
+        action: AppliedCompiledFunction[_, Rep[Boolean], Boolean]
     )(implicit ec: ExecutionContext): DBIOValidation = {
       action.result.map {
         case true  ⇒ Validated.Invalid("not unique")
@@ -152,9 +170,9 @@ package object validations {
     def `:::`(result2: ValidationResult[T]): ValidationResult[T] =
       (result, result2) match {
         case (Validated.Invalid(e1), Validated.Invalid(e2)) ⇒ Validated.Invalid(e1 ++ e2)
-        case (e @ Validated.Invalid(_), _) ⇒ e
-        case (_, e @ Validated.Invalid(_)) ⇒ e
-        case _ ⇒ result
+        case (e @ Validated.Invalid(_), _)                  ⇒ e
+        case (_, e @ Validated.Invalid(_))                  ⇒ e
+        case _                                              ⇒ result
       }
   }
 }

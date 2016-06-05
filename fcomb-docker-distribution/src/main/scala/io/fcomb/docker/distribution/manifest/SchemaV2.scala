@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 fcomb. <https://fcomb.io>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.fcomb.docker.distribution.manifest
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
@@ -16,15 +32,16 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object SchemaV2 {
   def upsertAsImageManifest(
-    image:       Image,
-    reference:   Reference,
-    manifest:    ManifestV2,
-    rawManifest: String
+      image: Image,
+      reference: Reference,
+      manifest: ManifestV2,
+      rawManifest: String
   )(implicit ec: ExecutionContext, mat: Materializer): Future[Xor[DistributionError, String]] = {
     val sha256Digest = DigestUtils.sha256Hex(rawManifest)
     ImageManifestsRepo.findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
       case Some(im) ⇒
-        ImageManifestsRepo.updateTagsByReference(im, reference)
+        ImageManifestsRepo
+          .updateTagsByReference(im, reference)
           .fast
           .map(_ ⇒ Xor.right(im.sha256Digest))
       case None ⇒
@@ -38,8 +55,14 @@ object SchemaV2 {
               getImageConfig(configFile).flatMap { imageConfig ⇒
                 SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
                   case Xor.Right(schemaV1JsonBlob) ⇒
-                    ImageManifestsRepo.upsertSchemaV2(image, manifest, reference, configBlob,
-                      schemaV1JsonBlob, rawManifest, sha256Digest)
+                    ImageManifestsRepo
+                      .upsertSchemaV2(image,
+                                      manifest,
+                                      reference,
+                                      configBlob,
+                                      schemaV1JsonBlob,
+                                      rawManifest,
+                                      sha256Digest)
                       .fast
                       .map {
                         case Validated.Valid(_)   ⇒ Xor.right(sha256Digest)
@@ -50,7 +73,8 @@ object SchemaV2 {
               }
             }
           case None ⇒
-            FastFuture.successful(unknowError(s"Config blob `$sha256Prefix$configDigest` not found"))
+            FastFuture.successful(
+                unknowError(s"Config blob `$sha256Prefix$configDigest` not found"))
         }
     }
   }

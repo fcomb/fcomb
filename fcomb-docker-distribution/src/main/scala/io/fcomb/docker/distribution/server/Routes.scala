@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 fcomb. <https://fcomb.io>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.fcomb.docker.distribution.server
 
 import akka.actor._
@@ -101,8 +117,8 @@ object Routes {
         logger.error(e.getMessage(), e.getCause())
         respondWithHeaders(defaultHeaders) {
           complete(
-            StatusCodes.InternalServerError,
-            DistributionErrorResponse.from(DistributionError.Unknown())
+              StatusCodes.InternalServerError,
+              DistributionErrorResponse.from(DistributionError.Unknown())
           )
         }
     }
@@ -111,8 +127,8 @@ object Routes {
       .handleAll[AuthorizationFailedRejection.type] { _ ⇒
         respondWithHeaders(defaultAuthenticateHeaders) {
           complete(
-            StatusCodes.Unauthorized,
-            DistributionErrorResponse.from(DistributionError.Unauthorized())
+              StatusCodes.Unauthorized,
+              DistributionErrorResponse.from(DistributionError.Unauthorized())
           )
         }
       }
@@ -131,10 +147,10 @@ object Routes {
   private val versionHeader = `Docker-Distribution-Api-Version`("2.0")
 
   private val defaultHeaders = List(
-    versionHeader,
-    `X-Content-Type-Options`("nosniff"),
-    `X-Frame-Options`("sameorigin"),
-    `X-XSS-Protection`("1; mode=block")
+      versionHeader,
+      `X-Content-Type-Options`("nosniff"),
+      `X-Frame-Options`("sameorigin"),
+      `X-XSS-Protection`("1; mode=block")
   )
 
   private val authenticateHeader = `WWW-Authenticate`(challengeFor(realm))

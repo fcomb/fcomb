@@ -13,8 +13,7 @@ import io.circe.generic.auto._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 
 class HttpApiService(routes: Route)(
-    implicit
-    sys: ActorSystem,
+    implicit sys: ActorSystem,
     mat: Materializer
 ) {
   import sys.dispatcher
@@ -26,20 +25,20 @@ class HttpApiService(routes: Route)(
     e match {
       case _: ParsingException | _: Unmarshaller.UnsupportedContentTypeException ⇒
         (
-          InternalException(e.getMessage),
-          StatusCodes.UnprocessableEntity
+            InternalException(e.getMessage),
+            StatusCodes.UnprocessableEntity
         )
       case _ ⇒
         (
-          InternalException(e.getMessage),
-          StatusCodes.InternalServerError
+            InternalException(e.getMessage),
+            StatusCodes.InternalServerError
         )
     }
   }
 
   private def errorResponse[T <: DtCemException](
-    error:  T,
-    status: StatusCode
+      error: T,
+      status: StatusCode
   ) = {
     complete(status, FailureResponse.fromException(error))
   }
@@ -52,8 +51,8 @@ class HttpApiService(routes: Route)(
   private def handleRejection(r: Rejection) = r match {
     case _ ⇒
       errorResponse(
-        InternalException(r.toString),
-        StatusCodes.BadRequest
+          InternalException(r.toString),
+          StatusCodes.BadRequest
       )
   }
 
@@ -87,9 +86,8 @@ class HttpApiService(routes: Route)(
 
 object HttpApiService {
   def start(port: Int, interface: String, routes: Route)(
-    implicit
-    sys: ActorSystem,
-    mat: Materializer
+      implicit sys: ActorSystem,
+      mat: Materializer
   ) =
     new HttpApiService(routes).bind(port, interface)
 }

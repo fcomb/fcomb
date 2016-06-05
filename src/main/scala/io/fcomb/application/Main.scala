@@ -30,11 +30,10 @@ object Main extends App {
   Implicits.global(sys, mat)
 
   val interface = Config.config.getString("rest-api.interface")
-  val port = Config.config.getInt("rest-api.port")
+  val port      = Config.config.getInt("rest-api.port")
 
-  val drInterface =
-    Config.config.getString("docker.distribution.rest-api.interface")
-  val drPort = Config.config.getInt("docker.distribution.rest-api.port")
+  val drInterface = Config.config.getString("docker.distribution.rest-api.interface")
+  val drPort      = Config.config.getInt("docker.distribution.rest-api.port")
 
   (for {
     _ ← Db.migrate()
@@ -47,8 +46,7 @@ object Main extends App {
       logger.error(e.getMessage(), e.getCause())
       try {
         sys.terminate()
-      }
-      finally {
+      } finally {
         System.exit(-1)
       }
   }

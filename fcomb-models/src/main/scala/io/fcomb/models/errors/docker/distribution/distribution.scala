@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 fcomb. <https://fcomb.io>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.fcomb.models.errors.docker.distribution
 
 import enumeratum.EnumEntry
@@ -9,22 +25,22 @@ sealed trait DistributionErrorDetail
 sealed trait DistributionErrorCode extends EnumItem with EnumEntry.Uppercase
 
 object DistributionErrorCode extends Enum[DistributionErrorCode] {
-  final case object BlobUnknown extends DistributionErrorCode
-  final case object BlobUploadInvalid extends DistributionErrorCode
-  final case object BlobUploadUnknown extends DistributionErrorCode
+  final case object BlobUnknown         extends DistributionErrorCode
+  final case object BlobUploadInvalid   extends DistributionErrorCode
+  final case object BlobUploadUnknown   extends DistributionErrorCode
   final case object ManifestBlobUnknown extends DistributionErrorCode
-  final case object ManifestInvalid extends DistributionErrorCode
-  final case object ManifestUnknown extends DistributionErrorCode
-  final case object ManifestUnverified extends DistributionErrorCode
-  final case object NameUnknown extends DistributionErrorCode
-  final case object SizeInvalid extends DistributionErrorCode
-  final case object TagInvalid extends DistributionErrorCode
-  final case object Unauthorized extends DistributionErrorCode
-  final case object Denied extends DistributionErrorCode
-  final case object Unsupported extends DistributionErrorCode
-  final case object DigestInvalid extends DistributionErrorCode
-  final case object NameInvalid extends DistributionErrorCode
-  final case object Unknown extends DistributionErrorCode
+  final case object ManifestInvalid     extends DistributionErrorCode
+  final case object ManifestUnknown     extends DistributionErrorCode
+  final case object ManifestUnverified  extends DistributionErrorCode
+  final case object NameUnknown         extends DistributionErrorCode
+  final case object SizeInvalid         extends DistributionErrorCode
+  final case object TagInvalid          extends DistributionErrorCode
+  final case object Unauthorized        extends DistributionErrorCode
+  final case object Denied              extends DistributionErrorCode
+  final case object Unsupported         extends DistributionErrorCode
+  final case object DigestInvalid       extends DistributionErrorCode
+  final case object NameInvalid         extends DistributionErrorCode
+  final case object Unknown             extends DistributionErrorCode
 
   val values = findValues
 }
@@ -38,57 +54,66 @@ sealed trait DistributionError extends Error {
 object DistributionError {
   final case class DigestInvalid(
       message: String = "provided digest did not match uploaded content"
-  ) extends DistributionError {
-    val code = DistributionErrorCode.DigestInvalid
+  )
+      extends DistributionError {
+    val code   = DistributionErrorCode.DigestInvalid
     val detail = None
   }
 
   final case class Unknown(message: String = "unknown error") extends DistributionError {
-    val code = DistributionErrorCode.Unknown
+    val code   = DistributionErrorCode.Unknown
     val detail = None
   }
 
-  final case class NameInvalid(message: String = "invalid repository name") extends DistributionError {
-    val code = DistributionErrorCode.NameInvalid
+  final case class NameInvalid(message: String = "invalid repository name")
+      extends DistributionError {
+    val code   = DistributionErrorCode.NameInvalid
     val detail = None
   }
 
   final case class ManifestUnverified(
       message: String = "manifest failed signature verification"
-  ) extends DistributionError {
-    val code = DistributionErrorCode.ManifestUnverified
+  )
+      extends DistributionError {
+    val code   = DistributionErrorCode.ManifestUnverified
     val detail = None
   }
 
-  final case class ManifestInvalid(message: String = "manifest invalid") extends DistributionError {
-    val code = DistributionErrorCode.ManifestInvalid
+  final case class ManifestInvalid(message: String = "manifest invalid")
+      extends DistributionError {
+    val code   = DistributionErrorCode.ManifestInvalid
     val detail = None
   }
 
-  final case class ManifestUnknown(message: String = "manifest unknown") extends DistributionError {
-    val code = DistributionErrorCode.ManifestUnknown
+  final case class ManifestUnknown(message: String = "manifest unknown")
+      extends DistributionError {
+    val code   = DistributionErrorCode.ManifestUnknown
     val detail = None
   }
 
-  final case class BlobUploadInvalid(message: String = "blob upload invalid") extends DistributionError {
-    val code = DistributionErrorCode.BlobUploadInvalid
+  final case class BlobUploadInvalid(message: String = "blob upload invalid")
+      extends DistributionError {
+    val code   = DistributionErrorCode.BlobUploadInvalid
     val detail = None
   }
 
-  final case class NameUnknown(message: String = "repository name not known to registry") extends DistributionError {
-    val code = DistributionErrorCode.NameUnknown
+  final case class NameUnknown(message: String = "repository name not known to registry")
+      extends DistributionError {
+    val code   = DistributionErrorCode.NameUnknown
     val detail = None
   }
 
-  final case class Unauthorized(message: String = "authentication required") extends DistributionError {
-    val code = DistributionErrorCode.Unauthorized
+  final case class Unauthorized(message: String = "authentication required")
+      extends DistributionError {
+    val code   = DistributionErrorCode.Unauthorized
     val detail = None
   }
 }
 
 final case class DistributionErrorResponse(
-  errors: Seq[DistributionError]
-) extends ErrorResponse
+    errors: Seq[DistributionError]
+)
+    extends ErrorResponse
 
 object DistributionErrorResponse {
   def from(error: DistributionError): DistributionErrorResponse =

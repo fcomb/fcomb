@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 fcomb. <https://fcomb.io>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.fcomb.persist
 
 import io.fcomb.{models, validations}
@@ -14,16 +30,18 @@ import slick.jdbc.TransactionIsolation
 import slick.lifted.AppliedCompiledFunction
 
 trait PersistTypes[T] {
-  type ValidationModel = ValidationResult[T]
+  type ValidationModel      = ValidationResult[T]
   type ValidationDBIOResult = DBIOT[ValidationResultUnit]
 
   def validationError[E](
-    columnName: String, error: String
+      columnName: String,
+      error: String
   ): ValidationResult[E] =
     validations.validationErrors(columnName → error)
 
   def validationErrorAsFuture[E](
-    columnName: String, error: String
+      columnName: String,
+      error: String
   ): Future[ValidationResult[E]] =
     FastFuture.successful(validationError(columnName, error))
 
@@ -31,7 +49,8 @@ trait PersistTypes[T] {
     validationError(columnName, s"Not found `$id` record")
 
   def recordNotFoundAsFuture[E](
-    field: String, id: String
+      field: String,
+      id: String
   ): Future[ValidationResult[E]] =
     FastFuture.successful(recordNotFound(field, id))
 }
@@ -39,7 +58,7 @@ trait PersistTypes[T] {
 trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   val table: TableQuery[Q]
 
-  type ModelDBIO = DBIOAction[T, NoStream, Effect.All]
+  type ModelDBIO       = DBIOAction[T, NoStream, Effect.All]
   type ModelDBIOOption = DBIOAction[Option[T], NoStream, Effect.All]
 
   val validationsOpt = Option.empty[T ⇒ Future[ValidationResult[_]]]
@@ -54,48 +73,44 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 
   @inline
   def runInTransaction[Q](isolation: TransactionIsolation)(
-    q: DBIOAction[Q, NoStream, Effect.All]
+      q: DBIOAction[Q, NoStream, Effect.All]
   )(implicit ec: ExecutionContext): Future[Q] =
     db.run(q.transactionally.withTransactionIsolation(isolation))
 
   protected def validate(
-    t: (ValidationResultUnit, ValidationDBIOResult)
+      t: (ValidationResultUnit, ValidationDBIOResult)
   )(implicit ec: ExecutionContext): ValidationDBIOResult =
     for {
       plainRes ← DBIO.successful(t._1)
-      dbioRes ← t._2
+      dbioRes  ← t._2
     } yield plainRes *> dbioRes
 
   protected def validate(item: T)(
-    implicit
-    ec: ExecutionContext
+      implicit ec: ExecutionContext
   ): ValidationDBIOResult =
     DBIO.successful(Validated.Valid(()))
 
   protected def validateThenApply(result: ValidationDBIOResult)(
-    f: ⇒ DBIOAction[T, NoStream, Effect.All]
+      f: ⇒ DBIOAction[T, NoStream, Effect.All]
   )(
-    implicit
-    ec: ExecutionContext,
-    m:  Manifest[T]
+      implicit ec: ExecutionContext,
+      m: Manifest[T]
   ): Future[ValidationModel] =
     validateThenApplyVM(result)(f.map(Validated.Valid(_)))
 
   protected def validateThenApplyDBIO(result: ValidationDBIOResult)(
-    f: ⇒ DBIOAction[T, NoStream, Effect.All]
+      f: ⇒ DBIOAction[T, NoStream, Effect.All]
   )(
-    implicit
-    ec: ExecutionContext,
-    m:  Manifest[T]
+      implicit ec: ExecutionContext,
+      m: Manifest[T]
   ): DBIOAction[ValidationModel, NoStream, Effect.All] =
     validateThenApplyVMDBIO(result)(f.map(Validated.Valid(_)))
 
   protected def validateThenApplyVMDBIO(result: ValidationDBIOResult)(
-    f: ⇒ DBIOAction[ValidationModel, NoStream, Effect.All]
+      f: ⇒ DBIOAction[ValidationModel, NoStream, Effect.All]
   )(
-    implicit
-    ec: ExecutionContext,
-    m:  Manifest[T]
+      implicit ec: ExecutionContext,
+      m: Manifest[T]
   ): DBIOAction[ValidationModel, NoStream, Effect.All] = {
     result.flatMap {
       case Validated.Valid(_)       ⇒ f
@@ -104,14 +119,13 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   }
 
   protected def validateThenApplyVM(result: ValidationDBIOResult)(
-    f: ⇒ DBIOAction[ValidationModel, NoStream, Effect.All]
+      f: ⇒ DBIOAction[ValidationModel, NoStream, Effect.All]
   )(
-    implicit
-    ec: ExecutionContext,
-    m:  Manifest[T]
+      implicit ec: ExecutionContext,
+      m: Manifest[T]
   ): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted)(
-      validateThenApplyVMDBIO(result)(f)
+        validateThenApplyVMDBIO(result)(f)
     )
 
   def all() =
@@ -127,11 +141,10 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     table returning table.map(i ⇒ i) += item.asInstanceOf[Q#TableElementType]
 
   def createDBIO(items: Seq[T]) =
-    table returning table.map(i ⇒ i) ++=
-      items.asInstanceOf[Seq[Q#TableElementType]]
+    table returning table.map(i ⇒ i) ++= items.asInstanceOf[Seq[Q#TableElementType]]
 
   def createDBIO(
-    itemOpt: Option[T]
+      itemOpt: Option[T]
   )(implicit ec: ExecutionContext): ModelDBIOOption =
     itemOpt match {
       case Some(item) ⇒ createDBIO(item).map(Some(_))
@@ -139,36 +152,32 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     }
 
   def createWithValidationDBIO(item: T)(
-    implicit
-    ec: ExecutionContext,
-    m:  Manifest[T]
+      implicit ec: ExecutionContext,
+      m: Manifest[T]
   ): DBIOAction[ValidationModel, NoStream, Effect.All] = {
     val mappedItem = mapModel(item)
     validateThenApplyDBIO(validate(mappedItem))(createDBIO(mappedItem))
   }
 
   def create(item: T)(
-    implicit
-    ec: ExecutionContext,
-    m:  Manifest[T]
+      implicit ec: ExecutionContext,
+      m: Manifest[T]
   ): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted)(
-      createWithValidationDBIO(item)
+        createWithValidationDBIO(item)
     )
 
   def strictUpdateDBIO[R](res: R)(
-    q:     Int,
-    error: ValidationResult[R]
+      q: Int,
+      error: ValidationResult[R]
   )(
-    implicit
-    ec: ExecutionContext
+      implicit ec: ExecutionContext
   ): ValidationResult[R] =
     if (q == 0) error
     else Validated.Valid(res)
 
   def strictDestroyDBIO(q: Int, error: ValidationResultUnit)(
-    implicit
-    ec: ExecutionContext
+      implicit ec: ExecutionContext
   ): ValidationResultUnit =
     if (q == 0) error
     else Validated.Valid(())
@@ -203,7 +212,8 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   val tableWithPk: IntoInsertActionComposer[T, T]
 
   @inline
-  def findByPkQuery(id: T#PkType): AppliedCompiledFunction[T#PkType, Query[Q, T, Seq], Seq[Q#TableElementType]]
+  def findByPkQuery(
+      id: T#PkType): AppliedCompiledFunction[T#PkType, Query[Q, T, Seq], Seq[Q#TableElementType]]
 
   @inline
   override def createDBIO(item: T) =
@@ -228,23 +238,17 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   def notCurrentPkFilter(id: Rep[Option[T#PkType]]): Query[Q, T, Seq]
 
   def updateDBIO(item: T)(
-    implicit
-    ec: ExecutionContext,
-    m:  Manifest[T]
+      implicit ec: ExecutionContext,
+      m: Manifest[T]
   ) =
-    findByPkQuery(item.getId)
-      .update(item)
-      .map(strictUpdateDBIO(item.getId, item))
+    findByPkQuery(item.getId).update(item).map(strictUpdateDBIO(item.getId, item))
 
   def strictUpdateDBIO[R](id: T#PkType, res: R)(q: Int)(
-    implicit
-    ec: ExecutionContext
+      implicit ec: ExecutionContext
   ): ValidationResult[R] =
     super.strictUpdateDBIO(res)(q, recordNotFound(id))
 
-  def update(item: T)(implicit
-    ec: ExecutionContext,
-                      m: Manifest[T]): Future[ValidationModel] = {
+  def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val mappedItem = mapModel(item)
     validateThenApplyVM(validate((mappedItem))) {
       updateDBIO(mappedItem)
@@ -252,13 +256,12 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   }
 
   def update(
-    id: T#PkType
+      id: T#PkType
   )(
-    f: T ⇒ T
+      f: T ⇒ T
   )(
-    implicit
-    ec: ExecutionContext,
-    m:  Manifest[T]
+      implicit ec: ExecutionContext,
+      m: Manifest[T]
   ): Future[ValidationModel] =
     findByPk(id).flatMap {
       case Some(item) ⇒ update(f(item))
@@ -270,16 +273,15 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   }
 
   def strictDestroyDBIO(id: T#PkType)(q: Int)(
-    implicit
-    ec: ExecutionContext
+      implicit ec: ExecutionContext
   ): ValidationResultUnit =
     super.strictDestroyDBIO(q, recordNotFound(id))
 }
 
-trait PersistModelWithUuidPk[T <: models.ModelWithUuidPk, Q <: Table[T] with PersistTableWithUuidPk]
+trait PersistModelWithUuidPk[
+    T <: models.ModelWithUuidPk, Q <: Table[T] with PersistTableWithUuidPk]
     extends PersistModelWithPk[T, Q] {
-  lazy val tableWithPk =
-    table.returning(table.map(_.id)).into((item, _) ⇒ item)
+  lazy val tableWithPk = table.returning(table.map(_.id)).into((item, _) ⇒ item)
 
   protected val findByPkCompiled = Compiled { id: Rep[UUID] ⇒
     table.filter(_.id === id)
@@ -294,11 +296,11 @@ trait PersistModelWithUuidPk[T <: models.ModelWithUuidPk, Q <: Table[T] with Per
     }
 }
 
-trait PersistModelWithAutoLongPk[T <: models.ModelWithAutoLongPk, Q <: Table[T] with PersistTableWithAutoLongPk]
+trait PersistModelWithAutoLongPk[
+    T <: models.ModelWithAutoLongPk, Q <: Table[T] with PersistTableWithAutoLongPk]
     extends PersistModelWithPk[T, Q] {
-  lazy val tableWithPk = table
-    .returning(table.map(_.id))
-    .into((item, id) ⇒ item.withPk(id.get).asInstanceOf[T])
+  lazy val tableWithPk =
+    table.returning(table.map(_.id)).into((item, id) ⇒ item.withPk(id.get).asInstanceOf[T])
 
   protected val findByPkCompiled = Compiled { id: Rep[Long] ⇒
     table.filter(_.id === id)

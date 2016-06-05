@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 fcomb. <https://fcomb.io>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.fcomb.tests
 
 import io.fcomb.Db
@@ -13,7 +29,7 @@ private[this] object PersistSpec {
   lazy val logger = LoggerFactory.getLogger(getClass)
 
   lazy val initDbOnlyOnce = {
-    logger.debug("Clean db schema")
+    logger.info("Clean db schema")
     val conn = Db.db.createSession().conn
     val st = conn.prepareStatement("""
       DROP SCHEMA IF EXISTS public CASCADE;
@@ -21,7 +37,7 @@ private[this] object PersistSpec {
     """)
     try st.executeUpdate()
     finally conn.close()
-    logger.debug("Migrate db schema")
+    logger.info("Migrate db schema")
     Await.result(Db.migrate(), 30.seconds)
   }
 

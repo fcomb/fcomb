@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 fcomb. <https://fcomb.io>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.fcomb.docker.distribution.services
 
 import io.fcomb.utils.StringUtils
@@ -46,39 +62,35 @@ trait ProcessorClustedSharding[Id] {
   private var actorRef: ActorRef = _
 
   protected def startClustedSharding(props: Props)(
-    implicit
-    sys: ActorSystem,
-    mat: Materializer
+      implicit sys: ActorSystem,
+      mat: Materializer
   ) = {
     val ref = ClusterSharding(sys).start(
-      typeName = shardName,
-      entityProps = props,
-      settings = ClusterShardingSettings(sys),
-      extractEntityId = extractEntityId,
-      extractShardId = extractShardId
+        typeName = shardName,
+        entityProps = props,
+        settings = ClusterShardingSettings(sys),
+        extractEntityId = extractEntityId,
+        extractShardId = extractShardId
     )
     actorRef = ref
     ref
   }
 
   protected def askRef[T](
-    id:      Id,
-    entity:  Entity,
-    timeout: Timeout
+      id: Id,
+      entity: Entity,
+      timeout: Timeout
   )(
-    implicit
-    ec: ExecutionContext,
-    m:  Manifest[T]
+      implicit ec: ExecutionContext,
+      m: Manifest[T]
   ): Future[T] =
     Option(actorRef) match {
       case Some(ref) ⇒
-        ask(ref, EntityEnvelope(id, entity))(timeout)
-          .mapTo[T]
-          .recover {
-            case e: Throwable ⇒
-              logger.error(s"ask ref $id#$entity error: $e")
-              throw e
-          }
+        ask(ref, EntityEnvelope(id, entity))(timeout).mapTo[T].recover {
+          case e: Throwable ⇒
+            logger.error(s"ask ref $id#$entity error: $e")
+            throw e
+        }
       case None ⇒ Future.failed(EmptyActorRefException)
     }
 
@@ -96,9 +108,8 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
   }
 
   def startRegion(timeout: Duration)(
-    implicit
-    sys: ActorSystem,
-    mat: Materializer
+      implicit sys: ActorSystem,
+      mat: Materializer
   ) =
     startClustedSharding(props(timeout))
 
@@ -106,21 +117,20 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
     Props(new ImageBlobPushProcessor(timeout))
 
   def uploadChunk(blobId: UUID, source: Source[ByteString, Any], file: File)(
-    implicit
-    ec:  ExecutionContext,
-    mat: Materializer
+      implicit ec: ExecutionContext,
+      mat: Materializer
   ): Future[(Long, String)] = {
     for {
-      Xor.Right(md) ← begin(blobId)
+      Xor.Right(md)         ← begin(blobId)
       (length, chunkDigest) ← uploadChunkGraph(md, source, file).run()
       Xor.Right(fileDigest) ← commit(blobId, chunkDigest)
     } yield (length, StringUtils.hexify(fileDigest.digest))
   }
 
   private def uploadChunkGraph(
-    md:     MessageDigest,
-    source: Source[ByteString, Any],
-    file:   File
+      md: MessageDigest,
+      source: Source[ByteString, Any],
+      file: File
   ) = {
     val fileOptions = Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
 
@@ -130,21 +140,21 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
         (length + bs.length, md)
     }
 
-    RunnableGraph
-      .fromGraph(GraphDSL.create(source.completionTimeout(25.minutes), sink)(
-        Keep.right
-      ) { implicit b ⇒ (source, sink) ⇒
-        import GraphDSL.Implicits._
+    RunnableGraph.fromGraph(
+        GraphDSL.create(source.completionTimeout(25.minutes), sink)(
+            Keep.right
+        ) { implicit b ⇒ (source, sink) ⇒
+      import GraphDSL.Implicits._
 
-        val broadcast = b.add(Broadcast[ByteString](2))
+      val broadcast = b.add(Broadcast[ByteString](2))
 
-        source ~> broadcast.in
+      source ~> broadcast.in
 
-        broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
-        broadcast.out(1) ~> sink
+      broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
+      broadcast.out(1) ~> sink
 
-        ClosedShape
-      })
+      ClosedShape
+    })
   }
 
   final case object Begin extends Entity
@@ -154,23 +164,20 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
   final case class Commit(md: MessageDigest) extends Entity
 
   def begin(blobId: UUID)(
-    implicit
-    ec:      ExecutionContext,
-    timeout: Timeout          = Timeout(30.seconds)
+      implicit ec: ExecutionContext,
+      timeout: Timeout = Timeout(30.seconds)
   ): Future[Xor[String, MessageDigest]] =
     askRef[Xor[String, MessageDigest]](blobId, Begin, timeout)
 
   def commit(blobId: UUID, md: MessageDigest)(
-    implicit
-    ec:      ExecutionContext,
-    timeout: Timeout          = Timeout(30.seconds)
+      implicit ec: ExecutionContext,
+      timeout: Timeout = Timeout(30.seconds)
   ): Future[Xor[String, MessageDigest]] =
     askRef[Xor[String, MessageDigest]](blobId, Commit(md), timeout)
 
   def stop(blobId: UUID)(
-    implicit
-    ec:      ExecutionContext,
-    timeout: Timeout          = Timeout(30.seconds)
+      implicit ec: ExecutionContext,
+      timeout: Timeout = Timeout(30.seconds)
   ) =
     askRef[Xor[String, Unit]](blobId, Stop, timeout)
 }
@@ -187,7 +194,8 @@ object ImageBlobPushMessages {
   final case class State(digest: MessageDigest)
 }
 
-trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor ⇒
+trait ProcessorActor[S] extends Stash with ActorLogging {
+  this: Actor ⇒
   import context.dispatcher
   import ProcessorActorMessages._
   import ShardRegion.Passivate
@@ -232,7 +240,7 @@ trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor ⇒
     putStateWithReceiveAsyncFunc(fut)(Some(rf))
 
   private def putStateWithReceiveAsyncFunc(fut: Future[S])(
-    rfOpt: Option[S ⇒ Receive]
+      rfOpt: Option[S ⇒ Receive]
   ) = {
     val p = Promise[S]()
     context.become({
