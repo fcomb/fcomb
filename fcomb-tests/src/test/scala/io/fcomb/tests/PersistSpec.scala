@@ -1,7 +1,8 @@
 package io.fcomb.tests
 
 import io.fcomb.Db
-import io.fcomb.{persist ⇒ P}
+import io.fcomb.persist.UsersRepo
+import io.fcomb.persist.docker.distribution._
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -25,8 +26,10 @@ private[this] object PersistSpec {
   }
 
   val tables = Set(
-    P.docker.distribution.Image.table,
-    P.User.table
+    ImageManifestsRepo.table,
+    ImageBlobsRepo.table,
+    ImagesRepo.table,
+    UsersRepo.table
   )
 
   val truncateQuery =

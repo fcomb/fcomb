@@ -12,17 +12,19 @@ import io.fcomb.docker.distribution.utils.BlobFile
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.tests._
-import io.fcomb.tests.fixtures.Fixtures
+import io.fcomb.tests.fixtures._
+import io.fcomb.tests.fixtures.docker.distribution.ImageBlobsRepoFixture
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
+import io.fcomb.docker.distribution.server.Routes
 
 class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with ScalaFutures with PersistSpec with ActorClusterSpec {
   val route = Routes()
   val imageName = "library/test-image_2016"
   val bs = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest = DigestUtils.sha256Hex(bs.toArray)
-  val credentials = BasicHttpCredentials(Fixtures.User.username, Fixtures.User.password)
+  val credentials = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
 
   override def beforeEach(): Unit = {
@@ -30,11 +32,11 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
     BlobFile.getBlobFilePath(bsDigest).delete()
   }
 
-  "The image blob service" should {
+  "The image blob handler" should {
     "return an info without content for HEAD request to the exist layer path" in {
       Fixtures.await(for {
-        user ← Fixtures.User.create()
-        _ ← Fixtures.docker.distribution.ImageBlob.createAs(
+        user ← UsersRepoFixture.create()
+        _ ← ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield ())
@@ -52,8 +54,8 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
 
     "return a blob for GET request to the blob download path" in {
       Fixtures.await(for {
-        user ← Fixtures.User.create()
-        _ ← Fixtures.docker.distribution.ImageBlob.createAs(
+        user ← UsersRepoFixture.create()
+        _ ← ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield ())
@@ -71,8 +73,8 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
 
     "return a part of blob for GET request to the blob download path" in {
       val blob = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
+        user ← UsersRepoFixture.create()
+        blob ← ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield blob)
@@ -95,8 +97,8 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
 
     "return not modified status for GET request to the blob download path" in {
       Fixtures.await(for {
-        user ← Fixtures.User.create()
-        _ ← Fixtures.docker.distribution.ImageBlob.createAs(
+        user ← UsersRepoFixture.create()
+        _ ← ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield ())
@@ -110,8 +112,8 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
 
     "return successful response for DELETE request to the blob path" in {
       val blob = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
+        user ← UsersRepoFixture.create()
+        blob ← ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield blob)

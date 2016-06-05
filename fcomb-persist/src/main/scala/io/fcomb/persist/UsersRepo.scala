@@ -26,21 +26,33 @@ class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWit
 object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
   val table = TableQuery[UserTable]
 
-  def create(req: UserSignUpRequest)(implicit ec: ExecutionContext): Future[ValidationModel] = {
+  def create(
+    email:    String,
+    username: String,
+    fullName: Option[String],
+    password: String
+  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = ZonedDateTime.now()
-    val user = mapModel(
-      User(
-        email = req.email,
-        username = req.username,
-        fullName = req.fullName,
-        passwordHash = req.password.bcrypt(generateSalt),
-        createdAt = timeAt,
-        updatedAt = None
-      )
-    )
-    validateThenApply(validate(userValidation(user, Some(req.password)))) {
+    val user = mapModel(User(
+      email = email,
+      username = username,
+      fullName = fullName,
+      passwordHash = password.bcrypt(generateSalt),
+      createdAt = timeAt,
+      updatedAt = None
+    ))
+    validateThenApply(validate(userValidation(user, Some(password)))) {
       createDBIO(user)
     }
+  }
+
+  def create(req: UserSignUpRequest)(implicit ec: ExecutionContext): Future[ValidationModel] = {
+    create(
+      email = req.email,
+      username = req.username,
+      fullName = req.fullName,
+      password = req.password
+    )
   }
 
   def update(id: Long, req: UserUpdateRequest)(implicit ec: ExecutionContext): Future[ValidationModel] =

@@ -10,26 +10,28 @@ import akka.util.ByteString
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.docker.distribution.server.services.ImageBlobPushProcessor
+import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.utils.BlobFile
 import io.fcomb.json.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
-import io.fcomb.persist.docker.distribution.{Image ⇒ PImage, ImageBlob ⇒ PImageBlob}
+import io.fcomb.persist.docker.distribution._
 import io.fcomb.tests._
-import io.fcomb.tests.fixtures.Fixtures
+import io.fcomb.tests.fixtures._
+import io.fcomb.tests.fixtures.docker.distribution.ImageBlobsRepoFixture
 import java.io.FileInputStream
 import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
+import io.fcomb.docker.distribution.server.Routes
 
 class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with PersistSpec with ActorClusterSpec with FutureSpec {
   val route = Routes()
   val imageName = "library/test-image_2016"
   val bs = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest = DigestUtils.sha256Hex(bs.toArray)
-  val credentials = BasicHttpCredentials(Fixtures.User.username, Fixtures.User.password)
+  val credentials = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
   val clusterRef = ImageBlobPushProcessor.startRegion(30.seconds)
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
 
@@ -43,9 +45,9 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
     BlobFile.getBlobFilePath(bsDigest).delete()
   }
 
-  "The image blob upload service" should {
+  "The image blob upload handler" should {
     "return a uuid for POST request to the start upload path" in {
-      Fixtures.await(Fixtures.User.create())
+      Fixtures.await(UsersRepoFixture.create())
 
       Post(s"/v2/$imageName/blobs/uploads/") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
@@ -58,7 +60,7 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
     }
 
     "return successful response for POST request to initiate monolithic blob upload path" in {
-      Fixtures.await(Fixtures.User.create())
+      Fixtures.await(UsersRepoFixture.create())
 
       Post(
         s"/v2/$imageName/blobs/uploads/?digest=sha256:$bsDigest",
@@ -85,7 +87,7 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
     }
 
     "return failed response for POST request to initiate monolithic blob upload path" in {
-      Fixtures.await(Fixtures.User.create())
+      Fixtures.await(UsersRepoFixture.create())
 
       Post(
         s"/v2/$imageName/blobs/uploads/?digest=sha256:333f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f",
@@ -99,8 +101,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PUT request to mount blob upload path" in {
       val user = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
+        user ← UsersRepoFixture.create()
+        blob ← ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield user)
@@ -130,8 +132,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PUT request to monolithic blob upload path" in {
       val blob = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.docker.distribution.ImageBlob.create(user.getId, imageName)
+        user ← UsersRepoFixture.create()
+        blob ← ImageBlobsRepoFixture.create(user.getId, imageName)
       } yield blob)
 
       Put(
@@ -160,8 +162,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PATCH requests to blob upload path" in {
       val blob = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.docker.distribution.ImageBlob.create(user.getId, imageName)
+        user ← UsersRepoFixture.create()
+        blob ← ImageBlobsRepoFixture.create(user.getId, imageName)
       } yield blob)
 
       val blobPart1 = bs.take(bs.length / 2)
@@ -220,8 +222,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PUT request without final chunk to complete blob upload path" in {
       val blob = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
+        user ← UsersRepoFixture.create()
+        blob ← ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploading
         )
       } yield blob)
@@ -245,8 +247,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PUT request without final chunk to complete blob path" in {
       val blob = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
+        user ← UsersRepoFixture.create()
+        blob ← ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploading
         )
       } yield blob)
@@ -270,8 +272,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for DELETE request to the blob upload path" in {
       val blob = Fixtures.await(for {
-        user ← Fixtures.User.create()
-        blob ← Fixtures.docker.distribution.ImageBlob.createAs(
+        user ← UsersRepoFixture.create()
+        blob ← ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploading
         )
       } yield blob)
