@@ -24,6 +24,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object ImagesRepoFixture {
   def create(userId: Long, imageName: String): Future[Long] =
     for {
-      Validated.Valid(imageId) ← ImagesRepo.findIdOrCreateByName(imageName, userId)
+      Validated.Valid(imageId) <- ImagesRepo.findIdOrCreateByName(imageName, userId)
     } yield imageId
 }

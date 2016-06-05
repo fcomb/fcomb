@@ -19,10 +19,10 @@ package io.fcomb.crypto
 import java.security.cert.X509Certificate
 import java.io.StringWriter
 import java.security.{PrivateKey, PublicKey, Signature}
-import java.util.{Calendar, Date, Vector ⇒ JavaVector}
+import java.util.{Calendar, Date, Vector => JavaVector}
 import java.util.concurrent.ThreadLocalRandom
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter
-import java.security.cert.{Certificate ⇒ JavaCertificate}
+import java.security.cert.{Certificate => JavaCertificate}
 import sun.security.tools.keytool.CertAndKeyGen
 import sun.security.x509._
 import sun.security.pkcs10.PKCS10
@@ -131,7 +131,7 @@ object Certificate {
         new CertificateX509Key(request.getSubjectPublicKeyInfo())
     )
     info.set(X509CertInfo.SUBJECT, request.getSubjectName())
-    extOpt.foreach(ext ⇒ info.set(X509CertInfo.EXTENSIONS, ext))
+    extOpt.foreach(ext => info.set(X509CertInfo.EXTENSIONS, ext))
     val cert = new X509CertImpl(info)
     cert.sign(signerPrivateKey, keyAlgorithmName)
     cert.asInstanceOf[X509Certificate]

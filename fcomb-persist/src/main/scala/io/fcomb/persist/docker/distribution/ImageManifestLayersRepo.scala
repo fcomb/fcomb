@@ -36,10 +36,10 @@ object ImageManifestLayersRepo extends PersistModel[ImageManifestLayer, ImageMan
 
   def insertLayersDBIO(imageManifestId: Long, layers: List[UUID]) = {
     if (layers.isEmpty) DBIO.successful(())
-    else table ++= layers.map(l ⇒ ImageManifestLayer(imageManifestId, l))
+    else table ++= layers.map(l => ImageManifestLayer(imageManifestId, l))
   }
 
-  val isBlobLinkedCompiled = Compiled { id: Rep[UUID] ⇒
+  val isBlobLinkedCompiled = Compiled { id: Rep[UUID] =>
     table.filter(_.layerBlobId === id).exists
   }
 }

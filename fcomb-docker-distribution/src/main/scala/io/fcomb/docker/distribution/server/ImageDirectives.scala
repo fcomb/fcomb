@@ -28,10 +28,10 @@ import io.circe.generic.auto._
 
 trait ImageDirectives {
   def imageByNameWithAcl(imageName: String, user: User): Directive1[Image] = {
-    extractExecutionContext.flatMap { implicit ec ⇒
+    extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findByImageAndUserId(imageName, user.getId)).flatMap {
-        case Some(user) ⇒ provide(user)
-        case None ⇒
+        case Some(user) => provide(user)
+        case None =>
           complete(
               StatusCodes.NotFound,
               DistributionErrorResponse.from(DistributionError.NameUnknown())

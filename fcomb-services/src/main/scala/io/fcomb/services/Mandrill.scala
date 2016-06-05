@@ -66,7 +66,7 @@ object Mandrill {
     )
     Source
       .fromFuture(Marshal(sendTemplate).to[RequestEntity])
-      .map { entity ⇒
+      .map { entity =>
         HttpRequest(
             method = HttpMethods.POST,
             uri = "https://$hostname/api/1.0/messages/send-template.json",

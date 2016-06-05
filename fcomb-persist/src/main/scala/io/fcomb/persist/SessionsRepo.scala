@@ -37,7 +37,7 @@ object SessionsRepo {
       implicit ec: ExecutionContext
   ): Future[Xor[FailureResponse, Session]] = {
     val sessionId = s"$prefix${random.alphanumeric.take(sessionIdLength).mkString}"
-    redis.set(getKey(sessionId), id, ttl).fast.map(_ ⇒ Xor.right(Session(sessionId)))
+    redis.set(getKey(sessionId), id, ttl).fast.map(_ => Xor.right(Session(sessionId)))
   }
 
   private val invalidEmailOrPassword = FastFuture.successful(
@@ -51,18 +51,18 @@ object SessionsRepo {
       implicit ec: ExecutionContext
   ): Future[Xor[FailureResponse, Session]] =
     UsersRepo.findByEmail(req.email).flatMap {
-      case Some(user) if user.isValidPassword(req.password) ⇒
+      case Some(user) if user.isValidPassword(req.password) =>
         createToken(prefix, user.getId.toString)
-      case _ ⇒ invalidEmailOrPassword
+      case _ => invalidEmailOrPassword
     }
 
   def findById(sessionId: String)(
       implicit ec: ExecutionContext
   ): Future[Option[User]] = {
     redis.get(getKey(sessionId)).flatMap {
-      case Some(userId) if sessionId.startsWith(prefix) ⇒
+      case Some(userId) if sessionId.startsWith(prefix) =>
         UsersRepo.findByPk(userId.utf8String.toLong)
-      case _ ⇒
+      case _ =>
         FastFuture.successful(None)
     }
   }

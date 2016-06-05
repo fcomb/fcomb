@@ -41,15 +41,15 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
 object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
   val table = TableQuery[ImageTable]
 
-  private val findIdByNameCompiled = Compiled { name: Rep[String] ⇒
+  private val findIdByNameCompiled = Compiled { name: Rep[String] =>
     table.filter(_.name.toLowerCase === name.toLowerCase).map(_.pk).take(1)
   }
 
   def findIdByName(name: String) =
     db.run(findIdByNameCompiled(name).result.headOption)
 
-  val findByImageAndUserIdCompiled = Compiled { (name: Rep[String], userId: Rep[Long]) ⇒
-    table.filter { q ⇒
+  val findByImageAndUserIdCompiled = Compiled { (name: Rep[String], userId: Rep[Long]) =>
+    table.filter { q =>
       q.name.toLowerCase === name.toLowerCase && q.userId === userId
     }.take(1)
   }
@@ -57,10 +57,10 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
   def findByImageAndUserId(name: String, userId: Long) =
     db.run(findByImageAndUserIdCompiled((name, userId)).result.headOption)
 
-  val findIdAndUserIdByImageCompiled = Compiled { (name: Rep[String], userId: Rep[Long]) ⇒
-    table.filter { q ⇒
+  val findIdAndUserIdByImageCompiled = Compiled { (name: Rep[String], userId: Rep[Long]) =>
+    table.filter { q =>
       q.name.toLowerCase === name.toLowerCase && q.userId === userId
-    }.map(t ⇒ (t.pk, t.userId)).take(1)
+    }.map(t => (t.pk, t.userId)).take(1)
   }
 
   def findIdOrCreateByNameDBIO(
@@ -68,27 +68,27 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       userId: Long
   )(implicit ec: ExecutionContext) =
     for {
-      _ ← sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
-      res ← findIdAndUserIdByImageCompiled((name, userId)).result.headOption.flatMap {
-             case Some((id, imageUserId)) ⇒
-               if (imageUserId == userId) DBIO.successful(Validated.Valid(id))
-               else
-                 DBIO.successful(
-                     validationError(
-                         "userId",
-                         "insufficient permissions"
-                     )) // TODO
-             case None ⇒
-               val timeNow = ZonedDateTime.now
-               createWithValidationDBIO(
-                   Image(
-                       name = name,
-                       userId = userId,
-                       createdAt = timeNow,
-                       updatedAt = None
-                   )
-               ).map(_.map(_.getId))
-           }
+      _ <- sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
+      res <- findIdAndUserIdByImageCompiled((name, userId)).result.headOption.flatMap {
+              case Some((id, imageUserId)) =>
+                if (imageUserId == userId) DBIO.successful(Validated.Valid(id))
+                else
+                  DBIO.successful(
+                      validationError(
+                          "userId",
+                          "insufficient permissions"
+                      )) // TODO
+              case None =>
+                val timeNow = ZonedDateTime.now
+                createWithValidationDBIO(
+                    Image(
+                        name = name,
+                        userId = userId,
+                        createdAt = timeNow,
+                        updatedAt = None
+                    )
+                ).map(_.map(_.getId))
+            }
     } yield res
 
   def findIdOrCreateByName(name: String, userId: Long)(
@@ -98,15 +98,15 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       findIdOrCreateByNameDBIO(name, userId)
     }
 
-  private val findIdByUserIdAndNameCompiled = Compiled { (userId: Rep[Long], name: Rep[String]) ⇒
-    table.filter { q ⇒
+  private val findIdByUserIdAndNameCompiled = Compiled { (userId: Rep[Long], name: Rep[String]) =>
+    table.filter { q =>
       q.userId === userId && q.name === name
     }.map(_.pk)
   }
 
   private val findRepositoriesByUserIdCompiled = Compiled {
-    (userId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long]) ⇒
-      table.filter { q ⇒
+    (userId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long]) =>
+      table.filter { q =>
         q.userId === userId && q.pk > id
       }.sortBy(_.id.asc).map(_.name).take(limit)
   }
@@ -121,31 +121,31 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       implicit ec: ExecutionContext
   ): Future[(Seq[String], Int, Boolean)] = {
     val limit = n match {
-      case Some(v) if v > 0 && v <= fetchLimit ⇒ v
-      case _                                   ⇒ fetchLimit
+      case Some(v) if v > 0 && v <= fetchLimit => v
+      case _                                   => fetchLimit
     }
     val since = last match {
-      case Some(imageName) ⇒
+      case Some(imageName) =>
         findIdByUserIdAndNameCompiled((userId, imageName)).result.headOption.map {
-          case Some(id) ⇒ id
-          case None     ⇒ 0L
+          case Some(id) => id
+          case None     => 0L
         }
-      case None ⇒ DBIO.successful(0L)
+      case None => DBIO.successful(0L)
     }
     db.run(for {
-        id ← since
-        repositories ← findRepositoriesByUserIdCompiled(
-                          (userId, limit + 1L, id)
-                      ).result
+        id <- since
+        repositories <- findRepositoriesByUserIdCompiled(
+                           (userId, limit + 1L, id)
+                       ).result
       } yield repositories)
       .fast
-      .map { repositories ⇒
+      .map { repositories =>
         (repositories.take(limit), limit, repositories.length > limit)
       }
   }
 
-  private val uniqueNameCompiled = Compiled { (id: Rep[Option[Long]], name: Rep[String]) ⇒
-    notCurrentPkFilter(id).filter { q ⇒
+  private val uniqueNameCompiled = Compiled { (id: Rep[Option[Long]], name: Rep[String]) =>
+    notCurrentPkFilter(id).filter { q =>
       q.name.toLowerCase === name.toLowerCase
     }.exists
   }

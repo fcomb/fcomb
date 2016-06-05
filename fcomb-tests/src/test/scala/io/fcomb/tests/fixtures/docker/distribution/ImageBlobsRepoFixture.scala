@@ -32,7 +32,7 @@ import akka.stream.Materializer
 object ImageBlobsRepoFixture {
   def create(userId: Long, imageName: String): Future[ImageBlob] =
     (for {
-      imageId ← ImagesRepoFixture.create(userId, imageName)
+      imageId <- ImagesRepoFixture.create(userId, imageName)
       id = UUID.randomUUID()
       blob = ImageBlob(
         id = Some(id),
@@ -44,7 +44,7 @@ object ImageBlobsRepoFixture {
         createdAt = ZonedDateTime.now(),
         uploadedAt = None
       )
-      Validated.Valid(res) ← ImageBlobsRepo.create(blob)
+      Validated.Valid(res) <- ImageBlobsRepo.create(blob)
     } yield res)
 
   def createAs(
@@ -55,7 +55,7 @@ object ImageBlobsRepoFixture {
     digestOpt: Option[String] = None
   )(implicit mat: Materializer): Future[ImageBlob] = {
     for {
-      imageId ← ImagesRepoFixture.create(userId, imageName)
+      imageId <- ImagesRepoFixture.create(userId, imageName)
       id = UUID.randomUUID()
       digest = digestOpt.getOrElse(DigestUtils.sha256Hex(bs.toArray))
       blob = ImageBlob(
@@ -68,10 +68,10 @@ object ImageBlobsRepoFixture {
         createdAt = ZonedDateTime.now(),
         uploadedAt = None
       )
-      Validated.Valid(im) ← ImageBlobsRepo.create(blob)
+      Validated.Valid(im) <- ImageBlobsRepo.create(blob)
       file = BlobFile.getFile(blob)
       _ = file.getParentFile.mkdirs()
-      _ ← Source.single(bs).runWith(FileIO.toPath(file.toPath))
+      _ <- Source.single(bs).runWith(FileIO.toPath(file.toPath))
     } yield im
   }
 }

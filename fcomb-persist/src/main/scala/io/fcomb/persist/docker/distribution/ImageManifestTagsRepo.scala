@@ -40,13 +40,13 @@ object ImageManifestTagsRepo extends PersistModel[ImageManifestTag, ImageManifes
       implicit ec: ExecutionContext
   ) = {
     for {
-      existingTags ← findAllExistingTagsDBIO(imageId, imageManifestId, tags)
-      _            ← DBIO.seq(existingTags.map(updateTagDBIO(_, imageManifestId)): _*)
+      existingTags <- findAllExistingTagsDBIO(imageId, imageManifestId, tags)
+      _            <- DBIO.seq(existingTags.map(updateTagDBIO(_, imageManifestId)): _*)
       existingTagsSet = existingTags.map(_.tag).toSet
       newTags = tags
         .filterNot(existingTagsSet.contains)
-        .map(t ⇒ ImageManifestTag(imageId, imageManifestId, t))
-      _ ← {
+        .map(t => ImageManifestTag(imageId, imageManifestId, t))
+      _ <- {
         if (newTags.isEmpty) DBIO.successful(())
         else table ++= newTags
       }
@@ -54,7 +54,7 @@ object ImageManifestTagsRepo extends PersistModel[ImageManifestTag, ImageManifes
   }
 
   private def findAllExistingTagsDBIO(imageId: Long, imageManifestId: Long, tags: List[String]) =
-    table.filter { q ⇒
+    table.filter { q =>
       q.imageId === imageId && q.imageManifestId =!= imageManifestId && q.tag.inSetBind(tags)
     }
     // .forUpdate
@@ -64,16 +64,16 @@ object ImageManifestTagsRepo extends PersistModel[ImageManifestTag, ImageManifes
       implicit ec: ExecutionContext
   ) = {
     for {
-      _ ← sqlu"""
+      _ <- sqlu"""
           UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
             SET tags = array_remove(tags, ${imt.tag}),
                 updated_at = ${ZonedDateTime.now()}
             WHERE id = ${imt.imageManifestId}
           """
-      _ ← table.filter { q ⇒
-           q.imageId === imt.imageId && q.imageManifestId === imt.imageManifestId &&
-           q.tag === imt.tag
-         }.map(_.imageManifestId).update(imageManifestId)
+      _ <- table.filter { q =>
+            q.imageId === imt.imageId && q.imageManifestId === imt.imageManifestId &&
+            q.tag === imt.tag
+          }.map(_.imageManifestId).update(imageManifestId)
     } yield ()
   }
 }

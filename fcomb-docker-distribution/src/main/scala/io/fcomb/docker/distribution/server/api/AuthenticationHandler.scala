@@ -23,7 +23,7 @@ import io.fcomb.docker.distribution.server.AuthenticationDirectives._
 
 object AuthenticationHandler {
   def versionCheck =
-    authenticateUserBasic { _ ⇒
+    authenticateUserBasic { _ =>
       complete(versionCheckResponse)
     }
 

@@ -65,12 +65,12 @@ sealed trait ActorSystemSpec extends FutureSpec {
 abstract class ActorSpec extends TestKit(ActorSystemSpec.system)
     with ImplicitSender with WordSpecLike with Matchers
     with BeforeAndAfterAll with ActorSystemSpec with SpecHelpers {
-  def startFakeHttpServer(handler: Route)(f: Int ⇒ Future[Unit]): Unit =
+  def startFakeHttpServer(handler: Route)(f: Int => Future[Unit]): Unit =
     await {
       val port = Random.random.nextInt(50000) + 10000
-      Http().bindAndHandle(handler, "localhost", port).flatMap { h ⇒
+      Http().bindAndHandle(handler, "localhost", port).flatMap { h =>
         f(port).andThen {
-          case res ⇒ h.unbind().map(_ ⇒ res)
+          case res => h.unbind().map(_ => res)
         }
       }
     }

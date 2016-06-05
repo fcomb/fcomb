@@ -69,9 +69,9 @@ class ImageManifestTable(tag: Tag)
       v2DetailsTuple: (Option[UUID], Option[String])
   ) = {
     val schemaV2Details = (schemaVersion, v2DetailsTuple) match {
-      case (2, (configBlobId, Some(v2JsonBlob))) ⇒
+      case (2, (configBlobId, Some(v2JsonBlob))) =>
         Some(ImageManifestSchemaV2Details(configBlobId, v2JsonBlob))
-      case _ ⇒ None
+      case _ => None
     }
     ImageManifest(
         id = id,
@@ -89,9 +89,9 @@ class ImageManifestTable(tag: Tag)
 
   def unapply2(m: ImageManifest) = {
     val v2DetailsTuple = m.schemaV2Details match {
-      case Some(ImageManifestSchemaV2Details(configBlobId, v2JsonBlob)) ⇒
+      case Some(ImageManifestSchemaV2Details(configBlobId, v2JsonBlob)) =>
         (configBlobId, Some(v2JsonBlob))
-      case None ⇒ (None, None)
+      case None => (None, None)
     }
     Some(
         (m.id,
@@ -111,8 +111,8 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
   val table = TableQuery[ImageManifestTable]
 
   private val findByImageIdAndDigestCompiled = Compiled {
-    (imageId: Rep[Long], digest: Rep[String]) ⇒
-      table.filter { q ⇒
+    (imageId: Rep[Long], digest: Rep[String]) =>
+      table.filter { q =>
         q.imageId === imageId && q.sha256Digest === digest
       }.take(1)
   }
@@ -124,10 +124,10 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       blobs: Seq[(UUID, Option[String])],
       digests: Set[String]
   ) = {
-    val existingDigests = blobs.collect { case (_, Some(dgst)) ⇒ dgst }.toSet
+    val existingDigests = blobs.collect { case (_, Some(dgst)) => dgst }.toSet
     val notFound = digests
       .filterNot(existingDigests.contains)
-      .map(dgst ⇒ s"${ImageManifest.sha256Prefix}$dgst")
+      .map(dgst => s"${ImageManifest.sha256Prefix}$dgst")
       .mkString(", ")
     validationErrorAsFuture("layersBlobId", s"Unknown blobs: $notFound")
   }
@@ -139,27 +139,28 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       sha256Digest: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
-      case Some(im) ⇒ FastFuture.successful(Validated.valid(im))
-      case None ⇒
+      case Some(im) => FastFuture.successful(Validated.valid(im))
+      case None =>
         val digests = manifest.fsLayers.map(_.getDigest).toSet
         val tags =
           if (manifest.tag.nonEmpty) List(manifest.tag)
           else Nil
-        ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId, digests).flatMap { blobs ⇒
-          if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
-          else
-            create(
-                ImageManifest(
-                    sha256Digest = sha256Digest,
-                    imageId = image.getId,
-                    tags = tags,
-                    layersBlobId = blobs.map(_._1).toList,
-                    schemaVersion = 1,
-                    schemaV1JsonBlob = schemaV1JsonBlob,
-                    schemaV2Details = None,
-                    createdAt = ZonedDateTime.now,
-                    updatedAt = None
-                ))
+        ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId, digests).flatMap {
+          blobs =>
+            if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
+            else
+              create(
+                  ImageManifest(
+                      sha256Digest = sha256Digest,
+                      imageId = image.getId,
+                      tags = tags,
+                      layersBlobId = blobs.map(_._1).toList,
+                      schemaVersion = 1,
+                      schemaV1JsonBlob = schemaV1JsonBlob,
+                      schemaV2Details = None,
+                      createdAt = ZonedDateTime.now,
+                      updatedAt = None
+                  ))
         }
     }
   }
@@ -174,18 +175,18 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       sha256Digest: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
-      case Some(im) ⇒
-        updateTagsByReference(im, reference).fast.map(_ ⇒ Validated.valid(im))
-      case None ⇒
+      case Some(im) =>
+        updateTagsByReference(im, reference).fast.map(_ => Validated.valid(im))
+      case None =>
         val digests = manifest.layers.map(_.getDigest).toSet
         val emptyTarResFut =
           if (digests.contains(ImageManifest.emptyTarSha256Digest))
             ImageBlobsRepo.createEmptyTarIfNotExists(image.getId)
           else FastFuture.successful(())
         (for {
-          _       ← emptyTarResFut
-          blobIds ← ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId, digests)
-        } yield blobIds).flatMap { blobs ⇒
+          _       <- emptyTarResFut
+          blobIds <- ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId, digests)
+        } yield blobIds).flatMap { blobs =>
           if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
           else {
             val schemaV2Details = ImageManifestSchemaV2Details(
@@ -193,8 +194,8 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
                 jsonBlob = schemaV2JsonBlob
             )
             val tags = reference match {
-              case Reference.Tag(tag) ⇒ List(tag)
-              case _                  ⇒ Nil
+              case Reference.Tag(tag) => List(tag)
+              case _                  => Nil
             }
             create(
                 ImageManifest(
@@ -217,13 +218,13 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       implicit ec: ExecutionContext
   ): Future[Unit] = {
     val tags = reference match {
-      case Reference.Tag(tag) if !im.tags.contains(tag) ⇒ List(tag)
-      case _                                            ⇒ Nil
+      case Reference.Tag(tag) if !im.tags.contains(tag) => List(tag)
+      case _                                            => Nil
     }
     if (tags.nonEmpty)
       runInTransaction(TransactionIsolation.Serializable)(for {
-        _ ← ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
-        _ ← sqlu"""
+        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
+        _ <- sqlu"""
           UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
             SET tags = tags || ${reference.value},
                 updated_at = ${ZonedDateTime.now()}
@@ -239,12 +240,12 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
   ): Future[ValidationModel] = {
     runInTransaction(TransactionIsolation.Serializable)(
         createWithValidationDBIO(manifest).flatMap {
-          case res @ Validated.Valid(im) ⇒
+          case res @ Validated.Valid(im) =>
             for {
-              _ ← ImageManifestLayersRepo.insertLayersDBIO(im.getId, im.layersBlobId)
-              _ ← ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, im.tags)
+              _ <- ImageManifestLayersRepo.insertLayersDBIO(im.getId, im.layersBlobId)
+              _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, im.tags)
             } yield res
-          case res ⇒ DBIO.successful(res)
+          case res => DBIO.successful(res)
         }
     )
   }
@@ -252,11 +253,11 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
   def findByImageIdAndReference(imageId: Long, reference: Reference)(
       implicit ec: ExecutionContext
   ): Future[Option[ImageManifest]] = reference match {
-    case Reference.Digest(dgst) ⇒ findByImageIdAndDigest(imageId, dgst)
-    case Reference.Tag(tag)     ⇒ findByImageIdAndTag(imageId, tag)
+    case Reference.Digest(dgst) => findByImageIdAndDigest(imageId, dgst)
+    case Reference.Tag(tag)     => findByImageIdAndTag(imageId, tag)
   }
 
-  private val findByImageIdAndTagCompiled = Compiled { (imageId: Rep[Long], tag: Rep[String]) ⇒
+  private val findByImageIdAndTagCompiled = Compiled { (imageId: Rep[Long], tag: Rep[String]) =>
     table
       .join(ImageManifestTagsRepo.table)
       .on(_.id === _.imageManifestId)
@@ -268,15 +269,15 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
     db.run(findByImageIdAndTagCompiled((imageId, tag)).result.headOption)
 
   private val findIdAndTagsByImageIdAndTagCompiled = Compiled {
-    (imageId: Rep[Long], tag: Rep[String]) ⇒
-      table.filter { q ⇒
+    (imageId: Rep[Long], tag: Rep[String]) =>
+      table.filter { q =>
         q.imageId === imageId && tag === q.tags.any
-      }.map(m ⇒ (m.pk, m.tags))
+      }.map(m => (m.pk, m.tags))
   }
 
   private val findTagsByImageIdCompiled = Compiled {
-    (imageId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long], offset: ConstColumn[Long]) ⇒
-      table.filter { q ⇒
+    (imageId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long], offset: ConstColumn[Long]) =>
+      table.filter { q =>
         q.imageId === imageId && q.pk >= id
       }.sortBy(_.id.asc).map(_.tags.unnest).drop(offset).take(limit)
   }
@@ -287,30 +288,30 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       implicit ec: ExecutionContext
   ): Future[(Seq[String], Int, Boolean)] = {
     val limit = n match {
-      case Some(v) if v > 0 && v <= fetchLimit ⇒ v
-      case _                                   ⇒ fetchLimit
+      case Some(v) if v > 0 && v <= fetchLimit => v
+      case _                                   => fetchLimit
     }
     val since = last match {
-      case Some(tag) ⇒
+      case Some(tag) =>
         findIdAndTagsByImageIdAndTagCompiled((imageId, tag)).result.headOption.map {
-          case Some((id, tags)) ⇒ (id, tags.indexOf(tag) + 1L)
-          case None             ⇒ (0L, 0L)
+          case Some((id, tags)) => (id, tags.indexOf(tag) + 1L)
+          case None             => (0L, 0L)
         }
-      case None ⇒ DBIO.successful((0L, 0L))
+      case None => DBIO.successful((0L, 0L))
     }
     db.run(for {
-        (id, offset) ← since
-        tags         ← findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
+        (id, offset) <- since
+        tags         <- findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
       } yield tags)
       .fast
-      .map { tags ⇒
+      .map { tags =>
         (tags.take(limit), limit, tags.length > limit)
       }
   }
 
   def destroy(imageId: Long, digest: String)(implicit ec: ExecutionContext): Future[Boolean] =
     db.run {
-      table.filter { q ⇒
+      table.filter { q =>
         q.imageId === imageId && q.sha256Digest === digest
       }.delete.map(_ != 0)
     }

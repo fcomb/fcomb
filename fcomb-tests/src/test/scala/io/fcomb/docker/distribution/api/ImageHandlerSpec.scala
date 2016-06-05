@@ -27,7 +27,7 @@ import cats.scalatest.XorMatchers._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.circe.parser.decode
-import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest}
+import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
 import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.docker.distribution.Formats._
@@ -53,10 +53,10 @@ class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   "The image handler" should {
     "return list of repositories for GET request to the catalog path" in {
       Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        _ ← ImageBlobsRepoFixture.create(user.getId, "first/test1")
-        _ ← ImageBlobsRepoFixture.create(user.getId, "second/test2")
-        _ ← ImageBlobsRepoFixture.create(user.getId, "third/test3")
+        user <- UsersRepoFixture.create()
+        _ <- ImageBlobsRepoFixture.create(user.getId, "first/test1")
+        _ <- ImageBlobsRepoFixture.create(user.getId, "second/test2")
+        _ <- ImageBlobsRepoFixture.create(user.getId, "third/test3")
       } yield ())
 
       Get(s"/v2/_catalog") ~> addCredentials(credentials) ~> route ~> check {
@@ -84,11 +84,11 @@ class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
     "return list of tags for GET request to the tags path" in {
       Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob1 ← ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
-        _ ← ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0", "1.1"))
-        blob2 ← ImageBlobsRepoFixture.createAs(user.getId, imageName, bs ++ bs, ImageBlobState.Uploaded)
-        _ ← ImageManifestsRepoFixture.createV2(user.getId, imageName, blob2, List("2.0", "2.1"))
+        user <- UsersRepoFixture.create()
+        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+        _ <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0", "1.1"))
+        blob2 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs ++ bs, ImageBlobState.Uploaded)
+        _ <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob2, List("2.0", "2.1"))
       } yield ())
 
       Get(s"/v2/$imageName/tags/list") ~> addCredentials(credentials) ~> route ~> check {
@@ -119,8 +119,8 @@ class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       val digest = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
       Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob1 ← ImageBlobsRepoFixture.createAs(user.getId, imageName,
+        user <- UsersRepoFixture.create()
+        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName,
           ByteString.empty, ImageBlobState.Uploaded,
           digestOpt = Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
       } yield ())
@@ -142,8 +142,8 @@ class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       val digest = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
       Fixtures.await(for {
-        u ← UsersRepoFixture.create()
-        _ ← ImagesRepoFixture.create(u.getId, imageName)
+        u <- UsersRepoFixture.create()
+        _ <- ImagesRepoFixture.create(u.getId, imageName)
       } yield u)
 
       Put(
@@ -163,11 +163,11 @@ class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       val configBlobBs = ByteString(getFixture("docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
 
       val configBlob = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob1 ← ImageBlobsRepoFixture.createAs(user.getId, imageName,
+        user <- UsersRepoFixture.create()
+        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName,
           ByteString.empty, ImageBlobState.Uploaded,
           digestOpt = Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
-        cb ← ImageBlobsRepoFixture.createAs(user.getId, imageName,
+        cb <- ImageBlobsRepoFixture.createAs(user.getId, imageName,
           configBlobBs, ImageBlobState.Uploaded)
       } yield cb)
       configBlob.sha256Digest should contain("13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
@@ -191,8 +191,8 @@ class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       val configBlobDigest = "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08"
 
       val user = Fixtures.await(for {
-        u ← UsersRepoFixture.create()
-        _ ← ImagesRepoFixture.create(u.getId, imageName)
+        u <- UsersRepoFixture.create()
+        _ <- ImagesRepoFixture.create(u.getId, imageName)
       } yield u)
 
       Put(
@@ -223,9 +223,9 @@ class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
     "return a manifest v1 for GET request to manifest path by tag and digest" in {
       val im = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob1 ← ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
-        im ← ImageManifestsRepoFixture.createV1(user.getId, imageName, blob1, "1.0")
+        user <- UsersRepoFixture.create()
+        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+        im <- ImageManifestsRepoFixture.createV1(user.getId, imageName, blob1, "1.0")
       } yield im)
 
       def checkResponse(): Unit = {
@@ -251,9 +251,9 @@ class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
     "return a manifest v2 for GET request to manifest path by tag and digest" in {
       val im = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob1 ← ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
-        im ← ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0"))
+        user <- UsersRepoFixture.create()
+        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+        im <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0"))
       } yield im)
 
       Get(s"/v2/$imageName/manifests/1.0") ~> addCredentials(credentials) ~> route ~> check {
@@ -294,9 +294,9 @@ class ImageHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
     "return an accepted for DELETE request to manifest path by digest" in {
       val im = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob1 ← ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
-        im ← ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0"))
+        user <- UsersRepoFixture.create()
+        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+        im <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0"))
       } yield im)
 
       Delete(s"/v2/$imageName/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {

@@ -50,7 +50,7 @@ object Routes {
         } ~
         pathPrefix(Segments(2, 32)) { segments =>
           pathEndOrSingleSlash {
-            extractRequest { implicit req ⇒
+            extractRequest { implicit req =>
               val method = req.method
               segments.reverse match {
                 case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
@@ -112,7 +112,7 @@ object Routes {
     import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 
     val exceptionHandler = ExceptionHandler {
-      case e ⇒
+      case e =>
         e.printStackTrace()
         logger.error(e.getMessage(), e.getCause())
         respondWithHeaders(defaultHeaders) {
@@ -124,7 +124,7 @@ object Routes {
     }
     val rejectionHandler = RejectionHandler
       .newBuilder()
-      .handleAll[AuthorizationFailedRejection.type] { _ ⇒
+      .handleAll[AuthorizationFailedRejection.type] { _ =>
         respondWithHeaders(defaultAuthenticateHeaders) {
           complete(
               StatusCodes.Unauthorized,

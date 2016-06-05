@@ -28,24 +28,24 @@ import akka.http.scaladsl.model.headers.OAuth2BearerToken
 
 object SessionHandler {
   def create =
-    extractExecutionContext { implicit ec ⇒
-      entity(as[SessionCreateRequest]) { req ⇒
+    extractExecutionContext { implicit ec =>
+      entity(as[SessionCreateRequest]) { req =>
         onSuccess(SessionsRepo.create(req)) {
-          case Xor.Right(s) ⇒ complete(StatusCodes.OK, s)
-          case Xor.Left(e)  ⇒ complete(StatusCodes.BadRequest, e)
+          case Xor.Right(s) => complete(StatusCodes.OK, s)
+          case Xor.Left(e)  => complete(StatusCodes.BadRequest, e)
         }
       }
     }
 
   def destroy =
-    extractExecutionContext { implicit ec ⇒
+    extractExecutionContext { implicit ec =>
       extractCredentials {
-        case Some(OAuth2BearerToken(token)) ⇒
-          onSuccess(SessionsRepo.destroy(token)) { _ ⇒
+        case Some(OAuth2BearerToken(token)) =>
+          onSuccess(SessionsRepo.destroy(token)) { _ =>
             complete(HttpResponse(StatusCodes.NoContent))
           }
-        case Some(_) ⇒ complete(HttpResponse(StatusCodes.BadRequest))
-        case None    ⇒ complete(HttpResponse(StatusCodes.Unauthorized))
+        case Some(_) => complete(HttpResponse(StatusCodes.BadRequest))
+        case None    => complete(HttpResponse(StatusCodes.Unauthorized))
       }
     }
 }

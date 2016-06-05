@@ -67,8 +67,8 @@ package object persist {
   // )(implicit tag: ClassTag[T]): JdbcType[List[T]] = {
   //   new AdvancedArrayJdbcType[T](
   //     sqlName(sqlEnumTypeName, quoteName),
-  //     fromString = s ⇒ SimpleArrayUtils.fromString(s1 ⇒ enumObject.withName(s1))(s).orNull,
-  //     mkString = v ⇒ SimpleArrayUtils.mkString[T](_.value)(v)
+  //     fromString = s => SimpleArrayUtils.fromString(s1 => enumObject.withName(s1))(s).orNull,
+  //     mkString = v => SimpleArrayUtils.mkString[T](_.value)(v)
   //   ).to(_.toList)
   // }
 

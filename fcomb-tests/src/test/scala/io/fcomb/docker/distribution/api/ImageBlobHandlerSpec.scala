@@ -51,8 +51,8 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
   "The image blob handler" should {
     "return an info without content for HEAD request to the exist layer path" in {
       Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        _ ← ImageBlobsRepoFixture.createAs(
+        user <- UsersRepoFixture.create()
+        _ <- ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield ())
@@ -70,8 +70,8 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
 
     "return a blob for GET request to the blob download path" in {
       Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        _ ← ImageBlobsRepoFixture.createAs(
+        user <- UsersRepoFixture.create()
+        _ <- ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield ())
@@ -89,8 +89,8 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
 
     "return a part of blob for GET request to the blob download path" in {
       val blob = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob ← ImageBlobsRepoFixture.createAs(
+        user <- UsersRepoFixture.create()
+        blob <- ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield blob)
@@ -113,8 +113,8 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
 
     "return not modified status for GET request to the blob download path" in {
       Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        _ ← ImageBlobsRepoFixture.createAs(
+        user <- UsersRepoFixture.create()
+        _ <- ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield ())
@@ -128,8 +128,8 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
 
     "return successful response for DELETE request to the blob path" in {
       val blob = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob ← ImageBlobsRepoFixture.createAs(
+        user <- UsersRepoFixture.create()
+        blob <- ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield blob)

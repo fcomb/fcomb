@@ -39,16 +39,16 @@ object Jws {
         .newJwk(params.toMap[String, Object].asJava)
         .asInstanceOf[EllipticCurveJsonWebKey]
       val alg = algorithm match {
-        case "ES256" ⇒ new EcdsaUsingShaAlgorithm.EcdsaP256UsingSha256()
-        case "ES384" ⇒ new EcdsaUsingShaAlgorithm.EcdsaP384UsingSha384()
-        case "ES512" ⇒ new EcdsaUsingShaAlgorithm.EcdsaP521UsingSha512()
-        case _       ⇒ throw new IllegalArgumentException(s"Unknown algorithm: $algorithm")
+        case "ES256" => new EcdsaUsingShaAlgorithm.EcdsaP256UsingSha256()
+        case "ES384" => new EcdsaUsingShaAlgorithm.EcdsaP384UsingSha384()
+        case "ES512" => new EcdsaUsingShaAlgorithm.EcdsaP521UsingSha512()
+        case _       => throw new IllegalArgumentException(s"Unknown algorithm: $algorithm")
       }
       val pk = jwk.getPublicKey
       Option(jwk.getKeyId).contains(keyId(pk)) &&
       alg.verifySignature(signatureBytes, pk, payload.getBytes("utf-8"), ctx)
     } catch {
-      case e: Throwable ⇒
+      case e: Throwable =>
         logger.error(e.getMessage, e)
         false
     }
@@ -62,7 +62,7 @@ object Jws {
   lazy val defaultEcJwkParams: immutable.Map[String, String] = defaultEcJwk
     .toParams(JsonWebKey.OutputControlLevel.PUBLIC_ONLY)
     .asScala
-    .map { case (k, v) ⇒ (k, v.asInstanceOf[String]) }
+    .map { case (k, v) => (k, v.asInstanceOf[String]) }
     .toMap
 
   def signWithDefaultJwk(bytes: Array[Byte]): (Array[Byte], String) = {

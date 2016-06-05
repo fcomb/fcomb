@@ -4,8 +4,8 @@ import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.Db
-import io.fcomb.server.{Routes ⇒ ApiRoutes}
-import io.fcomb.docker.distribution.server.{Routes ⇒ DockerDistributionRoutes}
+import io.fcomb.server.{Routes => ApiRoutes}
+import io.fcomb.docker.distribution.server.{Routes => DockerDistributionRoutes}
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
@@ -36,13 +36,13 @@ object Main extends App {
   val drPort      = Config.config.getInt("docker.distribution.rest-api.port")
 
   (for {
-    _ ← Db.migrate()
-    _ ← server.HttpApiService.start(port, interface, ApiRoutes())
-    _ ← server.HttpApiService.start(drPort, drInterface, DockerDistributionRoutes())
+    _ <- Db.migrate()
+    _ <- server.HttpApiService.start(port, interface, ApiRoutes())
+    _ <- server.HttpApiService.start(drPort, drInterface, DockerDistributionRoutes())
   } yield ()).onComplete {
-    case Success(_) ⇒
+    case Success(_) =>
       ImageBlobPushProcessor.startRegion(25.minutes)
-    case Failure(e) ⇒
+    case Failure(e) =>
       logger.error(e.getMessage(), e.getCause())
       try {
         sys.terminate()

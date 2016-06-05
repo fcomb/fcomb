@@ -23,9 +23,9 @@ import cats.syntax.show._
 import io.circe._, io.circe.parser._, io.circe.syntax._
 import io.fcomb.crypto.Jws
 import io.fcomb.json.docker.distribution.Formats._
-import io.fcomb.models.docker.distribution.SchemaV1.{Manifest ⇒ ManifestV1, _}
-import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest ⇒ ManifestV2}
-import io.fcomb.models.docker.distribution.{Reference, ImageManifest ⇒ ImageManifest, Image ⇒ Image},
+import io.fcomb.models.docker.distribution.SchemaV1.{Manifest => ManifestV1, _}
+import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest => ManifestV2}
+import io.fcomb.models.docker.distribution.{Reference, ImageManifest => ImageManifest, Image => Image},
 ImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
@@ -43,31 +43,31 @@ object SchemaV1 {
       rawManifest: String
   )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] = {
     verify(manifest, rawManifest) match {
-      case Xor.Right((schemaV1JsonBlob, sha256Digest)) ⇒
+      case Xor.Right((schemaV1JsonBlob, sha256Digest)) =>
         ImageManifestsRepo
           .upsertSchemaV1(image, manifest, schemaV1JsonBlob, sha256Digest)
           .fast
           .map {
-            case Validated.Valid(_)   ⇒ Xor.right(sha256Digest)
-            case Validated.Invalid(e) ⇒ Xor.left(Unknown(e.map(_.message).mkString(";")))
+            case Validated.Valid(_)   => Xor.right(sha256Digest)
+            case Validated.Invalid(e) => Xor.left(Unknown(e.map(_.message).mkString(";")))
           }
-      case Xor.Left(e) ⇒ FastFuture.successful(Xor.left(Unknown(e.message)))
+      case Xor.Left(e) => FastFuture.successful(Xor.left(Unknown(e.message)))
     }
   }
 
   def verify(manifest: ManifestV1, rawManifest: String): Xor[DistributionError, (String, String)] = {
     parse(rawManifest).map(_.asObject) match {
-      case Xor.Right(Some(json)) ⇒
+      case Xor.Right(Some(json)) =>
         val manifestJson = json.remove("signatures").asJson
         val original     = indentPrint(rawManifest, manifestJson)
         if (manifest.signatures.isEmpty) Xor.left(Unknown("signatures cannot be empty"))
         else {
           val rightAcc = Xor.right[DistributionError, (String, String)](("", ""))
           manifest.signatures.foldLeft(rightAcc) {
-            case (acc, signature) ⇒
+            case (acc, signature) =>
               val `protected` = new String(base64Decode(signature.`protected`))
               acc *> (decode[Protected](`protected`) match {
-                    case Xor.Right(p) ⇒
+                    case Xor.Right(p) =>
                       val formatTail      = new String(base64Decode(p.formatTail))
                       val formatTailIndex = original.lastIndexOf(formatTail)
                       val formatted       = original.take(formatTailIndex + formatTail.length)
@@ -81,12 +81,12 @@ object SchemaV1 {
                       } else
                         Xor.left(
                             ManifestInvalid("formatted length does not match with fortmatLength"))
-                    case Xor.Left(e) ⇒ Xor.left(Unknown(e.show))
+                    case Xor.Left(e) => Xor.left(Unknown(e.show))
                   })
           }
         }
-      case Xor.Right(None) ⇒ Xor.left(ManifestInvalid())
-      case Xor.Left(e)     ⇒ Xor.left(Unknown(e.show))
+      case Xor.Right(None) => Xor.left(ManifestInvalid())
+      case Xor.Left(e)     => Xor.left(Unknown(e.show))
     }
   }
 
@@ -96,17 +96,17 @@ object SchemaV1 {
       imageConfig: String
   ): Xor[String, String] = {
     (for {
-      imgConfig ← decode[ImageConfig](imageConfig)
-      config    ← decode[Config](imageConfig)(decodeSchemaV1Config)
+      imgConfig <- decode[ImageConfig](imageConfig)
+      config    <- decode[Config](imageConfig)(decodeSchemaV1Config)
     } yield (imgConfig, config)) match {
-      case Xor.Right((imgConfig, config)) ⇒
+      case Xor.Right((imgConfig, config)) =>
         if (imgConfig.history.isEmpty) Xor.left("Image config history is empty")
         else if (imgConfig.rootFs.diffIds.isEmpty) Xor.left("Image config root fs is empty")
         else {
           val baseLayerId = imgConfig.rootFs.baseLayer.map(DigestUtils.sha384Hex(_).take(32))
           val (lastParentId, remainLayers, history, fsLayers) = imgConfig.history.init
             .foldLeft(("", manifest.layers, List.empty[Layer], List.empty[FsLayer])) {
-            case ((parentId, layers, historyList, fsLayersList), img) ⇒
+            case ((parentId, layers, historyList, fsLayersList), img) =>
               val (blobSum, layersTail) =
                 if (img.isEmptyLayer) (ImageManifest.emptyTarSha256DigestFull, layers)
                 else {
@@ -160,11 +160,11 @@ object SchemaV1 {
               signatures = Nil
           )
           manifestV1.asJson.asObject match {
-            case Some(obj) ⇒ Xor.right(prettyPrint(obj.remove("signatures").asJson))
-            case None      ⇒ Xor.left("manifestV1 not an JSON object")
+            case Some(obj) => Xor.right(prettyPrint(obj.remove("signatures").asJson))
+            case None      => Xor.left("manifestV1 not an JSON object")
           }
         }
-      case Xor.Left(e) ⇒ Xor.left(e.show)
+      case Xor.Left(e) => Xor.left(e.show)
     }
   }
 
@@ -196,12 +196,12 @@ object SchemaV1 {
   // TODO: add Xor
   private def parseManifestV1(manifestV1: String): JsonObject = {
     parse(manifestV1).map(_.asObject) match {
-      case Xor.Right(opt) ⇒
+      case Xor.Right(opt) =>
         opt match {
-          case Some(manifest) ⇒ manifest
-          case _              ⇒ throw new IllegalArgumentException("Manifest V1 not a JSON object")
+          case Some(manifest) => manifest
+          case _              => throw new IllegalArgumentException("Manifest V1 not a JSON object")
         }
-      case Xor.Left(e) ⇒ throw new IllegalArgumentException(e.show)
+      case Xor.Left(e) => throw new IllegalArgumentException(e.show)
     }
   }
 

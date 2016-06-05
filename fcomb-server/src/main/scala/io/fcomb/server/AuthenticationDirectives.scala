@@ -24,14 +24,14 @@ import io.fcomb.models.User
 
 trait AuthenticationDirectives {
   def authenticateUser: Directive1[User] =
-    extractExecutionContext.flatMap { implicit ec ⇒
+    extractExecutionContext.flatMap { implicit ec =>
       extractCredentials.flatMap {
-        case Some(OAuth2BearerToken(token)) ⇒
+        case Some(OAuth2BearerToken(token)) =>
           onSuccess(SessionsRepo.findById(token)).flatMap {
-            case Some(user) ⇒ provide(user)
-            case None       ⇒ reject(AuthorizationFailedRejection)
+            case Some(user) => provide(user)
+            case None       => reject(AuthorizationFailedRejection)
           }
-        case _ ⇒ reject(AuthorizationFailedRejection)
+        case _ => reject(AuthorizationFailedRejection)
       }
     }
 }

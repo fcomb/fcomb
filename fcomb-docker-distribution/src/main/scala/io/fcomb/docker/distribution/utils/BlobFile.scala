@@ -20,7 +20,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters, FileIO}
 import akka.util.ByteString
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
-import io.fcomb.models.docker.distribution.{ImageBlob ⇒ ImageBlob, ImageManifest ⇒ ImageManifest}
+import io.fcomb.models.docker.distribution.{ImageBlob => ImageBlob, ImageManifest => ImageManifest}
 import io.fcomb.utils.{Config, StringUtils}
 import java.io.File
 import java.nio.file.Files
@@ -52,8 +52,8 @@ object BlobFile {
 
   def getFile(blob: ImageBlob): File = {
     blob.sha256Digest match {
-      case Some(digest) if blob.isUploaded ⇒ getBlobFilePath(digest)
-      case _                               ⇒ getUploadFilePath(blob.getId)
+      case Some(digest) if blob.isUploaded => getBlobFilePath(digest)
+      case _                               => getUploadFilePath(blob.getId)
     }
   }
 
@@ -83,11 +83,11 @@ object BlobFile {
     import mat.executionContext
     val md = MessageDigest.getInstance("SHA-256")
     for {
-      file ← createUploadFile(uuid)
-      _ ← data.map { chunk ⇒
-           md.update(chunk.toArray)
-           chunk
-         }.runWith(FileIO.toPath(file.toPath))
+      file <- createUploadFile(uuid)
+      _ <- data.map { chunk =>
+            md.update(chunk.toArray)
+            chunk
+          }.runWith(FileIO.toPath(file.toPath))
     } yield (file.length, StringUtils.hexify(md.digest))
   }
 
@@ -96,8 +96,8 @@ object BlobFile {
   ): Future[(Long, String)] = {
     import mat.executionContext
     for {
-      file             ← createUploadFile(uuid)
-      (length, digest) ← ImageBlobPushProcessor.uploadChunk(uuid, data, file)
+      file             <- createUploadFile(uuid)
+      (length, digest) <- ImageBlobPushProcessor.uploadChunk(uuid, data, file)
     } yield (length, digest)
   }
 
@@ -106,7 +106,7 @@ object BlobFile {
     val is   = Files.newInputStream(file.toPath)
     if (offset > 0) is.skip(offset)
     val bs = ByteStreams.limit(is, limit)
-    StreamConverters.fromInputStream(() ⇒ bs, 8192)
+    StreamConverters.fromInputStream(() => bs, 8192)
   }
 
   def destroyBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] =

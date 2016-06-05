@@ -29,17 +29,17 @@ object UserHandler {
   val pathPrefix = "users"
 
   def signUp =
-    extractExecutionContext { implicit ec ⇒
-      entity(as[UserSignUpRequest]) { req ⇒
+    extractExecutionContext { implicit ec =>
+      entity(as[UserSignUpRequest]) { req =>
         onSuccess(UsersRepo.create(req)) {
-          case Validated.Valid(_)   ⇒ complete(HttpResponse(StatusCodes.Created))
-          case Validated.Invalid(e) ⇒ complete(StatusCodes.BadRequest, e)
+          case Validated.Valid(_)   => complete(HttpResponse(StatusCodes.Created))
+          case Validated.Invalid(e) => complete(StatusCodes.BadRequest, e)
         }
       }
     }
 
   def me = complete("wow")
-  //   authorizeUser { user ⇒
+  //   authorizeUser { user =>
   //     complete(
   //       user.toResponse[UserProfileResponse],
   //       StatusCodes.OK
@@ -52,8 +52,8 @@ object UserHandler {
   //   ec:  ExecutionContext,
   //   mat: Materializer
   // ) =
-  // authorizeUser { user ⇒
-  //   requestBodyAs[UserRequest] { req ⇒
+  // authorizeUser { user =>
+  //   requestBodyAs[UserRequest] { req =>
   //     completeValidationWithoutContent(
   //       UsersRepo.updateByRequest(user.getId)(
   //         email = req.email,
@@ -69,8 +69,8 @@ object UserHandler {
   //   ec:  ExecutionContext,
   //   mat: Materializer
   // ) =
-  //   authorizeUser { user ⇒
-  //     requestBodyAs[ChangePasswordRequest] { req ⇒
+  //   authorizeUser { user =>
+  //     requestBodyAs[ChangePasswordRequest] { req =>
   //       completeWithoutContent(
   //         UsersRepo.changePassword(user, req.oldPassword, req.newPassword)
   //       )
@@ -84,7 +84,7 @@ object UserHandler {
   //   mat: Materializer
   // ) =
   //   import sys.dispatcher
-  //   requestBodyAs[ResetPasswordRequest] { req ⇒
+  //   requestBodyAs[ResetPasswordRequest] { req =>
   //     completeWithoutContent(
   //       ResetPassword.reset(req.email)
   //     )
@@ -96,8 +96,8 @@ object UserHandler {
   //   ec:  ExecutionContext,
   //   mat: Materializer
   // ) =
-  // action { implicit ctx ⇒
-  //     requestBodyAs[ResetPasswordSetRequest] { req ⇒
+  // action { implicit ctx =>
+  //     requestBodyAs[ResetPasswordSetRequest] { req =>
   //       completeWithoutContent(
   //         ResetPassword.set(req.token, req.password)
   //       )

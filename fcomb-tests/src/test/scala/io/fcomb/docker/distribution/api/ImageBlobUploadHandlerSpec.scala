@@ -68,7 +68,7 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
       Post(s"/v2/$imageName/blobs/uploads/") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
         responseEntity shouldEqual HttpEntity.Empty
-        val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
+        val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
         header[Location] should contain(Location(s"/v2/$imageName/blobs/uploads/$uuid"))
         header[RangeCustom] should contain(RangeCustom(0L, 0L))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
@@ -87,7 +87,7 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
           header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
           header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
           header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
-          val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
+          val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
 
           val blob = await(ImageBlobsRepo.findByPk(uuid)).get
           blob.length shouldEqual bs.length
@@ -117,8 +117,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PUT request to mount blob upload path" in {
       val user = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob ← ImageBlobsRepoFixture.createAs(
+        user <- UsersRepoFixture.create()
+        blob <- ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploaded
         )
       } yield user)
@@ -136,8 +136,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
           val newBlob = await({
             for {
-              Some(image) ← ImagesRepo.findByImageAndUserId(newImageName, user.getId)
-              Some(blob) ← ImageBlobsRepo.findByImageIdAndDigest(image.getId, bsDigest)
+              Some(image) <- ImagesRepo.findByImageAndUserId(newImageName, user.getId)
+              Some(blob) <- ImageBlobsRepo.findByImageIdAndDigest(image.getId, bsDigest)
             } yield blob
           })
           newBlob.length shouldEqual bs.length
@@ -148,8 +148,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PUT request to monolithic blob upload path" in {
       val blob = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob ← ImageBlobsRepoFixture.create(user.getId, imageName)
+        user <- UsersRepoFixture.create()
+        blob <- ImageBlobsRepoFixture.create(user.getId, imageName)
       } yield blob)
 
       Put(
@@ -161,7 +161,7 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
           header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
           header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
           header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
-          val uuid = header[`Docker-Upload-Uuid`].map(h ⇒ UUID.fromString(h.value)).get
+          val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
 
           val blob = await(ImageBlobsRepo.findByPk(uuid)).get
           blob.length shouldEqual bs.length
@@ -178,8 +178,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PATCH requests to blob upload path" in {
       val blob = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob ← ImageBlobsRepoFixture.create(user.getId, imageName)
+        user <- UsersRepoFixture.create()
+        blob <- ImageBlobsRepoFixture.create(user.getId, imageName)
       } yield blob)
 
       val blobPart1 = bs.take(bs.length / 2)
@@ -238,8 +238,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PUT request without final chunk to complete blob upload path" in {
       val blob = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob ← ImageBlobsRepoFixture.createAs(
+        user <- UsersRepoFixture.create()
+        blob <- ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploading
         )
       } yield blob)
@@ -263,8 +263,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for PUT request without final chunk to complete blob path" in {
       val blob = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob ← ImageBlobsRepoFixture.createAs(
+        user <- UsersRepoFixture.create()
+        blob <- ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploading
         )
       } yield blob)
@@ -288,8 +288,8 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
 
     "return successful response for DELETE request to the blob upload path" in {
       val blob = Fixtures.await(for {
-        user ← UsersRepoFixture.create()
-        blob ← ImageBlobsRepoFixture.createAs(
+        user <- UsersRepoFixture.create()
+        blob <- ImageBlobsRepoFixture.createAs(
           user.getId, imageName, bs, ImageBlobState.Uploading
         )
       } yield blob)

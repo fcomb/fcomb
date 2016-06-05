@@ -34,7 +34,7 @@ object Formats {
   )
 
   implicit final val encodeDistributionError: Encoder[DistributionError] =
-    Encoder.forProduct2("code", "message")(e ⇒ (e.code.entryName, e.message))
+    Encoder.forProduct2("code", "message")(e => (e.code.entryName, e.message))
 
   final val encodeSchemaV1Config: Encoder[SchemaV1.Config] =
     Encoder.forProduct13("id",
@@ -61,8 +61,8 @@ object Formats {
   implicit final val encodeSchemaV1Compatibility = new Encoder[SchemaV1.Compatibility] {
     def apply(compatibility: SchemaV1.Compatibility) = {
       val layerJson = compatibility match {
-        case c: SchemaV1.Config ⇒ encodeSchemaV1Config.apply(c)
-        case l: SchemaV1.Layer  ⇒ encodeSchemaV1Layer.apply(l)
+        case c: SchemaV1.Config => encodeSchemaV1Config.apply(c)
+        case l: SchemaV1.Layer  => encodeSchemaV1Layer.apply(l)
       }
       Json.obj(
           "v1Compatibility" → Encoder[String].apply(compactPrinter.pretty(layerJson))
@@ -103,23 +103,23 @@ object Formats {
     }
   }
 
-  implicit final val decodeDistributionError: Decoder[DistributionError] = Decoder.instance { c ⇒
+  implicit final val decodeDistributionError: Decoder[DistributionError] = Decoder.instance { c =>
     c.get[DistributionErrorCode]("code").flatMap {
-      case DistributionErrorCode.DigestInvalid ⇒
+      case DistributionErrorCode.DigestInvalid =>
         Decoder[DistributionError.DigestInvalid].apply(c)
-      case DistributionErrorCode.Unknown ⇒
+      case DistributionErrorCode.Unknown =>
         Decoder[DistributionError.Unknown].apply(c)
-      case DistributionErrorCode.NameInvalid ⇒
+      case DistributionErrorCode.NameInvalid =>
         Decoder[DistributionError.NameInvalid].apply(c)
-      case DistributionErrorCode.ManifestInvalid ⇒
+      case DistributionErrorCode.ManifestInvalid =>
         Decoder[DistributionError.ManifestInvalid].apply(c)
-      case DistributionErrorCode.ManifestUnknown ⇒
+      case DistributionErrorCode.ManifestUnknown =>
         Decoder[DistributionError.ManifestUnknown].apply(c)
-      case DistributionErrorCode.BlobUploadInvalid ⇒
+      case DistributionErrorCode.BlobUploadInvalid =>
         Decoder[DistributionError.BlobUploadInvalid].apply(c)
-      case DistributionErrorCode.NameUnknown ⇒
+      case DistributionErrorCode.NameUnknown =>
         Decoder[DistributionError.NameUnknown].apply(c)
-      case DistributionErrorCode.Unauthorized ⇒
+      case DistributionErrorCode.Unauthorized =>
         Decoder[DistributionError.Unauthorized].apply(c)
     }
   }
@@ -132,11 +132,11 @@ object Formats {
       SchemaV1.Layer.apply)
 
   implicit final val decodeSchemaV1LayerFromV1Compatibility: Decoder[SchemaV1.Layer] =
-    Decoder.instance { c ⇒
-      c.get[String]("v1Compatibility").flatMap { cs ⇒
+    Decoder.instance { c =>
+      c.get[String]("v1Compatibility").flatMap { cs =>
         parse(cs).map(_.hcursor) match {
-          case Xor.Right(hc)                    ⇒ decodeSchemaV1Layer(hc)
-          case Xor.Left(ParsingFailure(msg, _)) ⇒ Xor.left(DecodingFailure(msg, Nil))
+          case Xor.Right(hc)                    => decodeSchemaV1Layer(hc)
+          case Xor.Left(ParsingFailure(msg, _)) => Xor.left(DecodingFailure(msg, Nil))
         }
       }
     }
@@ -181,38 +181,38 @@ object Formats {
                          "throwaway")(SchemaV1.Config.apply)
 
   implicit final val decodeSchemaV1ConfigFromV1Compatibility: Decoder[SchemaV1.Config] =
-    Decoder.instance { c ⇒
-      c.get[String]("v1Compatibility").flatMap { cs ⇒
+    Decoder.instance { c =>
+      c.get[String]("v1Compatibility").flatMap { cs =>
         parse(cs).map(_.hcursor) match {
-          case Xor.Right(hc)                    ⇒ decodeSchemaV1Config(hc)
-          case Xor.Left(ParsingFailure(msg, _)) ⇒ Xor.left(DecodingFailure(msg, Nil))
+          case Xor.Right(hc)                    => decodeSchemaV1Config(hc)
+          case Xor.Left(ParsingFailure(msg, _)) => Xor.left(DecodingFailure(msg, Nil))
         }
       }
     }
 
   implicit final val decodeSchemaV1CompatibilityList: Decoder[List[SchemaV1.Compatibility]] =
-    Decoder.instance { c ⇒
+    Decoder.instance { c =>
       c.focus.asArray match {
-        case Some(configJson :: xsJson) ⇒
+        case Some(configJson :: xsJson) =>
           for {
-            config ← configJson.as[SchemaV1.Config]
+            config <- configJson.as[SchemaV1.Config]
             acc = Xor.right[DecodingFailure, List[SchemaV1.Layer]](Nil)
-            xs ← xsJson.foldRight(acc) { (item, lacc) ⇒
-                  for {
-                    acc   ← lacc
-                    layer ← item.as[SchemaV1.Layer]
-                  } yield layer :: acc
-                }
+            xs <- xsJson.foldRight(acc) { (item, lacc) =>
+                   for {
+                     acc   <- lacc
+                     layer <- item.as[SchemaV1.Layer]
+                   } yield layer :: acc
+                 }
           } yield config :: xs
-        case _ ⇒ Xor.left(DecodingFailure("history", c.history))
+        case _ => Xor.left(DecodingFailure("history", c.history))
       }
     }
 
-  implicit final val decodeSchemaManifest: Decoder[SchemaManifest] = Decoder.instance { c ⇒
+  implicit final val decodeSchemaManifest: Decoder[SchemaManifest] = Decoder.instance { c =>
     c.get[Int]("schemaVersion").flatMap {
-      case 1 ⇒ Decoder[SchemaV1.Manifest].apply(c)
-      case 2 ⇒ Decoder[SchemaV2.Manifest].apply(c)
-      case _ ⇒ Xor.left(DecodingFailure("Unsupported schemaVersion", c.history))
+      case 1 => Decoder[SchemaV1.Manifest].apply(c)
+      case 2 => Decoder[SchemaV2.Manifest].apply(c)
+      case _ => Xor.left(DecodingFailure("Unsupported schemaVersion", c.history))
     }
   }
 

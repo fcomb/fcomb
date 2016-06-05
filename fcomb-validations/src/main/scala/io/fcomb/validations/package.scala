@@ -61,36 +61,36 @@ package object validations {
   def validationErrors[M](errors: (String, String)*): ValidationResult[M] =
     Validated.Invalid(
         errors.map {
-      case (param, msg) ⇒ ValidationException(param, msg)
+      case (param, msg) => ValidationException(param, msg)
     }.toList)
 
   def validateColumn(column: String, validation: PlainValidation): ColumnValidation =
     validation match {
-      case Validated.Valid(_)     ⇒ Validated.Valid(())
-      case Validated.Invalid(msg) ⇒ Validated.Invalid(ValidationException(column, msg))
+      case Validated.Valid(_)     => Validated.Valid(())
+      case Validated.Invalid(msg) => Validated.Invalid(ValidationException(column, msg))
     }
 
   def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResultUnit =
-    validations.foldLeft(List.empty[ValidationException]) { (acc, v) ⇒
+    validations.foldLeft(List.empty[ValidationException]) { (acc, v) =>
       v match {
-        case Validated.Valid(_)   ⇒ acc
-        case Validated.Invalid(e) ⇒ e :: acc
+        case Validated.Valid(_)   => acc
+        case Validated.Invalid(e) => e :: acc
       }
     } match {
-      case Nil ⇒ Validated.Valid(())
-      case xs  ⇒ Validated.Invalid(xs)
+      case Nil => Validated.Valid(())
+      case xs  => Validated.Invalid(xs)
     }
 
   def validatePlain(result: (String, List[PlainValidation])*): ValidationResultUnit =
     result.foldLeft(List.empty[ValidationException]) {
-      case (m, (c, v)) ⇒
+      case (m, (c, v)) =>
         plainValidation(v) match {
-          case Validated.Valid(_)     ⇒ m
-          case Validated.Invalid(msg) ⇒ ValidationException(c, msg) :: m
+          case Validated.Valid(_)     => m
+          case Validated.Invalid(msg) => ValidationException(c, msg) :: m
         }
     } match {
-      case Nil ⇒ Validated.Valid(())
-      case xs  ⇒ Validated.Invalid(xs)
+      case Nil => Validated.Valid(())
+      case xs  => Validated.Invalid(xs)
     }
 
   def validateDBIO(
@@ -102,15 +102,15 @@ package object validations {
       DBIO.successful(List.empty[ValidationException]).asInstanceOf[DBIOT[ValidationErrors]]
     result
       .foldLeft(emptyList) {
-        case (m, (c, v)) ⇒
+        case (m, (c, v)) =>
           dbioValidation(v).flatMap {
-            case Validated.Valid(_)     ⇒ m
-            case Validated.Invalid(msg) ⇒ m.map(ValidationException(c, msg) :: _)
+            case Validated.Valid(_)     => m
+            case Validated.Invalid(msg) => m.map(ValidationException(c, msg) :: _)
           }
       }
       .map {
-        case Nil ⇒ Validated.Valid(())
-        case xs  ⇒ Validated.Invalid(xs)
+        case Nil => Validated.Valid(())
+        case xs  => Validated.Invalid(xs)
       }
   }
 
@@ -134,8 +134,8 @@ package object validations {
         action: AppliedCompiledFunction[_, Rep[Boolean], Boolean]
     )(implicit ec: ExecutionContext): DBIOValidation = {
       action.result.map {
-        case true  ⇒ Validated.Invalid("not unique")
-        case false ⇒ Validated.Valid(())
+        case true  => Validated.Invalid("not unique")
+        case false => Validated.Valid(())
       }
     }
 
@@ -169,10 +169,10 @@ package object validations {
   implicit class ValidationResultMethods[T](val result: ValidationResult[T]) extends AnyVal {
     def `:::`(result2: ValidationResult[T]): ValidationResult[T] =
       (result, result2) match {
-        case (Validated.Invalid(e1), Validated.Invalid(e2)) ⇒ Validated.Invalid(e1 ++ e2)
-        case (e @ Validated.Invalid(_), _)                  ⇒ e
-        case (_, e @ Validated.Invalid(_))                  ⇒ e
-        case _                                              ⇒ result
+        case (Validated.Invalid(e1), Validated.Invalid(e2)) => Validated.Invalid(e1 ++ e2)
+        case (e @ Validated.Invalid(_), _)                  => e
+        case (_, e @ Validated.Invalid(_))                  => e
+        case _                                              => result
       }
   }
 }

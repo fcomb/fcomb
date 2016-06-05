@@ -46,7 +46,7 @@ trait ProcessorClustedSharding[Id] {
   lazy val logger = LoggerFactory.getLogger(getClass)
 
   val extractEntityId: ShardRegion.ExtractEntityId = {
-    case EntityEnvelope(id, payload) ⇒ (id.toString, payload)
+    case EntityEnvelope(id, payload) => (id.toString, payload)
   }
 
   val extractShardId: ShardRegion.ExtractShardId
@@ -85,13 +85,13 @@ trait ProcessorClustedSharding[Id] {
       m: Manifest[T]
   ): Future[T] =
     Option(actorRef) match {
-      case Some(ref) ⇒
+      case Some(ref) =>
         ask(ref, EntityEnvelope(id, entity))(timeout).mapTo[T].recover {
-          case e: Throwable ⇒
+          case e: Throwable =>
             logger.error(s"ask ref $id#$entity error: $e")
             throw e
         }
-      case None ⇒ Future.failed(EmptyActorRefException)
+      case None => Future.failed(EmptyActorRefException)
     }
 
   protected def tellRef(id: Id, entity: Any) =
@@ -104,7 +104,7 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
   val shardName = "image-blob-push-processor"
 
   val extractShardId: ShardRegion.ExtractShardId = {
-    case EntityEnvelope(id, _) ⇒ id.toString
+    case EntityEnvelope(id, _) => id.toString
   }
 
   def startRegion(timeout: Duration)(
@@ -121,9 +121,9 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
       mat: Materializer
   ): Future[(Long, String)] = {
     for {
-      Xor.Right(md)         ← begin(blobId)
-      (length, chunkDigest) ← uploadChunkGraph(md, source, file).run()
-      Xor.Right(fileDigest) ← commit(blobId, chunkDigest)
+      Xor.Right(md)         <- begin(blobId)
+      (length, chunkDigest) <- uploadChunkGraph(md, source, file).run()
+      Xor.Right(fileDigest) <- commit(blobId, chunkDigest)
     } yield (length, StringUtils.hexify(fileDigest.digest))
   }
 
@@ -135,7 +135,7 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
     val fileOptions = Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
 
     val sink = Sink.fold[(Long, MessageDigest), ByteString]((0L, md)) {
-      case ((length, md), bs) ⇒
+      case ((length, md), bs) =>
         md.update(bs.toArray)
         (length + bs.length, md)
     }
@@ -143,7 +143,7 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
     RunnableGraph.fromGraph(
         GraphDSL.create(source.completionTimeout(25.minutes), sink)(
             Keep.right
-        ) { implicit b ⇒ (source, sink) ⇒
+        ) { implicit b => (source, sink) =>
       import GraphDSL.Implicits._
 
       val broadcast = b.add(Broadcast[ByteString](2))
@@ -195,7 +195,7 @@ object ImageBlobPushMessages {
 }
 
 trait ProcessorActor[S] extends Stash with ActorLogging {
-  this: Actor ⇒
+  this: Actor =>
   import context.dispatcher
   import ProcessorActorMessages._
   import ShardRegion.Passivate
@@ -206,7 +206,7 @@ trait ProcessorActor[S] extends Stash with ActorLogging {
 
   protected final def getState: S = this._state
 
-  def modifyState(f: S ⇒ S): S = {
+  def modifyState(f: S => S): S = {
     val state = f(getState)
     putState(state)
     state
@@ -217,10 +217,10 @@ trait ProcessorActor[S] extends Stash with ActorLogging {
   }
 
   val stashReceive: Receive = {
-    case Unstash ⇒
+    case Unstash =>
       context.unbecome()
       unstashAll()
-    case msg ⇒
+    case msg =>
       log.warning(s"stash message: $msg")
       stash()
   }
@@ -236,32 +236,32 @@ trait ProcessorActor[S] extends Stash with ActorLogging {
   def putStateAsync(fut: Future[S]): Future[S] =
     putStateWithReceiveAsyncFunc(fut)(None)
 
-  def putStateWithReceiveAsync(fut: Future[S])(rf: S ⇒ Receive): Future[S] =
+  def putStateWithReceiveAsync(fut: Future[S])(rf: S => Receive): Future[S] =
     putStateWithReceiveAsyncFunc(fut)(Some(rf))
 
   private def putStateWithReceiveAsyncFunc(fut: Future[S])(
-      rfOpt: Option[S ⇒ Receive]
+      rfOpt: Option[S => Receive]
   ) = {
     val p = Promise[S]()
     context.become({
-      case UpdateState(res) ⇒
+      case UpdateState(res) =>
         val state = res.asInstanceOf[S]
         putState(state)
         rfOpt match {
-          case Some(receiveF) ⇒
+          case Some(receiveF) =>
             context.become(receiveF(state))
-          case None ⇒
+          case None =>
             context.unbecome()
         }
         unstashAll()
         p.complete(Success(state))
-      case msg ⇒
+      case msg =>
         log.warning(s"stash message: $msg")
         stash()
     }, rfOpt.isEmpty)
     fut.onComplete {
-      case Success(s) ⇒ self ! UpdateState(s)
-      case Failure(e) ⇒
+      case Success(s) => self ! UpdateState(s)
+      case Failure(e) =>
         p.failure(e)
         handleThrowable(e)
     }
@@ -271,25 +271,25 @@ trait ProcessorActor[S] extends Stash with ActorLogging {
   def stashAsync[T](fut: Future[T]): Future[T] = {
     becomeStashing()
     fut.onComplete {
-      case Success(res) ⇒ unstashReceive()
-      case Failure(e)   ⇒ handleThrowable(e)
+      case Success(res) => unstashReceive()
+      case Failure(e)   => handleThrowable(e)
     }
     fut
   }
 
   def failed(e: Throwable): Receive = {
-    case _: EntityMessage ⇒ sender ! Status.Failure(e)
-    case Annihilation     ⇒ annihilation()
+    case _: EntityMessage => sender ! Status.Failure(e)
+    case Annihilation     => annihilation()
   }
 
   val handleFailure: PartialFunction[Throwable, Any] = {
-    case e: Throwable ⇒ handleThrowable(e)
+    case e: Throwable => handleThrowable(e)
   }
 
   def handleThrowable(e: Throwable): Unit = {
     log.error(e, e.getMessage())
     context.become({
-      case Failed(e) ⇒
+      case Failed(e) =>
         context.become(failed(e), false)
         unstashAll()
         self ! Annihilation
@@ -319,24 +319,24 @@ class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLogging 
     state = state.copy(digest = digest.clone.asInstanceOf[MessageDigest])
 
   val idle: Receive = {
-    case Begin ⇒
+    case Begin =>
       context.become(locking, false)
       sender() ! Xor.Right(state.digest.clone.asInstanceOf[MessageDigest])
-    case Commit(_) ⇒
+    case Commit(_) =>
       sender() ! Xor.Left("Transaction not being started")
-    case Stop ⇒
+    case Stop =>
       sender() ! Xor.Right(())
       context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   val locking: Receive = {
-    case Begin ⇒
+    case Begin =>
       sender() ! Xor.Left("Transaction already started")
-    case Commit(md) ⇒
+    case Commit(md) =>
       context.become(idle)
       updateState(md)
       sender() ! Xor.Right(state.digest.clone.asInstanceOf[MessageDigest])
-    case Stop ⇒
+    case Stop =>
       sender() ! Xor.Left("The transaction is not completed yet")
   }
 

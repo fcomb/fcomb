@@ -43,13 +43,13 @@ import io.fcomb.docker.distribution.server.CommonDirectives._
 
 object ImageBlobHandler {
   def showBlob(imageName: String, digest: String) =
-    authenticateUserBasic { user ⇒
-      extractMaterializer { implicit mat ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
+    authenticateUserBasic { user =>
+      extractMaterializer { implicit mat =>
+        imageByNameWithAcl(imageName, user) { image =>
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) if blob.isUploaded ⇒
+            case Some(blob) if blob.isUploaded =>
               complete(
                   HttpResponse(
                       StatusCodes.OK,
@@ -62,7 +62,7 @@ object ImageBlobHandler {
                       HttpEntity(contentType(blob.contentType), blob.length, Source.empty)
                   )
               )
-            case _ ⇒ completeNotFound()
+            case _ => completeNotFound()
           }
         }
       }
@@ -73,16 +73,16 @@ object ImageBlobHandler {
   def downloadBlob(imageName: String, digest: String)(
       implicit req: HttpRequest
   ) =
-    authenticateUserBasic { user ⇒
-      extractMaterializer { implicit mat ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
+    authenticateUserBasic { user =>
+      extractMaterializer { implicit mat =>
+        imageByNameWithAcl(imageName, user) { image =>
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) if blob.isUploaded ⇒
+            case Some(blob) if blob.isUploaded =>
               val ct = contentType(blob.contentType)
               optionalHeaderValueByType[Range]() {
-                case Some(Range(_, range +: _)) ⇒
+                case Some(Range(_, range +: _)) =>
                   val offset: Long =
                     range.getOffset.asScala.orElse(range.getSliceFirst.asScala).getOrElse(0L)
                   val limit: Long = range.getSliceLast.asScala.getOrElse(blob.length)
@@ -101,11 +101,12 @@ object ImageBlobHandler {
                           headers,
                           HttpEntity(ct, chunkLength, source)
                       ))
-                case _ ⇒
+                case _ =>
                   optionalHeaderValueByType[`If-None-Match`]() {
-                    case Some(`If-None-Match`(EntityTagRange.Default(EntityTag(digest, _) +: _))) ⇒
+                    case Some(
+                        `If-None-Match`(EntityTagRange.Default(EntityTag(digest, _) +: _))) =>
                       completeWithStatus(StatusCodes.NotModified)
-                    case _ ⇒
+                    case _ =>
                       val headers = immutable.Seq(
                           `Accept-Ranges`(RangeUnits.Bytes),
                           ETag(digest),
@@ -122,36 +123,36 @@ object ImageBlobHandler {
                           ))
                   }
               }
-            case _ ⇒ completeNotFound()
+            case _ => completeNotFound()
           }
         }
       }
     }
 
   def destroyBlob(imageName: String, digest: String) =
-    authenticateUserBasic { user ⇒
-      extractMaterializer { implicit mat ⇒
-        imageByNameWithAcl(imageName, user) { image ⇒
+    authenticateUserBasic { user =>
+      extractMaterializer { implicit mat =>
+        imageByNameWithAcl(imageName, user) { image =>
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
-            case Some(blob) if blob.isUploaded ⇒
+            case Some(blob) if blob.isUploaded =>
               val res = ImageBlobsRepo.tryDestroy(blob.getId).flatMap {
-                case Xor.Right(_) ⇒
+                case Xor.Right(_) =>
                   ImageBlobsRepo
                     .existByDigest(digest)
                     .flatMap {
-                      case false ⇒ BlobFile.destroyBlob(blob.getId)
-                      case true  ⇒ FastFuture.successful(())
+                      case false => BlobFile.destroyBlob(blob.getId)
+                      case true  => FastFuture.successful(())
                     }
                     .fast
-                    .map(_ ⇒ HttpResponse(StatusCodes.NoContent))
-                case Xor.Left(msg) ⇒
+                    .map(_ => HttpResponse(StatusCodes.NoContent))
+                case Xor.Left(msg) =>
                   val e = DistributionErrorResponse.from(DistributionError.Unknown(msg))
                   Marshal(StatusCodes.InternalServerError → e).to[HttpResponse]
               }
               complete(res)
-            case _ ⇒
+            case _ =>
               complete(
                   StatusCodes.NotFound,
                   DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
@@ -167,7 +168,7 @@ object ImageBlobHandler {
 
   private def contentType(contentType: String) =
     ContentType.parse(contentType) match {
-      case Right(res) ⇒ res
-      case Left(_)    ⇒ `application/octet-stream`
+      case Right(res) => res
+      case Left(_)    => `application/octet-stream`
     }
 }

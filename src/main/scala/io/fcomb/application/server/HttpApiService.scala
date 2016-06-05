@@ -23,12 +23,12 @@ class HttpApiService(routes: Route)(
   private def mapThrowable(e: Throwable) = {
     e.printStackTrace() // TODO: debug only
     e match {
-      case _: ParsingException | _: Unmarshaller.UnsupportedContentTypeException ⇒
+      case _: ParsingException | _: Unmarshaller.UnsupportedContentTypeException =>
         (
             InternalException(e.getMessage),
             StatusCodes.UnprocessableEntity
         )
-      case _ ⇒
+      case _ =>
         (
             InternalException(e.getMessage),
             StatusCodes.InternalServerError
@@ -45,11 +45,11 @@ class HttpApiService(routes: Route)(
 
   private def handleException(e: Throwable) =
     mapThrowable(e) match {
-      case (e, status) ⇒ errorResponse(e, status)
+      case (e, status) => errorResponse(e, status)
     }
 
   private def handleRejection(r: Rejection) = r match {
-    case _ ⇒
+    case _ =>
       errorResponse(
           InternalException(r.toString),
           StatusCodes.BadRequest
@@ -58,14 +58,14 @@ class HttpApiService(routes: Route)(
 
   val handler = {
     val exceptionHandler = ExceptionHandler {
-      case e ⇒
+      case e =>
         logger.error(e.getMessage(), e.getCause())
         handleException(e)
     }
     val rejectionHandler = RejectionHandler
       .newBuilder()
       .handle {
-        case r ⇒
+        case r =>
           logger.error(r.toString, r.toString)
           handleRejection(r)
       }

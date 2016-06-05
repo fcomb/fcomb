@@ -35,7 +35,7 @@ object UsersRepoFixture {
     fullName: Option[String] = fullName
   ): Future[User] = {
     for {
-      Validated.Valid(user) ← UsersRepo.create(
+      Validated.Valid(user) <- UsersRepo.create(
         email = email,
         username = username,
         password = password,

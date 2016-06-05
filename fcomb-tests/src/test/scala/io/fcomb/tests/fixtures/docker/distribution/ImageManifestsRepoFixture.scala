@@ -20,7 +20,7 @@ import cats.data.{Validated, Xor}
 import io.fcomb.models.docker.distribution._
 import io.fcomb.persist.docker.distribution._
 import io.fcomb.Db.db
-import io.fcomb.docker.distribution.manifest.{SchemaV1 ⇒ SchemaV1Manifest}
+import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
 import io.fcomb.json.docker.distribution.Formats._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -46,8 +46,8 @@ object ImageManifestsRepoFixture {
       signatures = Nil
     )
     for {
-      Some(image) ← ImagesRepo.findByPk(blob.imageId)
-      Validated.Valid(im) ← ImageManifestsRepo.upsertSchemaV1(
+      Some(image) <- ImagesRepo.findByPk(blob.imageId)
+      Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV1(
         image = image,
         manifest = manifest,
         schemaV1JsonBlob = schemaV1JsonBlob,
@@ -103,8 +103,8 @@ object ImageManifestsRepoFixture {
     val sha256Digest = DigestUtils.sha256Hex(schemaV2JsonBlob)
     val reference = Reference.Digest(sha256Digest)
     for {
-      Some(image) ← ImagesRepo.findByPk(blob.imageId)
-      Validated.Valid(im) ← ImageManifestsRepo.upsertSchemaV2(
+      Some(image) <- ImagesRepo.findByPk(blob.imageId)
+      Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV2(
         image = image,
         manifest = manifest,
         reference = reference,
@@ -113,9 +113,9 @@ object ImageManifestsRepoFixture {
         schemaV2JsonBlob = schemaV2JsonBlob,
         sha256Digest = sha256Digest
       )
-      _ ← db.run(for {
-        _ ← ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
-        _ ← ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
+      _ <- db.run(for {
+        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
+        _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
       } yield ())
     } yield im
   }

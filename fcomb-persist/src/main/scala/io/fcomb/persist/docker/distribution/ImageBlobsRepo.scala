@@ -60,13 +60,13 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   ): Future[Option[ImageBlob]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
       (for {
-        blob      ← findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption
-        toImageId ← ImagesRepo.findIdOrCreateByNameDBIO(toImageName, userId)
+        blob      <- findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption
+        toImageId <- ImagesRepo.findIdOrCreateByNameDBIO(toImageName, userId)
       } yield (blob, toImageId)).flatMap {
-        case (Some(blob), Validated.Valid(toImageId)) ⇒
+        case (Some(blob), Validated.Valid(toImageId)) =>
           findByImageIdAndDigestCompiled((toImageId, digest)).result.headOption.flatMap {
-            case Some(b) ⇒ DBIO.successful(Some(b))
-            case None ⇒
+            case Some(b) => DBIO.successful(Some(b))
+            case None =>
               val timeNow = ZonedDateTime.now()
               createDBIO(
                   ImageBlob(
@@ -80,7 +80,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
                       uploadedAt = None
                   )).map(Some(_))
           }
-        case _ ⇒ DBIO.successful(None)
+        case _ => DBIO.successful(None)
       }
     }
 
@@ -105,12 +105,12 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       m: Manifest[ImageBlob]
   ): Future[ValidationModel] =
     (for {
-      imageId ← eitherT(ImagesRepo.findIdOrCreateByName(name, userId))
-      blob    ← eitherT(create(imageId, contentType))
+      imageId <- eitherT(ImagesRepo.findIdOrCreateByName(name, userId))
+      blob    <- eitherT(create(imageId, contentType))
     } yield blob).toValidated
 
-  private val findByImageIdAndUuidCompiled = Compiled { (imageId: Rep[Long], uuid: Rep[UUID]) ⇒
-    table.filter { q ⇒
+  private val findByImageIdAndUuidCompiled = Compiled { (imageId: Rep[Long], uuid: Rep[UUID]) =>
+    table.filter { q =>
       q.imageId === imageId && q.id === uuid
     }.take(1)
   }
@@ -121,8 +121,8 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     db.run(findByImageIdAndUuidCompiled(imageId, uuid).result.headOption)
 
   private val findByImageIdAndDigestCompiled = Compiled {
-    (imageId: Rep[Long], digest: Rep[String]) ⇒
-      table.filter { q ⇒
+    (imageId: Rep[Long], digest: Rep[String]) =>
+      table.filter { q =>
         q.imageId === imageId && q.sha256Digest === digest
       }.take(1)
   }
@@ -133,7 +133,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     db.run(findByImageIdAndDigestCompiled(imageId, digest).result.headOption)
 
   private def findByImageIdAndDigestsScope(imageId: Long, digests: Set[String]) =
-    table.filter { q ⇒
+    table.filter { q =>
       q.imageId === imageId && q.sha256Digest.inSetBind(digests)
     }
 
@@ -141,7 +141,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       implicit ec: ExecutionContext
   ) =
     db.run {
-      findByImageIdAndDigestsScope(imageId, digests).map(t ⇒ (t.pk, t.sha256Digest)).result
+      findByImageIdAndDigestsScope(imageId, digests).map(t => (t.pk, t.sha256Digest)).result
     }
 
   def findByImageIdAndDigests(imageId: Long, digests: Set[String])(
@@ -150,8 +150,8 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     db.run(findByImageIdAndDigestsScope(imageId, digests).result)
 
   private val existUploadedByImageIdAndDigestCompiled = Compiled {
-    (imageId: Rep[Long], digest: Rep[String], exceptId: Rep[UUID]) ⇒
-      table.filter { q ⇒
+    (imageId: Rep[Long], digest: Rep[String], exceptId: Rep[UUID]) =>
+      table.filter { q =>
         q.pk =!= exceptId && q.imageId === imageId && q.sha256Digest === digest &&
         q.state === (ImageBlobState.Uploaded: ImageBlobState)
       }.exists
@@ -164,19 +164,19 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       digest: String
   )(implicit ec: ExecutionContext): Future[Unit] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
-      existUploadedByImageIdAndDigestCompiled((imageId, digest, id)).result.flatMap { exists ⇒
-        if (exists) findByPkQuery(id).delete.map(_ ⇒ ())
+      existUploadedByImageIdAndDigestCompiled((imageId, digest, id)).result.flatMap { exists =>
+        if (exists) findByPkQuery(id).delete.map(_ => ())
         else {
           table
             .filter(_.pk === id)
-            .map(t ⇒ (t.state, t.length, t.sha256Digest, t.uploadedAt))
+            .map(t => (t.state, t.length, t.sha256Digest, t.uploadedAt))
             .update((
                     ImageBlobState.Uploaded,
                     length,
                     Some(digest),
                     Some(ZonedDateTime.now())
                 ))
-            .map(_ ⇒ ())
+            .map(_ => ())
         }
       }
     }
@@ -191,15 +191,15 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   ) = db.run {
     table
       .filter(_.id === id)
-      .map(t ⇒ (t.state, t.length, t.sha256Digest))
+      .map(t => (t.state, t.length, t.sha256Digest))
       .update((state, length, Some(digest)))
   }
 
   def findByIds(ids: List[UUID]) =
     db.run(table.filter(_.id.inSetBind(ids)).result)
 
-  private val findOutdatedUploadsCompiled = Compiled { until: Rep[ZonedDateTime] ⇒
-    table.filter { q ⇒
+  private val findOutdatedUploadsCompiled = Compiled { until: Rep[ZonedDateTime] =>
+    table.filter { q =>
       q.createdAt <= until && (q.state === (ImageBlobState.Created: ImageBlobState) ||
           q.state === (ImageBlobState.Uploading: ImageBlobState))
     }
@@ -211,8 +211,8 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   def createEmptyTarIfNotExists(imageId: Long)(implicit ec: ExecutionContext): Future[Unit] =
     db.run {
       findByImageIdAndDigestCompiled((imageId, emptyTarSha256Digest)).result.headOption.flatMap {
-        case Some(_) ⇒ DBIO.successful(())
-        case None ⇒
+        case Some(_) => DBIO.successful(())
+        case None =>
           val blob = ImageBlob(
               id = Some(UUID.randomUUID()),
               state = ImageBlobState.Uploaded,
@@ -224,18 +224,18 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
               uploadedAt = None
           )
           table += blob
-      }.map(_ ⇒ ())
+      }.map(_ => ())
     }
 
   def tryDestroy(id: UUID)(implicit ec: ExecutionContext): Future[Xor[String, Unit]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
       ImageManifestLayersRepo.isBlobLinkedCompiled(id).result.flatMap {
-        case true  ⇒ DBIO.successful(Xor.left("blob is linked with manifest"))
-        case false ⇒ findByPkQuery(id).delete.map(_ ⇒ Xor.right(()))
+        case true  => DBIO.successful(Xor.left("blob is linked with manifest"))
+        case false => findByPkQuery(id).delete.map(_ => Xor.right(()))
       }
-    }.recover { case _ ⇒ Xor.right(()) }
+    }.recover { case _ => Xor.right(()) }
 
-  private val existByDigestCompiled = Compiled { digest: Rep[String] ⇒
+  private val existByDigestCompiled = Compiled { digest: Rep[String] =>
     table.filter(_.sha256Digest === digest).exists
   }
 

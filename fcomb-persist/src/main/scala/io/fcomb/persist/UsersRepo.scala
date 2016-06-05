@@ -82,8 +82,8 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
             updatedAt = Some(ZonedDateTime.now())
         ))
 
-  private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) ⇒
-    table.filter(_.id === userId).map { t ⇒
+  private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) =>
+    table.filter(_.id === userId).map { t =>
       (t.passwordHash, t.updatedAt)
     }
   }
@@ -107,19 +107,19 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
     if (oldPassword == newPassword)
       validationErrorAsFuture("password", "can't be the same")
     else if (user.isValidPassword(oldPassword))
-      updatePassword(user.getId, newPassword).map(_ ⇒ Validated.Valid(user))
+      updatePassword(user.getId, newPassword).map(_ => Validated.Valid(user))
     else
       validationErrorAsFuture("password", "doesn't match")
   }
 
-  private val findByEmailCompiled = Compiled { email: Rep[String] ⇒
+  private val findByEmailCompiled = Compiled { email: Rep[String] =>
     table.filter(_.email === email).take(1)
   }
 
   def findByEmail(email: String) =
     db.run(findByEmailCompiled(email).result.headOption)
 
-  private val findByUsernameCompiled = Compiled { username: Rep[String] ⇒
+  private val findByUsernameCompiled = Compiled { username: Rep[String] =>
     table.filter(_.username === username).take(1)
   }
 
@@ -131,18 +131,18 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
       if (un.indexOf('@') == -1) findByUsernameCompiled(un)
       else findByEmailCompiled(un)
     db.run(q.result.headOption).fast.map {
-      case res @ Some(user) if user.isValidPassword(password) ⇒ res
-      case _                                                  ⇒ None
+      case res @ Some(user) if user.isValidPassword(password) => res
+      case _                                                  => None
     }
   }
 
   import Validations._
 
-  private val uniqueUsernameCompiled = Compiled { (id: Rep[Option[Long]], username: Rep[String]) ⇒
+  private val uniqueUsernameCompiled = Compiled { (id: Rep[Option[Long]], username: Rep[String]) =>
     notCurrentPkFilter(id).filter(_.username === username).exists
   }
 
-  private val uniqueEmailCompiled = Compiled { (id: Rep[Option[Long]], email: Rep[String]) ⇒
+  private val uniqueEmailCompiled = Compiled { (id: Rep[Option[Long]], email: Rep[String]) =>
     notCurrentPkFilter(id).filter(_.email === email).exists
   }
 
@@ -169,9 +169,9 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
         "email" → List(unique(uniqueEmailCompiled(user.id, user.email)))
     )
     passwordOpt match {
-      case Some(password) ⇒
+      case Some(password) =>
         (validatePassword(password) ::: plainValidations, dbioValidations)
-      case None ⇒
+      case None =>
         (plainValidations, dbioValidations)
     }
   }
