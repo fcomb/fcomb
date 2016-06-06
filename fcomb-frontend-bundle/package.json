@@ -1,0 +1,12 @@
+{
+  "name": "fcomb-frontend",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fcomb/fcomb"
+  },
+  "dependencies": {
+    "browserify": "13.0.1",
+    "react-dom": "15.1.0"
+  }
+}

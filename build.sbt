@@ -198,7 +198,7 @@ lazy val tests = project.in(file("fcomb-tests"))
   .settings(moduleName := "tests")
   .settings(allSettings:_*)
   .settings(
-    libraryDependencies ++= Seq(
+    libraryDependencies       ++= Seq(
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % "test",
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaVersion % "test",
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
@@ -215,9 +215,42 @@ lazy val tests = project.in(file("fcomb-tests"))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(server, dockerDistribution)
 
+lazy val frontendBundleBuild = taskKey[Unit]("Build frontend bundle.js")
+
+lazy val frontendBundle = project.in(file("fcomb-frontend-bundle"))
+  .settings(moduleName := "frontend-bundle")
+  .settings(allSettings:_*)
+  .settings(
+    frontendBundleBuild := Def.task {
+      import com.typesafe.sbt.jse.JsEngineImport.JsEngineKeys._
+      import com.typesafe.sbt.jse.SbtJsTask._
+      import scala.concurrent.duration._
+
+      (npmNodeModules in Assets).value
+      val in = (baseDirectory.value / "lib.js").getAbsolutePath
+      val out = (baseDirectory.value / "src" / "main" / "resources" / "bundle.js").getAbsolutePath
+      val nodeModules = (baseDirectory.value / "node_modules").getAbsolutePath
+      executeJs(state.value, engineType.value, None, Seq(nodeModules),
+        baseDirectory.value / "browserify.js", Seq(in, out), 30.seconds)
+    },
+    compile in Compile <<= (compile in Compile).dependsOn(frontendBundleBuild)
+  )
+  .enablePlugins(SbtWeb, SbtJsEngine)
+
 lazy val frontend = project.in(file("fcomb-frontend"))
   .settings(moduleName := "frontend")
   .settings(allSettings:_*)
+  .settings(
+    libraryDependencies           ++= Seq(
+      "com.github.japgolly.scalajs-react" %%% "extra" % "0.11.1"
+    ),
+    jsDependencies                += ProvidedJS / "bundle.js",
+    scalaJSUseRhino in Global     := false,
+    skip in packageJSDependencies := false,
+    persistLauncher in Compile    := true,
+    persistLauncher in Test       := false
+  )
+  .dependsOn(frontendBundle)
   .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
 
 lazy val root = project.in(file("."))
