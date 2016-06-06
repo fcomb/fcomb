@@ -216,39 +216,31 @@ lazy val tests = project.in(file("fcomb-tests"))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(server, dockerDistribution)
 
+lazy val frontendBundle = taskKey[File]("bundle.js path")
 lazy val frontendBundleBuild = taskKey[Unit]("Build frontend bundle.js")
-
 lazy val frontendBundleCreate = taskKey[Unit]("Create frontend bundle.js if it does not exist")
-
-lazy val frontendBundle = project.in(file("fcomb-frontend-bundle"))
-  .settings(moduleName := "frontend-bundle")
-  .settings(allSettings:_*)
-  .settings(
-    frontendBundleBuild := {
-      (JsEngineKeys.npmNodeModules in Assets).value
-      val in = (baseDirectory.value / "lib.js").getAbsolutePath
-      val outDirectory = baseDirectory.value / "src" / "main" / "resources"
-      outDirectory.mkdirs()
-      val out = (outDirectory / "bundle.js").getAbsolutePath
-      val nodeModules = (baseDirectory.value / "node_modules").getAbsolutePath
-      SbtJsTask.executeJs(state.value, JsEngineKeys.engineType.value, None, Seq(nodeModules),
-        baseDirectory.value / "browserify.js", Seq(in, out), 30.seconds)
-    },
-    frontendBundleCreate := {
-      Def.taskDyn {
-        if (!(baseDirectory.value / "src" / "main" / "resources" / "bundle.js").exists)
-          frontendBundleBuild
-        else Def.task {}
-      }.value
-    },
-    compile in Compile <<= (compile in Compile).dependsOn(frontendBundleCreate)
-  )
-  .enablePlugins(SbtWeb, SbtJsEngine)
 
 lazy val frontend = project.in(file("fcomb-frontend"))
   .settings(moduleName := "frontend")
   .settings(allSettings:_*)
   .settings(
+    frontendBundle := baseDirectory.value / "src" / "main" / "resources" / "bundle.js",
+    frontendBundleBuild := {
+      (JsEngineKeys.npmNodeModules in Assets).value
+      val in = (baseDirectory.value / "lib.js").getAbsolutePath
+      val out = frontendBundle.value
+      out.getParentFile.mkdirs()
+      val nodeModules = (baseDirectory.value / "node_modules").getAbsolutePath
+      SbtJsTask.executeJs(state.value, JsEngineKeys.engineType.value, None, Seq(nodeModules),
+        baseDirectory.value / "browserify.js", Seq(in, out.getAbsolutePath), 30.seconds)
+    },
+    frontendBundleCreate := {
+      Def.taskDyn {
+        if (frontendBundle.value.exists) Def.task {}
+        else frontendBundleBuild
+      }.value
+    },
+    compile in Compile <<= (compile in Compile).dependsOn(frontendBundleCreate),
     libraryDependencies           ++= Seq(
       "com.github.japgolly.scalajs-react" %%% "extra" % "0.11.1"
     ),
@@ -258,8 +250,7 @@ lazy val frontend = project.in(file("fcomb-frontend"))
     persistLauncher in Compile    := true,
     persistLauncher in Test       := false
   )
-  .dependsOn(frontendBundle)
-  .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
+  .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin, SbtWeb, SbtJsEngine)
 
 lazy val root = project.in(file("."))
   .aggregate(tests)
