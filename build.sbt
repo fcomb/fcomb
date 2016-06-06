@@ -218,19 +218,30 @@ lazy val tests = project.in(file("fcomb-tests"))
 
 lazy val frontendBundleBuild = taskKey[Unit]("Build frontend bundle.js")
 
+lazy val frontendBundleCreate = taskKey[Unit]("Create frontend bundle.js if it does not exist")
+
 lazy val frontendBundle = project.in(file("fcomb-frontend-bundle"))
   .settings(moduleName := "frontend-bundle")
   .settings(allSettings:_*)
   .settings(
-    frontendBundleBuild := Def.task {
+    frontendBundleBuild := {
       (JsEngineKeys.npmNodeModules in Assets).value
       val in = (baseDirectory.value / "lib.js").getAbsolutePath
-      val out = (baseDirectory.value / "src" / "main" / "resources" / "bundle.js").getAbsolutePath
+      val outDirectory = baseDirectory.value / "src" / "main" / "resources"
+      outDirectory.mkdirs()
+      val out = (outDirectory / "bundle.js").getAbsolutePath
       val nodeModules = (baseDirectory.value / "node_modules").getAbsolutePath
       SbtJsTask.executeJs(state.value, JsEngineKeys.engineType.value, None, Seq(nodeModules),
         baseDirectory.value / "browserify.js", Seq(in, out), 30.seconds)
     },
-    compile in Compile <<= (compile in Compile).dependsOn(frontendBundleBuild)
+    frontendBundleCreate := {
+      Def.taskDyn {
+        if (!(baseDirectory.value / "src" / "main" / "resources" / "bundle.js").exists)
+          frontendBundleBuild
+        else Def.task {}
+      }.value
+    },
+    compile in Compile <<= (compile in Compile).dependsOn(frontendBundleCreate)
   )
   .enablePlugins(SbtWeb, SbtJsEngine)
 
