@@ -1,5 +1,6 @@
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
+import scala.concurrent.duration._
 
 lazy val buildSettings = Seq(
   organization := "io.fcomb",
@@ -222,15 +223,11 @@ lazy val frontendBundle = project.in(file("fcomb-frontend-bundle"))
   .settings(allSettings:_*)
   .settings(
     frontendBundleBuild := Def.task {
-      import com.typesafe.sbt.jse.JsEngineImport.JsEngineKeys._
-      import com.typesafe.sbt.jse.SbtJsTask._
-      import scala.concurrent.duration._
-
-      (npmNodeModules in Assets).value
+      (JsEngineKeys.npmNodeModules in Assets).value
       val in = (baseDirectory.value / "lib.js").getAbsolutePath
       val out = (baseDirectory.value / "src" / "main" / "resources" / "bundle.js").getAbsolutePath
       val nodeModules = (baseDirectory.value / "node_modules").getAbsolutePath
-      executeJs(state.value, engineType.value, None, Seq(nodeModules),
+      SbtJsTask.executeJs(state.value, JsEngineKeys.engineType.value, None, Seq(nodeModules),
         baseDirectory.value / "browserify.js", Seq(in, out), 30.seconds)
     },
     compile in Compile <<= (compile in Compile).dependsOn(frontendBundleBuild)

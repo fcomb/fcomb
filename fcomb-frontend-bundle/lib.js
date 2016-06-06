@@ -1,1 +1,2 @@
-var React = require('react');
+var React = require('react'),
+    ReactDOM = require('react-dom');

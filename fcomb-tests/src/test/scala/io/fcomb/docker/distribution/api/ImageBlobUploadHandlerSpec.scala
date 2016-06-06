@@ -42,13 +42,20 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
 import io.fcomb.docker.distribution.server.Routes
 
-class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with PersistSpec with ActorClusterSpec with FutureSpec {
-  val route = Routes()
-  val imageName = "library/test-image_2016"
-  val bs = ByteString(getFixture("docker/distribution/blob"))
-  val bsDigest = DigestUtils.sha256Hex(bs.toArray)
-  val credentials = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
-  val clusterRef = ImageBlobPushProcessor.startRegion(30.seconds)
+class ImageBlobUploadHandlerSpec
+    extends WordSpec
+    with Matchers
+    with ScalatestRouteTest
+    with SpecHelpers
+    with PersistSpec
+    with ActorClusterSpec
+    with FutureSpec {
+  val route            = Routes()
+  val imageName        = "library/test-image_2016"
+  val bs               = ByteString(getFixture("docker/distribution/blob"))
+  val bsDigest         = DigestUtils.sha256Hex(bs.toArray)
+  val credentials      = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
+  val clusterRef       = ImageBlobPushProcessor.startRegion(30.seconds)
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
 
   override def afterAll(): Unit = {
@@ -79,71 +86,75 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
       Fixtures.await(UsersRepoFixture.create())
 
       Post(
-        s"/v2/$imageName/blobs/uploads/?digest=sha256:$bsDigest",
-        HttpEntity(`application/octet-stream`, bs)
+          s"/v2/$imageName/blobs/uploads/?digest=sha256:$bsDigest",
+          HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
-          status shouldEqual StatusCodes.Created
-          responseEntity shouldEqual HttpEntity.Empty
-          header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
-          header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
-          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
-          val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
+        status shouldEqual StatusCodes.Created
+        responseEntity shouldEqual HttpEntity.Empty
+        header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
+        header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
 
-          val blob = await(ImageBlobsRepo.findByPk(uuid)).get
-          blob.length shouldEqual bs.length
-          blob.state shouldEqual ImageBlobState.Uploaded
-          blob.sha256Digest shouldEqual Some(bsDigest)
+        val blob = await(ImageBlobsRepo.findByPk(uuid)).get
+        blob.length shouldEqual bs.length
+        blob.state shouldEqual ImageBlobState.Uploaded
+        blob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = BlobFile.getBlobFilePath(blob.sha256Digest.get)
-          file.length shouldEqual bs.length
-          val fis = new FileInputStream(file)
-          val fileDigest = DigestUtils.sha256Hex(fis)
-          fileDigest shouldEqual bsDigest
-        }
+        val file = BlobFile.getBlobFilePath(blob.sha256Digest.get)
+        file.length shouldEqual bs.length
+        val fis        = new FileInputStream(file)
+        val fileDigest = DigestUtils.sha256Hex(fis)
+        fileDigest shouldEqual bsDigest
+      }
     }
 
     "return failed response for POST request to initiate monolithic blob upload path" in {
       Fixtures.await(UsersRepoFixture.create())
 
       Post(
-        s"/v2/$imageName/blobs/uploads/?digest=sha256:333f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f",
-        HttpEntity(`application/octet-stream`, bs)
+          s"/v2/$imageName/blobs/uploads/?digest=sha256:333f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f",
+          HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
-          status shouldEqual StatusCodes.BadRequest
-          val resp = responseAs[DistributionErrorResponse]
-          resp shouldEqual DistributionErrorResponse(Seq(DistributionError.DigestInvalid()))
-        }
+        status shouldEqual StatusCodes.BadRequest
+        val resp = responseAs[DistributionErrorResponse]
+        resp shouldEqual DistributionErrorResponse(Seq(DistributionError.DigestInvalid()))
+      }
     }
 
     "return successful response for PUT request to mount blob upload path" in {
-      val user = Fixtures.await(for {
+      val user = Fixtures.await(
+          for {
         user <- UsersRepoFixture.create()
         blob <- ImageBlobsRepoFixture.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploaded
-        )
+                   user.getId,
+                   imageName,
+                   bs,
+                   ImageBlobState.Uploaded
+               )
       } yield user)
       val newImageName = "newimage/name"
 
       Post(
-        s"/v2/$newImageName/blobs/uploads/?mount=sha256:$bsDigest&from=$imageName",
-        HttpEntity(`application/octet-stream`, bs)
+          s"/v2/$newImageName/blobs/uploads/?mount=sha256:$bsDigest&from=$imageName",
+          HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
-          status shouldEqual StatusCodes.Created
-          responseEntity shouldEqual HttpEntity.Empty
-          header[Location] should contain(Location(s"/v2/$newImageName/blobs/sha256:$bsDigest"))
-          header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
-          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        status shouldEqual StatusCodes.Created
+        responseEntity shouldEqual HttpEntity.Empty
+        header[Location] should contain(Location(s"/v2/$newImageName/blobs/sha256:$bsDigest"))
+        header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-          val newBlob = await({
-            for {
-              Some(image) <- ImagesRepo.findByImageAndUserId(newImageName, user.getId)
-              Some(blob) <- ImageBlobsRepo.findByImageIdAndDigest(image.getId, bsDigest)
-            } yield blob
-          })
-          newBlob.length shouldEqual bs.length
-          newBlob.state shouldEqual ImageBlobState.Uploaded
-          newBlob.sha256Digest shouldEqual Some(bsDigest)
-        }
+        val newBlob = await({
+          for {
+            Some(image) <- ImagesRepo.findByImageAndUserId(newImageName, user.getId)
+            Some(blob)  <- ImageBlobsRepo.findByImageIdAndDigest(image.getId, bsDigest)
+          } yield blob
+        })
+        newBlob.length shouldEqual bs.length
+        newBlob.state shouldEqual ImageBlobState.Uploaded
+        newBlob.sha256Digest shouldEqual Some(bsDigest)
+      }
     }
 
     "return successful response for PUT request to monolithic blob upload path" in {
@@ -153,27 +164,27 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
       } yield blob)
 
       Put(
-        s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
-        HttpEntity(`application/octet-stream`, bs)
+          s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
+          HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
-          status shouldEqual StatusCodes.Created
-          responseEntity shouldEqual HttpEntity.Empty
-          header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
-          header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
-          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
-          val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
+        status shouldEqual StatusCodes.Created
+        responseEntity shouldEqual HttpEntity.Empty
+        header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
+        header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
 
-          val blob = await(ImageBlobsRepo.findByPk(uuid)).get
-          blob.length shouldEqual bs.length
-          blob.state shouldEqual ImageBlobState.Uploaded
-          blob.sha256Digest shouldEqual Some(bsDigest)
+        val blob = await(ImageBlobsRepo.findByPk(uuid)).get
+        blob.length shouldEqual bs.length
+        blob.state shouldEqual ImageBlobState.Uploaded
+        blob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = BlobFile.getBlobFilePath(bsDigest)
-          file.length shouldEqual bs.length
-          val fis = new FileInputStream(file)
-          val fileDigest = DigestUtils.sha256Hex(fis)
-          fileDigest shouldEqual bsDigest
-        }
+        val file = BlobFile.getBlobFilePath(bsDigest)
+        file.length shouldEqual bs.length
+        val fis        = new FileInputStream(file)
+        val fileDigest = DigestUtils.sha256Hex(fis)
+        fileDigest shouldEqual bsDigest
+      }
     }
 
     "return successful response for PATCH requests to blob upload path" in {
@@ -182,116 +193,128 @@ class ImageBlobUploadHandlerSpec extends WordSpec with Matchers with ScalatestRo
         blob <- ImageBlobsRepoFixture.create(user.getId, imageName)
       } yield blob)
 
-      val blobPart1 = bs.take(bs.length / 2)
+      val blobPart1       = bs.take(bs.length / 2)
       val blobPart1Digest = DigestUtils.sha256Hex(blobPart1.toArray)
 
       Patch(
-        s"/v2/$imageName/blobs/uploads/${blob.getId}",
-        HttpEntity(`application/octet-stream`, blobPart1)
+          s"/v2/$imageName/blobs/uploads/${blob.getId}",
+          HttpEntity(`application/octet-stream`, blobPart1)
       ) ~> `Content-Range`(ContentRange(0L, blobPart1.length - 1L)) ~>
-        addCredentials(credentials) ~> route ~> check {
-          status shouldEqual StatusCodes.Accepted
-          responseEntity shouldEqual HttpEntity.Empty
-          header[Location] should contain(Location(s"/v2/$imageName/blobs/${blob.getId}"))
-          header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
-          header[RangeCustom] should contain(RangeCustom(0L, blobPart1.length - 1L))
-          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+      addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.Accepted
+        responseEntity shouldEqual HttpEntity.Empty
+        header[Location] should contain(Location(s"/v2/$imageName/blobs/${blob.getId}"))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[RangeCustom] should contain(RangeCustom(0L, blobPart1.length - 1L))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-          val updatedBlob = await(ImageBlobsRepo.findByPk(blob.getId)).get
-          updatedBlob.length shouldEqual blobPart1.length
-          updatedBlob.state shouldEqual ImageBlobState.Uploading
-          updatedBlob.sha256Digest shouldEqual Some(blobPart1Digest)
+        val updatedBlob = await(ImageBlobsRepo.findByPk(blob.getId)).get
+        updatedBlob.length shouldEqual blobPart1.length
+        updatedBlob.state shouldEqual ImageBlobState.Uploading
+        updatedBlob.sha256Digest shouldEqual Some(blobPart1Digest)
 
-          val file = BlobFile.getUploadFilePath(blob.getId)
-          file.length shouldEqual blobPart1.length
-          val fis = new FileInputStream(file)
-          val fileDigest = DigestUtils.sha256Hex(fis)
-          fileDigest shouldEqual blobPart1Digest
-        }
+        val file = BlobFile.getUploadFilePath(blob.getId)
+        file.length shouldEqual blobPart1.length
+        val fis        = new FileInputStream(file)
+        val fileDigest = DigestUtils.sha256Hex(fis)
+        fileDigest shouldEqual blobPart1Digest
+      }
 
       val blobPart2 = bs.drop(blobPart1.length)
 
       Patch(
-        s"/v2/$imageName/blobs/uploads/${blob.getId}",
-        HttpEntity(`application/octet-stream`, blobPart2)
+          s"/v2/$imageName/blobs/uploads/${blob.getId}",
+          HttpEntity(`application/octet-stream`, blobPart2)
       ) ~> `Content-Range`(ContentRange(blobPart1.length.toLong, blobPart2.length - 1L)) ~>
-        addCredentials(credentials) ~> route ~> check {
-          status shouldEqual StatusCodes.Accepted
-          responseEntity shouldEqual HttpEntity.Empty
-          header[Location] should contain(Location(s"/v2/$imageName/blobs/${blob.getId}"))
-          header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
-          header[RangeCustom] should contain(RangeCustom(0L, bs.length - 1L))
-          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+      addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.Accepted
+        responseEntity shouldEqual HttpEntity.Empty
+        header[Location] should contain(Location(s"/v2/$imageName/blobs/${blob.getId}"))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[RangeCustom] should contain(RangeCustom(0L, bs.length - 1L))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-          val updatedBlob = await(ImageBlobsRepo.findByPk(blob.getId)).get
-          updatedBlob.length shouldEqual bs.length
-          updatedBlob.state shouldEqual ImageBlobState.Uploading
-          updatedBlob.sha256Digest shouldEqual Some(bsDigest)
+        val updatedBlob = await(ImageBlobsRepo.findByPk(blob.getId)).get
+        updatedBlob.length shouldEqual bs.length
+        updatedBlob.state shouldEqual ImageBlobState.Uploading
+        updatedBlob.sha256Digest shouldEqual Some(bsDigest)
 
-          val file = BlobFile.getUploadFilePath(blob.getId)
-          file.length shouldEqual bs.length
-          val fis = new FileInputStream(file)
-          val fileDigest = DigestUtils.sha256Hex(fis)
-          fileDigest shouldEqual bsDigest
-        }
+        val file = BlobFile.getUploadFilePath(blob.getId)
+        file.length shouldEqual bs.length
+        val fis        = new FileInputStream(file)
+        val fileDigest = DigestUtils.sha256Hex(fis)
+        fileDigest shouldEqual bsDigest
+      }
     }
 
     "return successful response for PUT request without final chunk to complete blob upload path" in {
-      val blob = Fixtures.await(for {
+      val blob = Fixtures.await(
+          for {
         user <- UsersRepoFixture.create()
         blob <- ImageBlobsRepoFixture.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploading
-        )
+                   user.getId,
+                   imageName,
+                   bs,
+                   ImageBlobState.Uploading
+               )
       } yield blob)
 
       Put(
-        s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
-        HttpEntity(`application/octet-stream`, bs)
+          s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
+          HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
-          status shouldEqual StatusCodes.Created
-          responseAs[ByteString] shouldBe empty
-          header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
-          header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
-          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        status shouldEqual StatusCodes.Created
+        responseAs[ByteString] shouldBe empty
+        header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-          val b = await(ImageBlobsRepo.findByPk(blob.getId)).get
-          b.length shouldEqual bs.length
-          b.state shouldEqual ImageBlobState.Uploaded
-          b.sha256Digest shouldEqual Some(bsDigest)
-        }
+        val b = await(ImageBlobsRepo.findByPk(blob.getId)).get
+        b.length shouldEqual bs.length
+        b.state shouldEqual ImageBlobState.Uploaded
+        b.sha256Digest shouldEqual Some(bsDigest)
+      }
     }
 
     "return successful response for PUT request without final chunk to complete blob path" in {
-      val blob = Fixtures.await(for {
+      val blob = Fixtures.await(
+          for {
         user <- UsersRepoFixture.create()
         blob <- ImageBlobsRepoFixture.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploading
-        )
+                   user.getId,
+                   imageName,
+                   bs,
+                   ImageBlobState.Uploading
+               )
       } yield blob)
 
       Put(
-        s"/v2/$imageName/blobs/${blob.getId}?digest=sha256:$bsDigest",
-        HttpEntity(`application/octet-stream`, bs)
+          s"/v2/$imageName/blobs/${blob.getId}?digest=sha256:$bsDigest",
+          HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
-          status shouldEqual StatusCodes.Created
-          responseAs[ByteString] shouldBe empty
-          header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
-          header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
-          header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+        status shouldEqual StatusCodes.Created
+        responseAs[ByteString] shouldBe empty
+        header[Location] should contain(Location(s"/v2/$imageName/blobs/sha256:$bsDigest"))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-          val b = await(ImageBlobsRepo.findByPk(blob.getId)).get
-          b.length shouldEqual bs.length
-          b.state shouldEqual ImageBlobState.Uploaded
-          b.sha256Digest shouldEqual Some(bsDigest)
-        }
+        val b = await(ImageBlobsRepo.findByPk(blob.getId)).get
+        b.length shouldEqual bs.length
+        b.state shouldEqual ImageBlobState.Uploaded
+        b.sha256Digest shouldEqual Some(bsDigest)
+      }
     }
 
     "return successful response for DELETE request to the blob upload path" in {
-      val blob = Fixtures.await(for {
+      val blob = Fixtures.await(
+          for {
         user <- UsersRepoFixture.create()
         blob <- ImageBlobsRepoFixture.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploading
-        )
+                   user.getId,
+                   imageName,
+                   bs,
+                   ImageBlobState.Uploading
+               )
       } yield blob)
 
       Delete(s"/v2/$imageName/blobs/uploads/${blob.getId}") ~> addCredentials(credentials) ~> route ~> check {

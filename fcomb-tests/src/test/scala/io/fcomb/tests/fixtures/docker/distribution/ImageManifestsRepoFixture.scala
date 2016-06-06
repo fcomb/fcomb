@@ -30,29 +30,29 @@ import org.apache.commons.codec.digest.DigestUtils
 
 object ImageManifestsRepoFixture {
   def createV1(
-    userId:    Long,
-    imageName: String,
-    blob:      ImageBlob,
-    tag:       String
+      userId: Long,
+      imageName: String,
+      blob: ImageBlob,
+      tag: String
   ): Future[ImageManifest] = {
     val schemaV1JsonBlob = getSchemaV1JsonBlob(imageName, tag, blob)
-    val sha256Digest = DigestUtils.sha256Hex(schemaV1JsonBlob)
+    val sha256Digest     = DigestUtils.sha256Hex(schemaV1JsonBlob)
     val manifest = SchemaV1.Manifest(
-      name = imageName,
-      tag = tag,
-      fsLayers = List(SchemaV1.FsLayer(s"sha256:${blob.sha256Digest.get}")),
-      architecture = "amd64",
-      history = Nil,
-      signatures = Nil
+        name = imageName,
+        tag = tag,
+        fsLayers = List(SchemaV1.FsLayer(s"sha256:${blob.sha256Digest.get}")),
+        architecture = "amd64",
+        history = Nil,
+        signatures = Nil
     )
     for {
       Some(image) <- ImagesRepo.findByPk(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV1(
-        image = image,
-        manifest = manifest,
-        schemaV1JsonBlob = schemaV1JsonBlob,
-        sha256Digest = sha256Digest
-      )
+                                image = image,
+                                manifest = manifest,
+                                schemaV1JsonBlob = schemaV1JsonBlob,
+                                sha256Digest = sha256Digest
+                            )
     } yield im
   }
 
@@ -75,13 +75,13 @@ object ImageManifestsRepoFixture {
   }
 
   def createV2(
-    userId:    Long,
-    imageName: String,
-    blob:      ImageBlob,
-    tags:      List[String]
+      userId: Long,
+      imageName: String,
+      blob: ImageBlob,
+      tags: List[String]
   ): Future[ImageManifest] = {
-    val schemaV1JsonBlob = getSchemaV1JsonBlob(imageName, tags.headOption.getOrElse(""), blob)
-    val schemaV2JsonBlob = s"""
+    val schemaV1JsonBlob    = getSchemaV1JsonBlob(imageName, tags.headOption.getOrElse(""), blob)
+    val schemaV2JsonBlob    = s"""
     {
       "schemaVersion": 2,
       "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
@@ -100,23 +100,24 @@ object ImageManifestsRepoFixture {
     }
     """
     val Xor.Right(manifest) = decode[SchemaV2.Manifest](schemaV2JsonBlob)
-    val sha256Digest = DigestUtils.sha256Hex(schemaV2JsonBlob)
-    val reference = Reference.Digest(sha256Digest)
+    val sha256Digest        = DigestUtils.sha256Hex(schemaV2JsonBlob)
+    val reference           = Reference.Digest(sha256Digest)
     for {
       Some(image) <- ImagesRepo.findByPk(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV2(
-        image = image,
-        manifest = manifest,
-        reference = reference,
-        configBlob = blob,
-        schemaV1JsonBlob = schemaV1JsonBlob,
-        schemaV2JsonBlob = schemaV2JsonBlob,
-        sha256Digest = sha256Digest
-      )
-      _ <- db.run(for {
-        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
-        _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
-      } yield ())
+                                image = image,
+                                manifest = manifest,
+                                reference = reference,
+                                configBlob = blob,
+                                schemaV1JsonBlob = schemaV1JsonBlob,
+                                schemaV2JsonBlob = schemaV2JsonBlob,
+                                sha256Digest = sha256Digest
+                            )
+      _ <- db.run(
+              for {
+            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
+            _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
+          } yield ())
     } yield im
   }
 }

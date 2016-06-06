@@ -27,8 +27,12 @@ import io.fcomb.docker.distribution.server.Routes
 import io.circe.Json
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 
-class AuthenticationHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest with PersistSpec {
-  val route = Routes()
+class AuthenticationHandlerSpec
+    extends WordSpec
+    with Matchers
+    with ScalatestRouteTest
+    with PersistSpec {
+  val route       = Routes()
   val credentials = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
 
   "The authentication handler" should {

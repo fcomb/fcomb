@@ -35,12 +35,19 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 import io.fcomb.docker.distribution.server.Routes
 
-class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTest with SpecHelpers with ScalaFutures with PersistSpec with ActorClusterSpec {
-  val route = Routes()
-  val imageName = "library/test-image_2016"
-  val bs = ByteString(getFixture("docker/distribution/blob"))
-  val bsDigest = DigestUtils.sha256Hex(bs.toArray)
-  val credentials = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
+class ImageBlobHandlerSpec
+    extends WordSpec
+    with Matchers
+    with ScalatestRouteTest
+    with SpecHelpers
+    with ScalaFutures
+    with PersistSpec
+    with ActorClusterSpec {
+  val route            = Routes()
+  val imageName        = "library/test-image_2016"
+  val bs               = ByteString(getFixture("docker/distribution/blob"))
+  val bsDigest         = DigestUtils.sha256Hex(bs.toArray)
+  val credentials      = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
 
   override def beforeEach(): Unit = {
@@ -50,11 +57,15 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
 
   "The image blob handler" should {
     "return an info without content for HEAD request to the exist layer path" in {
-      Fixtures.await(for {
+      Fixtures.await(
+          for {
         user <- UsersRepoFixture.create()
         _ <- ImageBlobsRepoFixture.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploaded
-        )
+                user.getId,
+                imageName,
+                bs,
+                ImageBlobState.Uploaded
+            )
       } yield ())
 
       Head(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
@@ -69,11 +80,15 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
     }
 
     "return a blob for GET request to the blob download path" in {
-      Fixtures.await(for {
+      Fixtures.await(
+          for {
         user <- UsersRepoFixture.create()
         _ <- ImageBlobsRepoFixture.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploaded
-        )
+                user.getId,
+                imageName,
+                bs,
+                ImageBlobState.Uploaded
+            )
       } yield ())
 
       Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
@@ -88,21 +103,28 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
     }
 
     "return a part of blob for GET request to the blob download path" in {
-      val blob = Fixtures.await(for {
+      val blob = Fixtures.await(
+          for {
         user <- UsersRepoFixture.create()
         blob <- ImageBlobsRepoFixture.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploaded
-        )
+                   user.getId,
+                   imageName,
+                   bs,
+                   ImageBlobState.Uploaded
+               )
       } yield blob)
       val offset = 5
-      val limit = 10
+      val limit  = 10
 
-      Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> Range(ByteRange(offset.toLong, limit.toLong)) ~> addCredentials(credentials) ~> route ~> check {
+      Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> Range(ByteRange(
+              offset.toLong, limit.toLong)) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.PartialContent
         responseAs[ByteString] shouldEqual bs.drop(offset).take(limit - offset)
         header[`Content-Range`] should contain(`Content-Range`(ContentRange(
-          offset.toLong, limit.toLong, blob.length
-        )))
+                    offset.toLong,
+                    limit.toLong,
+                    blob.length
+                )))
         header[`Docker-Content-Digest`] shouldBe empty
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         header[`Accept-Ranges`] should contain(`Accept-Ranges`(RangeUnits.Bytes))
@@ -112,11 +134,15 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
     }
 
     "return not modified status for GET request to the blob download path" in {
-      Fixtures.await(for {
+      Fixtures.await(
+          for {
         user <- UsersRepoFixture.create()
         _ <- ImageBlobsRepoFixture.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploaded
-        )
+                user.getId,
+                imageName,
+                bs,
+                ImageBlobState.Uploaded
+            )
       } yield ())
       val headers = `If-None-Match`(EntityTag(s"sha256:$bsDigest"))
 
@@ -127,14 +153,19 @@ class ImageBlobHandlerSpec extends WordSpec with Matchers with ScalatestRouteTes
     }
 
     "return successful response for DELETE request to the blob path" in {
-      val blob = Fixtures.await(for {
+      val blob = Fixtures.await(
+          for {
         user <- UsersRepoFixture.create()
         blob <- ImageBlobsRepoFixture.createAs(
-          user.getId, imageName, bs, ImageBlobState.Uploaded
-        )
+                   user.getId,
+                   imageName,
+                   bs,
+                   ImageBlobState.Uploaded
+               )
       } yield blob)
 
-      Delete(s"/v2/$imageName/blobs/sha256:${blob.sha256Digest.get}") ~> addCredentials(credentials) ~> route ~> check {
+      Delete(s"/v2/$imageName/blobs/sha256:${blob.sha256Digest.get}") ~> addCredentials(
+          credentials) ~> route ~> check {
         status shouldEqual StatusCodes.NoContent
         responseEntity shouldEqual HttpEntity.Empty
 

@@ -22,7 +22,8 @@ import org.jose4j.jwk.PublicJsonWebKey
 class JwsSpec extends WordSpec with Matchers {
   "JWS module" should {
     "make key id from public key" in {
-      val pk = PublicJsonWebKey.Factory.newPublicJwk("""
+      val pk =
+        PublicJsonWebKey.Factory.newPublicJwk("""
       {
         "crv": "P-256",
         "kty": "EC",

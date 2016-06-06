@@ -62,9 +62,14 @@ sealed trait ActorSystemSpec extends FutureSpec {
   implicit lazy val ec = system.dispatcher
 }
 
-abstract class ActorSpec extends TestKit(ActorSystemSpec.system)
-    with ImplicitSender with WordSpecLike with Matchers
-    with BeforeAndAfterAll with ActorSystemSpec with SpecHelpers {
+abstract class ActorSpec
+    extends TestKit(ActorSystemSpec.system)
+    with ImplicitSender
+    with WordSpecLike
+    with Matchers
+    with BeforeAndAfterAll
+    with ActorSystemSpec
+    with SpecHelpers {
   def startFakeHttpServer(handler: Route)(f: Int => Future[Unit]): Unit =
     await {
       val port = Random.random.nextInt(50000) + 10000

@@ -75,7 +75,6 @@ object Routes {
                       val uuid = UUID.fromString(id)
                       ImageBlobUploadHandler.uploadComplete(image, uuid)
                     case HttpMethods.HEAD if Reference.isDigest(id) =>
-                      println(s"HEAD: $id")
                       ImageBlobHandler.showBlob(image, id)
                     case HttpMethods.GET if Reference.isDigest(id) =>
                       ImageBlobHandler.downloadBlob(image, id)
