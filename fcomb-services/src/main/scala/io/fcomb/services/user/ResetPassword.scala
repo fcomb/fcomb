@@ -45,15 +45,15 @@ object ResetPassword {
         val date  = LocalDateTime.now.plusSeconds(ttl.get)
         redis.set(s"$prefix$token", user.id.toString, ttl).flatMap { _ =>
           val template = templates.ResetPassword(
-              s"title: token $token",
-              s"date: $date",
-              token
+            s"title: token $token",
+            s"date: $date",
+            token
           )
           Mandrill
             .sendTemplate(
-                template.mandrillTemplateName,
-                List(user.email),
-                template.toHtml
+              template.mandrillTemplateName,
+              List(user.email),
+              template.toHtml
             )
             .map(_ => Validated.Valid(()))
         }

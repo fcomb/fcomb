@@ -56,21 +56,21 @@ object Mandrill {
     import sys.dispatcher
 
     val sendTemplate = SendTemplate(
-        key = Config.mandrillKey,
-        template_name = templateName,
-        template_content = List(),
-        message = Message(
-            to = messageTo.distinct.map(Email),
-            html = messageHtml.trim
-        )
+      key = Config.mandrillKey,
+      template_name = templateName,
+      template_content = List(),
+      message = Message(
+        to = messageTo.distinct.map(Email),
+        html = messageHtml.trim
+      )
     )
     Source
       .fromFuture(Marshal(sendTemplate).to[RequestEntity])
       .map { entity =>
         HttpRequest(
-            method = HttpMethods.POST,
-            uri = "https://$hostname/api/1.0/messages/send-template.json",
-            entity = entity
+          method = HttpMethods.POST,
+          uri = "https://$hostname/api/1.0/messages/send-template.json",
+          entity = entity
         )
       }
       .via(Http().outgoingConnection(hostname))

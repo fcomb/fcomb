@@ -14,10 +14,30 @@
  * limitations under the License.
  */
 
+package io.fcomb.frontend
+
 import scala.scalajs.js.JSApp
+import org.scalajs.dom.document
+import japgolly.scalajs.react._
+import japgolly.scalajs.react.vdom.prefix_<^._
+import scalacss.Defaults._
+import scalacss.ScalaCssReact._
 
 object Main extends JSApp {
+  val MyComponent = ReactComponentB[Unit]("comp")
+    .render(_ => <.button(^.onClick --> Callback.alert("wow!"), Styles.button, "click me"))
+    .build
+
   def main(): Unit = {
-    println("test scalajs")
+    Styles.addToDocument()
+    MyComponent().render(document.getElementById("container"))
   }
+}
+
+object Styles extends StyleSheet.Inline {
+  import dsl._
+
+  val button = style(
+    addClassNames("btn", "btn-default")
+  )
 }

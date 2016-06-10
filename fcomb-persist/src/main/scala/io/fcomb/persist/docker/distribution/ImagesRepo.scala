@@ -74,19 +74,19 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
                 if (imageUserId == userId) DBIO.successful(Validated.Valid(id))
                 else
                   DBIO.successful(
-                      validationError(
-                          "userId",
-                          "insufficient permissions"
-                      )) // TODO
+                    validationError(
+                      "userId",
+                      "insufficient permissions"
+                    )) // TODO
               case None =>
                 val timeNow = ZonedDateTime.now
                 createWithValidationDBIO(
-                    Image(
-                        name = name,
-                        userId = userId,
-                        createdAt = timeNow,
-                        updatedAt = None
-                    )
+                  Image(
+                    name = name,
+                    userId = userId,
+                    createdAt = timeNow,
+                    updatedAt = None
+                  )
                 ).map(_.map(_.getId))
             }
     } yield res
@@ -133,11 +133,11 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       case None => DBIO.successful(0L)
     }
     db.run(for {
-        id <- since
-        repositories <- findRepositoriesByUserIdCompiled(
-                           (userId, limit + 1L, id)
-                       ).result
-      } yield repositories)
+      id <- since
+      repositories <- findRepositoriesByUserIdCompiled(
+                       (userId, limit + 1L, id)
+                     ).result
+    } yield repositories)
       .fast
       .map { repositories =>
         (repositories.take(limit), limit, repositories.length > limit)
@@ -156,13 +156,13 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       implicit ec: ExecutionContext
   ): ValidationDBIOResult = {
     val plainValidations = validatePlain(
-        "name" → List(
-            lengthRange(i.name, 1, 255),
-            matches(i.name, Image.nameRegEx, "Invalid name format")
-        )
+      "name" → List(
+        lengthRange(i.name, 1, 255),
+        matches(i.name, Image.nameRegEx, "Invalid name format")
+      )
     )
     val dbioValidations = validateDBIO(
-        "name" → List(unique(uniqueNameCompiled(i.id, i.name)))
+      "name" → List(unique(uniqueNameCompiled(i.id, i.name)))
     )
     validate(plainValidations, dbioValidations)
   }

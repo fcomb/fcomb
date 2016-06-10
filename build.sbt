@@ -27,8 +27,6 @@ val guavaVersion = "19.0"
 val slickVersion = "3.1.1"
 val slickPgVersion = "0.14.1"
 
-val jdkVersion = "1.8"
-
 lazy val commonSettings =
   reformatOnCompileSettings ++
     Seq(
@@ -43,6 +41,7 @@ lazy val commonSettings =
       scalacOptions ++= Seq(
         "-encoding",
         "UTF-8",
+        "-target:jvm-1.8",
         "-unchecked",
         "-deprecation",
         "-feature",
@@ -50,20 +49,25 @@ lazy val commonSettings =
         "-language:existentials",
         "-language:postfixOps",
         "-Xexperimental",
+        "-Xlint",
+        // "-Xfatal-warnings",
+        "-Xfuture",
+        "-Ybackend:GenBCode",
+        "-Ydelambdafy:method",
         "-Yopt:l:classpath",
         "-Yopt:unreachable-code",
         "-Ywarn-dead-code",
         "-Ywarn-infer-any",
         "-Ywarn-numeric-widen",
         "-Ywarn-unused",
-        "-Ywarn-unused-import" /*,
-        "-Xfatal-warnings" */
+        "-Ywarn-unused-import"
       ),
+      javaOptions ++= Seq("-Dfile.encoding=UTF-8"),
       javacOptions ++= Seq(
         "-source",
-        jdkVersion,
+        "1.8",
         "-target",
-        jdkVersion,
+        "1.8",
         "-Xlint:unchecked",
         "-Xlint:deprecation"
       ),
@@ -74,13 +78,13 @@ lazy val commonSettings =
 
 lazy val publishSettings = Seq(
   homepage := Some(url("https://fcomb.io")),
-  scmInfo := Some(ScmInfo(url("https://github.com/fcomb/fcomb"), "https://github.com/fcomb/fcomb.git")),
+  scmInfo  := Some(ScmInfo(url("https://github.com/fcomb/fcomb"), "https://github.com/fcomb/fcomb.git")),
   licenses := Seq("Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 )
 
 lazy val noPublishSettings = Seq(
-  publish := (),
-  publishLocal := (),
+  publish         := (),
+  publishLocal    := (),
   publishArtifact := false
 )
 
@@ -199,7 +203,7 @@ lazy val tests = project.in(file("fcomb-tests"))
   .settings(moduleName := "tests")
   .settings(allSettings:_*)
   .settings(
-    libraryDependencies       ++= Seq(
+    libraryDependencies ++= Seq(
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % "test",
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaVersion % "test",
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
@@ -211,73 +215,81 @@ lazy val tests = project.in(file("fcomb-tests"))
       "ch.qos.logback"     %  "logback-classic"   % "1.1.7"
     ),
     parallelExecution in Test := false,
-    fork in Test              := true
+    fork in Test := true
   )
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(server, dockerDistribution)
 
-lazy val frontendBundle = taskKey[File]("bundle.js path")
-lazy val frontendBundleBuild = taskKey[Unit]("Build frontend bundle.js")
-lazy val frontendBundleCreate = taskKey[Unit]("Create frontend bundle.js if it does not exist")
+lazy val frontendAssetsDirectory = settingKey[File]("Assets directory path")
+// lazy val frontendBundle = settingKey[File]("bundle.js path")
+// lazy val frontendBundleBuild = taskKey[Unit]("Build frontend bundle.js")
+// lazy val frontendBundleCreate = taskKey[Unit]("Create frontend bundle.js if it does not exist")
 
 lazy val frontend = project.in(file("fcomb-frontend"))
   .settings(moduleName := "frontend")
   .settings(allSettings:_*)
   .settings(
-    frontendBundle := baseDirectory.value / "src" / "main" / "resources" / "bundle.js",
-    frontendBundleBuild := {
-      (JsEngineKeys.npmNodeModules in Assets).value
-      val in = (baseDirectory.value / "lib.js").getAbsolutePath
-      val out = frontendBundle.value
-      out.getParentFile.mkdirs()
-      val nodeModules = (baseDirectory.value / "node_modules").getAbsolutePath
-      SbtJsTask.executeJs(state.value, JsEngineKeys.engineType.value, None, Seq(nodeModules),
-        baseDirectory.value / "browserify.js", Seq(in, out.getAbsolutePath), 30.seconds)
-    },
-    frontendBundleCreate := {
-      Def.taskDyn {
-        if (frontendBundle.value.exists) Def.task {}
-        else frontendBundleBuild
-      }.value
-    },
-    compile in Compile <<= (compile in Compile).dependsOn(frontendBundleCreate),
-    libraryDependencies           ++= Seq(
-      "com.github.japgolly.scalajs-react" %%% "extra" % "0.11.1"
+    frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "web" / "assets",
+    // frontendBundle := frontendAssets.value / "bundle.js",
+    // frontendBundleBuild := {
+    //   (JsEngineKeys.npmNodeModules in Assets).value
+    //   val in = (baseDirectory.value / "lib.js").getAbsolutePath
+    //   val out = frontendBundle.value
+    //   out.getParentFile.mkdirs()
+    //   val nodeModules = (baseDirectory.value / "node_modules").getAbsolutePath
+    //   SbtJsTask.executeJs(state.value, JsEngineKeys.engineType.value, None, Seq(nodeModules),
+    //     baseDirectory.value / "browserify.js", Seq(in, out.getAbsolutePath), 30.seconds)
+    // },
+    // frontendBundleCreate := {
+    //   Def.taskDyn {
+    //     if (frontendBundle.value.exists) Def.task {}
+    //     else frontendBundleBuild
+    //   }.value
+    // },
+    // compile in Compile <<= (compile in Compile).dependsOn(frontendBundleCreate),
+    libraryDependencies ++= Seq(
+      "com.github.japgolly.scalacss"                   %%% "ext-react"   % "0.4.1",
+      "com.github.japgolly.scalajs-react"              %%% "extra"       % "0.11.1",
+      "com.github.chandu0101.scalajs-react-components" %%% "core"        % "0.4.1",
+      "org.scala-js"                                   %%% "scalajs-dom" % "0.9.0"
     ),
-    jsDependencies                += ProvidedJS / "bundle.js",
-    scalaJSUseRhino in Global     := false,
+    scalaJSUseRhino in Global := false,
     skip in packageJSDependencies := false,
-    persistLauncher in Compile    := true,
-    persistLauncher in Test       := false
+    persistLauncher in Compile := true,
+    persistLauncher in Test := false,
+    crossTarget in (Compile, fullOptJS) := frontendAssetsDirectory.value,
+    crossTarget in (Compile, fastOptJS) := frontendAssetsDirectory.value,
+    artifactPath in (Compile, fastOptJS) := ((crossTarget in (Compile, fastOptJS)).value /
+      ((moduleName in fastOptJS).value + "-opt.js"))
   )
-  .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin, SbtWeb, SbtJsEngine)
+  .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
 
 lazy val root = project.in(file("."))
-  .aggregate(tests)
-  .dependsOn(server, dockerDistribution, frontend)
   .settings(allSettings:_*)
   .settings(noPublishSettings)
   .settings(RevolverPlugin.settings)
   .settings(SbtNativePackager.packageArchetype.java_application)
   .settings(
-    autoCompilerPlugins :=  true,
+    autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion,
       "ch.qos.logback"    %  "logback-classic"        % "1.1.7"
     ),
-    aggregate in reStart       :=  false,
-    mainClass in reStart       :=  Some("io.fcomb.application.Main"),
-    mainClass in Compile       :=  Some("io.fcomb.application.Main"),
-    executableScriptName       :=  "start",
-    javaOptions in Universal   ++= javaRunOptions.map(o => s"-J$o"),
-    packageName in Universal   :=  "dist",
-    scriptClasspath            ~=  (cp => "../config" +: cp),
+    aggregate in reStart :=  false,
+    mainClass in reStart :=  Some("io.fcomb.application.Main"),
+    mainClass in Compile :=  Some("io.fcomb.application.Main"),
+    executableScriptName :=  "start",
+    javaOptions in Universal ++= javaRunOptions.map(o => s"-J$o"),
+    packageName in Universal :=  "dist",
+    scriptClasspath ~=  (cp => "../config" +: cp),
     javaOptions in (Test, run) ++= javaRunOptions,
-    parallelExecution          :=  true,
-    fork in run                :=  true,
-    fork in reStart            :=  true
+    parallelExecution :=  true,
+    fork in run :=  true,
+    fork in reStart :=  true
   )
+  .aggregate(tests)
+  .dependsOn(server, dockerDistribution, frontend)
   .enablePlugins(SbtNativePackager)
 
 lazy val javaRunOptions = Seq(

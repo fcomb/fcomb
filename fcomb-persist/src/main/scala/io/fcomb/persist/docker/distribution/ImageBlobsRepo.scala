@@ -69,16 +69,16 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
             case None =>
               val timeNow = ZonedDateTime.now()
               createDBIO(
-                  ImageBlob(
-                      id = Some(UUID.randomUUID()),
-                      state = ImageBlobState.Uploaded,
-                      imageId = toImageId,
-                      sha256Digest = blob.sha256Digest,
-                      contentType = mapContentType(blob.contentType),
-                      length = blob.length,
-                      createdAt = timeNow,
-                      uploadedAt = None
-                  )).map(Some(_))
+                ImageBlob(
+                  id = Some(UUID.randomUUID()),
+                  state = ImageBlobState.Uploaded,
+                  imageId = toImageId,
+                  sha256Digest = blob.sha256Digest,
+                  contentType = mapContentType(blob.contentType),
+                  length = blob.length,
+                  createdAt = timeNow,
+                  uploadedAt = None
+                )).map(Some(_))
           }
         case _ => DBIO.successful(None)
       }
@@ -88,16 +88,16 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       implicit ec: ExecutionContext
   ) =
     super.create(
-        ImageBlob(
-            id = Some(UUID.randomUUID()),
-            state = ImageBlobState.Created,
-            imageId = imageId,
-            sha256Digest = None,
-            contentType = mapContentType(contentType),
-            length = 0L,
-            createdAt = ZonedDateTime.now(),
-            uploadedAt = None
-        ))
+      ImageBlob(
+        id = Some(UUID.randomUUID()),
+        state = ImageBlobState.Created,
+        imageId = imageId,
+        sha256Digest = None,
+        contentType = mapContentType(contentType),
+        length = 0L,
+        createdAt = ZonedDateTime.now(),
+        uploadedAt = None
+      ))
 
   // TODO
   def createByImageName(name: String, userId: Long, contentType: String)(
@@ -171,11 +171,11 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
             .filter(_.pk === id)
             .map(t => (t.state, t.length, t.sha256Digest, t.uploadedAt))
             .update((
-                    ImageBlobState.Uploaded,
-                    length,
-                    Some(digest),
-                    Some(ZonedDateTime.now())
-                ))
+                ImageBlobState.Uploaded,
+                length,
+                Some(digest),
+                Some(ZonedDateTime.now())
+              ))
             .map(_ => ())
         }
       }
@@ -214,14 +214,14 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         case Some(_) => DBIO.successful(())
         case None =>
           val blob = ImageBlob(
-              id = Some(UUID.randomUUID()),
-              state = ImageBlobState.Uploaded,
-              imageId = imageId,
-              sha256Digest = Some(emptyTarSha256Digest),
-              contentType = `application/octet-stream`,
-              length = emptyTar.length.toLong,
-              createdAt = ZonedDateTime.now(),
-              uploadedAt = None
+            id = Some(UUID.randomUUID()),
+            state = ImageBlobState.Uploaded,
+            imageId = imageId,
+            sha256Digest = Some(emptyTarSha256Digest),
+            contentType = `application/octet-stream`,
+            length = emptyTar.length.toLong,
+            createdAt = ZonedDateTime.now(),
+            uploadedAt = None
           )
           table += blob
       }.map(_ => ())

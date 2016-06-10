@@ -41,10 +41,10 @@ object SessionsRepo {
   }
 
   private val invalidEmailOrPassword = FastFuture.successful(
-      Xor.left(FailureResponse.fromExceptions(Seq(
-                  ValidationException("email", "invalid"),
-                  ValidationException("password", "invalid")
-              )))
+    Xor.left(FailureResponse.fromExceptions(Seq(
+          ValidationException("email", "invalid"),
+          ValidationException("password", "invalid")
+        )))
   )
 
   def create(req: SessionCreateRequest)(

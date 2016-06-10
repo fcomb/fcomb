@@ -74,7 +74,7 @@ object SchemaV2 {
             }
           case None =>
             FastFuture.successful(
-                unknowError(s"Config blob `$sha256Prefix$configDigest` not found"))
+              unknowError(s"Config blob `$sha256Prefix$configDigest` not found"))
         }
     }
   }

@@ -41,10 +41,10 @@ object Tls {
       val keyStore   = KeyStore.getInstance(KeyStore.getDefaultType)
       keyStore.load(null, null)
       keyStore.setKeyEntry(
-          "key",
-          privateKey,
-          "".toCharArray,
-          Array(certificate(cert))
+        "key",
+        privateKey,
+        "".toCharArray,
+        Array(certificate(cert))
       )
       val kmf = KeyManagerFactory.getInstance("SunX509")
       kmf.init(keyStore, "".toCharArray)

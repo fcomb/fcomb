@@ -66,11 +66,11 @@ trait ProcessorClustedSharding[Id] {
       mat: Materializer
   ) = {
     val ref = ClusterSharding(sys).start(
-        typeName = shardName,
-        entityProps = props,
-        settings = ClusterShardingSettings(sys),
-        extractEntityId = extractEntityId,
-        extractShardId = extractShardId
+      typeName = shardName,
+      entityProps = props,
+      settings = ClusterShardingSettings(sys),
+      extractEntityId = extractEntityId,
+      extractShardId = extractShardId
     )
     actorRef = ref
     ref
@@ -141,20 +141,20 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
     }
 
     RunnableGraph.fromGraph(
-        GraphDSL.create(source.completionTimeout(25.minutes), sink)(
-            Keep.right
-        ) { implicit b => (source, sink) =>
-      import GraphDSL.Implicits._
+      GraphDSL.create(source.completionTimeout(25.minutes), sink)(
+        Keep.right
+      ) { implicit b => (source, sink) =>
+    import GraphDSL.Implicits._
 
-      val broadcast = b.add(Broadcast[ByteString](2))
+    val broadcast = b.add(Broadcast[ByteString](2))
 
-      source ~> broadcast.in
+    source ~> broadcast.in
 
-      broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
-      broadcast.out(1) ~> sink
+    broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
+    broadcast.out(1) ~> sink
 
-      ClosedShape
-    })
+    ClosedShape
+  })
   }
 
   final case object Begin extends Entity

@@ -66,9 +66,9 @@ object ImageBlobUploadHandler {
       case Validated.Valid(blob) =>
         val uuid = blob.getId
         val headers = immutable.Seq(
-            Location(s"/v2/$imageName/blobs/uploads/$uuid"),
-            `Docker-Upload-Uuid`(uuid),
-            rangeHeader(0L, 0L)
+          Location(s"/v2/$imageName/blobs/uploads/$uuid"),
+          `Docker-Upload-Uuid`(uuid),
+          rangeHeader(0L, 0L)
         )
         respondWithHeaders(headers) {
           completeWithStatus(StatusCodes.Accepted)
@@ -83,13 +83,14 @@ object ImageBlobUploadHandler {
       req: HttpRequest
   ): Route = {
     imageByNameWithAcl(from, user) { fromImage =>
-      onSuccess(ImageBlobsRepo.mount(
-              fromImage.getId, imageName, Reference.getDigest(digest), user.getId)) {
+      val mountResFut =
+        ImageBlobsRepo.mount(fromImage.getId, imageName, Reference.getDigest(digest), user.getId)
+      onSuccess(mountResFut) {
         case Some(blob) =>
           val sha256Digest = blob.sha256Digest.get
           val headers = immutable.Seq(
-              Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
-              `Docker-Content-Digest`("sha256", sha256Digest)
+            Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
+            `Docker-Content-Digest`("sha256", sha256Digest)
           )
           respondWithHeaders(headers) {
             completeWithStatus(StatusCodes.Created)
@@ -105,20 +106,21 @@ object ImageBlobUploadHandler {
     extractMaterializer { implicit mat =>
       import mat.executionContext
       val contentType = req.entity.contentType.mediaType.value
-      onSuccess(for {
+      val blobResFut = for {
         Validated.Valid(blob) <- ImageBlobsRepo.createByImageName(
-                                    imageName, user.getId, contentType)
+                                  imageName, user.getId, contentType)
         (length, sha256Digest) <- BlobFile.uploadBlob(blob.getId, req.entity.dataBytes)
         _                      <- ImageBlobsRepo.completeUploadOrDelete(blob.getId, blob.imageId, length, sha256Digest)
-      } yield (blob, sha256Digest)) {
+      } yield (blob, sha256Digest)
+      onSuccess(blobResFut) {
         case (blob, sha256Digest) =>
           val uuid = blob.getId
           if (Reference.getDigest(digest) == sha256Digest) {
             onSuccess(BlobFile.renameOrDelete(uuid, sha256Digest)) {
               val headers = immutable.Seq(
-                  Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
-                  `Docker-Upload-Uuid`(uuid),
-                  `Docker-Content-Digest`("sha256", sha256Digest)
+                Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
+                `Docker-Upload-Uuid`(uuid),
+                `Docker-Content-Digest`("sha256", sha256Digest)
               )
               respondWithHeaders(headers) {
                 completeWithStatus(StatusCodes.Created)
@@ -131,8 +133,8 @@ object ImageBlobUploadHandler {
             } yield ()
             onSuccess(res) {
               complete(
-                  StatusCodes.BadRequest,
-                  DistributionErrorResponse.from(DistributionError.DigestInvalid())
+                StatusCodes.BadRequest,
+                DistributionErrorResponse.from(DistributionError.DigestInvalid())
               )
             }
           }
@@ -161,14 +163,14 @@ object ImageBlobUploadHandler {
                 }
                 if (!isRangeValid) {
                   complete(
-                      StatusCodes.BadRequest,
-                      DistributionErrorResponse.from(DistributionError.Unknown("Range is invalid"))
+                    StatusCodes.BadRequest,
+                    DistributionErrorResponse.from(DistributionError.Unknown("Range is invalid"))
                   )
                 } else if (rangeFrom.exists(_ != blob.length)) {
                   complete(
-                      StatusCodes.BadRequest,
-                      DistributionErrorResponse.from(
-                          DistributionError.Unknown("Range start not satisfy a blob file length"))
+                    StatusCodes.BadRequest,
+                    DistributionErrorResponse.from(
+                      DistributionError.Unknown("Range start not satisfy a blob file length"))
                   )
                 } else {
                   val data = (rangeFrom, rangeTo) match {
@@ -186,9 +188,9 @@ object ImageBlobUploadHandler {
                   } yield totalLength
                   onSuccess(totalLengthFut) { totalLength =>
                     val headers = immutable.Seq(
-                        Location(s"/v2/$imageName/blobs/$uuid"),
-                        `Docker-Upload-Uuid`(uuid),
-                        rangeHeader(0L, totalLength)
+                      Location(s"/v2/$imageName/blobs/$uuid"),
+                      `Docker-Upload-Uuid`(uuid),
+                      rangeHeader(0L, totalLength)
                     )
                     respondWithHeaders(headers) {
                       complete(StatusCodes.Accepted, HttpEntity.Empty)
@@ -197,8 +199,8 @@ object ImageBlobUploadHandler {
                 }
               case _ =>
                 complete(
-                    StatusCodes.NotFound,
-                    DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
+                  StatusCodes.NotFound,
+                  DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
                 )
             }
           }
@@ -224,9 +226,9 @@ object ImageBlobUploadHandler {
                     complete {
                       if (sha256Digest == Reference.getDigest(digest)) {
                         val headers = immutable.Seq(
-                            Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
-                            `Docker-Upload-Uuid`(uuid),
-                            `Docker-Content-Digest`("sha256", sha256Digest)
+                          Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
+                          `Docker-Upload-Uuid`(uuid),
+                          `Docker-Content-Digest`("sha256", sha256Digest)
                         )
                         for {
                           _ <- BlobFile.renameOrDelete(uuid, sha256Digest)
@@ -243,8 +245,8 @@ object ImageBlobUploadHandler {
                 }
               case _ =>
                 complete(
-                    StatusCodes.NotFound,
-                    DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
+                  StatusCodes.NotFound,
+                  DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
                 )
             }
           }
@@ -260,13 +262,13 @@ object ImageBlobUploadHandler {
           onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId, uuid)) {
             case Some(blob) if !blob.isUploaded =>
               complete(for {
-                _ <- BlobFile.destroyBlob(blob.getId)
-                _ <- ImageBlobsRepo.destroy(uuid)
-              } yield HttpResponse(StatusCodes.NoContent))
+              _ <- BlobFile.destroyBlob(blob.getId)
+              _ <- ImageBlobsRepo.destroy(uuid)
+            } yield HttpResponse(StatusCodes.NoContent))
             case _ =>
               complete(
-                  StatusCodes.NotFound,
-                  DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
+                StatusCodes.NotFound,
+                DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
               )
           }
         }

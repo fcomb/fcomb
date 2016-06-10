@@ -28,7 +28,7 @@ object AuthenticationHandler {
     }
 
   private val versionCheckResponse = HttpResponse(
-      status = StatusCodes.OK,
-      entity = HttpEntity(`application/json`, "{}")
+    status = StatusCodes.OK,
+    entity = HttpEntity(`application/json`, "{}")
   )
 }

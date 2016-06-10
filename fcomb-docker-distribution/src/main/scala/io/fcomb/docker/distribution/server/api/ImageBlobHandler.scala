@@ -51,16 +51,16 @@ object ImageBlobHandler {
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
             case Some(blob) if blob.isUploaded =>
               complete(
-                  HttpResponse(
-                      StatusCodes.OK,
-                      immutable.Seq(
-                          `Docker-Content-Digest`("sha256", sha256Digest),
-                          ETag(digest),
-                          `Accept-Ranges`(RangeUnits.Bytes),
-                          cacheHeader
-                      ),
-                      HttpEntity(contentType(blob.contentType), blob.length, Source.empty)
-                  )
+                HttpResponse(
+                  StatusCodes.OK,
+                  immutable.Seq(
+                    `Docker-Content-Digest`("sha256", sha256Digest),
+                    ETag(digest),
+                    `Accept-Ranges`(RangeUnits.Bytes),
+                    cacheHeader
+                  ),
+                  HttpEntity(contentType(blob.contentType), blob.length, Source.empty)
+                )
               )
             case _ => completeNotFound()
           }
@@ -88,19 +88,19 @@ object ImageBlobHandler {
                   val limit: Long = range.getSliceLast.asScala.getOrElse(blob.length)
                   val chunkLength = limit - offset
                   val headers = immutable.Seq(
-                      `Content-Range`(ContentRange(offset, limit, blob.length)),
-                      `Accept-Ranges`(RangeUnits.Bytes)
+                    `Content-Range`(ContentRange(offset, limit, blob.length)),
+                    `Accept-Ranges`(RangeUnits.Bytes)
                   )
                   val source =
                     if (digest == ImageManifest.emptyTarSha256Digest)
                       Source.single(ByteString(
-                              ImageManifest.emptyTar.drop(offset.toInt).take(chunkLength.toInt)))
+                          ImageManifest.emptyTar.drop(offset.toInt).take(chunkLength.toInt)))
                     else BlobFile.streamBlob(sha256Digest, offset, chunkLength)
                   complete(HttpResponse(
-                          StatusCodes.PartialContent,
-                          headers,
-                          HttpEntity(ct, chunkLength, source)
-                      ))
+                      StatusCodes.PartialContent,
+                      headers,
+                      HttpEntity(ct, chunkLength, source)
+                    ))
                 case _ =>
                   optionalHeaderValueByType[`If-None-Match`]() {
                     case Some(
@@ -108,19 +108,19 @@ object ImageBlobHandler {
                       completeWithStatus(StatusCodes.NotModified)
                     case _ =>
                       val headers = immutable.Seq(
-                          `Accept-Ranges`(RangeUnits.Bytes),
-                          ETag(digest),
-                          `Docker-Content-Digest`("sha256", sha256Digest),
-                          cacheHeader
+                        `Accept-Ranges`(RangeUnits.Bytes),
+                        ETag(digest),
+                        `Docker-Content-Digest`("sha256", sha256Digest),
+                        cacheHeader
                       )
                       val source =
                         if (digest == ImageManifest.emptyTarSha256Digest) emptyTarSource
                         else FileIO.fromPath(BlobFile.getFile(blob).toPath)
                       complete(HttpResponse(
-                              StatusCodes.OK,
-                              headers,
-                              HttpEntity(ct, blob.length, source)
-                          ))
+                          StatusCodes.OK,
+                          headers,
+                          HttpEntity(ct, blob.length, source)
+                        ))
                   }
               }
             case _ => completeNotFound()
@@ -154,8 +154,8 @@ object ImageBlobHandler {
               complete(res)
             case _ =>
               complete(
-                  StatusCodes.NotFound,
-                  DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
+                StatusCodes.NotFound,
+                DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
               )
           }
         }
@@ -163,7 +163,7 @@ object ImageBlobHandler {
     }
 
   private val cacheHeader = `Cache-Control`(
-      CacheDirectives.`max-age`(365.days.toSeconds)
+    CacheDirectives.`max-age`(365.days.toSeconds)
   )
 
   private def contentType(contentType: String) =

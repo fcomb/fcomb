@@ -60,19 +60,19 @@ class ImageHandlerSpec
   "The image handler" should {
     "return list of repositories for GET request to the catalog path" in {
       Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        _    <- ImageBlobsRepoFixture.create(user.getId, "first/test1")
-        _    <- ImageBlobsRepoFixture.create(user.getId, "second/test2")
-        _    <- ImageBlobsRepoFixture.create(user.getId, "third/test3")
-      } yield ())
+        for {
+      user <- UsersRepoFixture.create()
+      _    <- ImageBlobsRepoFixture.create(user.getId, "first/test1")
+      _    <- ImageBlobsRepoFixture.create(user.getId, "second/test2")
+      _    <- ImageBlobsRepoFixture.create(user.getId, "third/test3")
+    } yield ())
 
       Get(s"/v2/_catalog") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val resp = responseAs[DistributionImageCatalog]
         resp shouldEqual DistributionImageCatalog(
-            Seq("first/test1", "second/test2", "third/test3"))
+          Seq("first/test1", "second/test2", "third/test3"))
       }
 
       Get(s"/v2/_catalog?n=2") ~> addCredentials(credentials) ~> route ~> check {
@@ -93,13 +93,13 @@ class ImageHandlerSpec
 
     "return list of tags for GET request to the tags path" in {
       Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
-        _     <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0", "1.1"))
-        blob2 <- ImageBlobsRepoFixture.createAs(
-                    user.getId, imageName, bs ++ bs, ImageBlobState.Uploaded)
-        _ <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob2, List("2.0", "2.1"))
-      } yield ())
+      user  <- UsersRepoFixture.create()
+      blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+      _     <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0", "1.1"))
+      blob2 <- ImageBlobsRepoFixture.createAs(
+                user.getId, imageName, bs ++ bs, ImageBlobState.Uploaded)
+      _ <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob2, List("2.0", "2.1"))
+    } yield ())
 
       Get(s"/v2/$imageName/tags/list") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
@@ -128,21 +128,20 @@ class ImageHandlerSpec
       val manifestV1 = ByteString(getFixture("docker/distribution/manifestV1.json"))
       val digest     = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
-      Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        blob1 <- ImageBlobsRepoFixture.createAs(
-                    user.getId,
-                    imageName,
-                    ByteString.empty,
-                    ImageBlobState.Uploaded,
-                    digestOpt =
-                      Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
-      } yield ())
+      Fixtures.await(for {
+      user <- UsersRepoFixture.create()
+      blob1 <- ImageBlobsRepoFixture.createAs(
+                user.getId,
+                imageName,
+                ByteString.empty,
+                ImageBlobState.Uploaded,
+                digestOpt =
+                  Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
+    } yield ())
 
       Put(
-          s"/v2/$imageName/manifests/sha256:$digest",
-          HttpEntity(`application/json`, manifestV1)
+        s"/v2/$imageName/manifests/sha256:$digest",
+        HttpEntity(`application/json`, manifestV1)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseEntity shouldEqual HttpEntity.Empty
@@ -157,13 +156,13 @@ class ImageHandlerSpec
       val digest     = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
       Fixtures.await(for {
-        u <- UsersRepoFixture.create()
-        _ <- ImagesRepoFixture.create(u.getId, imageName)
-      } yield u)
+      u <- UsersRepoFixture.create()
+      _ <- ImagesRepoFixture.create(u.getId, imageName)
+    } yield u)
 
       Put(
-          s"/v2/$imageName/manifests/sha256:$digest",
-          HttpEntity(`application/json`, manifestV1)
+        s"/v2/$imageName/manifests/sha256:$digest",
+        HttpEntity(`application/json`, manifestV1)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.BadRequest
         val msg =
@@ -177,26 +176,26 @@ class ImageHandlerSpec
       val manifestV2 = ByteString(getFixture("docker/distribution/manifestV2.json"))
       val digest     = "eeb39ca4e9565a6689fa1a6b79d130e058796359a1da88a6f3e3d0fc95ed3b0b"
       val configBlobBs = ByteString(getFixture(
-              "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
+          "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
 
       val configBlob = Fixtures.await(for {
-        user <- UsersRepoFixture.create()
-        blob1 <- ImageBlobsRepoFixture.createAs(
-                    user.getId,
-                    imageName,
-                    ByteString.empty,
-                    ImageBlobState.Uploaded,
-                    digestOpt =
-                      Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
-        cb <- ImageBlobsRepoFixture.createAs(
-                 user.getId, imageName, configBlobBs, ImageBlobState.Uploaded)
-      } yield cb)
+      user <- UsersRepoFixture.create()
+      blob1 <- ImageBlobsRepoFixture.createAs(
+                user.getId,
+                imageName,
+                ByteString.empty,
+                ImageBlobState.Uploaded,
+                digestOpt =
+                  Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
+      cb <- ImageBlobsRepoFixture.createAs(
+             user.getId, imageName, configBlobBs, ImageBlobState.Uploaded)
+    } yield cb)
       configBlob.sha256Digest should contain(
-          "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
+        "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
 
       Put(
-          s"/v2/$imageName/manifests/sha256:$digest",
-          HttpEntity(`application/json`, manifestV2)
+        s"/v2/$imageName/manifests/sha256:$digest",
+        HttpEntity(`application/json`, manifestV2)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseEntity shouldEqual HttpEntity.Empty
@@ -210,17 +209,17 @@ class ImageHandlerSpec
       val manifestV2 = ByteString(getFixture("docker/distribution/manifestV2.json"))
       val digest     = "eeb39ca4e9565a6689fa1a6b79d130e058796359a1da88a6f3e3d0fc95ed3b0b"
       val configBlobBs = ByteString(getFixture(
-              "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
+          "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
       val configBlobDigest = "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08"
 
       val user = Fixtures.await(for {
-        u <- UsersRepoFixture.create()
-        _ <- ImagesRepoFixture.create(u.getId, imageName)
-      } yield u)
+      u <- UsersRepoFixture.create()
+      _ <- ImagesRepoFixture.create(u.getId, imageName)
+    } yield u)
 
       Put(
-          s"/v2/$imageName/manifests/sha256:$digest",
-          HttpEntity(`application/json`, manifestV2)
+        s"/v2/$imageName/manifests/sha256:$digest",
+        HttpEntity(`application/json`, manifestV2)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.BadRequest
         val msg  = s"Config blob `sha256:$configBlobDigest` not found"
@@ -229,18 +228,18 @@ class ImageHandlerSpec
       }
 
       val configBlob = Fixtures.await(
-          ImageBlobsRepoFixture.createAs(
-              user.getId,
-              imageName,
-              configBlobBs,
-              ImageBlobState.Uploaded
-          ))
+        ImageBlobsRepoFixture.createAs(
+          user.getId,
+          imageName,
+          configBlobBs,
+          ImageBlobState.Uploaded
+        ))
       configBlob.sha256Digest should contain(
-          "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
+        "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
 
       Put(
-          s"/v2/$imageName/manifests/sha256:$digest",
-          HttpEntity(`application/json`, manifestV2)
+        s"/v2/$imageName/manifests/sha256:$digest",
+        HttpEntity(`application/json`, manifestV2)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.BadRequest
         val msg =
@@ -252,24 +251,24 @@ class ImageHandlerSpec
 
     "return a manifest v1 for GET request to manifest path by tag and digest" in {
       val im = Fixtures.await(
-          for {
-        user  <- UsersRepoFixture.create()
-        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
-        im    <- ImageManifestsRepoFixture.createV1(user.getId, imageName, blob1, "1.0")
-      } yield im)
+        for {
+      user  <- UsersRepoFixture.create()
+      blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+      im    <- ImageManifestsRepoFixture.createV1(user.getId, imageName, blob1, "1.0")
+    } yield im)
 
       def checkResponse(): Unit = {
         status shouldEqual StatusCodes.OK
         contentType shouldEqual `application/vnd.docker.distribution.manifest.v1+prettyjws`
         header[`Docker-Content-Digest`] should contain(
-            `Docker-Content-Digest`("sha256", im.sha256Digest))
+          `Docker-Content-Digest`("sha256", im.sha256Digest))
         header[ETag] should contain(ETag(s"sha256:${im.sha256Digest}"))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val rawManifest         = responseAs[ByteString].utf8String
         val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
         manifest.tag shouldEqual "1.0"
         SchemaV1Manifest.verify(manifest, rawManifest) shouldBe (Xor.right(
-                (rawManifest, im.sha256Digest)))
+              (rawManifest, im.sha256Digest)))
       }
 
       Get(s"/v2/$imageName/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {
@@ -283,17 +282,17 @@ class ImageHandlerSpec
 
     "return a manifest v2 for GET request to manifest path by tag and digest" in {
       val im = Fixtures.await(
-          for {
-        user  <- UsersRepoFixture.create()
-        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
-        im    <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0"))
-      } yield im)
+        for {
+      user  <- UsersRepoFixture.create()
+      blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+      im    <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0"))
+    } yield im)
 
       Get(s"/v2/$imageName/manifests/1.0") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
         contentType shouldEqual `application/vnd.docker.distribution.manifest.v1+prettyjws`
         header[`Docker-Content-Digest`] should contain(
-            `Docker-Content-Digest`("sha256", im.sha256Digest))
+          `Docker-Content-Digest`("sha256", im.sha256Digest))
         header[ETag] should contain(ETag(s"sha256:${im.sha256Digest}"))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val rawManifest         = responseAs[ByteString].utf8String
@@ -306,15 +305,15 @@ class ImageHandlerSpec
         status shouldEqual StatusCodes.OK
         contentType shouldEqual `application/vnd.docker.distribution.manifest.v2+json`
         header[`Docker-Content-Digest`] should contain(
-            `Docker-Content-Digest`("sha256", im.sha256Digest))
+          `Docker-Content-Digest`("sha256", im.sha256Digest))
         header[ETag] should contain(ETag(s"sha256:${im.sha256Digest}"))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val rawManifest         = responseAs[ByteString].utf8String
         val Xor.Right(manifest) = decode[SchemaV2.Manifest](rawManifest)
         manifest.config shouldEqual SchemaV2.Descriptor(
-            Some("application/vnd.docker.container.image.v1+json"),
-            11209,
-            "sha256:a42e9dfd17b7e96bd880cb6e746c5bc8ef7611729164c74b010915fe7c224585"
+          Some("application/vnd.docker.container.image.v1+json"),
+          11209,
+          "sha256:a42e9dfd17b7e96bd880cb6e746c5bc8ef7611729164c74b010915fe7c224585"
         )
       }
 
@@ -330,11 +329,11 @@ class ImageHandlerSpec
 
     "return an accepted for DELETE request to manifest path by digest" in {
       val im = Fixtures.await(
-          for {
-        user  <- UsersRepoFixture.create()
-        blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
-        im    <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0"))
-      } yield im)
+        for {
+      user  <- UsersRepoFixture.create()
+      blob1 <- ImageBlobsRepoFixture.createAs(user.getId, imageName, bs, ImageBlobState.Uploaded)
+      im    <- ImageManifestsRepoFixture.createV2(user.getId, imageName, blob1, List("1.0"))
+    } yield im)
 
       Delete(s"/v2/$imageName/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted

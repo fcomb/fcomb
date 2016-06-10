@@ -35,14 +35,14 @@ object ImageBlobsRepoFixture {
       imageId <- ImagesRepoFixture.create(userId, imageName)
       id = UUID.randomUUID()
       blob = ImageBlob(
-          id = Some(id),
-          state = ImageBlobState.Created,
-          imageId = imageId,
-          sha256Digest = None,
-          contentType = "application/octet-stream",
-          length = 0L,
-          createdAt = ZonedDateTime.now(),
-          uploadedAt = None
+        id = Some(id),
+        state = ImageBlobState.Created,
+        imageId = imageId,
+        sha256Digest = None,
+        contentType = "application/octet-stream",
+        length = 0L,
+        createdAt = ZonedDateTime.now(),
+        uploadedAt = None
       )
       Validated.Valid(res) <- ImageBlobsRepo.create(blob)
     } yield res)
@@ -59,14 +59,14 @@ object ImageBlobsRepoFixture {
       id     = UUID.randomUUID()
       digest = digestOpt.getOrElse(DigestUtils.sha256Hex(bs.toArray))
       blob = ImageBlob(
-          id = Some(id),
-          state = state,
-          imageId = imageId,
-          sha256Digest = Some(digest),
-          length = bs.length.toLong,
-          contentType = "application/octet-stream",
-          createdAt = ZonedDateTime.now(),
-          uploadedAt = None
+        id = Some(id),
+        state = state,
+        imageId = imageId,
+        sha256Digest = Some(digest),
+        length = bs.length.toLong,
+        contentType = "application/octet-stream",
+        createdAt = ZonedDateTime.now(),
+        uploadedAt = None
       )
       Validated.Valid(im) <- ImageBlobsRepo.create(blob)
       file = BlobFile.getFile(blob)

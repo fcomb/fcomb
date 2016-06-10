@@ -33,8 +33,8 @@ trait ImageDirectives {
         case Some(user) => provide(user)
         case None =>
           complete(
-              StatusCodes.NotFound,
-              DistributionErrorResponse.from(DistributionError.NameUnknown())
+            StatusCodes.NotFound,
+            DistributionErrorResponse.from(DistributionError.NameUnknown())
           )
       }
     }

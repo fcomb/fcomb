@@ -38,17 +38,17 @@ object BlobFile {
   ): Future[File] = {
     val file = getUploadFilePath(uuid)
     Future(
-        blocking {
-      if (!file.getParentFile.exists) file.getParentFile.mkdirs()
-      file
-    })
+      blocking {
+    if (!file.getParentFile.exists) file.getParentFile.mkdirs()
+    file
+  })
   }
 
   def getBlobFilePath(digest: String): File =
     imageFilePath("blobs", digest)
 
   private def imageFilePath(path: String, name: String): File =
-    new File(s"${Config.docker.distribution.imageStorage}/$path/${name.take(2)}/$name")
+    new File(s"${Config.docker.distribution.imageStorage}/$path/${name.take(2)}/${name.drop(2)}")
 
   def getFile(blob: ImageBlob): File = {
     blob.sha256Digest match {
@@ -61,16 +61,16 @@ object BlobFile {
       implicit ec: ExecutionContext
   ): Future[Unit] =
     Future(
-        blocking {
-      if (digest == ImageManifest.emptyTarSha256Digest) file.delete()
-      else {
-        val newFile = getBlobFilePath(digest)
-        if (!newFile.exists()) {
-          if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
-          file.renameTo(newFile)
-        }
+      blocking {
+    if (digest == ImageManifest.emptyTarSha256Digest) file.delete()
+    else {
+      val newFile = getBlobFilePath(digest)
+      if (!newFile.exists()) {
+        if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
+        file.renameTo(newFile)
       }
-    })
+    }
+  })
 
   def renameOrDelete(uuid: UUID, digest: String)(
       implicit ec: ExecutionContext

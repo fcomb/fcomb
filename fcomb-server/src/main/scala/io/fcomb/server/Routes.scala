@@ -28,11 +28,11 @@ object Routes {
   val apiVersion = "v1"
 
   private val pongJsonResponse = HttpResponse(
-      status = StatusCodes.OK,
-      entity = HttpEntity(
-          ContentTypes.`application/json`,
-          """{"pong":true}"""
-      )
+    status = StatusCodes.OK,
+    entity = HttpEntity(
+      ContentTypes.`application/json`,
+      """{"pong":true}"""
+    )
   )
 
   def apply()(implicit sys: ActorSystem, mat: Materializer): Route = {
@@ -80,10 +80,10 @@ object Routes {
   }
 
   private val defaultHeaders = List(
-      `X-Content-Type-Options`("nosniff"),
-      `X-Frame-Options`("sameorigin"),
-      `X-XSS-Protection`("1; mode=block")
-      // Strict-Transport-Security: max-age=31536000; includeSubDomains
-      // Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self';
+    `X-Content-Type-Options`("nosniff"),
+    `X-Frame-Options`("sameorigin"),
+    `X-XSS-Protection`("1; mode=block")
+    // Strict-Transport-Security: max-age=31536000; includeSubDomains
+    // Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self';
   )
 }

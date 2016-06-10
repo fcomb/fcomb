@@ -125,7 +125,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
       m: Manifest[T]
   ): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted)(
-        validateThenApplyVMDBIO(result)(f)
+      validateThenApplyVMDBIO(result)(f)
     )
 
   def all() =
@@ -164,7 +164,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
       m: Manifest[T]
   ): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted)(
-        createWithValidationDBIO(item)
+      createWithValidationDBIO(item)
     )
 
   def strictUpdateDBIO[R](res: R)(

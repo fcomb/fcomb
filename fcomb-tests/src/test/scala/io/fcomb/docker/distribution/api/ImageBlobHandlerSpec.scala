@@ -58,15 +58,15 @@ class ImageBlobHandlerSpec
   "The image blob handler" should {
     "return an info without content for HEAD request to the exist layer path" in {
       Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        _ <- ImageBlobsRepoFixture.createAs(
-                user.getId,
-                imageName,
-                bs,
-                ImageBlobState.Uploaded
-            )
-      } yield ())
+        for {
+      user <- UsersRepoFixture.create()
+      _ <- ImageBlobsRepoFixture.createAs(
+            user.getId,
+            imageName,
+            bs,
+            ImageBlobState.Uploaded
+          )
+    } yield ())
 
       Head(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
@@ -81,15 +81,15 @@ class ImageBlobHandlerSpec
 
     "return a blob for GET request to the blob download path" in {
       Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        _ <- ImageBlobsRepoFixture.createAs(
-                user.getId,
-                imageName,
-                bs,
-                ImageBlobState.Uploaded
-            )
-      } yield ())
+        for {
+      user <- UsersRepoFixture.create()
+      _ <- ImageBlobsRepoFixture.createAs(
+            user.getId,
+            imageName,
+            bs,
+            ImageBlobState.Uploaded
+          )
+    } yield ())
 
       Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
@@ -104,27 +104,27 @@ class ImageBlobHandlerSpec
 
     "return a part of blob for GET request to the blob download path" in {
       val blob = Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        blob <- ImageBlobsRepoFixture.createAs(
-                   user.getId,
-                   imageName,
-                   bs,
-                   ImageBlobState.Uploaded
-               )
-      } yield blob)
+        for {
+      user <- UsersRepoFixture.create()
+      blob <- ImageBlobsRepoFixture.createAs(
+               user.getId,
+               imageName,
+               bs,
+               ImageBlobState.Uploaded
+             )
+    } yield blob)
       val offset = 5
       val limit  = 10
 
-      Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> Range(ByteRange(
-              offset.toLong, limit.toLong)) ~> addCredentials(credentials) ~> route ~> check {
+      Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> Range(
+        ByteRange(offset.toLong, limit.toLong)) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.PartialContent
         responseAs[ByteString] shouldEqual bs.drop(offset).take(limit - offset)
         header[`Content-Range`] should contain(`Content-Range`(ContentRange(
-                    offset.toLong,
-                    limit.toLong,
-                    blob.length
-                )))
+              offset.toLong,
+              limit.toLong,
+              blob.length
+            )))
         header[`Docker-Content-Digest`] shouldBe empty
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         header[`Accept-Ranges`] should contain(`Accept-Ranges`(RangeUnits.Bytes))
@@ -135,15 +135,15 @@ class ImageBlobHandlerSpec
 
     "return not modified status for GET request to the blob download path" in {
       Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        _ <- ImageBlobsRepoFixture.createAs(
-                user.getId,
-                imageName,
-                bs,
-                ImageBlobState.Uploaded
-            )
-      } yield ())
+        for {
+      user <- UsersRepoFixture.create()
+      _ <- ImageBlobsRepoFixture.createAs(
+            user.getId,
+            imageName,
+            bs,
+            ImageBlobState.Uploaded
+          )
+    } yield ())
       val headers = `If-None-Match`(EntityTag(s"sha256:$bsDigest"))
 
       Get(s"/v2/$imageName/blobs/sha256:$bsDigest") ~> headers ~> addCredentials(credentials) ~> route ~> check {
@@ -154,18 +154,18 @@ class ImageBlobHandlerSpec
 
     "return successful response for DELETE request to the blob path" in {
       val blob = Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        blob <- ImageBlobsRepoFixture.createAs(
-                   user.getId,
-                   imageName,
-                   bs,
-                   ImageBlobState.Uploaded
-               )
-      } yield blob)
+        for {
+      user <- UsersRepoFixture.create()
+      blob <- ImageBlobsRepoFixture.createAs(
+               user.getId,
+               imageName,
+               bs,
+               ImageBlobState.Uploaded
+             )
+    } yield blob)
 
       Delete(s"/v2/$imageName/blobs/sha256:${blob.sha256Digest.get}") ~> addCredentials(
-          credentials) ~> route ~> check {
+        credentials) ~> route ~> check {
         status shouldEqual StatusCodes.NoContent
         responseEntity shouldEqual HttpEntity.Empty
 

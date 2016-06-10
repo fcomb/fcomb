@@ -25,13 +25,13 @@ class HttpApiService(routes: Route)(
     e match {
       case _: ParsingException | _: Unmarshaller.UnsupportedContentTypeException =>
         (
-            InternalException(e.getMessage),
-            StatusCodes.UnprocessableEntity
+          InternalException(e.getMessage),
+          StatusCodes.UnprocessableEntity
         )
       case _ =>
         (
-            InternalException(e.getMessage),
-            StatusCodes.InternalServerError
+          InternalException(e.getMessage),
+          StatusCodes.InternalServerError
         )
     }
   }
@@ -51,8 +51,8 @@ class HttpApiService(routes: Route)(
   private def handleRejection(r: Rejection) = r match {
     case _ =>
       errorResponse(
-          InternalException(r.toString),
-          StatusCodes.BadRequest
+        InternalException(r.toString),
+        StatusCodes.BadRequest
       )
   }
 

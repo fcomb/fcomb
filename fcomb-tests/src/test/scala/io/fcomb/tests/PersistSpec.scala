@@ -41,10 +41,10 @@ private[this] object PersistSpec {
   }
 
   val tables = Set(
-      ImageManifestsRepo.table,
-      ImageBlobsRepo.table,
-      ImagesRepo.table,
-      UsersRepo.table
+    ImageManifestsRepo.table,
+    ImageBlobsRepo.table,
+    ImagesRepo.table,
+    UsersRepo.table
   )
 
   val truncateQuery =

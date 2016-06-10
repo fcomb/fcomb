@@ -73,5 +73,5 @@ package object persist {
   // }
 
   implicit val dockerDistributionImageBlobStateColumnType = createEnumJdbcMapping(
-      "dd_image_blob_state", models.docker.distribution.ImageBlobState)
+    "dd_image_blob_state", models.docker.distribution.ImageBlobState)
 }

@@ -38,20 +38,20 @@ object ImageManifestsRepoFixture {
     val schemaV1JsonBlob = getSchemaV1JsonBlob(imageName, tag, blob)
     val sha256Digest     = DigestUtils.sha256Hex(schemaV1JsonBlob)
     val manifest = SchemaV1.Manifest(
-        name = imageName,
-        tag = tag,
-        fsLayers = List(SchemaV1.FsLayer(s"sha256:${blob.sha256Digest.get}")),
-        architecture = "amd64",
-        history = Nil,
-        signatures = Nil
+      name = imageName,
+      tag = tag,
+      fsLayers = List(SchemaV1.FsLayer(s"sha256:${blob.sha256Digest.get}")),
+      architecture = "amd64",
+      history = Nil,
+      signatures = Nil
     )
     for {
       Some(image) <- ImagesRepo.findByPk(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV1(
-                                image = image,
-                                manifest = manifest,
-                                schemaV1JsonBlob = schemaV1JsonBlob,
-                                sha256Digest = sha256Digest
+                              image = image,
+                              manifest = manifest,
+                              schemaV1JsonBlob = schemaV1JsonBlob,
+                              sha256Digest = sha256Digest
                             )
     } yield im
   }
@@ -105,19 +105,19 @@ object ImageManifestsRepoFixture {
     for {
       Some(image) <- ImagesRepo.findByPk(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV2(
-                                image = image,
-                                manifest = manifest,
-                                reference = reference,
-                                configBlob = blob,
-                                schemaV1JsonBlob = schemaV1JsonBlob,
-                                schemaV2JsonBlob = schemaV2JsonBlob,
-                                sha256Digest = sha256Digest
+                              image = image,
+                              manifest = manifest,
+                              reference = reference,
+                              configBlob = blob,
+                              schemaV1JsonBlob = schemaV1JsonBlob,
+                              schemaV2JsonBlob = schemaV2JsonBlob,
+                              sha256Digest = sha256Digest
                             )
       _ <- db.run(
-              for {
-            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
-            _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
-          } yield ())
+            for {
+          _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
+          _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
+        } yield ())
     } yield im
   }
 }

@@ -1,4 +1,3 @@
-fcomb-frontend/etc/
 fcomb-frontend/node_modules/
-fcomb-frontend/src/main/resources/bundle.js
+fcomb-frontend/src/main/resources/web/assets/
 target/

@@ -47,37 +47,37 @@ package object errors {
 
   case object JsonBodyCantBeEmpty extends DtCemException {
     def toErrorMessage() = ErrorMessage(
-        "JSON body can't be empty"
+      "JSON body can't be empty"
     )
   }
 
   case object InvalidAuthorizationToken extends DtCemException {
     def toErrorMessage() = ErrorMessage(
-        "Invalid authorization token"
+      "Invalid authorization token"
     )
   }
 
   case object ExpectedAuthorizationToken extends DtCemException {
     def toErrorMessage() = ErrorMessage(
-        "Expected 'Authorization' header with token or URI 'access_token' parameter"
+      "Expected 'Authorization' header with token or URI 'access_token' parameter"
     )
   }
 
   case object ExpectedToken extends DtCemException {
     def toErrorMessage() = ErrorMessage(
-        "Expected URI 'token' parameter"
+      "Expected URI 'token' parameter"
     )
   }
 
   case object RecordNotFoundException extends DtCemException {
     def toErrorMessage() = ErrorMessage(
-        "Record not found"
+      "Record not found"
     )
   }
 
   case object ResourceNotFoundException extends DtCemException {
     def toErrorMessage() = ErrorMessage(
-        "Resource not found"
+      "Resource not found"
     )
   }
 
@@ -87,8 +87,8 @@ package object errors {
   )
       extends DtCemException {
     def toErrorMessage() = ErrorMessage(
-        message,
-        Some(param)
+      message,
+      Some(param)
     )
   }
 }

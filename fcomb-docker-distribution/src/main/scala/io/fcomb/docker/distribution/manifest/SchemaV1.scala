@@ -80,7 +80,7 @@ object SchemaV1 {
                         else Xor.left(ManifestUnverified())
                       } else
                         Xor.left(
-                            ManifestInvalid("formatted length does not match with fortmatLength"))
+                          ManifestInvalid("formatted length does not match with fortmatLength"))
                     case Xor.Left(e) => Xor.left(Unknown(e.show))
                   })
           }
@@ -117,13 +117,13 @@ object SchemaV1 {
               val createdBy = img.createdBy.map(List(_)).getOrElse(Nil)
               val throwAway = if (img.isEmptyLayer) Some(true) else None
               val historyLayer = Layer(
-                  id = v1Id,
-                  parent = StringUtils.trim(Some(parentId)),
-                  comment = img.comment,
-                  created = Some(img.created),
-                  containerConfig = Some(LayerContainerConfig(createdBy)),
-                  author = img.author,
-                  throwAway = throwAway
+                id = v1Id,
+                parent = StringUtils.trim(Some(parentId)),
+                comment = img.comment,
+                created = Some(img.created),
+                containerConfig = Some(LayerContainerConfig(createdBy)),
+                author = img.author,
+                throwAway = throwAway
               )
               val fsLayer = FsLayer(s"$sha256Prefix$blobSum")
               val currentId =
@@ -143,21 +143,21 @@ object SchemaV1 {
               else Some(lastParentId)
             val throwAway = if (isEmptyLayer) Some(true) else None
             val historyLayer = config.copy(
-                id = Some(v1Id),
-                parent = parent,
-                throwAway = throwAway
+              id = Some(v1Id),
+              parent = parent,
+              throwAway = throwAway
             )
             val fsLayer = FsLayer(s"$sha256Prefix$blobSum")
             (historyLayer, fsLayer)
           }
 
           val manifestV1 = ManifestV1(
-              name = image.name,
-              tag = "",
-              fsLayers = configFsLayer :: fsLayers,
-              architecture = imgConfig.architecture,
-              history = configHistory :: history,
-              signatures = Nil
+            name = image.name,
+            tag = "",
+            fsLayers = configFsLayer :: fsLayers,
+            architecture = imgConfig.architecture,
+            history = configHistory :: history,
+            signatures = Nil
           )
           manifestV1.asJson.asObject match {
             case Some(obj) => Xor.right(prettyPrint(obj.remove("signatures").asJson))
@@ -178,11 +178,11 @@ object SchemaV1 {
     val payload          = s"${`protected`}.${base64Encode(formatted)}"
     val (signature, alg) = Jws.signWithDefaultJwk(payload.getBytes("utf-8"))
     val signatures = List(
-        Signature(
-            header = SignatureHeader(Jws.defaultEcJwkParams, alg),
-            signature = base64Encode(signature),
-            `protected` = `protected`
-        ))
+      Signature(
+        header = SignatureHeader(Jws.defaultEcJwkParams, alg),
+        signature = base64Encode(signature),
+        `protected` = `protected`
+      ))
     val manifestWithSignature = manifest.add("signatures", signatures.asJson)
     prettyPrint(manifestWithSignature.asJson)
   }
@@ -215,9 +215,9 @@ object SchemaV1 {
     val formatLength = formatted.lastIndexWhere(!isSpace(_), cbIndex) + 1
     val formatTail   = formatted.drop(formatLength)
     val p = Protected(
-        formatLength = formatLength,
-        formatTail = base64Encode(formatTail),
-        time = ZonedDateTime.now().withFixedOffsetZone()
+      formatLength = formatLength,
+      formatTail = base64Encode(formatTail),
+      time = ZonedDateTime.now().withFixedOffsetZone()
     )
     base64Encode(p.asJson.noSpaces)
   }
@@ -245,17 +245,17 @@ object SchemaV1 {
     base64url.base64UrlDecode(s)
 
   private def printer(indent: String) = Printer(
-      preserveOrder = true,
-      dropNullKeys = false,
-      indent = indent,
-      lbraceRight = "\n",
-      rbraceLeft = "\n",
-      lbracketRight = "\n",
-      rbracketLeft = "\n",
-      lrbracketsEmpty = "\n",
-      arrayCommaRight = "\n",
-      objectCommaRight = "\n",
-      colonLeft = "",
-      colonRight = " "
+    preserveOrder = true,
+    dropNullKeys = false,
+    indent = indent,
+    lbraceRight = "\n",
+    rbraceLeft = "\n",
+    lbracketRight = "\n",
+    rbracketLeft = "\n",
+    lrbracketsEmpty = "\n",
+    arrayCommaRight = "\n",
+    objectCommaRight = "\n",
+    colonLeft = "",
+    colonRight = " "
   )
 }

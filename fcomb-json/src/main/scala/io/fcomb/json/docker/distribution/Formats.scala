@@ -28,9 +28,9 @@ import scala.collection.generic.CanBuildFrom
 
 object Formats {
   private final val compactPrinter: Printer = Printer(
-      preserveOrder = true,
-      dropNullKeys = true,
-      indent = ""
+    preserveOrder = true,
+    dropNullKeys = true,
+    indent = ""
   )
 
   implicit final val encodeDistributionError: Encoder[DistributionError] =
@@ -52,8 +52,8 @@ object Formats {
                          "throwaway")(SchemaV1.Config.unapply(_).get)
 
   final val encodeSchemaV1Layer: Encoder[SchemaV1.Layer] = Encoder.forProduct7(
-      "id", "parent", "comment", "created", "container_config", "author", "throwaway")(
-      SchemaV1.Layer.unapply(_).get)
+    "id", "parent", "comment", "created", "container_config", "author", "throwaway")(
+    SchemaV1.Layer.unapply(_).get)
 
   implicit final val encodeSchemaV1FsLayer: Encoder[SchemaV1.FsLayer] =
     Encoder.forProduct1("blobSum")(SchemaV1.FsLayer.unapply(_).get)
@@ -65,7 +65,7 @@ object Formats {
         case l: SchemaV1.Layer  => encodeSchemaV1Layer.apply(l)
       }
       Json.obj(
-          "v1Compatibility" → Encoder[String].apply(compactPrinter.pretty(layerJson))
+        "v1Compatibility" → Encoder[String].apply(compactPrinter.pretty(layerJson))
       )
     }
   }
@@ -74,8 +74,8 @@ object Formats {
     Encoder.forProduct3("header", "signature", "protected")(SchemaV1.Signature.unapply(_).get)
 
   implicit final val encodeSchemaV1Manifest: Encoder[SchemaV1.Manifest] = Encoder.forProduct7(
-      "name", "tag", "fsLayers", "architecture", "history", "signatures", "schemaVersion")(
-      SchemaV1.Manifest.unapply(_).get)
+    "name", "tag", "fsLayers", "architecture", "history", "signatures", "schemaVersion")(
+    SchemaV1.Manifest.unapply(_).get)
 
   implicit final val encodeSchemaV1Protected: Encoder[SchemaV1.Protected] =
     Encoder.forProduct3("formatLength", "formatTail", "time")(SchemaV1.Protected.unapply(_).get)
@@ -128,8 +128,8 @@ object Formats {
     Decoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.apply)
 
   final val decodeSchemaV1Layer = Decoder.forProduct7(
-      "id", "parent", "comment", "created", "container_config", "author", "throwaway")(
-      SchemaV1.Layer.apply)
+    "id", "parent", "comment", "created", "container_config", "author", "throwaway")(
+    SchemaV1.Layer.apply)
 
   implicit final val decodeSchemaV1LayerFromV1Compatibility: Decoder[SchemaV1.Layer] =
     Decoder.instance { c =>
@@ -224,7 +224,7 @@ object Formats {
 
   implicit final val decodeSchemaV2ImageHistory: Decoder[SchemaV2.ImageHistory] =
     Decoder.forProduct5("created", "author", "created_by", "comment", "empty_layer")(
-        SchemaV2.ImageHistory.apply)
+      SchemaV2.ImageHistory.apply)
 
   implicit final val decodeSchemaV2ImageConfig: Decoder[SchemaV2.ImageConfig] =
     Decoder.forProduct3("rootfs", "history", "architecture")(SchemaV2.ImageConfig.apply)

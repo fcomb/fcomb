@@ -86,8 +86,8 @@ class ImageBlobUploadHandlerSpec
       Fixtures.await(UsersRepoFixture.create())
 
       Post(
-          s"/v2/$imageName/blobs/uploads/?digest=sha256:$bsDigest",
-          HttpEntity(`application/octet-stream`, bs)
+        s"/v2/$imageName/blobs/uploads/?digest=sha256:$bsDigest",
+        HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseEntity shouldEqual HttpEntity.Empty
@@ -113,8 +113,8 @@ class ImageBlobUploadHandlerSpec
       Fixtures.await(UsersRepoFixture.create())
 
       Post(
-          s"/v2/$imageName/blobs/uploads/?digest=sha256:333f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f",
-          HttpEntity(`application/octet-stream`, bs)
+        s"/v2/$imageName/blobs/uploads/?digest=sha256:333f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f",
+        HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.BadRequest
         val resp = responseAs[DistributionErrorResponse]
@@ -124,20 +124,20 @@ class ImageBlobUploadHandlerSpec
 
     "return successful response for PUT request to mount blob upload path" in {
       val user = Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        blob <- ImageBlobsRepoFixture.createAs(
-                   user.getId,
-                   imageName,
-                   bs,
-                   ImageBlobState.Uploaded
-               )
-      } yield user)
+        for {
+      user <- UsersRepoFixture.create()
+      blob <- ImageBlobsRepoFixture.createAs(
+               user.getId,
+               imageName,
+               bs,
+               ImageBlobState.Uploaded
+             )
+    } yield user)
       val newImageName = "newimage/name"
 
       Post(
-          s"/v2/$newImageName/blobs/uploads/?mount=sha256:$bsDigest&from=$imageName",
-          HttpEntity(`application/octet-stream`, bs)
+        s"/v2/$newImageName/blobs/uploads/?mount=sha256:$bsDigest&from=$imageName",
+        HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseEntity shouldEqual HttpEntity.Empty
@@ -159,13 +159,13 @@ class ImageBlobUploadHandlerSpec
 
     "return successful response for PUT request to monolithic blob upload path" in {
       val blob = Fixtures.await(for {
-        user <- UsersRepoFixture.create()
-        blob <- ImageBlobsRepoFixture.create(user.getId, imageName)
-      } yield blob)
+      user <- UsersRepoFixture.create()
+      blob <- ImageBlobsRepoFixture.create(user.getId, imageName)
+    } yield blob)
 
       Put(
-          s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
-          HttpEntity(`application/octet-stream`, bs)
+        s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
+        HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseEntity shouldEqual HttpEntity.Empty
@@ -189,16 +189,16 @@ class ImageBlobUploadHandlerSpec
 
     "return successful response for PATCH requests to blob upload path" in {
       val blob = Fixtures.await(for {
-        user <- UsersRepoFixture.create()
-        blob <- ImageBlobsRepoFixture.create(user.getId, imageName)
-      } yield blob)
+      user <- UsersRepoFixture.create()
+      blob <- ImageBlobsRepoFixture.create(user.getId, imageName)
+    } yield blob)
 
       val blobPart1       = bs.take(bs.length / 2)
       val blobPart1Digest = DigestUtils.sha256Hex(blobPart1.toArray)
 
       Patch(
-          s"/v2/$imageName/blobs/uploads/${blob.getId}",
-          HttpEntity(`application/octet-stream`, blobPart1)
+        s"/v2/$imageName/blobs/uploads/${blob.getId}",
+        HttpEntity(`application/octet-stream`, blobPart1)
       ) ~> `Content-Range`(ContentRange(0L, blobPart1.length - 1L)) ~>
       addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
@@ -223,8 +223,8 @@ class ImageBlobUploadHandlerSpec
       val blobPart2 = bs.drop(blobPart1.length)
 
       Patch(
-          s"/v2/$imageName/blobs/uploads/${blob.getId}",
-          HttpEntity(`application/octet-stream`, blobPart2)
+        s"/v2/$imageName/blobs/uploads/${blob.getId}",
+        HttpEntity(`application/octet-stream`, blobPart2)
       ) ~> `Content-Range`(ContentRange(blobPart1.length.toLong, blobPart2.length - 1L)) ~>
       addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
@@ -249,19 +249,19 @@ class ImageBlobUploadHandlerSpec
 
     "return successful response for PUT request without final chunk to complete blob upload path" in {
       val blob = Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        blob <- ImageBlobsRepoFixture.createAs(
-                   user.getId,
-                   imageName,
-                   bs,
-                   ImageBlobState.Uploading
-               )
-      } yield blob)
+        for {
+      user <- UsersRepoFixture.create()
+      blob <- ImageBlobsRepoFixture.createAs(
+               user.getId,
+               imageName,
+               bs,
+               ImageBlobState.Uploading
+             )
+    } yield blob)
 
       Put(
-          s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
-          HttpEntity(`application/octet-stream`, bs)
+        s"/v2/$imageName/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
+        HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseAs[ByteString] shouldBe empty
@@ -278,19 +278,19 @@ class ImageBlobUploadHandlerSpec
 
     "return successful response for PUT request without final chunk to complete blob path" in {
       val blob = Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        blob <- ImageBlobsRepoFixture.createAs(
-                   user.getId,
-                   imageName,
-                   bs,
-                   ImageBlobState.Uploading
-               )
-      } yield blob)
+        for {
+      user <- UsersRepoFixture.create()
+      blob <- ImageBlobsRepoFixture.createAs(
+               user.getId,
+               imageName,
+               bs,
+               ImageBlobState.Uploading
+             )
+    } yield blob)
 
       Put(
-          s"/v2/$imageName/blobs/${blob.getId}?digest=sha256:$bsDigest",
-          HttpEntity(`application/octet-stream`, bs)
+        s"/v2/$imageName/blobs/${blob.getId}?digest=sha256:$bsDigest",
+        HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseAs[ByteString] shouldBe empty
@@ -307,15 +307,15 @@ class ImageBlobUploadHandlerSpec
 
     "return successful response for DELETE request to the blob upload path" in {
       val blob = Fixtures.await(
-          for {
-        user <- UsersRepoFixture.create()
-        blob <- ImageBlobsRepoFixture.createAs(
-                   user.getId,
-                   imageName,
-                   bs,
-                   ImageBlobState.Uploading
-               )
-      } yield blob)
+        for {
+      user <- UsersRepoFixture.create()
+      blob <- ImageBlobsRepoFixture.createAs(
+               user.getId,
+               imageName,
+               bs,
+               ImageBlobState.Uploading
+             )
+    } yield blob)
 
       Delete(s"/v2/$imageName/blobs/uploads/${blob.getId}") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.NoContent

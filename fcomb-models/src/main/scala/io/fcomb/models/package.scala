@@ -27,7 +27,7 @@ package object models {
 
     def getId() =
       id.getOrElse(
-          throw new IllegalArgumentException("Column 'id' cannot be empty")
+        throw new IllegalArgumentException("Column 'id' cannot be empty")
       )
   }
 

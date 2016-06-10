@@ -34,9 +34,9 @@ object Db {
     Migration.run(dbUrl, dbUser, dbPassword)
 
   lazy val redis = RedisClient(
-      host = Config.redis.get[String]("host").value,
-      port = Config.redis.get[Int]("port").value,
-      db = Config.redis.get[Option[Int]]("db").value,
-      password = Config.redis.get[Option[String]]("password").value
+    host = Config.redis.get[String]("host").value,
+    port = Config.redis.get[Int]("port").value,
+    db = Config.redis.get[Option[Int]]("db").value,
+    password = Config.redis.get[Option[String]]("password").value
   )(Implicits.global.system)
 }

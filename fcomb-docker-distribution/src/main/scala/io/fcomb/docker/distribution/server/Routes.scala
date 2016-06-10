@@ -116,8 +116,8 @@ object Routes {
         logger.error(e.getMessage(), e.getCause())
         respondWithHeaders(defaultHeaders) {
           complete(
-              StatusCodes.InternalServerError,
-              DistributionErrorResponse.from(DistributionError.Unknown())
+            StatusCodes.InternalServerError,
+            DistributionErrorResponse.from(DistributionError.Unknown())
           )
         }
     }
@@ -126,8 +126,8 @@ object Routes {
       .handleAll[AuthorizationFailedRejection.type] { _ =>
         respondWithHeaders(defaultAuthenticateHeaders) {
           complete(
-              StatusCodes.Unauthorized,
-              DistributionErrorResponse.from(DistributionError.Unauthorized())
+            StatusCodes.Unauthorized,
+            DistributionErrorResponse.from(DistributionError.Unauthorized())
           )
         }
       }
@@ -146,10 +146,10 @@ object Routes {
   private val versionHeader = `Docker-Distribution-Api-Version`("2.0")
 
   private val defaultHeaders = List(
-      versionHeader,
-      `X-Content-Type-Options`("nosniff"),
-      `X-Frame-Options`("sameorigin"),
-      `X-XSS-Protection`("1; mode=block")
+    versionHeader,
+    `X-Content-Type-Options`("nosniff"),
+    `X-Frame-Options`("sameorigin"),
+    `X-XSS-Protection`("1; mode=block")
   )
 
   private val authenticateHeader = `WWW-Authenticate`(challengeFor(realm))

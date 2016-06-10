@@ -63,16 +63,16 @@ object ImageHandler {
                          im.getSchemaV2JsonBlob)
                     }
                 val headers = immutable.Seq(
-                    ETag(s"${ImageManifest.sha256Prefix}${im.sha256Digest}"),
-                    `Docker-Content-Digest`("sha256", im.sha256Digest)
+                  ETag(s"${ImageManifest.sha256Prefix}${im.sha256Digest}"),
+                  `Docker-Content-Digest`("sha256", im.sha256Digest)
                 )
                 respondWithHeaders(headers) {
                   complete(HttpEntity(ct, ByteString(manifest)))
                 }
               case _ =>
                 complete(
-                    StatusCodes.NotFound,
-                    DistributionErrorResponse.from(DistributionError.ManifestUnknown())
+                  StatusCodes.NotFound,
+                  DistributionErrorResponse.from(DistributionError.ManifestUnknown())
                 )
             }
           }
@@ -107,8 +107,8 @@ object ImageHandler {
                 onSuccess(res) {
                   case Xor.Right(sha256Digest) =>
                     val headers = immutable.Seq(
-                        `Docker-Content-Digest`("sha256", sha256Digest),
-                        Location(s"/v2/$imageName/manifests/sha256:$sha256Digest")
+                      `Docker-Content-Digest`("sha256", sha256Digest),
+                      Location(s"/v2/$imageName/manifests/sha256:$sha256Digest")
                     )
                     respondWithHeaders(headers) {
                       complete(StatusCodes.Created, HttpEntity.Empty)
@@ -126,8 +126,8 @@ object ImageHandler {
   private def respondWithContentType(contentType: ContentType): Directive0 =
     mapRequest { req =>
       req.copy(
-          entity = req.entity.withContentType(contentType),
-          headers = req.headers.filterNot(_.isInstanceOf[Accept])
+        entity = req.entity.withContentType(contentType),
+        headers = req.headers.filterNot(_.isInstanceOf[Accept])
       )
     }
 
@@ -142,14 +142,14 @@ object ImageHandler {
                 if (res) complete(StatusCodes.Accepted, HttpEntity.Empty)
                 else
                   complete(
-                      StatusCodes.NotFound,
-                      DistributionErrorResponse.from(DistributionError.ManifestUnknown())
+                    StatusCodes.NotFound,
+                    DistributionErrorResponse.from(DistributionError.ManifestUnknown())
                   )
               }
             case _ =>
               complete(
-                  StatusCodes.NotFound,
-                  DistributionErrorResponse.from(DistributionError.ManifestInvalid())
+                StatusCodes.NotFound,
+                DistributionErrorResponse.from(DistributionError.ManifestInvalid())
               )
           }
         }

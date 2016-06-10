@@ -74,16 +74,16 @@ class ImageManifestTable(tag: Tag)
       case _ => None
     }
     ImageManifest(
-        id = id,
-        sha256Digest = sha256Digest,
-        imageId = imageId,
-        tags = tags,
-        layersBlobId = layersBlobId,
-        schemaVersion = schemaVersion,
-        schemaV1JsonBlob = schemaV1JsonBlob,
-        schemaV2Details = schemaV2Details,
-        createdAt = createdAt,
-        updatedAt = updatedAt
+      id = id,
+      sha256Digest = sha256Digest,
+      imageId = imageId,
+      tags = tags,
+      layersBlobId = layersBlobId,
+      schemaVersion = schemaVersion,
+      schemaV1JsonBlob = schemaV1JsonBlob,
+      schemaV2Details = schemaV2Details,
+      createdAt = createdAt,
+      updatedAt = updatedAt
     )
   }
 
@@ -94,16 +94,16 @@ class ImageManifestTable(tag: Tag)
       case None => (None, None)
     }
     Some(
-        (m.id,
-         m.sha256Digest,
-         m.imageId,
-         m.tags,
-         m.layersBlobId,
-         m.schemaVersion,
-         m.schemaV1JsonBlob,
-         m.createdAt,
-         m.updatedAt,
-         v2DetailsTuple))
+      (m.id,
+       m.sha256Digest,
+       m.imageId,
+       m.tags,
+       m.layersBlobId,
+       m.schemaVersion,
+       m.schemaV1JsonBlob,
+       m.createdAt,
+       m.updatedAt,
+       v2DetailsTuple))
   }
 }
 
@@ -150,17 +150,17 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
             if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
             else
               create(
-                  ImageManifest(
-                      sha256Digest = sha256Digest,
-                      imageId = image.getId,
-                      tags = tags,
-                      layersBlobId = blobs.map(_._1).toList,
-                      schemaVersion = 1,
-                      schemaV1JsonBlob = schemaV1JsonBlob,
-                      schemaV2Details = None,
-                      createdAt = ZonedDateTime.now,
-                      updatedAt = None
-                  ))
+                ImageManifest(
+                  sha256Digest = sha256Digest,
+                  imageId = image.getId,
+                  tags = tags,
+                  layersBlobId = blobs.map(_._1).toList,
+                  schemaVersion = 1,
+                  schemaV1JsonBlob = schemaV1JsonBlob,
+                  schemaV2Details = None,
+                  createdAt = ZonedDateTime.now,
+                  updatedAt = None
+                ))
         }
     }
   }
@@ -190,25 +190,25 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
           if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
           else {
             val schemaV2Details = ImageManifestSchemaV2Details(
-                configBlobId = configBlob.id,
-                jsonBlob = schemaV2JsonBlob
+              configBlobId = configBlob.id,
+              jsonBlob = schemaV2JsonBlob
             )
             val tags = reference match {
               case Reference.Tag(tag) => List(tag)
               case _                  => Nil
             }
             create(
-                ImageManifest(
-                    sha256Digest = sha256Digest,
-                    imageId = image.getId,
-                    tags = tags,
-                    layersBlobId = blobs.map(_._1).toList,
-                    schemaVersion = 2,
-                    schemaV1JsonBlob = schemaV1JsonBlob,
-                    schemaV2Details = Some(schemaV2Details),
-                    createdAt = ZonedDateTime.now,
-                    updatedAt = None
-                ))
+              ImageManifest(
+                sha256Digest = sha256Digest,
+                imageId = image.getId,
+                tags = tags,
+                layersBlobId = blobs.map(_._1).toList,
+                schemaVersion = 2,
+                schemaV1JsonBlob = schemaV1JsonBlob,
+                schemaV2Details = Some(schemaV2Details),
+                createdAt = ZonedDateTime.now,
+                updatedAt = None
+              ))
           }
         }
     }
@@ -223,14 +223,14 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
     }
     if (tags.nonEmpty)
       runInTransaction(TransactionIsolation.Serializable)(for {
-        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
-        _ <- sqlu"""
+      _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
+      _ <- sqlu"""
           UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
             SET tags = tags || ${reference.value},
                 updated_at = ${ZonedDateTime.now()}
             WHERE id = ${im.getId}
           """
-      } yield ())
+    } yield ())
     else FastFuture.successful(())
   }
 
@@ -239,14 +239,14 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       m: Manifest[ImageManifest]
   ): Future[ValidationModel] = {
     runInTransaction(TransactionIsolation.Serializable)(
-        createWithValidationDBIO(manifest).flatMap {
-          case res @ Validated.Valid(im) =>
-            for {
-              _ <- ImageManifestLayersRepo.insertLayersDBIO(im.getId, im.layersBlobId)
-              _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, im.tags)
-            } yield res
-          case res => DBIO.successful(res)
-        }
+      createWithValidationDBIO(manifest).flatMap {
+        case res @ Validated.Valid(im) =>
+          for {
+            _ <- ImageManifestLayersRepo.insertLayersDBIO(im.getId, im.layersBlobId)
+            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, im.tags)
+          } yield res
+        case res => DBIO.successful(res)
+      }
     )
   }
 
@@ -300,9 +300,9 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       case None => DBIO.successful((0L, 0L))
     }
     db.run(for {
-        (id, offset) <- since
-        tags         <- findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
-      } yield tags)
+      (id, offset) <- since
+      tags         <- findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
+    } yield tags)
       .fast
       .map { tags =>
         (tags.take(limit), limit, tags.length > limit)

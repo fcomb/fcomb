@@ -50,14 +50,14 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = ZonedDateTime.now()
     val user = mapModel(
-        User(
-            email = email,
-            username = username,
-            fullName = fullName,
-            passwordHash = password.bcrypt(generateSalt),
-            createdAt = timeAt,
-            updatedAt = None
-        ))
+      User(
+        email = email,
+        username = username,
+        fullName = fullName,
+        passwordHash = password.bcrypt(generateSalt),
+        createdAt = timeAt,
+        updatedAt = None
+      ))
     validateThenApply(validate(userValidation(user, Some(password)))) {
       createDBIO(user)
     }
@@ -65,22 +65,22 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
 
   def create(req: UserSignUpRequest)(implicit ec: ExecutionContext): Future[ValidationModel] = {
     create(
-        email = req.email,
-        username = req.username,
-        fullName = req.fullName,
-        password = req.password
+      email = req.email,
+      username = req.username,
+      fullName = req.fullName,
+      password = req.password
     )
   }
 
   def update(id: Long, req: UserUpdateRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] =
     update(id)(
-        _.copy(
-            email = req.email,
-            username = req.username,
-            fullName = req.fullName,
-            updatedAt = Some(ZonedDateTime.now())
-        ))
+      _.copy(
+        email = req.email,
+        username = req.username,
+        fullName = req.fullName,
+        updatedAt = Some(ZonedDateTime.now())
+      ))
 
   private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) =>
     table.filter(_.id === userId).map { t =>
@@ -148,7 +148,7 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
 
   def validatePassword(password: String) =
     validatePlain(
-        "password" → List(lengthRange(password, 6, 50))
+      "password" → List(lengthRange(password, 6, 50))
     )
 
   def userValidation(
@@ -156,17 +156,17 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
       passwordOpt: Option[String]
   )(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(
-        "username" → List(
-            lengthRange(user.username, 1, 255),
-            notUuid(user.username)
-        ),
-        "email" → List(maxLength(user.email, 255), email(user.email))
+      "username" → List(
+        lengthRange(user.username, 1, 255),
+        notUuid(user.username)
+      ),
+      "email" → List(maxLength(user.email, 255), email(user.email))
     )
     val dbioValidations = validateDBIO(
-        "username" → List(
-            unique(uniqueUsernameCompiled(user.id, user.username))
-        ),
-        "email" → List(unique(uniqueEmailCompiled(user.id, user.email)))
+      "username" → List(
+        unique(uniqueUsernameCompiled(user.id, user.username))
+      ),
+      "email" → List(unique(uniqueEmailCompiled(user.id, user.email)))
     )
     passwordOpt match {
       case Some(password) =>
