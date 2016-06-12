@@ -56,7 +56,6 @@ lazy val commonSettings =
         "-Ydelambdafy:method",
         "-Yopt:l:classpath",
         "-Yopt:unreachable-code",
-        // "-Yno-string-plus-any",
         "-Ywarn-dead-code",
         "-Ywarn-infer-any",
         "-Ywarn-numeric-widen",
