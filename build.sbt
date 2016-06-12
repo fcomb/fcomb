@@ -56,6 +56,7 @@ lazy val commonSettings =
         "-Ydelambdafy:method",
         "-Yopt:l:classpath",
         "-Yopt:unreachable-code",
+        // "-Yno-string-plus-any",
         "-Ywarn-dead-code",
         "-Ywarn-infer-any",
         "-Ywarn-numeric-widen",
@@ -73,7 +74,8 @@ lazy val commonSettings =
       ),
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in packageDoc            := false,
-      sources         in (Compile, doc)        := Seq.empty
+      sources         in (Compile, doc)        := Seq.empty,
+      wartremoverWarnings ++= Warts.all
     )
 
 lazy val publishSettings = Seq(
@@ -250,7 +252,9 @@ lazy val frontend = project.in(file("fcomb-frontend"))
     libraryDependencies ++= Seq(
       "com.github.japgolly.scalacss"                   %%% "ext-react"   % "0.4.1",
       "com.github.japgolly.scalajs-react"              %%% "extra"       % "0.11.1",
+      // "com.github.japgolly.scalajs-react"              %%% "ext-monocle" % "0.11.1",
       "com.github.chandu0101.scalajs-react-components" %%% "core"        % "0.4.1",
+      "com.lihaoyi"                                    %%% "upickle"     % "0.4.1",
       "org.scala-js"                                   %%% "scalajs-dom" % "0.9.0"
     ),
     scalaJSUseRhino in Global := false,
@@ -274,8 +278,10 @@ lazy val root = project.in(file("."))
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion,
+      "com.lihaoyi"       %  "ammonite-repl"          % "0.6.0" % "test" cross CrossVersion.full,
       "ch.qos.logback"    %  "logback-classic"        % "1.1.7"
     ),
+    initialCommands in (Test, console) := """ammonite.repl.Main().run()""",
     aggregate in reStart :=  false,
     mainClass in reStart :=  Some("io.fcomb.application.Main"),
     mainClass in Compile :=  Some("io.fcomb.application.Main"),
