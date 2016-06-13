@@ -14,41 +14,34 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.docker.distribution
+package io.fcomb.models
 
-import io.fcomb.models.{Enum, EnumItem, ModelWithAutoLongPk, OwnerKind}
 import java.time.ZonedDateTime
 
-sealed trait ImageVisibilityKind extends EnumItem
+sealed trait OrganizationGroupKind extends EnumItem
 
-object ImageVisibilityKind extends Enum[ImageVisibilityKind] {
-  final case object Private extends ImageVisibilityKind
-  final case object Public  extends ImageVisibilityKind
+object OrganizationGroupKind extends Enum[OrganizationGroupKind] {
+  final case object Admin   extends OrganizationGroupKind
+  final case object Creator extends OrganizationGroupKind
+  final case object Member  extends OrganizationGroupKind
 
   val values = findValues
 }
 
-final case class Image(
+final case class OrganizationGroup(
     id: Option[Long] = None,
+    organizationId: Long,
     name: String,
-    ownerId: Long,
-    ownerKind: OwnerKind,
-    visibilityKind: ImageVisibilityKind,
-    description: String,
+    kind: OrganizationGroupKind,
+    createdByUserId: Long,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
 )
     extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
-
-  def userId = ???
 }
 
-object Image {
-  val nameRegEx =
-    """(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])(?:(?:\.(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]))+)?(?::[0-9]+)?/)?[a-z0-9]+(?:(?:(?:[._]|__|[-]*)[a-z0-9]+)+)?(?:(?:/[a-z0-9]+(?:(?:(?:[._]|__|[-]*)[a-z0-9]+)+)?)+)?""".r
-}
-
-final case class DistributionImageCatalog(
-    repositories: Seq[String]
+final case class OrganizationGroupUser(
+    groupId: Long,
+    userId: Long
 )

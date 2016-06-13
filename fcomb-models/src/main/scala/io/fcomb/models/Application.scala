@@ -14,12 +14,29 @@
  * limitations under the License.
  */
 
-package io.fcomb.persist
+package io.fcomb.models
 
-import slick.jdbc.{SetParameter, SQLActionBuilder}
+import java.time.ZonedDateTime
 
-package object utils {
-  def sql[T](query: String)(p: T)(implicit f: SetParameter[T]) = {
-    SQLActionBuilder(Seq(query), f.applied(p))
-  }
+sealed trait ApplicationState extends EnumItem
+
+object ApplicationState extends Enum[ApplicationState] {
+  final case object Disabled extends EnumItem
+  final case object Enabled  extends EnumItem
+
+  val values = findValues
+}
+
+final case class Application(
+    id: Option[Long] = None,
+    name: String,
+    state: ApplicationState,
+    token: String,
+    ownerId: Long,
+    ownerKind: OwnerKind,
+    createdAt: ZonedDateTime,
+    updatedAt: Option[ZonedDateTime]
+)
+    extends ModelWithAutoLongPk {
+  def withPk(id: Long) = this.copy(id = Some(id))
 }

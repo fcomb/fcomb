@@ -14,18 +14,40 @@
  * limitations under the License.
  */
 
-package io.fcomb
+package io.fcomb.persist
 
-// import com.github.tminglei.slickpg.utils.SimpleArrayUtils
 import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName
+import com.github.tminglei.slickpg.utils.SimpleArrayUtils
 import io.fcomb.RichPostgresDriver._
-import io.fcomb.models.{Enum, EnumItem}
+import io.fcomb.models.acl
+import io.fcomb.models.docker.distribution
+import io.fcomb.models.{ApplicationState, Enum, EnumItem, OwnerKind, OrganizationGroupKind}
+import java.sql.{PreparedStatement, ResultSet}
 import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
 import slick.jdbc.JdbcType
-import java.sql.{PreparedStatement, ResultSet}
 
-package object persist {
+object EnumsMapping {
+  implicit val applicationStateColumnType = createEnumJdbcMapping(
+    "application_state", ApplicationState)
+
+  implicit val ownerKindColumnType = createEnumJdbcMapping("owner_kind", OwnerKind)
+
+  implicit val organizationGroupKindColumnType = createEnumJdbcMapping(
+    "organization_group_kind", OrganizationGroupKind)
+
+  implicit val aclRoleColumnType = createEnumJdbcMapping("acl_role", acl.Role)
+
+  implicit val aclSourceKindColumnType = createEnumJdbcMapping("acl_source_kind", acl.SourceKind)
+
+  implicit val aclMemberKindColumnType = createEnumJdbcMapping("acl_member_kind", acl.MemberKind)
+
+  implicit val distributionImageBlobStateColumnType = createEnumJdbcMapping(
+    "dd_image_blob_state", distribution.ImageBlobState)
+
+  implicit val distributionImageVisibilityKindColumnType = createEnumJdbcMapping(
+    "dd_image_visibility_kind", distribution.ImageVisibilityKind)
+
   private def createEnumJdbcMapping[T <: EnumItem](
       sqlEnumTypeName: String,
       enum: Enum[T],
@@ -60,18 +82,15 @@ package object persist {
       if (v == null) null else v.value
   }
 
-  // private def createEnumListJdbcMapping[T <: EnumItem](
-  //   sqlEnumTypeName: String,
-  //   enumObject:      Enum[T],
-  //   quoteName:       Boolean = false
-  // )(implicit tag: ClassTag[T]): JdbcType[List[T]] = {
-  //   new AdvancedArrayJdbcType[T](
-  //     sqlName(sqlEnumTypeName, quoteName),
-  //     fromString = s => SimpleArrayUtils.fromString(s1 => enumObject.withName(s1))(s).orNull,
-  //     mkString = v => SimpleArrayUtils.mkString[T](_.value)(v)
-  //   ).to(_.toList)
-  // }
-
-  implicit val dockerDistributionImageBlobStateColumnType = createEnumJdbcMapping(
-    "dd_image_blob_state", models.docker.distribution.ImageBlobState)
+  private def createEnumListJdbcMapping[T <: EnumItem](
+      sqlEnumTypeName: String,
+      enumObject: Enum[T],
+      quoteName: Boolean = false
+  )(implicit tag: ClassTag[T]): JdbcType[List[T]] = {
+    new AdvancedArrayJdbcType[T](
+      sqlName(sqlEnumTypeName, quoteName),
+      fromString = s => SimpleArrayUtils.fromString(s1 => enumObject.withName(s1))(s).orNull,
+      mkString = v => SimpleArrayUtils.mkString[T](_.value)(v)
+    ).to(_.toList)
+  }
 }

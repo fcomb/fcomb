@@ -20,21 +20,28 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.Image
-import io.fcomb.persist._
+import io.fcomb.models.OwnerKind
+import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
+import io.fcomb.persist.EnumsMapping._
+import io.fcomb.persist.{PersistTableWithAutoLongPk, PersistModelWithAutoLongPk}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
 class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTableWithAutoLongPk {
-  def name      = column[String]("name")
-  def userId    = column[Long]("user_id")
-  def createdAt = column[ZonedDateTime]("created_at")
-  def updatedAt = column[Option[ZonedDateTime]]("updated_at")
+  def name           = column[String]("name")
+  def ownerId        = column[Long]("owner_id")
+  def ownerKind      = column[OwnerKind]("owner_kind")
+  def visibilityKind = column[ImageVisibilityKind]("visibility_kind")
+  def description    = column[String]("description")
+  def createdAt      = column[ZonedDateTime]("created_at")
+  def updatedAt      = column[Option[ZonedDateTime]]("updated_at")
+
+  def userId = column[Long]("")
 
   def * =
-    (id, name, userId, createdAt, updatedAt) <>
+    (id, name, ownerId, ownerKind, visibilityKind, description, createdAt, updatedAt) <>
     ((Image.apply _).tupled, Image.unapply)
 }
 
@@ -83,7 +90,10 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
                 createWithValidationDBIO(
                   Image(
                     name = name,
-                    userId = userId,
+                    ownerId = ???,
+                    ownerKind = ???,
+                    visibilityKind = ???,
+                    description = ???,
                     createdAt = timeNow,
                     updatedAt = None
                   )

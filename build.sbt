@@ -254,7 +254,7 @@ lazy val frontend = project.in(file("fcomb-frontend"))
       // "com.github.japgolly.scalajs-react"              %%% "ext-monocle" % "0.11.1",
       "com.github.chandu0101.scalajs-react-components" %%% "core"        % "0.4.1",
       "com.lihaoyi"                                    %%% "upickle"     % "0.4.1",
-      "org.scala-js"                                   %%% "scalajs-dom" % "0.9.0"
+      "org.scala-js"                                   %%% "scalajs-dom" % "0.9.1"
     ),
     scalaJSUseRhino in Global := false,
     skip in packageJSDependencies := false,

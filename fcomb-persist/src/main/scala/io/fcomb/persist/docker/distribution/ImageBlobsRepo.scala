@@ -22,7 +22,8 @@ import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob}
 import io.fcomb.models.docker.distribution.ImageManifest.{emptyTarSha256Digest, emptyTar}
-import io.fcomb.persist._
+import io.fcomb.persist.EnumsMapping.distributionImageBlobStateColumnType
+import io.fcomb.persist.{PersistTableWithUuidPk, PersistModelWithUuidPk}
 import io.fcomb.validations.eitherT
 import java.time.ZonedDateTime
 import java.util.UUID
