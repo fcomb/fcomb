@@ -16,20 +16,21 @@
 
 package io.fcomb.docker.distribution.server
 
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server._
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.circe.generic.auto._
 import io.fcomb.models.User
+import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
-import io.circe.generic.auto._
 
 trait ImageDirectives {
-  def imageByNameWithAcl(imageName: String, user: User): Directive1[Image] = {
+  def imageByNameWithAcl(slug: String, user: User, action: Action): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
-      onSuccess(ImagesRepo.findByImageAndUserId(imageName, user.getId)).flatMap {
+      onSuccess(ImagesRepo.findBySlugWithAcl(slug, user.getId, action)).flatMap {
         case Some(user) => provide(user)
         case None =>
           complete(

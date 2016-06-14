@@ -73,8 +73,8 @@ lazy val commonSettings =
       ),
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in packageDoc            := false,
-      sources         in (Compile, doc)        := Seq.empty,
-      wartremoverWarnings ++= Warts.all
+      sources         in (Compile, doc)        := Seq.empty /*,
+      wartremoverWarnings ++= Warts.all */
     )
 
 lazy val publishSettings = Seq(

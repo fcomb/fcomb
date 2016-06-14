@@ -42,7 +42,7 @@ final case class Permission(
     sourceKind: SourceKind,
     memberId: Long,
     memberKind: MemberKind,
-    role: Role,
+    action: Action,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
 )

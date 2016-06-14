@@ -19,9 +19,9 @@ package io.fcomb.persist
 import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName
 import com.github.tminglei.slickpg.utils.SimpleArrayUtils
 import io.fcomb.RichPostgresDriver._
-import io.fcomb.models.acl
-import io.fcomb.models.docker.distribution
-import io.fcomb.models.{ApplicationState, Enum, EnumItem, OwnerKind, OrganizationGroupKind}
+import io.fcomb.models.acl.{Action, Role, SourceKind, MemberKind}
+import io.fcomb.models.docker.distribution.{ImageBlobState, ImageVisibilityKind}
+import io.fcomb.models.{ApplicationState, Enum, EnumItem, OwnerKind}
 import java.sql.{PreparedStatement, ResultSet}
 import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
@@ -33,20 +33,19 @@ object EnumsMapping {
 
   implicit val ownerKindColumnType = createEnumJdbcMapping("owner_kind", OwnerKind)
 
-  implicit val organizationGroupKindColumnType = createEnumJdbcMapping(
-    "organization_group_kind", OrganizationGroupKind)
+  implicit val aclActionColumnType = createEnumJdbcMapping("acl_action", Action)
 
-  implicit val aclRoleColumnType = createEnumJdbcMapping("acl_role", acl.Role)
+  implicit val aclRoleColumnType = createEnumJdbcMapping("acl_role", Role)
 
-  implicit val aclSourceKindColumnType = createEnumJdbcMapping("acl_source_kind", acl.SourceKind)
+  implicit val aclSourceKindColumnType = createEnumJdbcMapping("acl_source_kind", SourceKind)
 
-  implicit val aclMemberKindColumnType = createEnumJdbcMapping("acl_member_kind", acl.MemberKind)
+  implicit val aclMemberKindColumnType = createEnumJdbcMapping("acl_member_kind", MemberKind)
 
   implicit val distributionImageBlobStateColumnType = createEnumJdbcMapping(
-    "dd_image_blob_state", distribution.ImageBlobState)
+    "dd_image_blob_state", ImageBlobState)
 
   implicit val distributionImageVisibilityKindColumnType = createEnumJdbcMapping(
-    "dd_image_visibility_kind", distribution.ImageVisibilityKind)
+    "dd_image_visibility_kind", ImageVisibilityKind)
 
   private def createEnumJdbcMapping[T <: EnumItem](
       sqlEnumTypeName: String,

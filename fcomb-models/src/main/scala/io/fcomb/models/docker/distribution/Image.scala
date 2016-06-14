@@ -31,6 +31,7 @@ object ImageVisibilityKind extends Enum[ImageVisibilityKind] {
 final case class Image(
     id: Option[Long] = None,
     name: String,
+    slug: String,
     ownerId: Long,
     ownerKind: OwnerKind,
     visibilityKind: ImageVisibilityKind,

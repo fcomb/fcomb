@@ -18,6 +18,8 @@ package io.fcomb.persist
 
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.Organization
+import io.fcomb.models.acl.Role
+import io.fcomb.persist.EnumsMapping._
 import java.time.ZonedDateTime
 
 class OrganizationTable(tag: Tag)
@@ -35,4 +37,21 @@ class OrganizationTable(tag: Tag)
 
 object OrganizationsRepo extends PersistModelWithAutoLongPk[Organization, OrganizationTable] {
   val table = TableQuery[OrganizationTable]
+
+  def groupUsersScope =
+    table
+      .join(OrganizationGroupsRepo.table)
+      .on(_.id === _.organizationId)
+      .join(OrganizationGroupUsersRepo.table)
+      .on(_._2.id === _.groupId)
+
+  private lazy val isAdminCompiled = Compiled { userId: Rep[Long] =>
+    groupUsersScope.filter {
+      case ((_, gt), gut) => gut.userId === userId && gt.role === (Role.Admin: Role)
+    }.exists
+  }
+
+  def isAdminDBIO(userId: Long): DBIOAction[Boolean, NoStream, Effect.Read] = {
+    isAdminCompiled(userId).result
+  }
 }

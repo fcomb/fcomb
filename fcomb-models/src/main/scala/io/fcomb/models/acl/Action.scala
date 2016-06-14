@@ -14,25 +14,16 @@
  * limitations under the License.
  */
 
-package io.fcomb.models
+package io.fcomb.models.acl
 
-import io.fcomb.models.acl.Role
-import java.time.ZonedDateTime
+import io.fcomb.models.{Enum, EnumItem}
 
-final case class OrganizationGroup(
-    id: Option[Long] = None,
-    organizationId: Long,
-    name: String,
-    role: Role,
-    createdByUserId: Long,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
-)
-    extends ModelWithAutoLongPk {
-  def withPk(id: Long) = this.copy(id = Some(id))
+sealed trait Action extends EnumItem
+
+object Action extends Enum[Action] {
+  final case object Manage extends Action
+  final case object Write  extends Action
+  final case object Read   extends Action
+
+  val values = findValues
 }
-
-final case class OrganizationGroupUser(
-    groupId: Long,
-    userId: Long
-)

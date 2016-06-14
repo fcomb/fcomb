@@ -8,13 +8,13 @@ CREATE TABLE organizations (
 
 CREATE UNIQUE INDEX ON organizations (lower(name));
 
-CREATE TYPE organization_group_kind AS ENUM ('admin', 'creator', 'member');
+CREATE TYPE acl_role AS ENUM ('admin', 'creator', 'member');
 
 CREATE TABLE organization_groups (
   id serial primary key,
   orginzation_id integer not null references organizations(id),
   name varchar(255) not null,
-  kind organization_group_kind not null,
+  role acl_role not null,
   created_by_user_id integer not null references users(id),
   created_at timestamp with time zone not null,
   updated_at timestamp with time zone
@@ -49,7 +49,7 @@ CREATE TABLE applications (
 
 CREATE UNIQUE INDEX ON applications (owner_id, owner_kind, lower(name));
 
-CREATE TYPE acl_role AS ENUM ('admin', 'creator', 'member');
+CREATE TYPE acl_action AS ENUM ('read', 'write', 'manage');
 
 CREATE TYPE acl_source_kind AS ENUM ('docker_distribution_image');
 
@@ -61,7 +61,7 @@ CREATE TABLE acl_permissions (
   source_kind acl_source_kind not null,
   member_id integer not null,
   member_kind acl_member_kind not null,
-  role acl_role not null,
+  action acl_action not null,
   created_at timestamp with time zone not null,
   updated_at timestamp with time zone  
 );

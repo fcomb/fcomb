@@ -21,9 +21,11 @@ import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.OwnerKind
+import io.fcomb.models.acl.{Action, SourceKind, MemberKind}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.{PersistTableWithAutoLongPk, PersistModelWithAutoLongPk}
+import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,6 +33,7 @@ import slick.jdbc.TransactionIsolation
 
 class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTableWithAutoLongPk {
   def name           = column[String]("name")
+  def slug           = column[String]("slug")
   def ownerId        = column[Long]("owner_id")
   def ownerKind      = column[OwnerKind]("owner_kind")
   def visibilityKind = column[ImageVisibilityKind]("visibility_kind")
@@ -41,28 +44,58 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
   def userId = column[Long]("")
 
   def * =
-    (id, name, ownerId, ownerKind, visibilityKind, description, createdAt, updatedAt) <>
+    (id, name, slug, ownerId, ownerKind, visibilityKind, description, createdAt, updatedAt) <>
     ((Image.apply _).tupled, Image.unapply)
 }
 
 object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
   val table = TableQuery[ImageTable]
 
-  private val findIdByNameCompiled = Compiled { name: Rep[String] =>
+  private lazy val findIdByNameCompiled = Compiled { name: Rep[String] =>
     table.filter(_.name.toLowerCase === name.toLowerCase).map(_.pk).take(1)
   }
 
   def findIdByName(name: String) =
     db.run(findIdByNameCompiled(name).result.headOption)
 
-  val findByImageAndUserIdCompiled = Compiled { (name: Rep[String], userId: Rep[Long]) =>
+  val findBySlugCompiled = Compiled { slug: Rep[String] =>
     table.filter { q =>
-      q.name.toLowerCase === name.toLowerCase && q.userId === userId
+      q.slug.toLowerCase === slug.toLowerCase
     }.take(1)
   }
 
-  def findByImageAndUserId(name: String, userId: Long) =
-    db.run(findByImageAndUserIdCompiled((name, userId)).result.headOption)
+  def findBySlugWithAcl(slug: String, userId: Long, action: Action)(
+      implicit ec: ExecutionContext): Future[Option[Image]] = {
+    db.run {
+      findBySlugCompiled(slug).result.headOption.flatMap {
+        case res @ Some(image) =>
+          image.ownerKind match {
+            case OwnerKind.User =>
+              if (image.ownerId == userId) DBIO.successful(res)
+              else
+                PermissionsRepo
+                  .isAllowedActionBySourceAsUserDBIO(image.getId,
+                                                     SourceKind.DockerDistributionImage,
+                                                     userId,
+                                                     action)
+                  .map { isAllowed =>
+                    if (isAllowed) res else None
+                  }
+            case OwnerKind.Organization =>
+              PermissionsRepo
+                .isAllowedActionBySourceAsGroupUserDBIO(image.getId,
+                                                        SourceKind.DockerDistributionImage,
+                                                        image.ownerId,
+                                                        userId,
+                                                        action)
+                .map { isAllowed =>
+                  if (isAllowed) res else None
+                }
+          }
+        case res => DBIO.successful(res)
+      }
+    }.map(identity)
+  }
 
   val findIdAndUserIdByImageCompiled = Compiled { (name: Rep[String], userId: Rep[Long]) =>
     table.filter { q =>
@@ -90,6 +123,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
                 createWithValidationDBIO(
                   Image(
                     name = name,
+                    slug = ???,
                     ownerId = ???,
                     ownerKind = ???,
                     visibilityKind = ???,

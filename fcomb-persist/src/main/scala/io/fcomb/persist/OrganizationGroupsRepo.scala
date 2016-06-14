@@ -17,7 +17,8 @@
 package io.fcomb.persist
 
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.{OrganizationGroup, OrganizationGroupKind}
+import io.fcomb.models.OrganizationGroup
+import io.fcomb.models.acl.Role
 import io.fcomb.persist.EnumsMapping._
 import java.time.ZonedDateTime
 
@@ -26,13 +27,13 @@ class OrganizationGroupTable(tag: Tag)
     with PersistTableWithAutoLongPk {
   def organizationId  = column[Long]("organization_id")
   def name            = column[String]("name")
-  def kind            = column[OrganizationGroupKind]("kind")
+  def role            = column[Role]("kind")
   def createdByUserId = column[Long]("created_by_user_id")
   def createdAt       = column[ZonedDateTime]("created_at")
   def updatedAt       = column[Option[ZonedDateTime]]("updated_at")
 
   def * =
-    (id, organizationId, name, kind, createdByUserId, createdAt, updatedAt) <>
+    (id, organizationId, name, role, createdByUserId, createdAt, updatedAt) <>
     ((OrganizationGroup.apply _).tupled, OrganizationGroup.unapply)
 }
 
