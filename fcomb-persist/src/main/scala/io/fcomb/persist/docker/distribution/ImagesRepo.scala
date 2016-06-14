@@ -20,11 +20,11 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.OwnerKind
-import io.fcomb.models.acl.{Action, SourceKind}
+import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.persist.EnumsMapping._
-import io.fcomb.persist.{PersistTableWithAutoLongPk, PersistModelWithAutoLongPk}
 import io.fcomb.persist.acl.PermissionsRepo
+import io.fcomb.persist.{PersistTableWithAutoLongPk, PersistModelWithAutoLongPk, OrganizationGroupsRepo, OrganizationGroupUsersRepo}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -101,27 +101,51 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
     }.map(t => (t.pk, t.userId)).take(1)
   }
 
-  private val findIdByUserIdAndNameCompiled = Compiled { (userId: Rep[Long], name: Rep[String]) =>
-    table.filter { q =>
-      q.userId === userId && q.name === name
-    }.map(_.pk)
+  // TODO: replace these join's by union's ???
+  private def availableScope(userId: Rep[Long]) = {
+    table
+      .joinLeft(PermissionsRepo.table)
+      .on {
+        case (t, pt) =>
+          pt.sourceId === t.pk &&
+          pt.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
+      }
+      .joinLeft(OrganizationGroupUsersRepo.table)
+      .on {
+        case (_, gut) => gut.userId === userId
+      }
+      .joinLeft(OrganizationGroupsRepo.table)
+      .on {
+        case ((_, gut), gt) => gt.id === gut.map(_.groupId)
+      }
+      .filter {
+        case (((t, pt), gut), gt) =>
+          (t.ownerId === userId && t.ownerKind === (OwnerKind.User: OwnerKind)) ||
+          (pt.map(_.memberId) === userId &&
+              pt.map(_.memberKind) === (MemberKind.User: MemberKind)) ||
+          (pt.map(_.memberId) === gut.map(_.groupId) &&
+              pt.map(_.memberKind) === (MemberKind.Group: MemberKind)) ||
+          (gt.map(_.role) === (Role.Admin: Role) && t.ownerId === gt.map(_.organizationId) &&
+              t.ownerKind === (OwnerKind.Organization: OwnerKind))
+      }
+      .map(_._1._1._1)
+      .distinct
   }
 
-  private val findRepositoriesByUserIdCompiled = Compiled {
+  private lazy val findIdByUserIdAndNameCompiled = Compiled {
+    (userId: Rep[Long], name: Rep[String]) =>
+      availableScope(userId).filter(_.name === name).map(_.pk)
+  }
+
+  private lazy val findRepositoriesByUserIdCompiled = Compiled {
     (userId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long]) =>
-      table.filter { q =>
-        q.userId === userId && q.pk > id
-      }.sortBy(_.id.asc).map(_.name).take(limit)
+      availableScope(userId).filter(_.pk > id).sortBy(_.id.asc).map(_.name).take(limit)
   }
 
-  val fetchLimit = 256
+  val fetchLimit = 64
 
-  // TODO: organization repositories
-  def findRepositoriesByUserId(
-      userId: Long,
-      n: Option[Int],
-      last: Option[String]
-  )(implicit ec: ExecutionContext): Future[(Seq[String], Int, Boolean)] = {
+  def findRepositoriesByUserId(userId: Long, n: Option[Int], last: Option[String])(
+      implicit ec: ExecutionContext): Future[(Seq[String], Int, Boolean)] = {
     val limit = n match {
       case Some(v) if v > 0 && v <= fetchLimit => v
       case _                                   => fetchLimit

@@ -12,7 +12,7 @@ CREATE TYPE acl_role AS ENUM ('admin', 'creator', 'member');
 
 CREATE TABLE organization_groups (
   id serial primary key,
-  orginzation_id integer not null references organizations(id),
+  organization_id integer not null references organizations(id),
   name varchar(255) not null,
   role acl_role not null,
   created_by_user_id integer not null references users(id),
@@ -20,7 +20,7 @@ CREATE TABLE organization_groups (
   updated_at timestamp with time zone
 );
 
-CREATE UNIQUE INDEX ON organization_groups (orginzation_id, lower(name));
+CREATE UNIQUE INDEX ON organization_groups (organization_id, lower(name));
 
 CREATE TABLE organization_group_users (
   group_id integer not null references organization_groups(id),
