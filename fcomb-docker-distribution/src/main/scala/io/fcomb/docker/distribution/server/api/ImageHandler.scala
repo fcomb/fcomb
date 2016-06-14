@@ -27,16 +27,17 @@ import cats.data.Xor
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest, SchemaV2 => SchemaV2Manifest}
+import io.fcomb.docker.distribution.server.AuthenticationDirectives._
 import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
+import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.MediaTypes
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.docker.distribution.Formats._
+import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.persist.docker.distribution.{ImagesRepo, ImageManifestsRepo}
 import scala.collection.immutable
-import io.fcomb.docker.distribution.server.AuthenticationDirectives._
-import io.fcomb.docker.distribution.server.ImageDirectives._
 
 object ImageHandler {
   def getManifest(imageName: String, reference: Reference)(
@@ -45,7 +46,7 @@ object ImageHandler {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[Accept]() { acceptOpt =>
-          imageByNameWithAcl(imageName, user) { image =>
+          imageByNameWithAcl(imageName, user, Action.Read) { image =>
             import mat.executionContext
             onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId, reference)) {
               case Some(im) =>
@@ -92,7 +93,7 @@ object ImageHandler {
   ) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user) { image =>
+        imageByNameWithAcl(imageName, user, Action.Write) { image =>
           import mat.executionContext
           entity(as[ByteString]) { rawManifestBs =>
             respondWithContentType(`application/json`) {
@@ -135,7 +136,7 @@ object ImageHandler {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
-        imageByNameWithAcl(imageName, user) { image =>
+        imageByNameWithAcl(imageName, user, Action.Manage) { image =>
           reference match {
             case Reference.Digest(digest) =>
               onSuccess(ImageManifestsRepo.destroy(image.getId, digest)) { res =>
@@ -160,7 +161,7 @@ object ImageHandler {
     authenticateUserBasic { user =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
-          imageByNameWithAcl(imageName, user) { image =>
+          imageByNameWithAcl(imageName, user, Action.Read) { image =>
             onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId, n, last)) {
               (tags, limit, hasNext) =>
                 val headers =

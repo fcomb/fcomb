@@ -104,7 +104,7 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
   ) =
     OrganizationsRepo.groupUsersScope.join(table).on {
       case (((_, gt), gut), pt) =>
-        gut.userId === userId && gt.organizationId === organizationId && gt.id === pt.memberId &&
+        gt.organizationId === organizationId && gut.userId === userId && gt.id === pt.memberId &&
         pt.memberKind === (MemberKind.Group: MemberKind) && pt.sourceId === sourceId
     }
 

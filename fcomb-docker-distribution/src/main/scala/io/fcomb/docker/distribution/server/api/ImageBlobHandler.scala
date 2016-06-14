@@ -20,12 +20,20 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.Xor
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.circe.generic.auto._
+import io.fcomb.docker.distribution.server.AuthenticationDirectives._
+import io.fcomb.docker.distribution.server.CommonDirectives._
+import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFile
+import io.fcomb.json.docker.distribution.Formats._
+import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
@@ -33,19 +41,12 @@ import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
 import scala.util.{Right, Left}
-import akka.http.scaladsl.server.Directives._
-import io.fcomb.json.docker.distribution.Formats._
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
-import io.circe.generic.auto._
-import io.fcomb.docker.distribution.server.AuthenticationDirectives._
-import io.fcomb.docker.distribution.server.ImageDirectives._
-import io.fcomb.docker.distribution.server.CommonDirectives._
 
 object ImageBlobHandler {
   def showBlob(imageName: String, digest: String) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user) { image =>
+        imageByNameWithAcl(imageName, user, Action.Read) { image =>
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
@@ -75,7 +76,7 @@ object ImageBlobHandler {
   ) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user) { image =>
+        imageByNameWithAcl(imageName, user, Action.Read) { image =>
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
@@ -132,7 +133,7 @@ object ImageBlobHandler {
   def destroyBlob(imageName: String, digest: String) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user) { image =>
+        imageByNameWithAcl(imageName, user, Action.Manage) { image =>
           import mat.executionContext
           val sha256Digest = Reference.getDigest(digest)
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
@@ -153,10 +154,10 @@ object ImageBlobHandler {
               }
               complete(res)
             case _ =>
-              complete(
-                StatusCodes.NotFound,
-                DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
-              )
+              complete((
+                  StatusCodes.NotFound,
+                  DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
+                ))
           }
         }
       }

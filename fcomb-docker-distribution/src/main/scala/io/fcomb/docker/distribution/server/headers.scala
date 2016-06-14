@@ -19,7 +19,7 @@ package io.fcomb.docker.distribution.server
 import akka.http.scaladsl.model.headers._
 import java.util.UUID
 
-package object headers {
+object headers {
   final case class `Docker-Distribution-Api-Version`(version: String) extends CustomHeader {
     def renderInRequests  = false
     def renderInResponses = true
