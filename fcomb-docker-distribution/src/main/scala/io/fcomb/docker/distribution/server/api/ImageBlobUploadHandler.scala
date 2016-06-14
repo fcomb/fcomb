@@ -63,19 +63,21 @@ object ImageBlobUploadHandler {
       req: HttpRequest
   ): Route = {
     val contentType = req.entity.contentType.mediaType.value
-    onSuccess(ImageBlobsRepo.createByImageName(imageName, user.getId, contentType)) {
-      case Validated.Valid(blob) =>
-        val uuid = blob.getId
-        val headers = immutable.Seq(
-          Location(s"/v2/$imageName/blobs/uploads/$uuid"),
-          `Docker-Upload-Uuid`(uuid),
-          rangeHeader(0L, 0L)
-        )
-        respondWithHeaders(headers) {
-          completeWithStatus(StatusCodes.Accepted)
-        }
-      case Validated.Invalid(e) =>
-        complete((StatusCodes.Accepted, FailureResponse.fromExceptions(e)))
+    imageByNameWithAcl(imageName, user, Action.Write) { image =>
+      onSuccess(ImageBlobsRepo.create(image.getId, contentType)) {
+        case Validated.Valid(blob) =>
+          val uuid = blob.getId
+          val headers = immutable.Seq(
+            Location(s"/v2/$imageName/blobs/uploads/$uuid"),
+            `Docker-Upload-Uuid`(uuid),
+            rangeHeader(0L, 0L)
+          )
+          respondWithHeaders(headers) {
+            completeWithStatus(StatusCodes.Accepted)
+          }
+        case Validated.Invalid(e) =>
+          complete((StatusCodes.Accepted, FailureResponse.fromExceptions(e)))
+      }
     }
   }
 
@@ -83,20 +85,22 @@ object ImageBlobUploadHandler {
       implicit ec: ExecutionContext,
       req: HttpRequest
   ): Route = {
-    imageByNameWithAcl(from, user, Action.Write) { fromImage =>
-      val mountResFut =
-        ImageBlobsRepo.mount(fromImage.getId, imageName, Reference.getDigest(digest), user.getId)
-      onSuccess(mountResFut) {
-        case Some(blob) =>
-          val sha256Digest = blob.sha256Digest.get
-          val headers = immutable.Seq(
-            Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
-            `Docker-Content-Digest`("sha256", sha256Digest)
-          )
-          respondWithHeaders(headers) {
-            completeWithStatus(StatusCodes.Created)
-          }
-        case None => createImageBlobUpload(user, imageName)
+    imageByNameWithAcl(imageName, user, Action.Write) { toImage =>
+      imageByNameWithAcl(from, user, Action.Read) { fromImage =>
+        val mountResFut = ImageBlobsRepo.mount(
+          fromImage.getId, toImage.getId, Reference.getDigest(digest), user.getId)
+        onSuccess(mountResFut) {
+          case Some(blob) =>
+            val sha256Digest = blob.sha256Digest.get
+            val headers = immutable.Seq(
+              Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
+              `Docker-Content-Digest`("sha256", sha256Digest)
+            )
+            respondWithHeaders(headers) {
+              completeWithStatus(StatusCodes.Created)
+            }
+          case None => createImageBlobUpload(user, imageName)
+        }
       }
     }
   }
@@ -105,40 +109,42 @@ object ImageBlobUploadHandler {
       implicit req: HttpRequest
   ): Route =
     extractMaterializer { implicit mat =>
-      import mat.executionContext
-      val contentType = req.entity.contentType.mediaType.value
-      val blobResFut = for {
-        Validated.Valid(blob) <- ImageBlobsRepo.createByImageName(
-                                  imageName, user.getId, contentType)
-        (length, sha256Digest) <- BlobFile.uploadBlob(blob.getId, req.entity.dataBytes)
-        _                      <- ImageBlobsRepo.completeUploadOrDelete(blob.getId, blob.imageId, length, sha256Digest)
-      } yield (blob, sha256Digest)
-      onSuccess(blobResFut) {
-        case (blob, sha256Digest) =>
-          val uuid = blob.getId
-          if (Reference.getDigest(digest) == sha256Digest) {
-            onSuccess(BlobFile.renameOrDelete(uuid, sha256Digest)) {
-              val headers = immutable.Seq(
-                Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
-                `Docker-Upload-Uuid`(uuid),
-                `Docker-Content-Digest`("sha256", sha256Digest)
-              )
-              respondWithHeaders(headers) {
-                completeWithStatus(StatusCodes.Created)
+      imageByNameWithAcl(imageName, user, Action.Write) { image =>
+        import mat.executionContext
+        val contentType = req.entity.contentType.mediaType.value
+        val blobResFut = for {
+          Validated.Valid(blob)  <- ImageBlobsRepo.create(image.getId, contentType)
+          (length, sha256Digest) <- BlobFile.uploadBlob(blob.getId, req.entity.dataBytes)
+          _ <- ImageBlobsRepo.completeUploadOrDelete(
+                blob.getId, blob.imageId, length, sha256Digest)
+        } yield (blob, sha256Digest)
+        onSuccess(blobResFut) {
+          case (blob, sha256Digest) =>
+            val uuid = blob.getId
+            if (Reference.getDigest(digest) == sha256Digest) {
+              onSuccess(BlobFile.renameOrDelete(uuid, sha256Digest)) {
+                val headers = immutable.Seq(
+                  Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
+                  `Docker-Upload-Uuid`(uuid),
+                  `Docker-Content-Digest`("sha256", sha256Digest)
+                )
+                respondWithHeaders(headers) {
+                  completeWithStatus(StatusCodes.Created)
+                }
+              }
+            } else {
+              val res = for {
+                _ <- BlobFile.destroyBlob(uuid)
+                _ <- ImageBlobsRepo.destroy(uuid)
+              } yield ()
+              onSuccess(res) {
+                complete((
+                    StatusCodes.BadRequest,
+                    DistributionErrorResponse.from(DistributionError.DigestInvalid())
+                  ))
               }
             }
-          } else {
-            val res = for {
-              _ <- BlobFile.destroyBlob(uuid)
-              _ <- ImageBlobsRepo.destroy(uuid)
-            } yield ()
-            onSuccess(res) {
-              complete((
-                  StatusCodes.BadRequest,
-                  DistributionErrorResponse.from(DistributionError.DigestInvalid())
-                ))
-            }
-          }
+        }
       }
     }
 

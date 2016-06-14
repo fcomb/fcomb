@@ -17,11 +17,10 @@
 package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
-import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.OwnerKind
-import io.fcomb.models.acl.{Action, SourceKind, MemberKind}
+import io.fcomb.models.acl.{Action, SourceKind}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.{PersistTableWithAutoLongPk, PersistModelWithAutoLongPk}
@@ -29,7 +28,6 @@ import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
-import slick.jdbc.TransactionIsolation
 
 class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTableWithAutoLongPk {
   def name           = column[String]("name")
@@ -103,45 +101,6 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
     }.map(t => (t.pk, t.userId)).take(1)
   }
 
-  def findIdOrCreateByNameDBIO(
-      name: String,
-      userId: Long
-  )(implicit ec: ExecutionContext) =
-    for {
-      _ <- sqlu"LOCK TABLE #${table.baseTableRow.tableName} IN SHARE ROW EXCLUSIVE MODE"
-      res <- findIdAndUserIdByImageCompiled((name, userId)).result.headOption.flatMap {
-              case Some((id, imageUserId)) =>
-                if (imageUserId == userId) DBIO.successful(Validated.Valid(id))
-                else
-                  DBIO.successful(
-                    validationError(
-                      "userId",
-                      "insufficient permissions"
-                    )) // TODO
-              case None =>
-                val timeNow = ZonedDateTime.now
-                createWithValidationDBIO(
-                  Image(
-                    name = name,
-                    slug = ???,
-                    ownerId = ???,
-                    ownerKind = ???,
-                    visibilityKind = ???,
-                    description = ???,
-                    createdAt = timeNow,
-                    updatedAt = None
-                  )
-                ).map(_.map(_.getId))
-            }
-    } yield res
-
-  def findIdOrCreateByName(name: String, userId: Long)(
-      implicit ec: ExecutionContext
-  ): Future[ValidationResult[Long]] =
-    runInTransaction(TransactionIsolation.ReadUncommitted) {
-      findIdOrCreateByNameDBIO(name, userId)
-    }
-
   private val findIdByUserIdAndNameCompiled = Compiled { (userId: Rep[Long], name: Rep[String]) =>
     table.filter { q =>
       q.userId === userId && q.name === name
@@ -157,13 +116,12 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
 
   val fetchLimit = 256
 
+  // TODO: organization repositories
   def findRepositoriesByUserId(
       userId: Long,
       n: Option[Int],
       last: Option[String]
-  )(
-      implicit ec: ExecutionContext
-  ): Future[(Seq[String], Int, Boolean)] = {
+  )(implicit ec: ExecutionContext): Future[(Seq[String], Int, Boolean)] = {
     val limit = n match {
       case Some(v) if v > 0 && v <= fetchLimit => v
       case _                                   => fetchLimit
@@ -206,7 +164,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       )
     )
     val dbioValidations = validateDBIO(
-      "name" → List(unique(uniqueNameCompiled(i.id, i.name)))
+      "name" → List(unique(uniqueNameCompiled((i.id, i.name))))
     )
     validate(plainValidations, dbioValidations)
   }

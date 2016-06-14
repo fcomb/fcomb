@@ -16,15 +16,13 @@
 
 package io.fcomb.persist.docker.distribution
 
-import cats.data.{Xor, Validated}
-import cats.std.all._
+import cats.data.Xor
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob}
 import io.fcomb.models.docker.distribution.ImageManifest.{emptyTarSha256Digest, emptyTar}
 import io.fcomb.persist.EnumsMapping.distributionImageBlobStateColumnType
 import io.fcomb.persist.{PersistTableWithUuidPk, PersistModelWithUuidPk}
-import io.fcomb.validations.eitherT
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -56,15 +54,12 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     else contentType
   }
 
-  def mount(fromImageId: Long, toImageName: String, digest: String, userId: Long)(
+  def mount(fromImageId: Long, toImageId: Long, digest: String, userId: Long)(
       implicit ec: ExecutionContext
   ): Future[Option[ImageBlob]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
-      (for {
-        blob      <- findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption
-        toImageId <- ImagesRepo.findIdOrCreateByNameDBIO(toImageName, userId)
-      } yield (blob, toImageId)).flatMap {
-        case (Some(blob), Validated.Valid(toImageId)) =>
+      findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption.flatMap {
+        case Some(blob) =>
           findByImageIdAndDigestCompiled((toImageId, digest)).result.headOption.flatMap {
             case Some(b) => DBIO.successful(Some(b))
             case None =>
@@ -100,16 +95,6 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         uploadedAt = None
       ))
 
-  // TODO
-  def createByImageName(name: String, userId: Long, contentType: String)(
-      implicit ec: ExecutionContext,
-      m: Manifest[ImageBlob]
-  ): Future[ValidationModel] =
-    (for {
-      imageId <- eitherT(ImagesRepo.findIdOrCreateByName(name, userId))
-      blob    <- eitherT(create(imageId, contentType))
-    } yield blob).toValidated
-
   private val findByImageIdAndUuidCompiled = Compiled { (imageId: Rep[Long], uuid: Rep[UUID]) =>
     table.filter { q =>
       q.imageId === imageId && q.id === uuid
@@ -119,7 +104,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   def findByImageIdAndUuid(imageId: Long, uuid: UUID)(
       implicit ec: ExecutionContext
   ) =
-    db.run(findByImageIdAndUuidCompiled(imageId, uuid).result.headOption)
+    db.run(findByImageIdAndUuidCompiled((imageId, uuid)).result.headOption)
 
   private val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Long], digest: Rep[String]) =>
@@ -131,7 +116,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   def findByImageIdAndDigest(imageId: Long, digest: String)(
       implicit ec: ExecutionContext
   ) =
-    db.run(findByImageIdAndDigestCompiled(imageId, digest).result.headOption)
+    db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
   private def findByImageIdAndDigestsScope(imageId: Long, digests: Set[String]) =
     table.filter { q =>
