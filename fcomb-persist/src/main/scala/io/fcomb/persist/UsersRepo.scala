@@ -164,9 +164,9 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
     )
     val dbioValidations = validateDBIO(
       "username" → List(
-        unique(uniqueUsernameCompiled(user.id, user.username))
+        unique(uniqueUsernameCompiled((user.id, user.username)))
       ),
-      "email" → List(unique(uniqueEmailCompiled(user.id, user.email)))
+      "email" → List(unique(uniqueEmailCompiled((user.id, user.email))))
     )
     passwordOpt match {
       case Some(password) =>

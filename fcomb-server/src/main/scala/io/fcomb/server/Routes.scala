@@ -39,15 +39,10 @@ object Routes {
     // format: OFF
     respondWithDefaultHeaders(defaultHeaders) {
       pathPrefix(apiVersion) {
-        pathPrefix(UsersHandler.pathPrefix) {
-          pathPrefix("sign_up") {
-            pathEndOrSingleSlash {
-              post(UsersHandler.signUp)
-            }
-          } ~
-          pathPrefix("me") {
-            pathEndOrSingleSlash {
-              get(UsersHandler.me) /*~
+        pathPrefix(UserHandler.pathPrefix) {
+          pathEndOrSingleSlash {
+            get(UserHandler.current)
+          } /*~
               put(UsersHandler.updateProfile)
             } ~
             pathPrefix("password") {
@@ -60,6 +55,11 @@ object Routes {
             pathEndOrSingleSlash {
               post(UsersHandler.resetPassword) ~
               put(UsersHandler.setPassword) */
+        } ~
+        pathPrefix(UsersHandler.pathPrefix) {
+          pathPrefix("sign_up") {
+            pathEndOrSingleSlash {
+              post(UsersHandler.signUp)
             }
           }
         } ~

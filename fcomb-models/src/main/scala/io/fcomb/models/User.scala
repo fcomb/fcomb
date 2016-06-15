@@ -33,7 +33,26 @@ final case class User(
 
   def isValidPassword(password: String) =
     password.isBcrypted(passwordHash)
+
+  def toProfile =
+    UserProfileResponse(
+      id = id,
+      email = email,
+      username = username,
+      fullName = fullName,
+      createdAt = createdAt,
+      updatedAt = updatedAt
+    )
 }
+
+final case class UserProfileResponse(
+    id: Option[Long] = None,
+    email: String,
+    username: String,
+    fullName: Option[String],
+    createdAt: ZonedDateTime,
+    updatedAt: Option[ZonedDateTime]
+)
 
 final case class UserSignUpRequest(
     email: String,

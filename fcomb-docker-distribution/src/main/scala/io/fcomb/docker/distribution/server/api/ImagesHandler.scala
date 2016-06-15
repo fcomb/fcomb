@@ -71,10 +71,10 @@ object ImagesHandler {
                   complete(HttpEntity(ct, ByteString(manifest)))
                 }
               case _ =>
-                complete(
-                  StatusCodes.NotFound,
-                  DistributionErrorResponse.from(DistributionError.ManifestUnknown())
-                )
+                complete((
+                    StatusCodes.NotFound,
+                    DistributionErrorResponse.from(DistributionError.ManifestUnknown())
+                  ))
             }
           }
         }
@@ -112,10 +112,10 @@ object ImagesHandler {
                       Location(s"/v2/$imageName/manifests/sha256:$sha256Digest")
                     )
                     respondWithHeaders(headers) {
-                      complete(StatusCodes.Created, HttpEntity.Empty)
+                      complete((StatusCodes.Created, HttpEntity.Empty))
                     }
                   case Xor.Left(e) =>
-                    complete(StatusCodes.BadRequest, DistributionErrorResponse.from(e))
+                    complete((StatusCodes.BadRequest, DistributionErrorResponse.from(e)))
                 }
               }
             }
@@ -140,18 +140,18 @@ object ImagesHandler {
           reference match {
             case Reference.Digest(digest) =>
               onSuccess(ImageManifestsRepo.destroy(image.getId, digest)) { res =>
-                if (res) complete(StatusCodes.Accepted, HttpEntity.Empty)
+                if (res) complete(HttpResponse(StatusCodes.Accepted))
                 else
-                  complete(
-                    StatusCodes.NotFound,
-                    DistributionErrorResponse.from(DistributionError.ManifestUnknown())
-                  )
+                  complete((
+                      StatusCodes.NotFound,
+                      DistributionErrorResponse.from(DistributionError.ManifestUnknown())
+                    ))
               }
             case _ =>
-              complete(
-                StatusCodes.NotFound,
-                DistributionErrorResponse.from(DistributionError.ManifestInvalid())
-              )
+              complete((
+                  StatusCodes.NotFound,
+                  DistributionErrorResponse.from(DistributionError.ManifestInvalid())
+                ))
           }
         }
       }
