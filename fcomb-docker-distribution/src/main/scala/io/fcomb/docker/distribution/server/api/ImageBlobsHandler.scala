@@ -42,7 +42,7 @@ import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
 import scala.util.{Right, Left}
 
-object ImageBlobHandler {
+object ImageBlobsHandler {
   def showBlob(imageName: String, digest: String) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>

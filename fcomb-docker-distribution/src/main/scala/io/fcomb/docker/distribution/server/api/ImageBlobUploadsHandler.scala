@@ -41,7 +41,7 @@ import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.ExecutionContext
 
-object ImageBlobUploadHandler {
+object ImageBlobUploadsHandler {
   def createBlob(imageName: String)(implicit req: HttpRequest): Route =
     authenticateUserBasic { user =>
       parameters('mount.?, 'from.?, 'digest.?) { (mountOpt, fromOpt, digestOpt) =>

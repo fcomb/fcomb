@@ -39,34 +39,34 @@ object Routes {
     // format: OFF
     respondWithDefaultHeaders(defaultHeaders) {
       pathPrefix(apiVersion) {
-        pathPrefix(UserHandler.pathPrefix) {
+        pathPrefix(UsersHandler.pathPrefix) {
           pathPrefix("sign_up") {
             pathEndOrSingleSlash {
-              post(UserHandler.signUp)
+              post(UsersHandler.signUp)
             }
           } ~
           pathPrefix("me") {
             pathEndOrSingleSlash {
-              get(UserHandler.me) /*~
-              put(UserHandler.updateProfile)
+              get(UsersHandler.me) /*~
+              put(UsersHandler.updateProfile)
             } ~
             pathPrefix("password") {
               pathEndOrSingleSlash {
-                put(UserHandler.changePassword)
+                put(UsersHandler.changePassword)
               }
             }
           } ~
           pathPrefix("reset_password") {
             pathEndOrSingleSlash {
-              post(UserHandler.resetPassword) ~
-              put(UserHandler.setPassword) */
+              post(UsersHandler.resetPassword) ~
+              put(UsersHandler.setPassword) */
             }
           }
         } ~
         pathPrefix("sessions") {
           pathEndOrSingleSlash {
-            post(SessionHandler.create) ~
-            delete(SessionHandler.destroy)
+            post(SessionsHandler.create) ~
+            delete(SessionsHandler.destroy)
           }
         } ~
         pathPrefix("ping") {

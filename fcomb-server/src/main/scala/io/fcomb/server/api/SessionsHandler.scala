@@ -26,7 +26,7 @@ import cats.data.Xor
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 
-object SessionHandler {
+object SessionsHandler {
   def create =
     extractExecutionContext { implicit ec =>
       entity(as[SessionCreateRequest]) { req =>

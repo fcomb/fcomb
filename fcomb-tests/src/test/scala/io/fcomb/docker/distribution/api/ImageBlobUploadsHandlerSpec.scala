@@ -42,7 +42,7 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
 import io.fcomb.docker.distribution.server.Routes
 
-class ImageBlobUploadHandlerSpec
+class ImageBlobUploadsHandlerSpec
     extends WordSpec
     with Matchers
     with ScalatestRouteTest

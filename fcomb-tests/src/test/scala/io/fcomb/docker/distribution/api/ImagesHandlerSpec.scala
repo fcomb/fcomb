@@ -42,7 +42,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 import io.fcomb.docker.distribution.server.Routes
 
-class ImageHandlerSpec
+class ImagesHandlerSpec
     extends WordSpec
     with Matchers
     with ScalatestRouteTest

@@ -45,7 +45,7 @@ object Routes {
         } ~
         pathPrefix("_catalog") {
           pathEndOrSingleSlash {
-            get(ImageHandler.catalog)
+            get(ImagesHandler.catalog)
           }
         } ~
         pathPrefix(Segments(2, 32)) { segments =>
@@ -54,17 +54,17 @@ object Routes {
               val method = req.method
               segments.reverse match {
                 case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
-                  ImageBlobUploadHandler.createBlob(imageName(xs))
+                  ImageBlobUploadsHandler.createBlob(imageName(xs))
                 case id :: "uploads" :: "blobs" :: xs if isUuid(id) =>
                   val uuid = UUID.fromString(id)
                   val image = imageName(xs)
                   method match {
                     case HttpMethods.PUT =>
-                      ImageBlobUploadHandler.uploadComplete(image, uuid)
+                      ImageBlobUploadsHandler.uploadComplete(image, uuid)
                     case HttpMethods.PATCH =>
-                      ImageBlobUploadHandler.uploadBlobChunk(image, uuid)
+                      ImageBlobUploadsHandler.uploadBlobChunk(image, uuid)
                     case HttpMethods.DELETE =>
-                      ImageBlobUploadHandler.destroyBlobUpload(image, uuid)
+                      ImageBlobUploadsHandler.destroyBlobUpload(image, uuid)
                     case _ => complete(notFoundResponse)
                   }
                 case id :: "blobs" :: xs =>
@@ -73,13 +73,13 @@ object Routes {
                     // TODO: official spec
                     case HttpMethods.PUT if isUuid(id) =>
                       val uuid = UUID.fromString(id)
-                      ImageBlobUploadHandler.uploadComplete(image, uuid)
+                      ImageBlobUploadsHandler.uploadComplete(image, uuid)
                     case HttpMethods.HEAD if Reference.isDigest(id) =>
-                      ImageBlobHandler.showBlob(image, id)
+                      ImageBlobsHandler.showBlob(image, id)
                     case HttpMethods.GET if Reference.isDigest(id) =>
-                      ImageBlobHandler.downloadBlob(image, id)
+                      ImageBlobsHandler.downloadBlob(image, id)
                     case HttpMethods.DELETE if Reference.isDigest(id) =>
-                      ImageBlobHandler.destroyBlob(image, id)
+                      ImageBlobsHandler.destroyBlob(image, id)
                     case _ => complete(notFoundResponse)
                   }
                 case ref :: "manifests" :: xs =>
@@ -87,15 +87,15 @@ object Routes {
                   val reference = Reference.apply(ref)
                   method match {
                     case HttpMethods.GET =>
-                      ImageHandler.getManifest(image, reference)
+                      ImagesHandler.getManifest(image, reference)
                     case HttpMethods.PUT =>
-                      ImageHandler.uploadManifest(image, reference)
+                      ImagesHandler.uploadManifest(image, reference)
                     case HttpMethods.DELETE =>
-                      ImageHandler.destroyManifest(image, reference)
+                      ImagesHandler.destroyManifest(image, reference)
                     case _ => complete(notFoundResponse)
                   }
                 case "list" :: "tags" :: xs if method == HttpMethods.GET =>
-                  ImageHandler.tags(imageName(xs))
+                  ImagesHandler.tags(imageName(xs))
                 case _ => complete(notFoundResponse)
               }
             }

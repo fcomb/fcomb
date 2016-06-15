@@ -25,7 +25,7 @@ import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import akka.http.scaladsl.model.HttpResponse
 
-object UserHandler {
+object UsersHandler {
   val pathPrefix = "users"
 
   def signUp =
