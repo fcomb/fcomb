@@ -16,12 +16,10 @@
 
 package io.fcomb.docker.distribution.server
 
-import akka.actor._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.`WWW-Authenticate`
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import akka.stream.Materializer
 import io.fcomb.server.headers._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.models.docker.distribution.Reference
@@ -33,76 +31,75 @@ import io.fcomb.docker.distribution.server.api._
 object Routes {
   val apiVersion = "v2"
 
-  def apply()(implicit sys: ActorSystem, mat: Materializer): Route = {
+  def apply(): Route = {
     // format: OFF
-    val routes = respondWithDefaultHeaders(defaultHeaders) {
-      pathSingleSlash {
-        get(complete(HttpResponse(StatusCodes.OK)))
-      } ~
-      pathPrefix(apiVersion) {
-        pathEndOrSingleSlash {
-          get(AuthenticationHandler.versionCheck)
+    val routes =
+      respondWithDefaultHeaders(defaultHeaders) {
+        pathSingleSlash {
+          get(complete(HttpResponse(StatusCodes.OK)))
         } ~
-        pathPrefix("_catalog") {
+        pathPrefix(apiVersion) {
           pathEndOrSingleSlash {
+            get(AuthenticationHandler.versionCheck)
+          } ~
+          path("_catalog") {
             get(ImagesHandler.catalog)
-          }
-        } ~
-        pathPrefix(Segments(2, 32)) { segments =>
-          pathEndOrSingleSlash {
-            extractRequest { implicit req =>
-              val method = req.method
-              segments.reverse match {
-                case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
-                  ImageBlobUploadsHandler.createBlob(imageName(xs))
-                case id :: "uploads" :: "blobs" :: xs if isUuid(id) =>
-                  val uuid = UUID.fromString(id)
-                  val image = imageName(xs)
-                  method match {
-                    case HttpMethods.PUT =>
-                      ImageBlobUploadsHandler.uploadComplete(image, uuid)
-                    case HttpMethods.PATCH =>
-                      ImageBlobUploadsHandler.uploadBlobChunk(image, uuid)
-                    case HttpMethods.DELETE =>
-                      ImageBlobUploadsHandler.destroyBlobUpload(image, uuid)
-                    case _ => complete(notFoundResponse)
-                  }
-                case id :: "blobs" :: xs =>
-                  val image = imageName(xs)
-                  method match {
-                    // TODO: official spec
-                    case HttpMethods.PUT if isUuid(id) =>
-                      val uuid = UUID.fromString(id)
-                      ImageBlobUploadsHandler.uploadComplete(image, uuid)
-                    case HttpMethods.HEAD if Reference.isDigest(id) =>
-                      ImageBlobsHandler.showBlob(image, id)
-                    case HttpMethods.GET if Reference.isDigest(id) =>
-                      ImageBlobsHandler.downloadBlob(image, id)
-                    case HttpMethods.DELETE if Reference.isDigest(id) =>
-                      ImageBlobsHandler.destroyBlob(image, id)
-                    case _ => complete(notFoundResponse)
-                  }
-                case ref :: "manifests" :: xs =>
-                  val image = imageName(xs)
-                  val reference = Reference.apply(ref)
-                  method match {
-                    case HttpMethods.GET =>
-                      ImagesHandler.getManifest(image, reference)
-                    case HttpMethods.PUT =>
-                      ImagesHandler.uploadManifest(image, reference)
-                    case HttpMethods.DELETE =>
-                      ImagesHandler.destroyManifest(image, reference)
-                    case _ => complete(notFoundResponse)
-                  }
-                case "list" :: "tags" :: xs if method == HttpMethods.GET =>
-                  ImagesHandler.tags(imageName(xs))
-                case _ => complete(notFoundResponse)
+          } ~
+          pathPrefix(Segments(2, 32)) { segments =>
+            pathEndOrSingleSlash {
+              extractRequest { implicit req =>
+                val method = req.method
+                segments.reverse match {
+                  case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
+                    ImageBlobUploadsHandler.createBlob(imageName(xs))
+                  case id :: "uploads" :: "blobs" :: xs if isUuid(id) =>
+                    val uuid = UUID.fromString(id)
+                    val image = imageName(xs)
+                    method match {
+                      case HttpMethods.PUT =>
+                        ImageBlobUploadsHandler.uploadComplete(image, uuid)
+                      case HttpMethods.PATCH =>
+                        ImageBlobUploadsHandler.uploadBlobChunk(image, uuid)
+                      case HttpMethods.DELETE =>
+                        ImageBlobUploadsHandler.destroyBlobUpload(image, uuid)
+                      case _ => complete(notFoundResponse)
+                    }
+                  case id :: "blobs" :: xs =>
+                    val image = imageName(xs)
+                    method match {
+                      // TODO: official spec
+                      case HttpMethods.PUT if isUuid(id) =>
+                        val uuid = UUID.fromString(id)
+                        ImageBlobUploadsHandler.uploadComplete(image, uuid)
+                      case HttpMethods.HEAD if Reference.isDigest(id) =>
+                        ImageBlobsHandler.showBlob(image, id)
+                      case HttpMethods.GET if Reference.isDigest(id) =>
+                        ImageBlobsHandler.downloadBlob(image, id)
+                      case HttpMethods.DELETE if Reference.isDigest(id) =>
+                        ImageBlobsHandler.destroyBlob(image, id)
+                      case _ => complete(notFoundResponse)
+                    }
+                  case ref :: "manifests" :: xs =>
+                    val image = imageName(xs)
+                    val reference = Reference.apply(ref)
+                    method match {
+                      case HttpMethods.GET =>
+                        ImagesHandler.getManifest(image, reference)
+                      case HttpMethods.PUT =>
+                        ImagesHandler.uploadManifest(image, reference)
+                      case HttpMethods.DELETE =>
+                        ImagesHandler.destroyManifest(image, reference)
+                      case _ => complete(notFoundResponse)
+                    }
+                  case "list" :: "tags" :: xs if method == HttpMethods.GET =>
+                    ImagesHandler.tags(imageName(xs))
+                  case _ => complete(notFoundResponse)
+                }
               }
             }
           }
         }
       }
-    }
     // format: ON
 
     import de.heikoseeberger.akkahttpcirce.CirceSupport._
@@ -115,20 +112,20 @@ object Routes {
         e.printStackTrace()
         logger.error(e.getMessage(), e.getCause())
         respondWithHeaders(defaultHeaders) {
-          complete(
-            StatusCodes.InternalServerError,
-            DistributionErrorResponse.from(DistributionError.Unknown())
-          )
+          complete((
+              StatusCodes.InternalServerError,
+              DistributionErrorResponse.from(DistributionError.Unknown())
+            ))
         }
     }
     val rejectionHandler = RejectionHandler
       .newBuilder()
       .handleAll[AuthorizationFailedRejection.type] { _ =>
         respondWithHeaders(defaultAuthenticateHeaders) {
-          complete(
-            StatusCodes.Unauthorized,
-            DistributionErrorResponse.from(DistributionError.Unauthorized())
-          )
+          complete((
+              StatusCodes.Unauthorized,
+              DistributionErrorResponse.from(DistributionError.Unauthorized())
+            ))
         }
       }
       .handleNotFound {

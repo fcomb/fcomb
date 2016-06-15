@@ -21,7 +21,6 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import akka.stream.Materializer
 import akka.util.ByteString
 import cats.data.Xor
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
@@ -88,8 +87,7 @@ object ImagesHandler {
   }
 
   def uploadManifest(imageName: String, reference: Reference)(
-      implicit mat: Materializer,
-      req: HttpRequest
+      implicit req: HttpRequest
   ) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>

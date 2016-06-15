@@ -16,11 +16,9 @@
 
 package io.fcomb.server
 
-import akka.actor._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.stream.Materializer
 import io.fcomb.server.api._
 import io.fcomb.server.headers._
 
@@ -35,42 +33,31 @@ object Routes {
     )
   )
 
-  def apply()(implicit sys: ActorSystem, mat: Materializer): Route = {
+  def apply(): Route = {
     // format: OFF
-    respondWithDefaultHeaders(defaultHeaders) {
-      pathPrefix(apiVersion) {
-        pathPrefix(UserHandler.pathPrefix) {
-          pathEndOrSingleSlash {
-            get(UserHandler.current)
-          } /*~
-              put(UsersHandler.updateProfile)
-            } ~
-            pathPrefix("password") {
-              pathEndOrSingleSlash {
-                put(UsersHandler.changePassword)
+    redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
+      respondWithDefaultHeaders(defaultHeaders) {
+        pathPrefix(apiVersion) {
+          pathPrefix(UserHandler.pathPrefix) {
+            pathPrefix(user.RepositoriesHandler.pathPrefix) {
+              pathEnd {
+                post(user.RepositoriesHandler.create)
               }
+            } ~
+            pathEnd {
+              get(UserHandler.current)
             }
           } ~
-          pathPrefix("reset_password") {
-            pathEndOrSingleSlash {
-              post(UsersHandler.resetPassword) ~
-              put(UsersHandler.setPassword) */
-        } ~
-        pathPrefix(UsersHandler.pathPrefix) {
-          pathPrefix("sign_up") {
-            pathEndOrSingleSlash {
+          pathPrefix(UsersHandler.pathPrefix) {
+            path("sign_up") {
               post(UsersHandler.signUp)
             }
-          }
-        } ~
-        pathPrefix("sessions") {
-          pathEndOrSingleSlash {
+          } ~
+          path("sessions") {
             post(SessionsHandler.create) ~
             delete(SessionsHandler.destroy)
-          }
-        } ~
-        pathPrefix("ping") {
-          pathEndOrSingleSlash {
+          } ~
+          path("ping") {
             complete(pongJsonResponse)
           }
         }
