@@ -26,7 +26,7 @@ import io.fcomb.models.UserSignUpRequest
 import io.fcomb.persist.UsersRepo
 
 object UsersHandler {
-  val pathPrefix = "users"
+  val servicePath = "users"
 
   def signUp =
     extractExecutionContext { implicit ec =>

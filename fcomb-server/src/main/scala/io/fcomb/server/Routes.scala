@@ -36,18 +36,18 @@ object Routes {
     redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
       respondWithDefaultHeaders(defaultHeaders) {
         pathPrefix(apiVersion) {
-          pathPrefix(UserHandler.pathPrefix) {
+          pathPrefix(UserHandler.servicePath) {
             pathEnd {
               get(UserHandler.current)
             } ~
-            pathPrefix(user.RepositoriesHandler.pathPrefix) {
+            pathPrefix(user.RepositoriesHandler.servicePath) {
               pathEnd {
                 get(user.RepositoriesHandler.index) ~
                 post(user.RepositoriesHandler.create)
               }
             }
           } ~
-          pathPrefix(UsersHandler.pathPrefix) {
+          pathPrefix(UsersHandler.servicePath) {
             path("sign_up") {
               post(UsersHandler.signUp)
             }

@@ -31,9 +31,9 @@ import io.fcomb.server.api.{apiVersion, UserHandler}
 import scala.collection.immutable
 
 object RepositoriesHandler {
-  val pathPrefix = "repositories"
+  val servicePath = "repositories"
 
-  lazy val fullPrefix = s"/$apiVersion/${UserHandler.pathPrefix}/$pathPrefix/"
+  lazy val fullPrefix = s"/$apiVersion/${UserHandler.servicePath}/$servicePath/"
 
   def create = {
     extractExecutionContext { implicit ec =>

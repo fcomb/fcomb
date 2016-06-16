@@ -24,7 +24,7 @@ import io.circe.java8.time._
 import io.fcomb.server.AuthenticationDirectives._
 
 object UserHandler {
-  val pathPrefix = "user"
+  val servicePath = "user"
 
   def current = {
     authenticateUser { user =>
