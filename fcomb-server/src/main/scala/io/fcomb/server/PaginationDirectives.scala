@@ -18,9 +18,14 @@ package io.fcomb.server
 
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.headers.Range
+import akka.http.scaladsl.model.{ContentRange, StatusCodes}
+import akka.http.scaladsl.model.headers.{`Content-Range`, Range, RangeUnits}
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.circe.Encoder
+import io.circe.generic.auto._
 import io.fcomb.models.{Pagination, PaginationData}
 import scala.compat.java8.OptionConverters._
+import scala.collection.immutable
 
 trait PaginationDirectives {
   def extractPagination: Directive1[Pagination] =
@@ -39,7 +44,15 @@ trait PaginationDirectives {
         }
     }
 
-  def completePagination[T](data: PaginationData[T]) = ???
+  def completePagination[T](label: String, pd: PaginationData[T])(implicit encoder: Encoder[T]) = {
+    val position = pd.data.length + pd.offset
+    val status   = if (position < pd.total) StatusCodes.PartialContent else StatusCodes.OK
+    val range    = ContentRange(pd.offset, position, pd.total.toLong)
+    val headers  = immutable.Seq(`Content-Range`(RangeUnits.Other(label), range))
+    respondWithHeaders(headers) {
+      complete((status, pd))
+    }
+  }
 }
 
 object PaginationDirectives extends PaginationDirectives

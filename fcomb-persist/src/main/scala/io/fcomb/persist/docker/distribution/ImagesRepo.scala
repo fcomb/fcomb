@@ -199,7 +199,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       for {
         data  <- findByUserOwnerWithPaginationCompiled((userId, pg.offset, pg.limit)).result
         total <- findByUserOwnerTotalCompiled(userId).result
-      } yield PaginationData(data, label, total = total, offset = pg.offset, limit = pg.limit)
+      } yield PaginationData(data, total = total, offset = pg.offset, limit = pg.limit)
     }
   }
 

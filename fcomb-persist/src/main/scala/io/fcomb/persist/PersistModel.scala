@@ -72,9 +72,9 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   //   }
 
   @inline
-  def runInTransaction[Q](isolation: TransactionIsolation)(
-      q: DBIOAction[Q, NoStream, Effect.All]
-  )(implicit ec: ExecutionContext): Future[Q] =
+  def runInTransaction[B](isolation: TransactionIsolation)(
+      q: DBIOAction[B, NoStream, Effect.All]
+  )(implicit ec: ExecutionContext): Future[B] =
     db.run(q.transactionally.withTransactionIsolation(isolation))
 
   protected def validate(

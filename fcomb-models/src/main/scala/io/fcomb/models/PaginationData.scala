@@ -18,7 +18,6 @@ package io.fcomb.models
 
 final case class PaginationData[T](
     data: Seq[T],
-    label: String,
     total: Int,
     offset: Long,
     limit: Long

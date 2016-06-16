@@ -59,7 +59,7 @@ object RepositoriesHandler {
       authenticateUser { user =>
         extractPagination { pg =>
           onSuccess(ImagesRepo.findByUserOwnerWithPagination(user.getId, pg)) { p =>
-            completePagination(p)
+            completePagination(ImagesRepo.label, p)
           }
         }
       }
