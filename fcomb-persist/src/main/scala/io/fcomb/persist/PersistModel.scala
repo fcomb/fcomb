@@ -37,7 +37,7 @@ trait PersistTypes[T] {
       columnName: String,
       error: String
   ): ValidationResult[E] =
-    validations.validationErrors(columnName → error)
+    validations.validationErrors(columnName -> error)
 
   def validationErrorAsFuture[E](
       columnName: String,

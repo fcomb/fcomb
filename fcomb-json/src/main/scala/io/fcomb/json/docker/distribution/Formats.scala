@@ -65,7 +65,7 @@ object Formats {
         case l: SchemaV1.Layer  => encodeSchemaV1Layer.apply(l)
       }
       Json.obj(
-        "v1Compatibility" → Encoder[String].apply(compactPrinter.pretty(layerJson))
+        "v1Compatibility" -> Encoder[String].apply(compactPrinter.pretty(layerJson))
       )
     }
   }

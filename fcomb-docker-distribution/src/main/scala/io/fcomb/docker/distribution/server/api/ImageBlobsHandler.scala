@@ -150,7 +150,7 @@ object ImageBlobsHandler {
                     .map(_ => HttpResponse(StatusCodes.NoContent))
                 case Xor.Left(msg) =>
                   val e = DistributionErrorResponse.from(DistributionError.Unknown(msg))
-                  Marshal(StatusCodes.InternalServerError → e).to[HttpResponse]
+                  Marshal(StatusCodes.InternalServerError -> e).to[HttpResponse]
               }
               complete(res)
             case _ =>

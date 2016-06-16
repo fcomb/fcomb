@@ -215,13 +215,13 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       implicit ec: ExecutionContext
   ): ValidationDBIOResult = {
     val plainValidations = validatePlain(
-      "name" → List(
+      "name" -> List(
         lengthRange(i.name, 1, 255),
         matches(i.name, Image.nameRegEx, "Invalid name format")
       )
     )
     val dbioValidations = validateDBIO(
-      "name" → List(unique(uniqueNameCompiled((i.id, i.name))))
+      "name" -> List(unique(uniqueNameCompiled((i.id, i.name))))
     )
     validate(plainValidations, dbioValidations)
   }

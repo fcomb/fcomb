@@ -58,8 +58,8 @@ object RepositoriesHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         extractPagination { pg =>
-          onSuccess(ImagesRepo.findByUserOwnerWithPagination(user.getId, pg)) { pd =>
-            completePagination(pd)
+          onSuccess(ImagesRepo.findByUserOwnerWithPagination(user.getId, pg)) { p =>
+            completePagination(p)
           }
         }
       }

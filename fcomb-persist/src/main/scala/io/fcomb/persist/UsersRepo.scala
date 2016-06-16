@@ -148,7 +148,7 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
 
   def validatePassword(password: String) =
     validatePlain(
-      "password" → List(lengthRange(password, 6, 50))
+      "password" -> List(lengthRange(password, 6, 50))
     )
 
   def userValidation(
@@ -156,17 +156,17 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
       passwordOpt: Option[String]
   )(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(
-      "username" → List(
+      "username" -> List(
         lengthRange(user.username, 1, 255),
         notUuid(user.username)
       ),
-      "email" → List(maxLength(user.email, 255), email(user.email))
+      "email" -> List(maxLength(user.email, 255), email(user.email))
     )
     val dbioValidations = validateDBIO(
-      "username" → List(
+      "username" -> List(
         unique(uniqueUsernameCompiled((user.id, user.username)))
       ),
-      "email" → List(unique(uniqueEmailCompiled((user.id, user.email))))
+      "email" -> List(unique(uniqueEmailCompiled((user.id, user.email))))
     )
     passwordOpt match {
       case Some(password) =>

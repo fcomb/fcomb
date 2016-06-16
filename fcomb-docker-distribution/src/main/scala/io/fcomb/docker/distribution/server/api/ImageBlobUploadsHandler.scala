@@ -246,7 +246,7 @@ object ImageBlobUploadsHandler {
                         } yield HttpResponse(StatusCodes.Created, headers)
                       } else {
                         val e = DistributionErrorResponse.from(DistributionError.DigestInvalid())
-                        Marshal(StatusCodes.BadRequest → e).to[HttpResponse]
+                        Marshal(StatusCodes.BadRequest -> e).to[HttpResponse]
                       }
                     }
                 }
