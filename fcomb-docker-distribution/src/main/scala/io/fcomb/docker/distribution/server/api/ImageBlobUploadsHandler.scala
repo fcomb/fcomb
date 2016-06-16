@@ -25,7 +25,7 @@ import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.AuthenticationDirectives._
-import io.fcomb.docker.distribution.server.CommonDirectives._
+import io.fcomb.server.CommonDirectives._
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFile

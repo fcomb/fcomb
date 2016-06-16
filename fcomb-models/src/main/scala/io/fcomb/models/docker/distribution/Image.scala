@@ -29,7 +29,7 @@ object ImageVisibilityKind extends Enum[ImageVisibilityKind] {
 }
 
 final case class Image(
-    id: Option[Long] = None,
+    id: Option[Long],
     name: String,
     slug: String,
     ownerId: Long,
@@ -41,8 +41,6 @@ final case class Image(
 )
     extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
-
-  def userId = ???
 }
 
 object Image {
@@ -52,4 +50,10 @@ object Image {
 
 final case class DistributionImageCatalog(
     repositories: Seq[String]
+)
+
+final case class ImageCreateRequest(
+    name: String,
+    visibilityKind: ImageVisibilityKind,
+    description: Option[String]
 )

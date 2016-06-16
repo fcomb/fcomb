@@ -18,14 +18,51 @@ package io.fcomb.server.api.user
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.model.headers.Location
+import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.circe.java8.time._
+import io.fcomb.models.docker.distribution.ImageCreateRequest
+import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.api.{apiVersion, UserHandler}
+import scala.collection.immutable
 
 object RepositoriesHandler {
   val pathPrefix = "repositories"
 
-  def create =
-    complete("test")
+  lazy val fullPrefix = s"/$apiVersion/${UserHandler.pathPrefix}/$pathPrefix/"
+
+  def create = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        entity(as[ImageCreateRequest]) { req =>
+          onSuccess(ImagesRepo.createByRequest(req, user)) {
+            case Validated.Valid(res) =>
+              val uri     = fullPrefix + res.getId.toString
+              val headers = immutable.Seq(Location(uri))
+              respondWithHeaders(headers) {
+                complete((StatusCodes.Created, res))
+              }
+            case Validated.Invalid(e) =>
+              ??? // TODO
+          }
+        }
+      }
+    }
+  }
+
+  def index = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        extractPagination { pg =>
+          onSuccess(ImagesRepo.findByUserOwnerWithPagination(user.getId, pg)) { pd =>
+            completePagination(pd)
+          }
+        }
+      }
+    }
+  }
 }

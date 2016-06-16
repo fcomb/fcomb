@@ -14,20 +14,8 @@
  * limitations under the License.
  */
 
-package io.fcomb.docker.distribution.server
+package io.fcomb.server
 
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model._
-
-trait CommonDirectives {
-  @inline
-  def completeWithStatus(status: StatusCode): Route =
-    complete(HttpResponse(status))
-
-  @inline
-  def completeNotFound(): Route =
-    completeWithStatus(StatusCodes.NotFound)
+package object api {
+  final val apiVersion = "v1"
 }
-
-object CommonDirectives extends CommonDirectives

@@ -277,7 +277,7 @@ lazy val root = project.in(file("."))
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion,
-      "com.lihaoyi"       %  "ammonite-repl"          % "0.6.1" % "test" cross CrossVersion.full,
+      "com.lihaoyi"       %  "ammonite-repl"          % "0.6.2" % "test" cross CrossVersion.full,
       "ch.qos.logback"    %  "logback-classic"        % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",

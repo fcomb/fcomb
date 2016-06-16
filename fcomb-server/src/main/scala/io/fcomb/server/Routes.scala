@@ -23,8 +23,6 @@ import io.fcomb.server.api._
 import io.fcomb.server.headers._
 
 object Routes {
-  val apiVersion = "v1"
-
   private val pongJsonResponse = HttpResponse(
     status = StatusCodes.OK,
     entity = HttpEntity(
@@ -39,13 +37,14 @@ object Routes {
       respondWithDefaultHeaders(defaultHeaders) {
         pathPrefix(apiVersion) {
           pathPrefix(UserHandler.pathPrefix) {
-            pathPrefix(user.RepositoriesHandler.pathPrefix) {
-              pathEnd {
-                post(user.RepositoriesHandler.create)
-              }
-            } ~
             pathEnd {
               get(UserHandler.current)
+            } ~
+            pathPrefix(user.RepositoriesHandler.pathPrefix) {
+              pathEnd {
+                get(user.RepositoriesHandler.index) ~
+                post(user.RepositoriesHandler.create)
+              }
             }
           } ~
           pathPrefix(UsersHandler.pathPrefix) {
