@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend
+package io.fcomb.frontend.api
 
-import io.fcomb.frontend.components._
-import io.fcomb.frontend.styles._
-import org.scalajs.dom.document
-import scala.scalajs.js.JSApp
-import scalacss.Defaults._
-import scalacss.ScalaCssReact._
-import scalacss.mutable.GlobalRegistry
+import upickle.default._
 
-object Main extends JSApp {
-  def main(): Unit = {
-    GlobalRegistry.register(Global)
-    GlobalRegistry.addToDocumentOnRegistration()
+// TODO: fcomb-rpc project for shared case classes
 
-    SignInComponent.component().render(document.getElementById("app"))
-  }
+final case class Session(token: String)
+
+final case class SessionCreateRequest(email: String, password: String)
+
+object Formats {
+  final implicit val sessionPickler: Writer[Session] = macroW[Session]
+  final implicit val sessionCreateRequestPickler: Writer[SessionCreateRequest] =
+    macroW[SessionCreateRequest]
 }

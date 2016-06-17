@@ -14,21 +14,27 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend
+package io.fcomb.frontend.styles
 
-import io.fcomb.frontend.components._
-import io.fcomb.frontend.styles._
-import org.scalajs.dom.document
-import scala.scalajs.js.JSApp
 import scalacss.Defaults._
-import scalacss.ScalaCssReact._
-import scalacss.mutable.GlobalRegistry
 
-object Main extends JSApp {
-  def main(): Unit = {
-    GlobalRegistry.register(Global)
-    GlobalRegistry.addToDocumentOnRegistration()
+object Global extends StyleSheet.Inline {
+  import dsl._
 
-    SignInComponent.component().render(document.getElementById("app"))
-  }
+  val button = style(
+    addClassNames("btn", "btn-default")
+  )
+
+  val app = style(display.flex, flexDirection.column, listStyle := "none", padding.`0`)
+
+  val menuItem = styleF.bool(
+    selected =>
+      styleS(
+        lineHeight(48.px),
+        padding :=! "0 25px",
+        cursor.pointer,
+        textDecoration := "none"
+    ))
+
+  val content = style(display.flex, padding(30.px), flexDirection.column, alignItems.center)
 }

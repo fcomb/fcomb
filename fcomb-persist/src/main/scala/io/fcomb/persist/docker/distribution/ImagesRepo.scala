@@ -94,7 +94,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
     }.map(identity)
   }
 
-  // TODO: replace these join's by union's ???
+  // TODO: rewrite these join's by readable union's
   private def availableScope(userId: Rep[Long]) = {
     table
       .joinLeft(PermissionsRepo.table)

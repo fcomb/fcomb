@@ -16,19 +16,9 @@
 
 package io.fcomb.frontend
 
-import io.fcomb.frontend.components._
-import io.fcomb.frontend.styles._
-import org.scalajs.dom.document
-import scala.scalajs.js.JSApp
-import scalacss.Defaults._
-import scalacss.ScalaCssReact._
-import scalacss.mutable.GlobalRegistry
+sealed trait Route
 
-object Main extends JSApp {
-  def main(): Unit = {
-    GlobalRegistry.register(Global)
-    GlobalRegistry.addToDocumentOnRegistration()
-
-    SignInComponent.component().render(document.getElementById("app"))
-  }
+object Route {
+  final case object SignIn extends Route
+  final case object SignUp extends Route
 }
