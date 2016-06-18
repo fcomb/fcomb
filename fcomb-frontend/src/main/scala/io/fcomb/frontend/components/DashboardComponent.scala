@@ -18,23 +18,22 @@ package io.fcomb.frontend.components
 
 import io.fcomb.frontend.Route
 import japgolly.scalajs.react._
-import japgolly.scalajs.react.extra.router._
-import org.scalajs.dom.window
+import japgolly.scalajs.react.extra.router.RouterCtl
+import japgolly.scalajs.react.vdom.prefix_<^._
 
-object RouterComponent {
-  val baseUrl = BaseUrl(window.location.href.takeWhile(_ != '#'))
+object DashboardComponent {
+  final case class State()
 
-  val routerConfig: RouterConfig[Route] = RouterConfigDsl[Route].buildConfig { dsl =>
-    import dsl._
-
-    val routes =
-      trimSlashes | staticRoute(root, Route.SignIn) ~> renderR(ctl => SignInComponent.apply(ctl))
-
-    routes.notFound(redirectToPage(Route.SignIn)(Redirect.Replace))
+  final case class Backend($ : BackendScope[RouterCtl[Route], State]) {
+    def render(ctl: RouterCtl[Route], state: State) = {
+      <.h1("dashboard")
+    }
   }
 
-  private val component = Router(baseUrl, routerConfig.logToConsole)
+  private val component = ReactComponentB[RouterCtl[Route]]("DashboardComponent")
+    .initialState(State())
+    .renderBackend[Backend]
+    .build
 
-  def apply(): ReactComponentU[Unit, Resolution[Route], Any, TopNode] =
-    component.apply()
+  def apply(ctl: RouterCtl[Route]) = component(ctl)
 }

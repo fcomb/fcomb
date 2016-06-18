@@ -14,13 +14,22 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend
+package io.fcomb.frontend.components.auth
 
-sealed trait Route
+import io.fcomb.frontend.Route
+import japgolly.scalajs.react._
+import japgolly.scalajs.react.extra.router.RouterCtl
+import japgolly.scalajs.react.vdom.prefix_<^._
 
-object Route {
-  final case object Dashboard extends Route
-  final case object SignIn    extends Route
-  final case object SignUp    extends Route
-  final case object SignOut   extends Route
+object SignOutComponent {
+  final case class Backend($ : BackendScope[RouterCtl[Route], Unit]) {
+    def render(ctl: RouterCtl[Route]) = {
+      <.h1("sign out...")
+    }
+  }
+
+  private val component =
+    ReactComponentB[RouterCtl[Route]]("SignOutComponent").renderBackend[Backend].build
+
+  def apply(ctl: RouterCtl[Route]) = component(ctl)
 }

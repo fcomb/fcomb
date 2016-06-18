@@ -14,13 +14,23 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend
+package io.fcomb.frontend.services
 
-sealed trait Route
+import org.scalajs.dom.window
+import scala.util.Try
 
-object Route {
-  final case object Dashboard extends Route
-  final case object SignIn    extends Route
-  final case object SignUp    extends Route
-  final case object SignOut   extends Route
+object AuthService {
+  def setToken(token: String): Unit = {
+    window.localStorage.setItem(sessionKey, token)
+  }
+
+  def getToken(): Option[String] = {
+    Try(window.localStorage.getItem(sessionKey)).toOption
+  }
+
+  def removeToken(): Unit = {
+    window.localStorage.removeItem(sessionKey)
+  }
+
+  private val sessionKey = "sessionToken"
 }

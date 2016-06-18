@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components
+package io.fcomb.frontend.components.auth
 
 import cats.data.Xor
 import io.fcomb.frontend.Route
 import io.fcomb.frontend.api._, Formats._
+import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.dispatcher.actions.Authenticated
 import io.fcomb.frontend.styles._
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import org.scalajs.dom.window
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
 
@@ -33,7 +34,7 @@ object SignInComponent {
   def getInitialState = State("i@fcomb.io", "qwerty", false)
 
   final case class Backend($ : BackendScope[RouterCtl[Route], State]) {
-    def authenticate(e: ReactEventH): Callback = {
+    def authenticate(ctl: RouterCtl[Route]): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
@@ -46,14 +47,15 @@ object SignInComponent {
           resFut.foreach {
             case Xor.Right(session) =>
               println(s"session: $session")
-              window.localStorage.setItem(sessionKey, session.token)
+              AppCircuit.dispatch(Authenticated(session.token))
             case Xor.Left(e) => println(s"error: $e")
           }
           $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
             Callback.future {
               resFut.map {
-                case Xor.Right(_) => $.setState(getInitialState)
-                case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
+                case Xor.Right(_) =>
+                  $.setState(getInitialState) >> ctl.set(Route.Dashboard)
+                case Xor.Left(e) => $.setState(state.copy(isFormDisabled = false))
               }.recover {
                 case _ => $.setState(state.copy(isFormDisabled = false))
               }
@@ -63,8 +65,8 @@ object SignInComponent {
       }
     }
 
-    def handleOnSubmit(e: ReactEventH): Callback = {
-      e.preventDefaultCB >> authenticate(e)
+    def handleOnSubmit(ctl: RouterCtl[Route])(e: ReactEventH): Callback = {
+      e.preventDefaultCB >> authenticate(ctl)
     }
 
     def updateEmail(e: ReactEventI): Callback = {
@@ -79,8 +81,7 @@ object SignInComponent {
 
     def render(ctl: RouterCtl[Route], state: State) = {
       <.div(Global.app,
-            getToken().map(token => <.h4(s"token: $token")),
-            <.form(^.onSubmit ==> handleOnSubmit,
+            <.form(^.onSubmit ==> handleOnSubmit(ctl),
                    ^.disabled := state.isFormDisabled,
                    <.label(^.`for` := "email", "Email"),
                    <.input.email(^.id := "email",
@@ -104,13 +105,6 @@ object SignInComponent {
                    <.input.submit(^.tabIndex := 3, ^.value := "Auth")))
     }
   }
-
-  def getToken(): Option[String] = {
-    val key = window.localStorage.getItem(sessionKey)
-    if (key.isEmpty) None else Some(key)
-  }
-
-  private val sessionKey = "sessionToken"
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignInComponent")
     .initialState(getInitialState)
