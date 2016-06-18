@@ -20,7 +20,17 @@ import diode.Circuit
 import diode.react.ReactConnector
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
-  protected def actionHandler = ???
+  import diode._
+  val treeHandler = new ActionHandler(zoomRW(_.session)((m, v) => m.copy(session = v))) {
+    override def handle = {
+      case actions.Initialize =>
+        noChange
+      case actions.Authenticated(session) =>
+        updated(Some(session))
+    }
+  }
+
+  protected def actionHandler = composeHandlers(treeHandler)
 
   protected def initialModel = RootModel(session = None)
 

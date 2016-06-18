@@ -31,6 +31,10 @@ lazy val commonSettings =
   reformatOnCompileSettings ++
     Seq(
       resolvers ++= Seq(
+        "Typesafe Releases" at "http://repo.typesafe.com/typesafe/maven-releases/",
+        Resolver.jcenterRepo,
+        Resolver.sonatypeRepo("releases"),
+        Resolver.sonatypeRepo("snapshots"),
         Resolver.bintrayRepo("fcomb", "maven"),
         Resolver.bintrayRepo("etaty", "maven")
       ),
@@ -256,7 +260,7 @@ lazy val frontend = project.in(file("fcomb-frontend"))
       "com.lihaoyi"                                    %%% "upickle"     % "0.4.1",
       "org.scala-js"                                   %%% "scalajs-dom" % "0.9.1",
       "org.typelevel"                                  %%% "cats"        % catsVersion,
-      "me.chrons"                                      %%% "diode-react" % "0.5.2"
+      "me.chrons"                                      %%% "diode-react" % "0.6.0-SNAPSHOT"
     ),
     scalaJSUseRhino in Global := false,
     skip in packageJSDependencies := false,

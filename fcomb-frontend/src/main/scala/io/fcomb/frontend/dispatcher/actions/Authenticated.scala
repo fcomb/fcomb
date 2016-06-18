@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend
+package io.fcomb.frontend.dispatcher.actions
 
-sealed trait Route
+import diode.Action
 
-object Route {
-  final case object Dashboard extends Route
-  final case object SignIn    extends Route
-  final case object SignUp    extends Route
-}
+final case class Authenticated(session: String) extends Action

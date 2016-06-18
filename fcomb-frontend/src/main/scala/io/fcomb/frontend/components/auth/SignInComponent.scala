@@ -17,9 +17,11 @@
 package io.fcomb.frontend.components
 
 import cats.data.Xor
+import io.fcomb.frontend.Route
 import io.fcomb.frontend.api._, Formats._
 import io.fcomb.frontend.styles._
 import japgolly.scalajs.react._
+import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import org.scalajs.dom.window
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -30,7 +32,7 @@ object SignInComponent {
 
   def getInitialState = State("i@fcomb.io", "qwerty", false)
 
-  final case class Backend($ : BackendScope[Unit, State]) {
+  final case class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def authenticate(e: ReactEventH): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
@@ -75,7 +77,7 @@ object SignInComponent {
       $.modState(_.copy(password = value))
     }
 
-    def render(state: State) = {
+    def render(ctl: RouterCtl[Route], state: State) = {
       <.div(Global.app,
             getToken().map(token => <.h4(s"token: $token")),
             <.form(^.onSubmit ==> handleOnSubmit,
@@ -86,16 +88,20 @@ object SignInComponent {
                                  ^.autoComplete := "home email",
                                  ^.autoFocus := true,
                                  ^.required := true,
+                                 ^.tabIndex := 1,
                                  ^.value := state.email,
                                  ^.onChange ==> updateEmail),
+                   <.br,
                    <.label(^.`for` := "password", "Password"),
                    <.input.password(^.id := "password",
                                     ^.name := "password",
                                     ^.autoComplete := "password",
                                     ^.required := true,
+                                    ^.tabIndex := 2,
                                     ^.value := state.password,
                                     ^.onChange ==> updatePassword),
-                   <.input.submit(^.value := "Auth")))
+                   <.br,
+                   <.input.submit(^.tabIndex := 3, ^.value := "Auth")))
     }
   }
 
@@ -106,8 +112,10 @@ object SignInComponent {
 
   private val sessionKey = "sessionToken"
 
-  val component = ReactComponentB[Unit]("SignInComponent")
+  private val component = ReactComponentB[RouterCtl[Route]]("SignInComponent")
     .initialState(getInitialState)
     .renderBackend[Backend]
     .build
+
+  def apply(ctl: RouterCtl[Route]) = component(ctl)
 }

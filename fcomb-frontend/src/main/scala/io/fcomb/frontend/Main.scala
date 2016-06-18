@@ -17,18 +17,35 @@
 package io.fcomb.frontend
 
 import io.fcomb.frontend.components._
+import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.dispatcher.actions.Initialize
 import io.fcomb.frontend.styles._
-import org.scalajs.dom.document
+import japgolly.scalajs.react._
+import japgolly.scalajs.react.extra.router._
+import org.scalajs.dom.{document, window}
 import scala.scalajs.js.JSApp
 import scalacss.Defaults._
 import scalacss.ScalaCssReact._
 import scalacss.mutable.GlobalRegistry
 
 object Main extends JSApp {
+  val baseUrl = BaseUrl(window.location.href.takeWhile(_ != '#'))
+
+  val routerConfig: RouterConfig[Route] = RouterConfigDsl[Route].buildConfig { dsl =>
+    import dsl._
+
+    (trimSlashes | staticRoute(root, Route.SignIn) ~> renderR(ctl ⇒ SignInComponent.apply(ctl)))
+      .notFound(redirectToPage(Route.SignIn)(Redirect.Replace))
+  }
+
+  val router: ReactComponentU[Unit, Resolution[Route], Any, TopNode] =
+    Router(baseUrl, routerConfig.logToConsole).apply()
+
   def main(): Unit = {
     GlobalRegistry.register(Global)
     GlobalRegistry.addToDocumentOnRegistration()
 
-    SignInComponent.component().render(document.getElementById("app"))
+    AppCircuit.dispatch(Initialize)
+    ReactDOM.render(router, document.getElementById("app"))
   }
 }
