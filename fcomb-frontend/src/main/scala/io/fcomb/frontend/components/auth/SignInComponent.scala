@@ -18,10 +18,9 @@ package io.fcomb.frontend.components.auth
 
 import cats.data.Xor
 import io.fcomb.frontend.Route
-import io.fcomb.frontend.api._, Formats._
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.frontend.dispatcher.actions.Authenticated
-import io.fcomb.frontend.styles._
+import io.fcomb.frontend.services.AuthService
+import io.fcomb.frontend.styles.Global
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -31,34 +30,22 @@ import scalacss.ScalaCssReact._
 object SignInComponent {
   final case class State(email: String, password: String, isFormDisabled: Boolean)
 
-  def getInitialState = State("i@fcomb.io", "qwerty", false)
-
   final case class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def authenticate(ctl: RouterCtl[Route]): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
-          val req = SessionCreateRequest(
-            email = state.email.trim(),
-            password = state.password.trim()
-          )
-          val resFut =
-            Rpc.callWith[SessionCreateRequest, Session](RpcMethod.POST, "/api/v1/sessions", req)
-          resFut.foreach {
-            case Xor.Right(session) =>
-              println(s"session: $session")
-              AppCircuit.dispatch(Authenticated(session.token))
-            case Xor.Left(e) => println(s"error: $e")
-          }
           $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
             Callback.future {
-              resFut.map {
-                case Xor.Right(_) =>
-                  $.setState(getInitialState) >> ctl.set(Route.Dashboard)
-                case Xor.Left(e) => $.setState(state.copy(isFormDisabled = false))
-              }.recover {
-                case _ => $.setState(state.copy(isFormDisabled = false))
-              }
+              AuthService
+                .authentication(state.email, state.password)
+                .map {
+                  case Xor.Right(_) => ctl.set(Route.Dashboard)
+                  case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
+                }
+                .recover {
+                  case _ => $.setState(state.copy(isFormDisabled = false))
+                }
             }
           }
         }
@@ -81,6 +68,9 @@ object SignInComponent {
 
     def render(ctl: RouterCtl[Route], state: State) = {
       <.div(Global.app,
+            <.h1("Sign In"),
+            <.span("or"),
+            <.div(ctl.link(Route.SignUp)("Sign Up")),
             <.form(^.onSubmit ==> handleOnSubmit(ctl),
                    ^.disabled := state.isFormDisabled,
                    <.label(^.`for` := "email", "Email"),
@@ -102,12 +92,12 @@ object SignInComponent {
                                     ^.value := state.password,
                                     ^.onChange ==> updatePassword),
                    <.br,
-                   <.input.submit(^.tabIndex := 3, ^.value := "Auth")))
+                   <.input.submit(^.tabIndex := 3, ^.value := "Authenticate")))
     }
   }
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignInComponent")
-    .initialState(getInitialState)
+    .initialState(State("", "", false))
     .renderBackend[Backend]
     .componentDidMount { $ ⇒
       if (AppCircuit.session.nonEmpty) $.props.set(Route.Dashboard).delayMs(1).void

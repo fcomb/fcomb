@@ -31,7 +31,7 @@ object SessionsHandler {
     extractExecutionContext { implicit ec =>
       entity(as[SessionCreateRequest]) { req =>
         onSuccess(SessionsRepo.create(req)) {
-          case Xor.Right(s) => complete((StatusCodes.OK, s))
+          case Xor.Right(s) => complete((StatusCodes.Created, s))
           case Xor.Left(e)  => complete((StatusCodes.BadRequest, e))
         }
       }

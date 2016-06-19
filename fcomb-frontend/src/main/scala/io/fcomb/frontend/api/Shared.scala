@@ -24,8 +24,17 @@ final case class Session(token: String)
 
 final case class SessionCreateRequest(email: String, password: String)
 
+final case class UserSignUpRequest(
+    email: String,
+    password: String,
+    username: String,
+    fullName: String
+)
+
 object Formats {
   final implicit val sessionPickler: Writer[Session] = macroW[Session]
   final implicit val sessionCreateRequestPickler: Writer[SessionCreateRequest] =
     macroW[SessionCreateRequest]
+  final implicit val userSignUpRequestPickler: Writer[UserSignUpRequest] =
+    macroW[UserSignUpRequest]
 }

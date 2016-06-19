@@ -44,7 +44,12 @@ object Rpc {
     val hm = if (headers.isEmpty) defaultHeaders else headers ++ defaultHeaders
     Ajax
       .apply(method.toString, url, writeJs(req), timeout, hm, withCredentials = false, "")
-      .map(res => Xor.right(readJs[U](readToJs(res.responseText))))
+      .map { res =>
+        val json =
+          if (res.responseText.nonEmpty) readToJs(res.responseText)
+          else upickle.Js.Null
+        Xor.right(readJs[U](json))
+      }
       .recover {
         case e =>
           val msg = s"${e.toString}: ${e.getMessage}"

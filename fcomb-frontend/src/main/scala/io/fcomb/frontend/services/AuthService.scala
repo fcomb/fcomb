@@ -17,9 +17,26 @@
 package io.fcomb.frontend.services
 
 import org.scalajs.dom.window
+import cats.data.Xor
+import io.fcomb.frontend.api._, Formats._
+import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.dispatcher.actions.Authenticated
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Try, Success}
 
 object AuthService {
+  def authentication(email: String, password: String)(
+      implicit ec: ExecutionContext): Future[Xor[String, Unit]] = {
+    val req = SessionCreateRequest(
+      email = email.trim(),
+      password = password.trim()
+    )
+    Rpc.callWith[SessionCreateRequest, Session](RpcMethod.POST, "/api/v1/sessions", req).map {
+      case Xor.Right(session) => Xor.right(AppCircuit.dispatch(Authenticated(session.token)))
+      case res @ Xor.Left(e)  => res
+    }
+  }
+
   def setToken(token: String): Unit = {
     window.localStorage.setItem(sessionKey, token)
   }

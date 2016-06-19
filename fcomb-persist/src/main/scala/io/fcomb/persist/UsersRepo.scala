@@ -64,10 +64,14 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
   }
 
   def create(req: UserSignUpRequest)(implicit ec: ExecutionContext): Future[ValidationModel] = {
+    val fullName = req.fullName match {
+      case res @ Some(s) if s.nonEmpty => res
+      case _                           => None
+    }
     create(
       email = req.email,
       username = req.username,
-      fullName = req.fullName,
+      fullName = fullName,
       password = req.password
     )
   }
