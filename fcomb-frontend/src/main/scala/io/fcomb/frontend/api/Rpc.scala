@@ -19,6 +19,7 @@ package io.fcomb.frontend.api
 import cats.data.Xor
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.window
+import io.fcomb.frontend.dispatcher.AppCircuit
 import scala.concurrent.{ExecutionContext, Future}
 import upickle.default.{Reader, Writer, write => writeJs, readJs}
 import upickle.json.{read => readToJs}
@@ -34,15 +35,13 @@ object RpcMethod {
 }
 
 object Rpc {
-  private val contentTypeHeader = ("Content-Type" -> "application/json")
-
-  def call[T, U](method: RpcMethod,
-                 url: String,
-                 req: T,
-                 headers: Map[String, String] = Map.empty,
-                 timeout: Int = 0)(
+  def callWith[T, U](method: RpcMethod,
+                     url: String,
+                     req: T,
+                     headers: Map[String, String] = Map.empty,
+                     timeout: Int = 0)(
       implicit ec: ExecutionContext, wt: Writer[T], ru: Reader[U]): Future[Xor[String, U]] = {
-    val hm = headers + contentTypeHeader
+    val hm = if (headers.isEmpty) defaultHeaders else headers ++ defaultHeaders
     Ajax
       .apply(method.toString, url, writeJs(req), timeout, hm, withCredentials = false, "")
       .map(res => Xor.right(readJs[U](readToJs(res.responseText))))
@@ -52,5 +51,23 @@ object Rpc {
           window.console.error(msg)
           Xor.left(msg)
       }
+  }
+
+  def call[U](
+      method: RpcMethod,
+      url: String,
+      headers: Map[String, String] = Map.empty,
+      timeout: Int = 0)(implicit ec: ExecutionContext, ru: Reader[U]): Future[Xor[String, U]] = {
+    callWith(method, url, (), headers, timeout)
+  }
+
+  private val contentTypeHeader = Map("Content-Type" -> "application/json")
+
+  private def defaultHeaders: Map[String, String] = {
+    AppCircuit.session match {
+      case Some(sessionToken) =>
+        contentTypeHeader + (("Authentication", s"Bearer $sessionToken"))
+      case None => contentTypeHeader
+    }
   }
 }

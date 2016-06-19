@@ -32,6 +32,9 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
       case actions.Authenticated(token) =>
         AuthService.setToken(token)
         updated(Some(token))
+      case actions.LogOut =>
+        AuthService.removeToken()
+        updated(None)
     }
   }
 

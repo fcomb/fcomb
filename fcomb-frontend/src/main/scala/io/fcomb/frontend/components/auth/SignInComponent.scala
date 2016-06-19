@@ -43,7 +43,7 @@ object SignInComponent {
             password = state.password.trim()
           )
           val resFut =
-            Rpc.call[SessionCreateRequest, Session](RpcMethod.POST, "/api/v1/sessions", req)
+            Rpc.callWith[SessionCreateRequest, Session](RpcMethod.POST, "/api/v1/sessions", req)
           resFut.foreach {
             case Xor.Right(session) =>
               println(s"session: $session")
@@ -109,6 +109,10 @@ object SignInComponent {
   private val component = ReactComponentB[RouterCtl[Route]]("SignInComponent")
     .initialState(getInitialState)
     .renderBackend[Backend]
+    .componentDidMount { $ ⇒
+      if (AppCircuit.session.nonEmpty) $.props.set(Route.Dashboard).delayMs(1).void
+      else Callback.empty
+    }
     .build
 
   def apply(ctl: RouterCtl[Route]) = component(ctl)

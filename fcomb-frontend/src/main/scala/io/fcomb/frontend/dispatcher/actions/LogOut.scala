@@ -14,26 +14,8 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.services
+package io.fcomb.frontend.dispatcher.actions
 
-import org.scalajs.dom.window
-import scala.util.{Try, Success}
+import diode.Action
 
-object AuthService {
-  def setToken(token: String): Unit = {
-    window.localStorage.setItem(sessionKey, token)
-  }
-
-  def getToken(): Option[String] = {
-    Try(window.localStorage.getItem(sessionKey)) match {
-      case Success(s) if !s.eq(null) && s.nonEmpty => Some(s)
-      case _                                       => None
-    }
-  }
-
-  def removeToken(): Unit = {
-    window.localStorage.removeItem(sessionKey)
-  }
-
-  private val sessionKey = "sessionToken"
-}
+final case object LogOut extends Action

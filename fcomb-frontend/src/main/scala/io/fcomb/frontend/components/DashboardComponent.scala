@@ -16,24 +16,33 @@
 
 package io.fcomb.frontend.components
 
+import diode.react.ModelProxy
 import io.fcomb.frontend.Route
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 
 object DashboardComponent {
-  final case class State()
+  final case class SessionState(ctl: RouterCtl[Route], session: ModelProxy[Option[String]])
 
-  final case class Backend($ : BackendScope[RouterCtl[Route], State]) {
-    def render(ctl: RouterCtl[Route], state: State) = {
-      <.h1("dashboard")
+  final case class Backend($ : BackendScope[SessionState, Unit]) {
+    def render(sessionState: SessionState) = {
+      val ctl = sessionState.ctl
+      <.div(<.h1("dashboard"),
+            <.div(ctl.link(Route.SignIn)("Sign In")),
+            <.div(ctl.link(Route.SignUp)("Sign Up")),
+            <.div(ctl.link(Route.SignOut)("Sign Out")))
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[Route]]("DashboardComponent")
-    .initialState(State())
+  private val component = ReactComponentB[SessionState]("DashboardComponent")
     .renderBackend[Backend]
+    .componentDidMount { $ ⇒
+      if ($.props.session().isEmpty) $.props.ctl.set(Route.SignIn).delayMs(1).void
+      else Callback.empty
+    }
     .build
 
-  def apply(ctl: RouterCtl[Route]) = component(ctl)
+  def apply(ctl: RouterCtl[Route], session: ModelProxy[Option[String]]) =
+    component(SessionState(ctl, session))
 }

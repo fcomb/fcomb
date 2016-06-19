@@ -17,6 +17,7 @@
 package io.fcomb.frontend.components.auth
 
 import io.fcomb.frontend.Route
+import io.fcomb.frontend.dispatcher.AppCircuit
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -36,6 +37,10 @@ object SignUpComponent {
   private val component = ReactComponentB[RouterCtl[Route]]("SignUpComponent")
     .initialState(getInitialState)
     .renderBackend[Backend]
+    .componentDidMount { $ ⇒
+      if (AppCircuit.session.nonEmpty) $.props.set(Route.Dashboard).delayMs(1).void
+      else Callback.empty
+    }
     .build
 
   def apply(ctl: RouterCtl[Route]) = component(ctl)
