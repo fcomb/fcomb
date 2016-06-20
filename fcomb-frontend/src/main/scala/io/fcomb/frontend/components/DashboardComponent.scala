@@ -18,9 +18,12 @@ package io.fcomb.frontend.components
 
 import diode.react.ModelProxy
 import io.fcomb.frontend.Route
+import io.fcomb.frontend.styles.Global
+import io.fcomb.frontend.components.dashboard.RepositoriesComponent
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import scalacss.ScalaCssReact._
 
 object DashboardComponent {
   final case class SessionState(ctl: RouterCtl[Route], session: ModelProxy[Option[String]])
@@ -28,10 +31,7 @@ object DashboardComponent {
   final case class Backend($ : BackendScope[SessionState, Unit]) {
     def render(sessionState: SessionState) = {
       val ctl = sessionState.ctl
-      <.div(<.h1("dashboard"),
-            <.div(ctl.link(Route.SignIn)("Sign In")),
-            <.div(ctl.link(Route.SignUp)("Sign Up")),
-            <.div(ctl.link(Route.SignOut)("Sign Out")))
+      <.div(Global.app, <.h1("Dashboard"), <.div(ctl.link(Route.SignOut)("Sign Out")))
     }
   }
 

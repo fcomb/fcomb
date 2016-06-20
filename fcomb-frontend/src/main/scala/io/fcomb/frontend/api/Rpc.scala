@@ -19,6 +19,7 @@ package io.fcomb.frontend.api
 import cats.data.Xor
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.window
+import io.fcomb.frontend.dispatcher.actions.LogOut
 import io.fcomb.frontend.dispatcher.AppCircuit
 import scala.concurrent.{ExecutionContext, Future}
 import upickle.default.{Reader, Writer, write => writeJs, readJs}
@@ -45,10 +46,15 @@ object Rpc {
     Ajax
       .apply(method.toString, url, writeJs(req), timeout, hm, withCredentials = false, "")
       .map { res =>
-        val json =
-          if (res.responseText.nonEmpty) readToJs(res.responseText)
-          else upickle.Js.Null
-        Xor.right(readJs[U](json))
+        if (res.status == 401) {
+          AppCircuit.dispatch(LogOut)
+          Xor.left("Unauthorized")
+        } else {
+          val json =
+            if (res.responseText.nonEmpty) readToJs(res.responseText)
+            else upickle.Js.Null
+          Xor.right(readJs[U](json))
+        }
       }
       .recover {
         case e =>
