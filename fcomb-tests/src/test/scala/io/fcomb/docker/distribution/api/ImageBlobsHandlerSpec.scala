@@ -25,7 +25,7 @@ import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFile
-import io.fcomb.json.docker.distribution.Formats._
+import io.fcomb.json.models.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures._

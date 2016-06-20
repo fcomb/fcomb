@@ -17,8 +17,9 @@
 package io.fcomb.persist
 
 import io.fcomb.Db.redis
-import io.fcomb.models.{Session, SessionCreateRequest, User}
+import io.fcomb.models.{Session, User}
 import io.fcomb.models.errors.{FailureResponse, ValidationException}
+import io.fcomb.rpc.SessionCreateRequest
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random

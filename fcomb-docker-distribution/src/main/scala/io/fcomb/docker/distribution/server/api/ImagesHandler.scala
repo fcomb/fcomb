@@ -31,7 +31,7 @@ import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.MediaTypes
 import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.json.docker.distribution.Formats._
+import io.fcomb.json.models.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}

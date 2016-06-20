@@ -19,7 +19,8 @@ package io.fcomb.persist
 import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.{User, UserSignUpRequest, UserUpdateRequest}
+import io.fcomb.models.User
+import io.fcomb.rpc.{UserSignUpRequest, UserUpdateRequest}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -86,7 +87,7 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
         updatedAt = Some(ZonedDateTime.now())
       ))
 
-  private val updatePasswordCompiled = Compiled { (userId: Rep[Long]) =>
+  private lazy val updatePasswordCompiled = Compiled { (userId: Rep[Long]) =>
     table.filter(_.id === userId).map { t =>
       (t.passwordHash, t.updatedAt)
     }
@@ -116,14 +117,14 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
       validationErrorAsFuture("password", "doesn't match")
   }
 
-  private val findByEmailCompiled = Compiled { email: Rep[String] =>
+  private lazy val findByEmailCompiled = Compiled { email: Rep[String] =>
     table.filter(_.email === email).take(1)
   }
 
   def findByEmail(email: String) =
     db.run(findByEmailCompiled(email).result.headOption)
 
-  private val findByUsernameCompiled = Compiled { username: Rep[String] =>
+  private lazy val findByUsernameCompiled = Compiled { username: Rep[String] =>
     table.filter(_.username === username).take(1)
   }
 
@@ -142,11 +143,12 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
 
   import Validations._
 
-  private val uniqueUsernameCompiled = Compiled { (id: Rep[Option[Long]], username: Rep[String]) =>
-    notCurrentPkFilter(id).filter(_.username === username).exists
+  private lazy val uniqueUsernameCompiled = Compiled {
+    (id: Rep[Option[Long]], username: Rep[String]) =>
+      notCurrentPkFilter(id).filter(_.username === username).exists
   }
 
-  private val uniqueEmailCompiled = Compiled { (id: Rep[Option[Long]], email: Rep[String]) =>
+  private lazy val uniqueEmailCompiled = Compiled { (id: Rep[Option[Long]], email: Rep[String]) =>
     notCurrentPkFilter(id).filter(_.email === email).exists
   }
 

@@ -19,16 +19,16 @@ package io.fcomb.server.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
-import io.circe.generic.auto._
-import io.circe.java8.time._
+import io.fcomb.json.rpc.Formats.encodeUserProfileResponse
 import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.rpc.UserProfileHelpers
 
 object UserHandler {
   val servicePath = "user"
 
   def current = {
     authenticateUser { user =>
-      complete((StatusCodes.OK, user.toProfile))
+      complete((StatusCodes.OK, UserProfileHelpers.responseFrom(user)))
     }
   }
 

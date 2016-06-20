@@ -18,10 +18,12 @@ package io.fcomb.frontend.components.auth
 
 import cats.data.Xor
 import io.fcomb.frontend.Route
-import io.fcomb.frontend.api._, Formats._
+import io.fcomb.frontend.api.{Rpc, RpcMethod}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.services.AuthService
 import io.fcomb.frontend.styles.Global
+import io.fcomb.rpc.UserSignUpRequest
+import io.fcomb.json.rpc.Formats.encodeUserSignUpRequest
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -42,11 +44,15 @@ object SignUpComponent {
             Callback.future {
               val email    = state.email.trim()
               val password = state.password.trim()
+              val fullName = state.fullName.trim() match {
+                case s if s.nonEmpty => Some(s)
+                case _               => None
+              }
               val req = UserSignUpRequest(
                 email = email,
                 password = password,
                 username = state.username.trim(),
-                fullName = state.fullName
+                fullName = fullName
               )
               Rpc
                 .callWith[UserSignUpRequest, Unit](RpcMethod.POST, "/api/v1/users/sign_up", req)

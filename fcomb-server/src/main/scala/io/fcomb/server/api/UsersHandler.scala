@@ -22,7 +22,7 @@ import akka.http.scaladsl.server.Directives._
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
-import io.fcomb.models.UserSignUpRequest
+import io.fcomb.rpc.UserSignUpRequest
 import io.fcomb.persist.UsersRepo
 
 object UsersHandler {

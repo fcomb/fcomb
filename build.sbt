@@ -17,11 +17,11 @@ lazy val buildSettings = Seq(
 )
 
 val akkaVersion = "2.4.7"
-val akkaHttpCirceVersion = "1.6.0"
+val akkaHttpCirceVersion = "1.7.0"
 val bouncyCastleVersion = "1.53"
 val catsVersion = "0.6.0"
 val commonsVersion = "1.10"
-val circeVersion = "0.5.0-M1"
+val circeVersion = "0.5.0-M2"
 val enumeratumVersion = "1.4.4"
 val guavaVersion = "19.0"
 val slickVersion = "3.1.1"
@@ -105,14 +105,28 @@ lazy val utils = project.in(file("fcomb-utils"))
   ))
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val models = project.in(file("fcomb-models"))
+lazy val models = crossProject.in(file("fcomb-models"))
   .settings(moduleName := "models")
   .settings(allSettings:_*)
   .settings(libraryDependencies ++= Seq(
-    "com.beachape"      %% "enumeratum"   % enumeratumVersion,
+    "com.beachape" %%% "enumeratum" % enumeratumVersion
+  ))
+  .jvmSettings(libraryDependencies ++= Seq(
     "com.github.t3hnar" %% "scala-bcrypt" % "2.4"
   ))
   .enablePlugins(AutomateHeaderPlugin)
+
+lazy val modelsJVM = models.jvm
+lazy val modelsJS = models.js
+
+lazy val rpc = crossProject.in(file("fcomb-rpc"))
+  .settings(moduleName := "rpc")
+  .settings(allSettings:_*)
+  .enablePlugins(AutomateHeaderPlugin)
+  .dependsOn(models)
+
+lazy val rpcJVM = rpc.jvm
+lazy val rpcJS = rpc.js
 
 lazy val validations = project.in(file("fcomb-validations"))
   .settings(moduleName := "validations")
@@ -121,7 +135,7 @@ lazy val validations = project.in(file("fcomb-validations"))
     "com.typesafe.slick" %% "slick" % slickVersion // TODO: move DBIO validation into persist module
   ))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(models)
+  .dependsOn(modelsJVM)
 
 lazy val persist = project.in(file("fcomb-persist"))
   .settings(moduleName := "persist")
@@ -136,23 +150,31 @@ lazy val persist = project.in(file("fcomb-persist"))
     "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
-    "com.zaxxer"          %  "HikariCP"            % "2.4.5",
+    "com.zaxxer"          %  "HikariCP"            % "2.4.6",
     "com.etaty.rediscala" %% "rediscala"           % "1.5.0" // TODO: replace it by akka persistence
   ))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(models, utils, validations)
+  .dependsOn(modelsJVM, rpcJVM, utils, validations)
 
-lazy val json = project.in(file("fcomb-json"))
+lazy val json = crossProject.in(file("fcomb-json"))
   .settings(moduleName := "json")
   .settings(allSettings:_*)
   .settings(libraryDependencies ++= Seq(
-    "com.beachape" %% "enumeratum-circe" % enumeratumVersion,
-    "io.circe"     %% "circe-generic"    % circeVersion,
-    "io.circe"     %% "circe-parser"     % circeVersion,
-    "io.circe"     %% "circe-java8"      % circeVersion
+    "com.beachape" %%% "enumeratum-circe" % enumeratumVersion,
+    "io.circe"     %%% "circe-generic"    % circeVersion,
+    "io.circe"     %%% "circe-parser"     % circeVersion
+  ))
+  .jvmSettings(libraryDependencies ++= Seq(
+    "io.circe" %%% "circe-java8" % circeVersion
+  ))
+  .jsSettings(libraryDependencies ++= Seq(
+    "org.scala-js" %%% "scalajs-java-time" % "0.1.0"
   ))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(models)
+  .dependsOn(models, rpc)
+
+lazy val jsonJVM = json.jvm
+lazy val jsonJS = json.js
 
 lazy val crypto = project.in(file("fcomb-crypto"))
   .settings(moduleName := "crypto")
@@ -164,7 +186,7 @@ lazy val crypto = project.in(file("fcomb-crypto"))
     "org.bitbucket.b_c" %  "jose4j"         % "0.5.0"
   ))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(models)
+  .dependsOn(modelsJVM)
 
 lazy val templates = project.in(file("fcomb-templates"))
   .settings(moduleName := "templates")
@@ -192,7 +214,7 @@ lazy val server = project.in(file("fcomb-server"))
     "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion
   ))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(persist, utils, json, validations, services)
+  .dependsOn(persist, utils, jsonJVM, validations, services)
 
 lazy val dockerDistribution = project.in(file("fcomb-docker-distribution"))
   .settings(moduleName := "docker-distribution")
@@ -213,7 +235,7 @@ lazy val tests = project.in(file("fcomb-tests"))
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaVersion % "test",
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
       "org.scalacheck"     %% "scalacheck"        % "1.13.1" % "test",
-      "org.specs2"         %% "specs2-core"       % "3.8.3" % "test",
+      "org.specs2"         %% "specs2-core"       % "3.8.4" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.0-RC1" % "test",
       "com.ironcorelabs"   %% "cats-scalatest"    % "1.3.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test",
@@ -253,14 +275,14 @@ lazy val frontend = project.in(file("fcomb-frontend"))
     // },
     // compile in Compile <<= (compile in Compile).dependsOn(frontendBundleCreate),
     libraryDependencies ++= Seq(
-      "com.github.japgolly.scalacss"                   %%% "ext-react"   % "0.4.1",
-      "com.github.japgolly.scalajs-react"              %%% "extra"       % "0.11.1",
-      // "com.github.japgolly.scalajs-react"              %%% "ext-monocle" % "0.11.1",
-      // "com.github.chandu0101.scalajs-react-components" %%% "core"        % "0.4.1",
-      "com.lihaoyi"                                    %%% "upickle"     % "0.4.1",
-      "org.scala-js"                                   %%% "scalajs-dom" % "0.9.1",
-      "org.typelevel"                                  %%% "cats"        % catsVersion,
-      "me.chrons"                                      %%% "diode-react" % "1.0.0"
+      "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.4.1",
+      "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.1",
+      // "com.github.japgolly.scalajs-react"              %%% "ext-monocle"   % "0.11.1",
+      // "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.4.1",
+      "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
+      "org.typelevel"                                  %%% "cats"          % catsVersion,
+      "me.chrons"                                      %%% "diode-react"   % "1.0.0",
+      "io.circe"                                       %%% "circe-scalajs" % circeVersion
     ),
     scalaJSUseRhino in Global := false,
     skip in packageJSDependencies := false,
@@ -272,6 +294,7 @@ lazy val frontend = project.in(file("fcomb-frontend"))
       ((moduleName in fastOptJS).value + "-opt.js"))
   )
   .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
+  .dependsOn(modelsJS, rpcJS, jsonJS)
 
 lazy val root = project.in(file("."))
   .settings(allSettings:_*)

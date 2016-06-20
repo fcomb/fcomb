@@ -19,11 +19,12 @@ package io.fcomb.frontend.api
 import cats.data.Xor
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.window
+import scala.scalajs.js.JSON
 import io.fcomb.frontend.dispatcher.actions.LogOut
 import io.fcomb.frontend.dispatcher.AppCircuit
+import io.circe.{Encoder, Decoder}
+import io.circe.scalajs.decodeJs
 import scala.concurrent.{ExecutionContext, Future}
-import upickle.default.{Reader, Writer, write => writeJs, readJs}
-import upickle.json.{read => readToJs}
 
 sealed trait RpcMethod
 
@@ -40,36 +41,44 @@ object Rpc {
                      url: String,
                      req: T,
                      headers: Map[String, String] = Map.empty,
-                     timeout: Int = 0)(
-      implicit ec: ExecutionContext, wt: Writer[T], ru: Reader[U]): Future[Xor[String, U]] = {
-    val hm = if (headers.isEmpty) defaultHeaders else headers ++ defaultHeaders
+                     timeout: Int = 0)(implicit ec: ExecutionContext,
+                                       encoder: Encoder[T],
+                                       decoder: Decoder[U]): Future[Xor[String, U]] = {
+    val hm      = if (headers.isEmpty) defaultHeaders else headers ++ defaultHeaders
+    val reqBody = encoder.apply(req).noSpaces
     Ajax
-      .apply(method.toString, url, writeJs(req), timeout, hm, withCredentials = false, "")
+      .apply(method.toString, url, reqBody, timeout, hm, withCredentials = false, "")
       .map { res =>
         if (res.status == 401) {
           AppCircuit.dispatch(LogOut)
           Xor.left("Unauthorized")
         } else {
           val json =
-            if (res.responseText.nonEmpty) readToJs(res.responseText)
-            else upickle.Js.Null
-          Xor.right(readJs[U](json))
+            if (res.responseText.nonEmpty) res.responseText
+            else "null"
+          decodeJs[U](JSON.parse(json)) match {
+            case res @ Xor.Right(_) => res
+            case Xor.Left(e)        => handleThrowable(e)
+          }
         }
       }
       .recover {
-        case e =>
-          val msg = s"${e.toString}: ${e.getMessage}"
-          window.console.error(msg)
-          Xor.left(msg)
+        case e => handleThrowable(e)
       }
   }
 
-  def call[U](
-      method: RpcMethod,
-      url: String,
-      headers: Map[String, String] = Map.empty,
-      timeout: Int = 0)(implicit ec: ExecutionContext, ru: Reader[U]): Future[Xor[String, U]] = {
+  def call[U](method: RpcMethod,
+              url: String,
+              headers: Map[String, String] = Map.empty,
+              timeout: Int = 0)(
+      implicit ec: ExecutionContext, decoder: Decoder[U]): Future[Xor[String, U]] = {
     callWith(method, url, (), headers, timeout)
+  }
+
+  private def handleThrowable[E](e: Throwable): Xor[String, E] = {
+    val msg = s"${e.toString}: ${e.getMessage}"
+    window.console.error(msg)
+    Xor.left(msg)
   }
 
   private val contentTypeHeader = Map("Content-Type" -> "application/json")
@@ -77,7 +86,7 @@ object Rpc {
   private def defaultHeaders: Map[String, String] = {
     AppCircuit.session match {
       case Some(sessionToken) =>
-        contentTypeHeader + (("Authentication", s"Bearer $sessionToken"))
+        contentTypeHeader + (("Authorization", s"Bearer $sessionToken"))
       case None => contentTypeHeader
     }
   }

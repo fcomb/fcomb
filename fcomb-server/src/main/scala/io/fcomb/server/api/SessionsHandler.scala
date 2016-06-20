@@ -18,7 +18,7 @@ package io.fcomb.server.api
 
 import akka.http.scaladsl.model.StatusCodes
 import io.fcomb.persist.SessionsRepo
-import io.fcomb.models.SessionCreateRequest
+import io.fcomb.rpc.SessionCreateRequest
 import akka.http.scaladsl.server.Directives._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._

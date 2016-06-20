@@ -103,7 +103,7 @@ object Routes {
     // format: ON
 
     import de.heikoseeberger.akkahttpcirce.CirceSupport._
-    import io.fcomb.json.docker.distribution.Formats._
+    import io.fcomb.json.models.docker.distribution.Formats._
     import io.circe.generic.auto._
     import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 

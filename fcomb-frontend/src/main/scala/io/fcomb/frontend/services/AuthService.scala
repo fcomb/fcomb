@@ -18,9 +18,13 @@ package io.fcomb.frontend.services
 
 import org.scalajs.dom.window
 import cats.data.Xor
-import io.fcomb.frontend.api._, Formats._
+import io.fcomb.frontend.api.{Rpc, RpcMethod}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.dispatcher.actions.Authenticated
+import io.fcomb.models.Session
+import io.fcomb.rpc.SessionCreateRequest
+import io.fcomb.json.rpc.Formats.encodeSessionCreateRequest
+import io.fcomb.json.models.Formats.decodeSession
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Try, Success}
 

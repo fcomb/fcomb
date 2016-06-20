@@ -21,7 +21,7 @@ import io.fcomb.models.docker.distribution._
 import io.fcomb.persist.docker.distribution._
 import io.fcomb.Db.db
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
-import io.fcomb.json.docker.distribution.Formats._
+import io.fcomb.json.models.docker.distribution.Formats._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import io.circe.parser._

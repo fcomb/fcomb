@@ -28,7 +28,7 @@ import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.utils.BlobFile
-import io.fcomb.json.docker.distribution.Formats._
+import io.fcomb.json.models.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution._
