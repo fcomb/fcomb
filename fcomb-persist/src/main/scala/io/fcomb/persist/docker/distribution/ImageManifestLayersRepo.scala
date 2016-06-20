@@ -39,7 +39,7 @@ object ImageManifestLayersRepo extends PersistModel[ImageManifestLayer, ImageMan
     else table ++= layers.map(l => ImageManifestLayer(imageManifestId, l))
   }
 
-  val isBlobLinkedCompiled = Compiled { id: Rep[UUID] =>
+  lazy val isBlobLinkedCompiled = Compiled { id: Rep[UUID] =>
     table.filter(_.layerBlobId === id).exists
   }
 }

@@ -283,7 +283,7 @@ trait PersistModelWithUuidPk[
     extends PersistModelWithPk[T, Q] {
   lazy val tableWithPk = table.returning(table.map(_.id)).into((item, _) => item)
 
-  protected val findByPkCompiled = Compiled { id: Rep[UUID] =>
+  protected lazy val findByPkCompiled = Compiled { id: Rep[UUID] =>
     table.filter(_.id === id)
   }
 
@@ -302,7 +302,7 @@ trait PersistModelWithAutoLongPk[
   lazy val tableWithPk =
     table.returning(table.map(_.id)).into((item, id) => item.withPk(id.get).asInstanceOf[T])
 
-  protected val findByPkCompiled = Compiled { id: Rep[Long] =>
+  protected lazy val findByPkCompiled = Compiled { id: Rep[Long] =>
     table.filter(_.id === id)
   }
 

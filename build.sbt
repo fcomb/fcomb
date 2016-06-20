@@ -165,10 +165,7 @@ lazy val json = crossProject.in(file("fcomb-json"))
     "io.circe"     %%% "circe-parser"     % circeVersion
   ))
   .jvmSettings(libraryDependencies ++= Seq(
-    "io.circe" %%% "circe-java8" % circeVersion
-  ))
-  .jsSettings(libraryDependencies ++= Seq(
-    "org.scala-js" %%% "scalajs-java-time" % "0.1.0"
+    "io.circe" %% "circe-java8" % circeVersion
   ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(models, rpc)

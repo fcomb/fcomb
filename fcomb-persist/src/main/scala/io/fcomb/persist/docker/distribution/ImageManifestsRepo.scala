@@ -110,7 +110,7 @@ class ImageManifestTable(tag: Tag)
 object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, ImageManifestTable] {
   val table = TableQuery[ImageManifestTable]
 
-  private val findByImageIdAndDigestCompiled = Compiled {
+  private lazy val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Long], digest: Rep[String]) =>
       table.filter { q =>
         q.imageId === imageId && q.sha256Digest === digest
@@ -257,25 +257,26 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
     case Reference.Tag(tag)     => findByImageIdAndTag(imageId, tag)
   }
 
-  private val findByImageIdAndTagCompiled = Compiled { (imageId: Rep[Long], tag: Rep[String]) =>
-    table
-      .join(ImageManifestTagsRepo.table)
-      .on(_.id === _.imageManifestId)
-      .filter(_._2.tag === tag)
-      .map(_._1)
+  private lazy val findByImageIdAndTagCompiled = Compiled {
+    (imageId: Rep[Long], tag: Rep[String]) =>
+      table
+        .join(ImageManifestTagsRepo.table)
+        .on(_.id === _.imageManifestId)
+        .filter(_._2.tag === tag)
+        .map(_._1)
   }
 
   def findByImageIdAndTag(imageId: Long, tag: String): Future[Option[ImageManifest]] =
     db.run(findByImageIdAndTagCompiled((imageId, tag)).result.headOption)
 
-  private val findIdAndTagsByImageIdAndTagCompiled = Compiled {
+  private lazy val findIdAndTagsByImageIdAndTagCompiled = Compiled {
     (imageId: Rep[Long], tag: Rep[String]) =>
       table.filter { q =>
         q.imageId === imageId && tag === q.tags.any
       }.map(m => (m.pk, m.tags))
   }
 
-  private val findTagsByImageIdCompiled = Compiled {
+  private lazy val findTagsByImageIdCompiled = Compiled {
     (imageId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long], offset: ConstColumn[Long]) =>
       table.filter { q =>
         q.imageId === imageId && q.pk >= id

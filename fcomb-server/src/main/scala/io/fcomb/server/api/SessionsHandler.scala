@@ -16,15 +16,15 @@
 
 package io.fcomb.server.api
 
+import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes
-import io.fcomb.persist.SessionsRepo
-import io.fcomb.rpc.SessionCreateRequest
+import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.server.Directives._
+import cats.data.Xor
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
-import cats.data.Xor
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.headers.OAuth2BearerToken
+import io.fcomb.persist.SessionsRepo
+import io.fcomb.rpc.SessionCreateRequest
 
 object SessionsHandler {
   def create =

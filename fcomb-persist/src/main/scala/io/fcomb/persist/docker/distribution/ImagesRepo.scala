@@ -55,7 +55,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
   def findIdByName(name: String) =
     db.run(findIdByNameCompiled(name).result.headOption)
 
-  val findBySlugCompiled = Compiled { slug: Rep[String] =>
+  lazy val findBySlugCompiled = Compiled { slug: Rep[String] =>
     table.filter { q =>
       q.slug.toLowerCase === slug.toLowerCase
     }.take(1)
@@ -203,7 +203,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
     }
   }
 
-  private val uniqueNameCompiled = Compiled { (id: Rep[Option[Long]], name: Rep[String]) =>
+  private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Long]], name: Rep[String]) =>
     notCurrentPkFilter(id).filter { q =>
       q.name.toLowerCase === name.toLowerCase
     }.exists

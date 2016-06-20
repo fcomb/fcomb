@@ -95,10 +95,11 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         uploadedAt = None
       ))
 
-  private val findByImageIdAndUuidCompiled = Compiled { (imageId: Rep[Long], uuid: Rep[UUID]) =>
-    table.filter { q =>
-      q.imageId === imageId && q.id === uuid
-    }.take(1)
+  private lazy val findByImageIdAndUuidCompiled = Compiled {
+    (imageId: Rep[Long], uuid: Rep[UUID]) =>
+      table.filter { q =>
+        q.imageId === imageId && q.id === uuid
+      }.take(1)
   }
 
   def findByImageIdAndUuid(imageId: Long, uuid: UUID)(
@@ -106,7 +107,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   ) =
     db.run(findByImageIdAndUuidCompiled((imageId, uuid)).result.headOption)
 
-  private val findByImageIdAndDigestCompiled = Compiled {
+  private lazy val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Long], digest: Rep[String]) =>
       table.filter { q =>
         q.imageId === imageId && q.sha256Digest === digest
@@ -135,7 +136,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   ) =
     db.run(findByImageIdAndDigestsScope(imageId, digests).result)
 
-  private val existUploadedByImageIdAndDigestCompiled = Compiled {
+  private lazy val existUploadedByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Long], digest: Rep[String], exceptId: Rep[UUID]) =>
       table.filter { q =>
         q.pk =!= exceptId && q.imageId === imageId && q.sha256Digest === digest &&
@@ -184,7 +185,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   def findByIds(ids: List[UUID]) =
     db.run(table.filter(_.id.inSetBind(ids)).result)
 
-  private val findOutdatedUploadsCompiled = Compiled { until: Rep[ZonedDateTime] =>
+  private lazy val findOutdatedUploadsCompiled = Compiled { until: Rep[ZonedDateTime] =>
     table.filter { q =>
       q.createdAt <= until && (q.state === (ImageBlobState.Created: ImageBlobState) ||
           q.state === (ImageBlobState.Uploading: ImageBlobState))
@@ -221,7 +222,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       }
     }.recover { case _ => Xor.right(()) }
 
-  private val existByDigestCompiled = Compiled { digest: Rep[String] =>
+  private lazy val existByDigestCompiled = Compiled { digest: Rep[String] =>
     table.filter(_.sha256Digest === digest).exists
   }
 
