@@ -31,7 +31,11 @@ object DashboardComponent {
   final case class Backend($ : BackendScope[SessionState, Unit]) {
     def render(sessionState: SessionState) = {
       val ctl = sessionState.ctl
-      <.div(Global.app, <.h1("Dashboard"), <.div(ctl.link(Route.SignOut)("Sign Out")))
+      <.div(Global.app,
+            <.h1("Dashboard"),
+            <.div(ctl.link(Route.SignOut)("Sign Out")),
+            <.hr,
+            RepositoriesComponent.apply())
     }
   }
 

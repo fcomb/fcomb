@@ -17,7 +17,7 @@
 package io.fcomb.frontend.components.auth
 
 import io.fcomb.frontend.Route
-import io.fcomb.frontend.api.{Rpc, RpcMethod}
+import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.dispatcher.actions.LogOut
 import japgolly.scalajs.react._
@@ -39,7 +39,7 @@ object SignOutComponent {
       AppCircuit.session match {
         case Some(sessionToken) =>
           Callback.future {
-            Rpc.call[Unit](RpcMethod.DELETE, "/api/v1/sessions").map(_ => cb).recover {
+            Rpc.call[Unit](RpcMethod.DELETE, Resource.sessions).map(_ => cb).recover {
               case _ => cb
             }
           }

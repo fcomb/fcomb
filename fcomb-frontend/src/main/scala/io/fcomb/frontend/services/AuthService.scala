@@ -18,7 +18,7 @@ package io.fcomb.frontend.services
 
 import org.scalajs.dom.window
 import cats.data.Xor
-import io.fcomb.frontend.api.{Rpc, RpcMethod}
+import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.dispatcher.actions.Authenticated
 import io.fcomb.models.Session
@@ -35,7 +35,7 @@ object AuthService {
       email = email.trim(),
       password = password.trim()
     )
-    Rpc.callWith[SessionCreateRequest, Session](RpcMethod.POST, "/api/v1/sessions", req).map {
+    Rpc.callWith[SessionCreateRequest, Session](RpcMethod.POST, Resource.sessions, req).map {
       case Xor.Right(session) => Xor.right(AppCircuit.dispatch(Authenticated(session.token)))
       case res @ Xor.Left(e)  => res
     }

@@ -14,20 +14,11 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.dashboard
+package io.fcomb.frontend.api
 
-import japgolly.scalajs.react._
-import japgolly.scalajs.react.vdom.prefix_<^._
-
-object RepositoriesComponent {
-  final case class Backend($ : BackendScope[Unit, Unit]) {
-    def render() = {
-      <.div(<.h2("Repositories"))
-    }
-  }
-
-  private val component =
-    ReactComponentB[Unit]("RepositoriesComponent").renderBackend[Backend].build
-
-  def apply() = component()
+object Resource {
+  val prefix   = "/api/v1"
+  val sessions = prefix + "/sessions"
+  val users    = prefix + "/users"
+  val signUp   = users + "/sign_up"
 }

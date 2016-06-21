@@ -18,7 +18,7 @@ package io.fcomb.frontend.components.auth
 
 import cats.data.Xor
 import io.fcomb.frontend.Route
-import io.fcomb.frontend.api.{Rpc, RpcMethod}
+import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.services.AuthService
 import io.fcomb.frontend.styles.Global
@@ -55,7 +55,7 @@ object SignUpComponent {
                 fullName = fullName
               )
               Rpc
-                .callWith[UserSignUpRequest, Unit](RpcMethod.POST, "/api/v1/users/sign_up", req)
+                .callWith[UserSignUpRequest, Unit](RpcMethod.POST, Resource.signUp, req)
                 .flatMap {
                   case Xor.Right(_)      => AuthService.authentication(email, password)
                   case res @ Xor.Left(e) => Future.successful(res)
