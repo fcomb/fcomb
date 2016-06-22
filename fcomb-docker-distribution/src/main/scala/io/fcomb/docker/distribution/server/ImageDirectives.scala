@@ -33,7 +33,8 @@ trait ImageDirectives {
       onSuccess(ImagesRepo.findBySlugWithAcl(slug, user.getId, action)).flatMap {
         case Some(user) => provide(user)
         case None =>
-          complete((
+          complete(
+            (
               StatusCodes.NotFound,
               DistributionErrorResponse.from(DistributionError.NameUnknown())
             ))

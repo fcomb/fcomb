@@ -31,11 +31,11 @@ object RouterComponent {
 
     val routes =
       trimSlashes |
-      staticRoute(root, Route.Dashboard) ~> renderR(
-        ctl => sessionConn(proxy => DashboardComponent.apply(ctl, proxy))) |
-      staticRoute("sign_in", Route.SignIn) ~> renderR(ctl => auth.SignInComponent.apply(ctl)) |
-      staticRoute("sign_up", Route.SignUp) ~> renderR(ctl => auth.SignUpComponent.apply(ctl)) |
-      staticRoute("sign_out", Route.SignOut) ~> renderR(ctl => auth.SignOutComponent.apply(ctl))
+        staticRoute(root, Route.Dashboard) ~> renderR(
+          ctl => sessionConn(proxy => DashboardComponent.apply(ctl, proxy))) |
+        staticRoute("sign_in", Route.SignIn) ~> renderR(ctl => auth.SignInComponent.apply(ctl)) |
+        staticRoute("sign_up", Route.SignUp) ~> renderR(ctl => auth.SignUpComponent.apply(ctl)) |
+        staticRoute("sign_out", Route.SignOut) ~> renderR(ctl => auth.SignOutComponent.apply(ctl))
 
     routes.notFound(redirectToPage(Route.Dashboard)(Redirect.Replace))
   }

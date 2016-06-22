@@ -39,8 +39,7 @@ final case class ImageManifest(
     schemaV2Details: Option[ImageManifestSchemaV2Details],
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
-)
-    extends ModelWithAutoLongPk {
+) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 
   def getSchemaV2JsonBlob() =

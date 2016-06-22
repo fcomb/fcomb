@@ -32,7 +32,7 @@ class OrganizationTable(tag: Tag)
 
   def * =
     (id, name, createdByUserId, createdAt, updatedAt) <>
-    ((Organization.apply _).tupled, Organization.unapply)
+      ((Organization.apply _).tupled, Organization.unapply)
 }
 
 object OrganizationsRepo extends PersistModelWithAutoLongPk[Organization, OrganizationTable] {

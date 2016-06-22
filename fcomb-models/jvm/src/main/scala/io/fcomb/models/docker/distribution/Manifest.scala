@@ -88,8 +88,7 @@ object SchemaV1 {
       os: Option[String],
       size: Option[Long],
       throwAway: Option[Boolean]
-  )
-      extends Compatibility
+  ) extends Compatibility
 
   final case class LayerContainerConfig(
       cmd: List[String]
@@ -103,8 +102,7 @@ object SchemaV1 {
       containerConfig: Option[LayerContainerConfig],
       author: Option[String],
       throwAway: Option[Boolean]
-  )
-      extends Compatibility
+  ) extends Compatibility
 
   final case class Manifest(
       name: String,
@@ -114,8 +112,7 @@ object SchemaV1 {
       history: List[Compatibility],
       signatures: List[Signature],
       schemaVersion: Int = 1
-  )
-      extends SchemaManifest
+  ) extends SchemaManifest
 }
 
 object SchemaV2 {
@@ -132,8 +129,7 @@ object SchemaV2 {
       mediaType: String = "application/vnd.docker.distribution.manifest.v2+json",
       config: Descriptor,
       layers: List[Descriptor]
-  )
-      extends SchemaManifest
+  ) extends SchemaManifest
 
   final case class ImageRootFs(
       `type`: String,

@@ -43,7 +43,7 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
 
   def * =
     (id, name, slug, ownerId, ownerKind, visibilityKind, description, createdAt, updatedAt) <>
-    ((Image.apply _).tupled, Image.unapply)
+      ((Image.apply _).tupled, Image.unapply)
 }
 
 object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
@@ -103,7 +103,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       .on {
         case (t, pt) =>
           pt.sourceId === t.pk &&
-          pt.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
+            pt.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
       }
       .joinLeft(OrganizationGroupUsersRepo.table)
       .on {
@@ -116,12 +116,12 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       .filter {
         case (((t, pt), gut), gt) =>
           (t.ownerId === userId && t.ownerKind === (OwnerKind.User: OwnerKind)) ||
-          (pt.map(_.memberId) === userId &&
-              pt.map(_.memberKind) === (MemberKind.User: MemberKind)) ||
-          (pt.map(_.memberId) === gut.map(_.groupId) &&
-              pt.map(_.memberKind) === (MemberKind.Group: MemberKind)) ||
-          (gt.map(_.role) === (Role.Admin: Role) && t.ownerId === gt.map(_.organizationId) &&
-              t.ownerKind === (OwnerKind.Organization: OwnerKind))
+            (pt.map(_.memberId) === userId &&
+                  pt.map(_.memberKind) === (MemberKind.User: MemberKind)) ||
+            (pt.map(_.memberId) === gut.map(_.groupId) &&
+                  pt.map(_.memberKind) === (MemberKind.Group: MemberKind)) ||
+            (gt.map(_.role) === (Role.Admin: Role) && t.ownerId === gt.map(_.organizationId) &&
+                  t.ownerKind === (OwnerKind.Organization: OwnerKind))
       }
       .map(_._1._1._1)
       .distinct
@@ -154,11 +154,11 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       case None => DBIO.successful(0L)
     }
     db.run(for {
-      id <- since
-      repositories <- findRepositoriesByUserIdCompiled(
-                       (userId, limit + 1L, id)
-                     ).result
-    } yield repositories)
+        id <- since
+        repositories <- findRepositoriesByUserIdCompiled(
+                         (userId, limit + 1L, id)
+                       ).result
+      } yield repositories)
       .fast
       .map { repositories =>
         (repositories.take(limit), limit, repositories.length > limit)

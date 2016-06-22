@@ -49,19 +49,18 @@ object ImagesHandler {
             import mat.executionContext
             onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId, reference)) {
               case Some(im) =>
-                val (ct: ContentType, manifest: String) =
-                  if (im.schemaVersion == 1) {
-                    val jb = SchemaV1Manifest.addSignature(im.schemaV1JsonBlob)
-                    (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
-                  } else
-                    reference match {
-                      case Reference.Tag(tag) if !acceptOpt.exists(acceptIsAManifestV2) =>
-                        val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
-                        (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
-                      case _ =>
-                        (`application/vnd.docker.distribution.manifest.v2+json`,
-                         im.getSchemaV2JsonBlob)
-                    }
+                val (ct: ContentType, manifest: String) = if (im.schemaVersion == 1) {
+                  val jb = SchemaV1Manifest.addSignature(im.schemaV1JsonBlob)
+                  (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
+                } else
+                  reference match {
+                    case Reference.Tag(tag) if !acceptOpt.exists(acceptIsAManifestV2) =>
+                      val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
+                      (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
+                    case _ =>
+                      (`application/vnd.docker.distribution.manifest.v2+json`,
+                       im.getSchemaV2JsonBlob)
+                  }
                 val headers = immutable.Seq(
                   ETag(s"${ImageManifest.sha256Prefix}${im.sha256Digest}"),
                   `Docker-Content-Digest`("sha256", im.sha256Digest)
@@ -70,7 +69,8 @@ object ImagesHandler {
                   complete(HttpEntity(ct, ByteString(manifest)))
                 }
               case _ =>
-                complete((
+                complete(
+                  (
                     StatusCodes.NotFound,
                     DistributionErrorResponse.from(DistributionError.ManifestUnknown())
                   ))
@@ -140,13 +140,15 @@ object ImagesHandler {
               onSuccess(ImageManifestsRepo.destroy(image.getId, digest)) { res =>
                 if (res) complete(HttpResponse(StatusCodes.Accepted))
                 else
-                  complete((
+                  complete(
+                    (
                       StatusCodes.NotFound,
                       DistributionErrorResponse.from(DistributionError.ManifestUnknown())
                     ))
               }
             case _ =>
-              complete((
+              complete(
+                (
                   StatusCodes.NotFound,
                   DistributionErrorResponse.from(DistributionError.ManifestInvalid())
                 ))
@@ -162,11 +164,10 @@ object ImagesHandler {
           imageByNameWithAcl(imageName, user, Action.Read) { image =>
             onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId, n, last)) {
               (tags, limit, hasNext) =>
-                val headers =
-                  if (hasNext) {
-                    val uri = Uri(s"/v2/$imageName/tags/list?n=$limit&last=${tags.last}")
-                    immutable.Seq(Link(uri, LinkParams.next))
-                  } else Nil
+                val headers = if (hasNext) {
+                  val uri = Uri(s"/v2/$imageName/tags/list?n=$limit&last=${tags.last}")
+                  immutable.Seq(Link(uri, LinkParams.next))
+                } else Nil
                 respondWithHeaders(headers) {
                   complete(ImageTagsResponse(imageName, tags))
                 }
@@ -182,11 +183,10 @@ object ImagesHandler {
         extractExecutionContext { implicit ec =>
           onSuccess(ImagesRepo.findRepositoriesByUserId(user.getId, n, last)) {
             (repositories, limit, hasNext) =>
-              val headers =
-                if (hasNext) {
-                  val uri = Uri(s"/v2/_catalog?n=$limit&last=${repositories.last}")
-                  immutable.Seq(Link(uri, LinkParams.next))
-                } else Nil
+              val headers = if (hasNext) {
+                val uri = Uri(s"/v2/_catalog?n=$limit&last=${repositories.last}")
+                immutable.Seq(Link(uri, LinkParams.next))
+              } else Nil
               respondWithHeaders(headers) {
                 complete(DistributionImageCatalog(repositories))
               }

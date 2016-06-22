@@ -28,7 +28,7 @@ class ImageManifestLayerTable(_tag: Tag)
 
   def * =
     (imageManifestId, layerBlobId) <>
-    ((ImageManifestLayer.apply _).tupled, ImageManifestLayer.unapply)
+      ((ImageManifestLayer.apply _).tupled, ImageManifestLayer.unapply)
 }
 
 object ImageManifestLayersRepo extends PersistModel[ImageManifestLayer, ImageManifestLayerTable] {

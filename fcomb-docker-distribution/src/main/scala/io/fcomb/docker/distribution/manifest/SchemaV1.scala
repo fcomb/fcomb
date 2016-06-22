@@ -106,31 +106,31 @@ object SchemaV1 {
           val baseLayerId = imgConfig.rootFs.baseLayer.map(DigestUtils.sha384Hex(_).take(32))
           val (lastParentId, remainLayers, history, fsLayers) = imgConfig.history.init
             .foldLeft(("", manifest.layers, List.empty[Layer], List.empty[FsLayer])) {
-            case ((parentId, layers, historyList, fsLayersList), img) =>
-              val (blobSum, layersTail) =
-                if (img.isEmptyLayer) (ImageManifest.emptyTarSha256DigestFull, layers)
-                else {
-                  val head = layers.headOption.map(_.getDigest).getOrElse("")
-                  (head, layers.tail)
-                }
-              val v1Id      = DigestUtils.sha256Hex(s"$blobSum $parentId")
-              val createdBy = img.createdBy.map(List(_)).getOrElse(Nil)
-              val throwAway = if (img.isEmptyLayer) Some(true) else None
-              val historyLayer = Layer(
-                id = v1Id,
-                parent = StringUtils.trim(Some(parentId)),
-                comment = img.comment,
-                created = Some(img.created),
-                containerConfig = Some(LayerContainerConfig(createdBy)),
-                author = img.author,
-                throwAway = throwAway
-              )
-              val fsLayer = FsLayer(s"$sha256Prefix$blobSum")
-              val currentId =
-                if (parentId.isEmpty) baseLayerId.getOrElse(v1Id)
-                else v1Id
-              (currentId, layersTail, historyLayer :: historyList, fsLayer :: fsLayersList)
-          }
+              case ((parentId, layers, historyList, fsLayersList), img) =>
+                val (blobSum, layersTail) =
+                  if (img.isEmptyLayer) (ImageManifest.emptyTarSha256DigestFull, layers)
+                  else {
+                    val head = layers.headOption.map(_.getDigest).getOrElse("")
+                    (head, layers.tail)
+                  }
+                val v1Id      = DigestUtils.sha256Hex(s"$blobSum $parentId")
+                val createdBy = img.createdBy.map(List(_)).getOrElse(Nil)
+                val throwAway = if (img.isEmptyLayer) Some(true) else None
+                val historyLayer = Layer(
+                  id = v1Id,
+                  parent = StringUtils.trim(Some(parentId)),
+                  comment = img.comment,
+                  created = Some(img.created),
+                  containerConfig = Some(LayerContainerConfig(createdBy)),
+                  author = img.author,
+                  throwAway = throwAway
+                )
+                val fsLayer = FsLayer(s"$sha256Prefix$blobSum")
+                val currentId =
+                  if (parentId.isEmpty) baseLayerId.getOrElse(v1Id)
+                  else v1Id
+                (currentId, layersTail, historyLayer :: historyList, fsLayer :: fsLayersList)
+            }
 
           val (configHistory, configFsLayer) = {
             val isEmptyLayer = imgConfig.history.last.isEmptyLayer

@@ -42,7 +42,9 @@ object SessionsRepo {
   }
 
   private val invalidEmailOrPassword = FastFuture.successful(
-    Xor.left(FailureResponse.fromExceptions(Seq(
+    Xor.left(
+      FailureResponse.fromExceptions(
+        Seq(
           ValidationException("email", "invalid"),
           ValidationException("password", "invalid")
         )))

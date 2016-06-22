@@ -37,7 +37,7 @@ class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWit
 
   def * =
     (id, email, username, fullName, passwordHash, createdAt, updatedAt) <>
-    ((User.apply _).tupled, User.unapply)
+      ((User.apply _).tupled, User.unapply)
 }
 
 object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {

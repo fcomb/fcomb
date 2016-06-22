@@ -35,7 +35,7 @@ class ApplicationTable(tag: Tag)
 
   def * =
     (id, name, state, token, ownerId, ownerKind, createdAt, updatedAt) <>
-    ((Application.apply _).tupled, Application.unapply)
+      ((Application.apply _).tupled, Application.unapply)
 }
 
 object ApplicationsRepo extends PersistModelWithAutoLongPk[Application, ApplicationTable] {

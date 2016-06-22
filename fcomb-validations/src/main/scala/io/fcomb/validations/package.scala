@@ -59,10 +59,9 @@ package object validations {
     Validated.Valid(res)
 
   def validationErrors[M](errors: (String, String)*): ValidationResult[M] =
-    Validated.Invalid(
-      errors.map {
-    case (param, msg) => ValidationException(param, msg)
-  }.toList)
+    Validated.Invalid(errors.map {
+      case (param, msg) => ValidationException(param, msg)
+    }.toList)
 
   def validateColumn(column: String, validation: PlainValidation): ColumnValidation =
     validation match {

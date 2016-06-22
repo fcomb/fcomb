@@ -97,7 +97,8 @@ object ImageBlobsHandler {
                       Source.single(ByteString(
                           ImageManifest.emptyTar.drop(offset.toInt).take(chunkLength.toInt)))
                     else BlobFile.streamBlob(sha256Digest, offset, chunkLength)
-                  complete(HttpResponse(
+                  complete(
+                    HttpResponse(
                       StatusCodes.PartialContent,
                       headers,
                       HttpEntity(ct, chunkLength, source)
@@ -117,7 +118,8 @@ object ImageBlobsHandler {
                       val source =
                         if (digest == ImageManifest.emptyTarSha256Digest) emptyTarSource
                         else FileIO.fromPath(BlobFile.getFile(blob).toPath)
-                      complete(HttpResponse(
+                      complete(
+                        HttpResponse(
                           StatusCodes.OK,
                           headers,
                           HttpEntity(ct, blob.length, source)
@@ -154,7 +156,8 @@ object ImageBlobsHandler {
               }
               complete(res)
             case _ =>
-              complete((
+              complete(
+                (
                   StatusCodes.NotFound,
                   DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
                 ))

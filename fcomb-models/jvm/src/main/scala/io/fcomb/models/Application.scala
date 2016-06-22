@@ -36,7 +36,6 @@ final case class Application(
     ownerKind: OwnerKind,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
-)
-    extends ModelWithAutoLongPk {
+) extends ModelWithAutoLongPk {
   def withPk(id: Long) = this.copy(id = Some(id))
 }

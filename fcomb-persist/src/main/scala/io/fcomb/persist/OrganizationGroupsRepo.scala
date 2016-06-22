@@ -34,7 +34,7 @@ class OrganizationGroupTable(tag: Tag)
 
   def * =
     (id, organizationId, name, role, createdByUserId, createdAt, updatedAt) <>
-    ((OrganizationGroup.apply _).tupled, OrganizationGroup.unapply)
+      ((OrganizationGroup.apply _).tupled, OrganizationGroup.unapply)
 }
 
 object OrganizationGroupsRepo

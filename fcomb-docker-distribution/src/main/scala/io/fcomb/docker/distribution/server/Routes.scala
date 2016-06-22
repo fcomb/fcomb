@@ -112,7 +112,8 @@ object Routes {
         e.printStackTrace()
         logger.error(e.getMessage(), e.getCause())
         respondWithHeaders(defaultHeaders) {
-          complete((
+          complete(
+            (
               StatusCodes.InternalServerError,
               DistributionErrorResponse.from(DistributionError.Unknown())
             ))
@@ -122,7 +123,8 @@ object Routes {
       .newBuilder()
       .handleAll[AuthorizationFailedRejection.type] { _ =>
         respondWithHeaders(defaultAuthenticateHeaders) {
-          complete((
+          complete(
+            (
               StatusCodes.Unauthorized,
               DistributionErrorResponse.from(DistributionError.Unauthorized())
             ))

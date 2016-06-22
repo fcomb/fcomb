@@ -30,7 +30,7 @@ class ImageManifestTagTable(_tag: Tag)
 
   def * =
     (imageId, imageManifestId, tag) <>
-    ((ImageManifestTag.apply _).tupled, ImageManifestTag.unapply)
+      ((ImageManifestTag.apply _).tupled, ImageManifestTag.unapply)
 }
 
 object ImageManifestTagsRepo extends PersistModel[ImageManifestTag, ImageManifestTagTable] {

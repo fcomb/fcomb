@@ -87,8 +87,8 @@ object ImageBlobUploadsHandler {
   ): Route = {
     imageByNameWithAcl(imageName, user, Action.Write) { toImage =>
       imageByNameWithAcl(from, user, Action.Read) { fromImage =>
-        val mountResFut = ImageBlobsRepo.mount(
-          fromImage.getId, toImage.getId, Reference.getDigest(digest), user.getId)
+        val mountResFut = ImageBlobsRepo
+          .mount(fromImage.getId, toImage.getId, Reference.getDigest(digest), user.getId)
         onSuccess(mountResFut) {
           case Some(blob) =>
             val sha256Digest = blob.sha256Digest.get
@@ -115,8 +115,8 @@ object ImageBlobUploadsHandler {
         val blobResFut = for {
           Validated.Valid(blob)  <- ImageBlobsRepo.create(image.getId, contentType)
           (length, sha256Digest) <- BlobFile.uploadBlob(blob.getId, req.entity.dataBytes)
-          _ <- ImageBlobsRepo.completeUploadOrDelete(
-                blob.getId, blob.imageId, length, sha256Digest)
+          _ <- ImageBlobsRepo
+                .completeUploadOrDelete(blob.getId, blob.imageId, length, sha256Digest)
         } yield (blob, sha256Digest)
         onSuccess(blobResFut) {
           case (blob, sha256Digest) =>
@@ -138,7 +138,8 @@ object ImageBlobUploadsHandler {
                 _ <- ImageBlobsRepo.destroy(uuid)
               } yield ()
               onSuccess(res) {
-                complete((
+                complete(
+                  (
                     StatusCodes.BadRequest,
                     DistributionErrorResponse.from(DistributionError.DigestInvalid())
                   ))
@@ -169,12 +170,14 @@ object ImageBlobUploadsHandler {
                   case _                      => true
                 }
                 if (!isRangeValid) {
-                  complete((
+                  complete(
+                    (
                       StatusCodes.BadRequest,
                       DistributionErrorResponse.from(DistributionError.Unknown("Range is invalid"))
                     ))
                 } else if (rangeFrom.exists(_ != blob.length)) {
-                  complete((
+                  complete(
+                    (
                       StatusCodes.BadRequest,
                       DistributionErrorResponse.from(
                         DistributionError.Unknown("Range start not satisfy a blob file length"))
@@ -205,7 +208,8 @@ object ImageBlobUploadsHandler {
                   }
                 }
               case _ =>
-                complete((
+                complete(
+                  (
                     StatusCodes.NotFound,
                     DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
                   ))
@@ -251,7 +255,8 @@ object ImageBlobUploadsHandler {
                     }
                 }
               case _ =>
-                complete((
+                complete(
+                  (
                     StatusCodes.NotFound,
                     DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
                   ))
@@ -269,11 +274,12 @@ object ImageBlobUploadsHandler {
           onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId, uuid)) {
             case Some(blob) if !blob.isUploaded =>
               complete(for {
-              _ <- BlobFile.destroyBlob(blob.getId)
-              _ <- ImageBlobsRepo.destroy(uuid)
-            } yield HttpResponse(StatusCodes.NoContent))
+                _ <- BlobFile.destroyBlob(blob.getId)
+                _ <- ImageBlobsRepo.destroy(uuid)
+              } yield HttpResponse(StatusCodes.NoContent))
             case _ =>
-              complete((
+              complete(
+                (
                   StatusCodes.NotFound,
                   DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
                 ))

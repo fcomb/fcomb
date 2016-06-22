@@ -40,8 +40,7 @@ case class ImageBlob(
     length: Long,
     createdAt: ZonedDateTime,
     uploadedAt: Option[ZonedDateTime]
-)
-    extends ModelWithUuidPk {
+) extends ModelWithUuidPk {
   def withPk(id: UUID) = this.copy(id = Some(id))
 
   def isCreated =

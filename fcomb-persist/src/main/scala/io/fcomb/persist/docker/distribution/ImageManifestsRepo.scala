@@ -54,7 +54,7 @@ class ImageManifestTable(tag: Tag)
      createdAt,
      updatedAt,
      (v2ConfigBlobId, v2JsonBlob)) <>
-    ((apply2 _).tupled, unapply2)
+      ((apply2 _).tupled, unapply2)
 
   private def apply2(
       id: Option[Long],
@@ -223,14 +223,14 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
     }
     if (tags.nonEmpty)
       runInTransaction(TransactionIsolation.Serializable)(for {
-      _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
-      _ <- sqlu"""
+        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
+        _ <- sqlu"""
           UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
             SET tags = tags || ${reference.value},
                 updated_at = ${ZonedDateTime.now()}
             WHERE id = ${im.getId}
           """
-    } yield ())
+      } yield ())
     else FastFuture.successful(())
   }
 
@@ -301,9 +301,9 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       case None => DBIO.successful((0L, 0L))
     }
     db.run(for {
-      (id, offset) <- since
-      tags         <- findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
-    } yield tags)
+        (id, offset) <- since
+        tags         <- findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
+      } yield tags)
       .fast
       .map { tags =>
         (tags.take(limit), limit, tags.length > limit)

@@ -37,11 +37,10 @@ object BlobFile {
       implicit ec: ExecutionContext
   ): Future[File] = {
     val file = getUploadFilePath(uuid)
-    Future(
-      blocking {
-    if (!file.getParentFile.exists) file.getParentFile.mkdirs()
-    file
-  })
+    Future(blocking {
+      if (!file.getParentFile.exists) file.getParentFile.mkdirs()
+      file
+    })
   }
 
   def getBlobFilePath(digest: String): File =
@@ -60,17 +59,16 @@ object BlobFile {
   def renameOrDelete(file: File, digest: String)(
       implicit ec: ExecutionContext
   ): Future[Unit] =
-    Future(
-      blocking {
-    if (digest == ImageManifest.emptyTarSha256Digest) file.delete()
-    else {
-      val newFile = getBlobFilePath(digest)
-      if (!newFile.exists()) {
-        if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
-        file.renameTo(newFile)
+    Future(blocking {
+      if (digest == ImageManifest.emptyTarSha256Digest) file.delete()
+      else {
+        val newFile = getBlobFilePath(digest)
+        if (!newFile.exists()) {
+          if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
+          file.renameTo(newFile)
+        }
       }
-    }
-  })
+    })
 
   def renameOrDelete(uuid: UUID, digest: String)(
       implicit ec: ExecutionContext

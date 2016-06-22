@@ -41,7 +41,7 @@ class ImageBlobTable(tag: Tag)
 
   def * =
     (id, imageId, state, sha256Digest, contentType, length, createdAt, uploadedAt) <>
-    ((ImageBlob.apply _).tupled, ImageBlob.unapply)
+      ((ImageBlob.apply _).tupled, ImageBlob.unapply)
 }
 
 object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] {
@@ -157,7 +157,8 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
           table
             .filter(_.pk === id)
             .map(t => (t.state, t.length, t.sha256Digest, t.uploadedAt))
-            .update((
+            .update(
+              (
                 ImageBlobState.Uploaded,
                 length,
                 Some(digest),

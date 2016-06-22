@@ -36,7 +36,7 @@ class PermissionTable(tag: Tag)
 
   def * =
     (id, sourceId, sourceKind, memberId, memberKind, action, createdAt, updatedAt) <>
-    ((Permission.apply _).tupled, Permission.unapply)
+      ((Permission.apply _).tupled, Permission.unapply)
 }
 
 object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, PermissionTable] {
@@ -105,7 +105,7 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
     OrganizationsRepo.groupUsersScope.join(table).on {
       case (((_, gt), gut), pt) =>
         gt.organizationId === organizationId && gut.userId === userId && gt.id === pt.memberId &&
-        pt.memberKind === (MemberKind.Group: MemberKind) && pt.sourceId === sourceId
+          pt.memberKind === (MemberKind.Group: MemberKind) && pt.sourceId === sourceId
     }
 
   private lazy val canReadBySourceAndGroupMemberCompiled = Compiled {
@@ -156,8 +156,11 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
       case false =>
         OrganizationsRepo.isAdminDBIO(userId).flatMap {
           case false =>
-            isAllowedActionBySourceAsGroupMemberDBIO(
-              sourceId, sourceKind, organizationId, userId, action)
+            isAllowedActionBySourceAsGroupMemberDBIO(sourceId,
+                                                     sourceKind,
+                                                     organizationId,
+                                                     userId,
+                                                     action)
           case res => DBIO.successful(res)
         }
       case res => DBIO.successful(res)

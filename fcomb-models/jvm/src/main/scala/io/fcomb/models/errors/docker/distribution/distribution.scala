@@ -54,8 +54,7 @@ sealed trait DistributionError extends Error {
 object DistributionError {
   final case class DigestInvalid(
       message: String = "provided digest did not match uploaded content"
-  )
-      extends DistributionError {
+  ) extends DistributionError {
     val code   = DistributionErrorCode.DigestInvalid
     val detail = None
   }
@@ -73,8 +72,7 @@ object DistributionError {
 
   final case class ManifestUnverified(
       message: String = "manifest failed signature verification"
-  )
-      extends DistributionError {
+  ) extends DistributionError {
     val code   = DistributionErrorCode.ManifestUnverified
     val detail = None
   }
@@ -112,8 +110,7 @@ object DistributionError {
 
 final case class DistributionErrorResponse(
     errors: Seq[DistributionError]
-)
-    extends ErrorResponse
+) extends ErrorResponse
 
 object DistributionErrorResponse {
   def from(error: DistributionError): DistributionErrorResponse =

@@ -70,8 +70,8 @@ object Rpc {
   def call[U](method: RpcMethod,
               url: String,
               headers: Map[String, String] = Map.empty,
-              timeout: Int = 0)(
-      implicit ec: ExecutionContext, decoder: Decoder[U]): Future[Xor[String, U]] = {
+              timeout: Int = 0)(implicit ec: ExecutionContext,
+                                decoder: Decoder[U]): Future[Xor[String, U]] = {
     callWith(method, url, (), headers, timeout)
   }
 

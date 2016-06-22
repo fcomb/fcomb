@@ -28,8 +28,8 @@ import slick.ast.FieldSymbol
 import slick.jdbc.JdbcType
 
 object EnumsMapping {
-  implicit val applicationStateColumnType = createEnumJdbcMapping(
-    "application_state", ApplicationState)
+  implicit val applicationStateColumnType =
+    createEnumJdbcMapping("application_state", ApplicationState)
 
   implicit val ownerKindColumnType = createEnumJdbcMapping("owner_kind", OwnerKind)
 
@@ -41,11 +41,11 @@ object EnumsMapping {
 
   implicit val aclMemberKindColumnType = createEnumJdbcMapping("acl_member_kind", MemberKind)
 
-  implicit val distributionImageBlobStateColumnType = createEnumJdbcMapping(
-    "dd_image_blob_state", ImageBlobState)
+  implicit val distributionImageBlobStateColumnType =
+    createEnumJdbcMapping("dd_image_blob_state", ImageBlobState)
 
-  implicit val distributionImageVisibilityKindColumnType = createEnumJdbcMapping(
-    "dd_image_visibility_kind", ImageVisibilityKind)
+  implicit val distributionImageVisibilityKindColumnType =
+    createEnumJdbcMapping("dd_image_visibility_kind", ImageVisibilityKind)
 
   private def createEnumJdbcMapping[T <: EnumItem](
       sqlEnumTypeName: String,

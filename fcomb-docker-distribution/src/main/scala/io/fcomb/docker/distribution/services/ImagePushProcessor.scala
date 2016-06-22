@@ -144,17 +144,17 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
       GraphDSL.create(source.completionTimeout(25.minutes), sink)(
         Keep.right
       ) { implicit b => (source, sink) =>
-    import GraphDSL.Implicits._
+      import GraphDSL.Implicits._
 
-    val broadcast = b.add(Broadcast[ByteString](2))
+      val broadcast = b.add(Broadcast[ByteString](2))
 
-    source ~> broadcast.in
+      source ~> broadcast.in
 
-    broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
-    broadcast.out(1) ~> sink
+      broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
+      broadcast.out(1) ~> sink
 
-    ClosedShape
-  })
+      ClosedShape
+    })
   }
 
   final case object Begin extends Entity

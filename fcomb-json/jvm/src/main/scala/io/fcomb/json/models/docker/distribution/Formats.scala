@@ -51,9 +51,9 @@ object Formats {
                          "Size",
                          "throwaway")(SchemaV1.Config.unapply(_).get)
 
-  final val encodeSchemaV1Layer: Encoder[SchemaV1.Layer] = Encoder.forProduct7(
-    "id", "parent", "comment", "created", "container_config", "author", "throwaway")(
-    SchemaV1.Layer.unapply(_).get)
+  final val encodeSchemaV1Layer: Encoder[SchemaV1.Layer] = Encoder
+    .forProduct7("id", "parent", "comment", "created", "container_config", "author", "throwaway")(
+      SchemaV1.Layer.unapply(_).get)
 
   implicit final val encodeSchemaV1FsLayer: Encoder[SchemaV1.FsLayer] =
     Encoder.forProduct1("blobSum")(SchemaV1.FsLayer.unapply(_).get)
@@ -73,9 +73,14 @@ object Formats {
   implicit final val encodeSchemaV1Signature: Encoder[SchemaV1.Signature] =
     Encoder.forProduct3("header", "signature", "protected")(SchemaV1.Signature.unapply(_).get)
 
-  implicit final val encodeSchemaV1Manifest: Encoder[SchemaV1.Manifest] = Encoder.forProduct7(
-    "name", "tag", "fsLayers", "architecture", "history", "signatures", "schemaVersion")(
-    SchemaV1.Manifest.unapply(_).get)
+  implicit final val encodeSchemaV1Manifest: Encoder[SchemaV1.Manifest] =
+    Encoder.forProduct7("name",
+                        "tag",
+                        "fsLayers",
+                        "architecture",
+                        "history",
+                        "signatures",
+                        "schemaVersion")(SchemaV1.Manifest.unapply(_).get)
 
   implicit final val encodeSchemaV1Protected: Encoder[SchemaV1.Protected] =
     Encoder.forProduct3("formatLength", "formatTail", "time")(SchemaV1.Protected.unapply(_).get)
@@ -127,9 +132,9 @@ object Formats {
   implicit final val decodeSchemaV1LayerContainerConfig: Decoder[SchemaV1.LayerContainerConfig] =
     Decoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.apply)
 
-  final val decodeSchemaV1Layer = Decoder.forProduct7(
-    "id", "parent", "comment", "created", "container_config", "author", "throwaway")(
-    SchemaV1.Layer.apply)
+  final val decodeSchemaV1Layer = Decoder
+    .forProduct7("id", "parent", "comment", "created", "container_config", "author", "throwaway")(
+      SchemaV1.Layer.apply)
 
   implicit final val decodeSchemaV1LayerFromV1Compatibility: Decoder[SchemaV1.Layer] =
     Decoder.instance { c =>

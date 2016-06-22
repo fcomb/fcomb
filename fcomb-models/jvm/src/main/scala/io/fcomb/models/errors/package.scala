@@ -84,8 +84,7 @@ package object errors {
   final case class ValidationException(
       param: String,
       message: String
-  )
-      extends DtCemException {
+  ) extends DtCemException {
     def toErrorMessage() = ErrorMessage(
       message,
       Some(param)
