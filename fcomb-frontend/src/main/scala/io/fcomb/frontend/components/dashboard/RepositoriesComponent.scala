@@ -16,18 +16,44 @@
 
 package io.fcomb.frontend.components.dashboard
 
+import cats.data.Xor
+import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.rpc.docker.distribution.ImageResponse
+import io.fcomb.models.PaginationData
+import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.json.models.Formats._
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object RepositoriesComponent {
-  final case class Backend($ : BackendScope[Unit, Unit]) {
-    def render() = {
+  final case class State(repositories: Seq[ImageResponse])
+
+  final case class Backend($ : BackendScope[Unit, State]) {
+    def getRepositories() = {
+      Callback.future {
+        Rpc.call[PaginationData[ImageResponse]](RpcMethod.GET, Resource.userRepositories).map {
+          case Xor.Right(pd) =>
+            $.modState(_.copy(pd.data))
+          case Xor.Left(e) =>
+            println(e)
+            Callback.empty
+        }
+      }
+    }
+
+    def render(state: State) = {
       <.div(<.h2("Repositories"))
     }
   }
 
-  private val component =
-    ReactComponentB[Unit]("RepositoriesComponent").renderBackend[Backend].build
+  private val component = ReactComponentB[Unit]("RepositoriesComponent")
+    .initialState(State(Seq.empty))
+    .renderBackend[Backend]
+    .componentDidMount { $ ⇒
+      $.backend.getRepositories()
+    }
+    .build
 
-  def apply() = component()
+  def apply() = component.apply()
 }

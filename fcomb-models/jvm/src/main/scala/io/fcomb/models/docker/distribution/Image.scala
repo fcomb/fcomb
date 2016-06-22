@@ -16,17 +16,8 @@
 
 package io.fcomb.models.docker.distribution
 
-import io.fcomb.models.{Enum, EnumItem, ModelWithAutoLongPk, OwnerKind}
+import io.fcomb.models.{ModelWithAutoLongPk, OwnerKind}
 import java.time.ZonedDateTime
-
-sealed trait ImageVisibilityKind extends EnumItem
-
-object ImageVisibilityKind extends Enum[ImageVisibilityKind] {
-  final case object Private extends ImageVisibilityKind
-  final case object Public  extends ImageVisibilityKind
-
-  val values = findValues
-}
 
 final case class Image(
     id: Option[Long],

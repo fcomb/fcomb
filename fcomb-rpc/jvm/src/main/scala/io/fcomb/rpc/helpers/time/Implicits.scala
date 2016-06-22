@@ -14,22 +14,12 @@
  * limitations under the License.
  */
 
-package io.fcomb.json.models
+package io.fcomb.rpc.helpers.time
 
-import io.circe.generic.auto._
-import io.circe.generic.semiauto._
-import io.circe.{Encoder, Decoder}
-import io.fcomb.models._
-import shapeless.cachedImplicit
+import java.time.ZonedDateTime
 
-object Formats {
-  implicit final val encodeSession: Encoder[Session] = cachedImplicit
-  implicit final def encodePaginationData[T](
-      implicit encoder: Encoder[T]): Encoder[PaginationData[T]] =
-    deriveEncoder
-
-  implicit final val decodeSession: Decoder[Session] = cachedImplicit
-  implicit final def decodePaginationData[T](
-      implicit decoder: Decoder[T]): Decoder[PaginationData[T]] =
-    deriveDecoder
+object Implicits {
+  final implicit class ZonedDateTimeIso8601(val dt: ZonedDateTime) extends AnyVal {
+    def toIso8601 = dt.withFixedOffsetZone.toString
+  }
 }

@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-package io.fcomb.rpc
+package io.fcomb.models.docker.distribution
 
-import io.fcomb.models.User
+import io.fcomb.models.{Enum, EnumItem}
 
-object UserProfileHelpers {
-  def responseFrom(user: User): UserProfileResponse =
-    UserProfileResponse(
-      id = user.id,
-      email = user.email,
-      username = user.username,
-      fullName = user.fullName
-    )
+sealed trait ImageVisibilityKind extends EnumItem
+
+object ImageVisibilityKind extends Enum[ImageVisibilityKind] {
+  final case object Private extends ImageVisibilityKind
+  final case object Public  extends ImageVisibilityKind
+
+  val values = findValues
 }

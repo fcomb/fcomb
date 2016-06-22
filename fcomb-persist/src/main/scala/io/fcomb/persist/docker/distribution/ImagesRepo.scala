@@ -22,6 +22,8 @@ import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind, ImageCreateRequest}
 import io.fcomb.models.{OwnerKind, User, Pagination, PaginationData}
+import io.fcomb.rpc.docker.distribution.ImageResponse
+import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.{PersistTableWithAutoLongPk, PersistModelWithAutoLongPk, OrganizationGroupsRepo, OrganizationGroupUsersRepo}
@@ -194,11 +196,12 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
   }
 
   def findByUserOwnerWithPagination(userId: Long, pg: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[Image]] = {
+      implicit ec: ExecutionContext): Future[PaginationData[ImageResponse]] = {
     db.run {
       for {
-        data  <- findByUserOwnerWithPaginationCompiled((userId, pg.offset, pg.limit)).result
-        total <- findByUserOwnerTotalCompiled(userId).result
+        images <- findByUserOwnerWithPaginationCompiled((userId, pg.offset, pg.limit)).result
+        total  <- findByUserOwnerTotalCompiled(userId).result
+        data = images.map(ImageHelpers.responseFrom)
       } yield PaginationData(data, total = total, offset = pg.offset, limit = pg.limit)
     }
   }

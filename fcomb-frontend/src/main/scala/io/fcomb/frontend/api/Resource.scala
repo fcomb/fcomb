@@ -17,8 +17,13 @@
 package io.fcomb.frontend.api
 
 object Resource {
-  val prefix   = "/api/v1"
+  val prefix = "/api/v1"
+
   val sessions = prefix + "/sessions"
-  val users    = prefix + "/users"
-  val signUp   = users + "/sign_up"
+
+  val users  = prefix + "/users"
+  val signUp = users + "/sign_up"
+
+  val user             = prefix + "/user"
+  val userRepositories = user + "/repositories"
 }

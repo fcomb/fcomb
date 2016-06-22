@@ -21,7 +21,7 @@ import akka.http.scaladsl.server.Directives._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.json.rpc.Formats.encodeUserProfileResponse
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.rpc.UserProfileHelpers
+import io.fcomb.rpc.helpers.UserProfileHelpers
 
 object UserHandler {
   val servicePath = "user"

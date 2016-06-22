@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package io.fcomb.json.models
+package io.fcomb.rpc.docker.distribution
 
-import io.circe.generic.auto._
-import io.circe.generic.semiauto._
-import io.circe.{Encoder, Decoder}
-import io.fcomb.models._
-import shapeless.cachedImplicit
+import io.fcomb.models.OwnerKind
+import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
-object Formats {
-  implicit final val encodeSession: Encoder[Session] = cachedImplicit
-  implicit final def encodePaginationData[T](
-      implicit encoder: Encoder[T]): Encoder[PaginationData[T]] =
-    deriveEncoder
-
-  implicit final val decodeSession: Decoder[Session] = cachedImplicit
-  implicit final def decodePaginationData[T](
-      implicit decoder: Decoder[T]): Decoder[PaginationData[T]] =
-    deriveDecoder
-}
+final case class ImageResponse(
+    id: Option[Long],
+    name: String,
+    slug: String,
+    ownerId: Long,
+    ownerKind: OwnerKind,
+    visibilityKind: ImageVisibilityKind,
+    description: String,
+    createdAt: String,
+    updatedAt: Option[String]
+)

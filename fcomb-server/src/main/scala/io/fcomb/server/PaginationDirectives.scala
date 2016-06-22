@@ -47,8 +47,12 @@ trait PaginationDirectives {
   def completePagination[T](label: String, pd: PaginationData[T])(implicit encoder: Encoder[T]) = {
     val position = pd.data.length + pd.offset
     val status   = if (position < pd.total) StatusCodes.PartialContent else StatusCodes.OK
-    val range    = ContentRange(pd.offset, position, pd.total.toLong)
-    val headers  = immutable.Seq(`Content-Range`(RangeUnits.Other(label), range))
+    val headers =
+      if (pd.total == 0) immutable.Seq.empty
+      else {
+        val range = ContentRange(pd.offset, position, pd.total.toLong)
+        immutable.Seq(`Content-Range`(RangeUnits.Other(label), range))
+      }
     respondWithHeaders(headers) {
       complete((status, pd))
     }
