@@ -16,24 +16,32 @@
 
 package io.fcomb.server
 
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
-import io.fcomb.persist.SessionsRepo
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server._
 import io.fcomb.models.User
+import io.fcomb.persist.SessionsRepo
+import scala.concurrent.ExecutionContext
 
 trait AuthenticationDirectives {
   def authenticateUser: Directive1[User] =
     extractExecutionContext.flatMap { implicit ec =>
       extractCredentials.flatMap {
-        case Some(OAuth2BearerToken(token)) =>
-          onSuccess(SessionsRepo.findById(token)).flatMap {
-            case Some(user) => provide(user)
-            case None       => reject(AuthorizationFailedRejection)
+        case Some(OAuth2BearerToken(token)) => findByToken(token)
+        case _ =>
+          parameter('token.?).flatMap {
+            case Some(token) => findByToken(token)
+            case _           => reject(AuthorizationFailedRejection)
           }
-        case _ => reject(AuthorizationFailedRejection)
       }
     }
+
+  private def findByToken(token: String)(implicit ec: ExecutionContext): Directive1[User] = {
+    onSuccess(SessionsRepo.findById(token)).flatMap {
+      case Some(user) => provide(user)
+      case None       => reject(AuthorizationFailedRejection)
+    }
+  }
 }
 
 object AuthenticationDirectives extends AuthenticationDirectives

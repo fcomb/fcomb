@@ -29,7 +29,7 @@ final case class Pagination(
 )
 
 object Pagination {
-  val defaultLimit  = 0L
+  val defaultLimit  = 64L
   val defaultOffset = 0L
 
   def apply(limitOpt: Option[Long], offsetOpt: Option[Long]): Pagination = {
