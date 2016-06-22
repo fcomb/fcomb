@@ -20,9 +20,9 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
-import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind, ImageCreateRequest}
+import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.models.{OwnerKind, User, Pagination, PaginationData}
-import io.fcomb.rpc.docker.distribution.ImageResponse
+import io.fcomb.rpc.docker.distribution.{ImageResponse, ImageCreateRequest}
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo

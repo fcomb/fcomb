@@ -19,7 +19,8 @@ package io.fcomb.frontend.components
 import diode.react.ModelProxy
 import io.fcomb.frontend.Route
 import io.fcomb.frontend.styles.Global
-import io.fcomb.frontend.components.dashboard.RepositoriesComponent
+import io.fcomb.frontend.components.dashboard._
+import scala.scalajs.js
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -34,8 +35,12 @@ object DashboardComponent {
       <.div(Global.app,
             <.h1("Dashboard"),
             <.div(ctl.link(Route.SignOut)("Sign Out")),
+            <.hr(
+              ^.style := js
+                .Dictionary("borderStyle" -> "solid", "borderColor" -> "red", "width" -> "100%")),
+            RepositoriesComponent.apply(),
             <.hr,
-            RepositoriesComponent.apply())
+            NewRepositoryComponent.apply(ctl))
     }
   }
 

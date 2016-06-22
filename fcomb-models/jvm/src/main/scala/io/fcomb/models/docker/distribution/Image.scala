@@ -41,9 +41,3 @@ object Image {
 final case class DistributionImageCatalog(
     repositories: Seq[String]
 )
-
-final case class ImageCreateRequest(
-    name: String,
-    visibilityKind: ImageVisibilityKind,
-    description: Option[String]
-)

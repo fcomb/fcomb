@@ -23,7 +23,7 @@ import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.circe.java8.time._
-import io.fcomb.models.docker.distribution.ImageCreateRequest
+import io.fcomb.rpc.docker.distribution.ImageCreateRequest
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.PaginationDirectives._
