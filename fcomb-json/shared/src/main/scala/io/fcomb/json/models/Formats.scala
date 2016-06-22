@@ -16,19 +16,22 @@
 
 package io.fcomb.json.models
 
-import io.circe.generic.auto._
+import enumeratum.Circe
 import io.circe.generic.semiauto._
 import io.circe.{Encoder, Decoder}
 import io.fcomb.models._
-import shapeless.cachedImplicit
 
 object Formats {
-  implicit final val encodeSession: Encoder[Session] = cachedImplicit
+  implicit final val encodeOwnerKind: Encoder[OwnerKind] = Circe.encoder(OwnerKind)
+
+  implicit final val encodeSession: Encoder[Session] = deriveEncoder
   implicit final def encodePaginationData[T](
       implicit encoder: Encoder[T]): Encoder[PaginationData[T]] =
     deriveEncoder
 
-  implicit final val decodeSession: Decoder[Session] = cachedImplicit
+  implicit final val decodeOwnerKind: Decoder[OwnerKind] = Circe.decoder(OwnerKind)
+
+  implicit final val decodeSession: Decoder[Session] = deriveDecoder
   implicit final def decodePaginationData[T](
       implicit decoder: Decoder[T]): Decoder[PaginationData[T]] =
     deriveDecoder

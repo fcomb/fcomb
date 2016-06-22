@@ -18,12 +18,12 @@ package io.fcomb.server
 
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.{ContentRange, StatusCodes, HttpResponse}
+import akka.http.scaladsl.model.{ContentRange, StatusCodes}
 import akka.http.scaladsl.model.headers.{`Content-Range`, Range, RangeUnits}
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.Encoder
-import io.circe.generic.auto._
 import io.fcomb.models.{Pagination, PaginationData}
+import io.fcomb.json.models.Formats._
 import scala.compat.java8.OptionConverters._
 import scala.collection.immutable
 
@@ -45,20 +45,18 @@ trait PaginationDirectives {
     }
 
   def completePagination[T](label: String, pd: PaginationData[T])(implicit encoder: Encoder[T]) = {
-    if (pd.total != 0 && pd.offset >= pd.total) {
-      complete(HttpResponse(StatusCodes.RequestedRangeNotSatisfiable))
-    } else {
-      val position = pd.data.length + pd.offset - 1L
-      val (status, headers) =
-        if (pd.offset == 0L && position < pd.total) (StatusCodes.OK, immutable.Seq.empty)
-        else {
-          val range = ContentRange(pd.offset, position, pd.total.toLong)
-          val xs    = immutable.Seq(`Content-Range`(RangeUnits.Other(label), range))
-          (StatusCodes.PartialContent, xs)
-        }
-      respondWithHeaders(headers) {
-        complete((status, pd))
+    val position = pd.data.length + pd.offset - 1L
+    val (status, headers) =
+      if (pd.offset == 0L && position < pd.total) (StatusCodes.OK, immutable.Seq.empty)
+      else if (pd.total != 0 && pd.offset >= pd.total)
+        (StatusCodes.RequestedRangeNotSatisfiable, immutable.Seq.empty)
+      else {
+        val range = ContentRange(pd.offset, position, pd.total.toLong)
+        val xs    = immutable.Seq(`Content-Range`(RangeUnits.Other(label), range))
+        (StatusCodes.PartialContent, xs)
       }
+    respondWithHeaders(headers) {
+      complete((status, pd))
     }
   }
 }

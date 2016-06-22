@@ -16,6 +16,8 @@
 
 package io.fcomb.models
 
+import io.fcomb.models.common.{Enum, EnumItem}
+
 sealed trait OwnerKind extends EnumItem
 
 object OwnerKind extends Enum[OwnerKind] {

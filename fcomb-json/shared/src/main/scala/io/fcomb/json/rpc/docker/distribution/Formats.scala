@@ -16,15 +16,16 @@
 
 package io.fcomb.json.rpc.docker.distribution
 
-import io.circe.generic.auto._
+import io.circe.generic.semiauto._
 import io.circe.{Encoder, Decoder}
 import io.fcomb.rpc.docker.distribution._
-import shapeless.cachedImplicit
+import io.fcomb.json.models.Formats._
+import io.fcomb.json.models.docker.distribution.Formats._
 
 object Formats {
-  implicit final val encodeImageResponse: Encoder[ImageResponse]           = cachedImplicit
-  implicit final val encodeImageCreateRequest: Encoder[ImageCreateRequest] = cachedImplicit
+  implicit final val encodeImageResponse: Encoder[ImageResponse]           = deriveEncoder
+  implicit final val encodeImageCreateRequest: Encoder[ImageCreateRequest] = deriveEncoder
 
-  implicit final val decodeImageResponse: Decoder[ImageResponse]           = cachedImplicit
-  implicit final val decodeImageCreateRequest: Decoder[ImageCreateRequest] = cachedImplicit
+  implicit final val decodeImageResponse: Decoder[ImageResponse]           = deriveDecoder
+  implicit final val decodeImageCreateRequest: Decoder[ImageCreateRequest] = deriveDecoder
 }

@@ -21,7 +21,8 @@ import com.github.tminglei.slickpg.utils.SimpleArrayUtils
 import io.fcomb.RichPostgresDriver._
 import io.fcomb.models.acl.{Action, Role, SourceKind, MemberKind}
 import io.fcomb.models.docker.distribution.{ImageBlobState, ImageVisibilityKind}
-import io.fcomb.models.{ApplicationState, Enum, EnumItem, OwnerKind}
+import io.fcomb.models.{ApplicationState, OwnerKind}
+import io.fcomb.models.common.{Enum, EnumItem}
 import java.sql.{PreparedStatement, ResultSet}
 import scala.reflect.ClassTag
 import slick.ast.FieldSymbol

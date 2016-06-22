@@ -16,7 +16,8 @@
 
 package io.fcomb.models.docker.distribution
 
-import io.fcomb.models.{Enum, EnumItem, ModelWithUuidPk}
+import io.fcomb.models.ModelWithUuidPk
+import io.fcomb.models.common.{Enum, EnumItem}
 import cats.syntax.eq._
 import java.time.ZonedDateTime
 import java.util.UUID

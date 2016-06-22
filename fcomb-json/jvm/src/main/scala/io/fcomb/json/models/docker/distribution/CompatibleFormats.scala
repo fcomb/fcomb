@@ -26,7 +26,7 @@ import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
 import scala.collection.generic.CanBuildFrom
 
-object Formats {
+object CompatibleFormats {
   private final val compactPrinter: Printer = Printer(
     preserveOrder = true,
     dropNullKeys = true,

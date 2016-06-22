@@ -22,7 +22,7 @@ import cats.syntax.cartesian._
 import cats.syntax.show._
 import io.circe._, io.circe.parser._, io.circe.syntax._
 import io.fcomb.crypto.Jws
-import io.fcomb.json.models.docker.distribution.Formats._
+import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest => ManifestV1, _}
 import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest => ManifestV2}
 import io.fcomb.models.docker.distribution.{Reference, ImageManifest => ImageManifest, Image => Image},

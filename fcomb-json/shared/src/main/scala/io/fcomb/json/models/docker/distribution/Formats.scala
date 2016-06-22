@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.docker.distribution
+package io.fcomb.json.models.docker.distribution
 
-import io.fcomb.models.common.{Enum, EnumItem}
+import enumeratum.Circe
+import io.circe.{Encoder, Decoder}
+import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
-sealed trait ImageVisibilityKind extends EnumItem
+object Formats {
+  implicit final val encodeImageVisibilityKind: Encoder[ImageVisibilityKind] =
+    Circe.encoder(ImageVisibilityKind)
 
-object ImageVisibilityKind extends Enum[ImageVisibilityKind] {
-  final case object Private extends ImageVisibilityKind
-  final case object Public  extends ImageVisibilityKind
-
-  val values = findValues
+  implicit final val decodeImageVisibilityKind: Decoder[ImageVisibilityKind] =
+    Circe.decoder(ImageVisibilityKind)
 }

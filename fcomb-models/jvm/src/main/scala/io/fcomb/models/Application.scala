@@ -16,6 +16,7 @@
 
 package io.fcomb.models
 
+import io.fcomb.models.common.{Enum, EnumItem}
 import java.time.ZonedDateTime
 
 sealed trait ApplicationState extends EnumItem

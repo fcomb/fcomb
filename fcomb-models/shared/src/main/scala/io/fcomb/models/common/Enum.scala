@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.models
+package io.fcomb.models.common
 
 import cats.Eq
 

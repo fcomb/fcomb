@@ -24,6 +24,7 @@ import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.rpc.UserSignUpRequest
 import io.fcomb.persist.UsersRepo
+import io.fcomb.json.rpc.Formats._
 
 object UsersHandler {
   val servicePath = "users"

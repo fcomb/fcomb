@@ -16,7 +16,8 @@
 
 package io.fcomb.models.acl
 
-import io.fcomb.models.{Enum, EnumItem, ModelWithAutoLongPk}
+import io.fcomb.models.ModelWithAutoLongPk
+import io.fcomb.models.common.{Enum, EnumItem}
 import java.time.ZonedDateTime
 
 sealed trait SourceKind extends EnumItem

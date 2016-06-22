@@ -21,13 +21,14 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.headers.Location
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
-import io.circe.generic.auto._
-import io.circe.java8.time._
+// import io.circe.generic.auto._
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
+import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.api.{apiVersion, UserHandler}
+import io.fcomb.json.rpc.docker.distribution.Formats._
 import scala.collection.immutable
 
 object RepositoriesHandler {
@@ -40,9 +41,10 @@ object RepositoriesHandler {
       authenticateUser { user =>
         entity(as[ImageCreateRequest]) { req =>
           onSuccess(ImagesRepo.createByRequest(req, user)) {
-            case Validated.Valid(res) =>
-              val uri     = fullPrefix + res.getId.toString
+            case Validated.Valid(image) =>
+              val uri     = fullPrefix + image.getId.toString
               val headers = immutable.Seq(Location(uri))
+              val res     = ImageHelpers.responseFrom(image)
               respondWithHeaders(headers) {
                 complete((StatusCodes.Created, res))
               }

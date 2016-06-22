@@ -25,6 +25,8 @@ import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.persist.SessionsRepo
 import io.fcomb.rpc.SessionCreateRequest
+import io.fcomb.json.rpc.Formats._
+import io.fcomb.json.models.Formats._
 
 object SessionsHandler {
   def create =

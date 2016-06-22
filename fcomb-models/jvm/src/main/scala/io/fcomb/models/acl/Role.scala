@@ -16,7 +16,7 @@
 
 package io.fcomb.models.acl
 
-import io.fcomb.models.{Enum, EnumItem}
+import io.fcomb.models.common.{Enum, EnumItem}
 
 sealed trait Role extends EnumItem
 

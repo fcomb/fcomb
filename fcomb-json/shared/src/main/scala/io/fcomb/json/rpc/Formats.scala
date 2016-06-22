@@ -16,19 +16,18 @@
 
 package io.fcomb.json.rpc
 
-import io.circe.generic.auto._
+import io.circe.generic.semiauto._
 import io.circe.{Encoder, Decoder}
 import io.fcomb.rpc._
-import shapeless.cachedImplicit
 
 object Formats {
-  implicit final val encodeSessionCreateRequest: Encoder[SessionCreateRequest] = cachedImplicit
-  implicit final val encodeUserProfileResponse: Encoder[UserProfileResponse]   = cachedImplicit
-  implicit final val encodeUserSignUpRequest: Encoder[UserSignUpRequest]       = cachedImplicit
-  implicit final val encodeUserUpdateRequest: Encoder[UserUpdateRequest]       = cachedImplicit
+  implicit final val encodeSessionCreateRequest: Encoder[SessionCreateRequest] = deriveEncoder
+  implicit final val encodeUserProfileResponse: Encoder[UserProfileResponse]   = deriveEncoder
+  implicit final val encodeUserSignUpRequest: Encoder[UserSignUpRequest]       = deriveEncoder
+  implicit final val encodeUserUpdateRequest: Encoder[UserUpdateRequest]       = deriveEncoder
 
-  implicit final val decodeSessionCreateRequest: Decoder[SessionCreateRequest] = cachedImplicit
-  implicit final val decodeUserProfileResponse: Decoder[UserProfileResponse]   = cachedImplicit
-  implicit final val decodeUserSignUpRequest: Decoder[UserSignUpRequest]       = cachedImplicit
-  implicit final val decodeUserUpdateRequest: Decoder[UserUpdateRequest]       = cachedImplicit
+  implicit final val decodeSessionCreateRequest: Decoder[SessionCreateRequest] = deriveDecoder
+  implicit final val decodeUserProfileResponse: Decoder[UserProfileResponse]   = deriveDecoder
+  implicit final val decodeUserSignUpRequest: Decoder[UserSignUpRequest]       = deriveDecoder
+  implicit final val decodeUserUpdateRequest: Decoder[UserUpdateRequest]       = deriveDecoder
 }
