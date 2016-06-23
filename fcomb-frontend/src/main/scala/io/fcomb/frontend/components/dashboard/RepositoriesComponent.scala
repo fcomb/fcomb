@@ -42,8 +42,17 @@ object RepositoriesComponent {
       }
     }
 
+    def renderRepository(repository: ImageResponse) = {
+      <.li(repository.name)
+    }
+
+    def renderRepositories(repositories: Seq[ImageResponse]) = {
+      if (repositories.isEmpty) <.span("No repositories. Create one!")
+      else <.ul(repositories.map(renderRepository))
+    }
+
     def render(state: State) = {
-      <.div(<.h2("Repositories"))
+      <.div(<.h2("Repositories"), renderRepositories(state.repositories))
     }
   }
 

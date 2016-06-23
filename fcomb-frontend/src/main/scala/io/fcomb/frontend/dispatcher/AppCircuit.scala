@@ -18,27 +18,12 @@ package io.fcomb.frontend.dispatcher
 
 import diode.Circuit
 import diode.react.ReactConnector
-import io.fcomb.frontend.services.AuthService
+import io.fcomb.frontend.dispatcher.handlers._
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
-  import diode._
-  val treeHandler = new ActionHandler(zoomRW(_.session)((m, v) => m.copy(session = v))) {
-    override def handle = {
-      case actions.Initialize =>
-        AuthService.getToken() match {
-          case Some(token) => updated(Some(token))
-          case None        => noChange
-        }
-      case actions.Authenticated(token) =>
-        AuthService.setToken(token)
-        updated(Some(token))
-      case actions.LogOut =>
-        AuthService.removeToken()
-        updated(None)
-    }
-  }
-
-  protected def actionHandler = composeHandlers(treeHandler)
+  protected def actionHandler = composeHandlers(
+    new AuthenticationHandler(zoomRW(_.session)((m, v) => m.copy(session = v)))
+  )
 
   protected def initialModel = RootModel(session = None)
 
