@@ -17,7 +17,7 @@
 package io.fcomb.frontend.components.dashboard
 
 import cats.data.Xor
-import io.fcomb.frontend.Route
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
@@ -33,8 +33,8 @@ object NewRepositoryComponent {
                          description: Option[String],
                          isFormDisabled: Boolean)
 
-  final case class Backend($ : BackendScope[RouterCtl[Route], State]) {
-    def create(ctl: RouterCtl[Route]): Callback = {
+  final case class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
+    def create(ctl: RouterCtl[DashboardRoute]): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
@@ -55,7 +55,7 @@ object NewRepositoryComponent {
       }
     }
 
-    def handleOnSubmit(ctl: RouterCtl[Route])(e: ReactEventH): Callback = {
+    def handleOnSubmit(ctl: RouterCtl[DashboardRoute])(e: ReactEventH): Callback = {
       e.preventDefaultCB >> create(ctl)
     }
 
@@ -77,7 +77,7 @@ object NewRepositoryComponent {
       $.modState(_.copy(description = value))
     }
 
-    def render(ctl: RouterCtl[Route], state: State) = {
+    def render(ctl: RouterCtl[DashboardRoute], state: State) = {
       <.div(
         <.h2("New repository"),
         <.form(
@@ -113,10 +113,10 @@ object NewRepositoryComponent {
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[Route]]("NewRepositoryComponent")
+  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("NewRepositoryComponent")
     .initialState(State("", ImageVisibilityKind.Private, None, false))
     .renderBackend[Backend]
     .build
 
-  def apply(ctl: RouterCtl[Route]) = component(ctl)
+  def apply(ctl: RouterCtl[DashboardRoute]) = component(ctl)
 }

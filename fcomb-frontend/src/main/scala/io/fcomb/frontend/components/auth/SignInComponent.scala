@@ -17,7 +17,7 @@
 package io.fcomb.frontend.components.auth
 
 import cats.data.Xor
-import io.fcomb.frontend.Route
+import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.services.AuthService
 import io.fcomb.frontend.styles.Global
@@ -40,7 +40,7 @@ object SignInComponent {
               AuthService
                 .authentication(state.email, state.password)
                 .map {
-                  case Xor.Right(_) => ctl.set(Route.Dashboard)
+                  case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
                   case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
                 }
                 .recover {
@@ -100,7 +100,7 @@ object SignInComponent {
     .initialState(State("", "", false))
     .renderBackend[Backend]
     .componentDidMount { $ ⇒
-      if (AppCircuit.session.nonEmpty) $.props.set(Route.Dashboard).delayMs(1).void
+      if (AppCircuit.session.nonEmpty) $.props.set(Route.Dashboard(DashboardRoute.Root)).delayMs(1).void
       else Callback.empty
     }
     .build

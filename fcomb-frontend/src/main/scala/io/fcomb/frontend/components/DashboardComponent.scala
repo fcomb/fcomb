@@ -17,34 +17,45 @@
 package io.fcomb.frontend.components
 
 import diode.react.ModelProxy
-import io.fcomb.frontend.Route
+import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.frontend.styles.Global
 import io.fcomb.frontend.components.dashboard._
 import scala.scalajs.js
 import japgolly.scalajs.react._
-import japgolly.scalajs.react.extra.router.RouterCtl
+import japgolly.scalajs.react.extra.router._
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scalacss.ScalaCssReact._
 
 object DashboardComponent {
-  final case class SessionState(ctl: RouterCtl[Route], session: ModelProxy[Option[String]])
+  val routes = RouterConfigDsl[DashboardRoute].buildRule { dsl =>
+    import dsl._
 
-  final case class Backend($ : BackendScope[SessionState, Unit]) {
-    def render(sessionState: SessionState) = {
-      val ctl = sessionState.ctl
+    trimSlashes |
+    staticRoute(root, DashboardRoute.Root) ~> redirectToPage(DashboardRoute.Repositories)(
+      Redirect.Replace) |
+    staticRoute("repositories", DashboardRoute.Repositories) ~> renderR(
+      ctl => RepositoriesComponent.apply()) |
+    staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~> renderR(
+      ctl => NewRepositoryComponent.apply(ctl))
+  }
+
+  final case class State(ctl: RouterCtl[Route],
+                         session: ModelProxy[Option[String]],
+                         res: Resolution[Route])
+
+  final case class Backend($ : BackendScope[State, Unit]) {
+    def render(state: State) = {
       <.div(Global.app,
             <.h1("Dashboard"),
-            <.div(ctl.link(Route.SignOut)("Sign Out")),
+            <.div(state.ctl.link(Route.SignOut)("Sign Out")),
             <.hr(
               ^.style := js
                 .Dictionary("borderStyle" -> "solid", "borderColor" -> "red", "width" -> "100%")),
-            RepositoriesComponent.apply(),
-            <.hr,
-            NewRepositoryComponent.apply(ctl))
+            state.res.render())
     }
   }
 
-  private val component = ReactComponentB[SessionState]("DashboardComponent")
+  private val component = ReactComponentB[State]("DashboardComponent")
     .renderBackend[Backend]
     .componentDidMount { $ ⇒
       if ($.props.session().isEmpty) $.props.ctl.set(Route.SignIn).delayMs(1).void
@@ -52,6 +63,6 @@ object DashboardComponent {
     }
     .build
 
-  def apply(ctl: RouterCtl[Route], session: ModelProxy[Option[String]]) =
-    component(SessionState(ctl, session))
+  def apply(ctl: RouterCtl[Route], session: ModelProxy[Option[String]], res: Resolution[Route]) =
+    component(State(ctl, session, res))
 }

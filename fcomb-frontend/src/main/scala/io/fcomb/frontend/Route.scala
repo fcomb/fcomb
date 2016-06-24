@@ -19,8 +19,17 @@ package io.fcomb.frontend
 sealed trait Route
 
 object Route {
-  final case object Dashboard extends Route
-  final case object SignIn    extends Route
-  final case object SignUp    extends Route
-  final case object SignOut   extends Route
+  final case class Dashboard(route: DashboardRoute) extends Route
+  final case object SignIn  extends Route
+  final case object SignUp  extends Route
+  final case object SignOut extends Route
+}
+
+sealed trait DashboardRoute
+
+object DashboardRoute {
+  final case object Root extends DashboardRoute
+
+  final case object Repositories  extends DashboardRoute
+  final case object NewRepository extends DashboardRoute
 }
