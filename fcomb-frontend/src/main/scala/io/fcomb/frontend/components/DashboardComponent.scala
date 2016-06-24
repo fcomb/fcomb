@@ -46,8 +46,12 @@ object DashboardComponent {
   final case class Backend($ : BackendScope[State, Unit]) {
     def render(state: State) = {
       <.div(Global.app,
-            <.h1("Dashboard"),
-            <.div(state.ctl.link(Route.SignOut)("Sign Out")),
+        <.header(
+          <.h1("Dashboard"),
+          <.ul(
+            <.li(state.ctl.link(Route.Dashboard(DashboardRoute.Repositories))("Repositories")),
+            <.li(state.ctl.link(Route.Dashboard(DashboardRoute.NewRepository))("New repository"))),
+            <.div(state.ctl.link(Route.SignOut)("Sign Out"))),
             <.hr(
               ^.style := js
                 .Dictionary("borderStyle" -> "solid", "borderColor" -> "red", "width" -> "100%")),
