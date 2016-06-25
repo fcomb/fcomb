@@ -30,15 +30,25 @@ import io.fcomb.persist.docker.distribution.ImagesRepo
 trait ImageDirectives {
   def imageByNameWithAcl(slug: String, user: User, action: Action): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
-      onSuccess(ImagesRepo.findBySlugWithAcl(slug, user.getId, action)).flatMap {
-        case Some(user) => provide(user)
-        case None =>
-          complete(
-            (
-              StatusCodes.NotFound,
-              DistributionErrorResponse.from(DistributionError.NameUnknown())
-            ))
-      }
+      onSuccess(ImagesRepo.findBySlugWithAcl(slug, user.getId, action)).flatMap(provideImage)
+    }
+  }
+
+  def imageByIdWithAcl(id: Long, user: User, action: Action): Directive1[Image] = {
+    extractExecutionContext.flatMap { implicit ec =>
+      onSuccess(ImagesRepo.findByIdWithAcl(id, user.getId, action)).flatMap(provideImage)
+    }
+  }
+
+  private def provideImage(imageOpt: Option[Image]): Directive1[Image] = {
+    imageOpt match {
+      case Some(image) => provide(image)
+      case None =>
+        complete(
+          (
+            StatusCodes.NotFound,
+            DistributionErrorResponse.from(DistributionError.NameUnknown())
+          ))
     }
   }
 }

@@ -96,7 +96,7 @@ class ImageBlobUploadsHandlerSpec
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
 
-        val blob = await(ImageBlobsRepo.findByPk(uuid)).get
+        val blob = await(ImageBlobsRepo.findById(uuid)).get
         blob.length shouldEqual bs.length
         blob.state shouldEqual ImageBlobState.Uploaded
         blob.sha256Digest shouldEqual Some(bsDigest)
@@ -174,7 +174,7 @@ class ImageBlobUploadsHandlerSpec
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
 
-        val blob = await(ImageBlobsRepo.findByPk(uuid)).get
+        val blob = await(ImageBlobsRepo.findById(uuid)).get
         blob.length shouldEqual bs.length
         blob.state shouldEqual ImageBlobState.Uploaded
         blob.sha256Digest shouldEqual Some(bsDigest)
@@ -208,7 +208,7 @@ class ImageBlobUploadsHandlerSpec
         header[RangeCustom] should contain(RangeCustom(0L, blobPart1.length - 1L))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val updatedBlob = await(ImageBlobsRepo.findByPk(blob.getId)).get
+        val updatedBlob = await(ImageBlobsRepo.findById(blob.getId)).get
         updatedBlob.length shouldEqual blobPart1.length
         updatedBlob.state shouldEqual ImageBlobState.Uploading
         updatedBlob.sha256Digest shouldEqual Some(blobPart1Digest)
@@ -234,7 +234,7 @@ class ImageBlobUploadsHandlerSpec
         header[RangeCustom] should contain(RangeCustom(0L, bs.length - 1L))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val updatedBlob = await(ImageBlobsRepo.findByPk(blob.getId)).get
+        val updatedBlob = await(ImageBlobsRepo.findById(blob.getId)).get
         updatedBlob.length shouldEqual bs.length
         updatedBlob.state shouldEqual ImageBlobState.Uploading
         updatedBlob.sha256Digest shouldEqual Some(bsDigest)
@@ -269,7 +269,7 @@ class ImageBlobUploadsHandlerSpec
         header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findByPk(blob.getId)).get
+        val b = await(ImageBlobsRepo.findById(blob.getId)).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.sha256Digest shouldEqual Some(bsDigest)
@@ -298,7 +298,7 @@ class ImageBlobUploadsHandlerSpec
         header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findByPk(blob.getId)).get
+        val b = await(ImageBlobsRepo.findById(blob.getId)).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.sha256Digest shouldEqual Some(bsDigest)

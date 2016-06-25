@@ -30,13 +30,16 @@ object DashboardComponent {
   val routes = RouterConfigDsl[DashboardRoute].buildRule { dsl =>
     import dsl._
 
+    val repositoryNameFormat = """[\w-]+/[\w-]+"""
+
     trimSlashes |
     staticRoute(root, DashboardRoute.Root) ~> redirectToPage(DashboardRoute.Repositories)(
       Redirect.Replace) |
     staticRoute("repositories", DashboardRoute.Repositories) ~> renderR(
-      ctl => RepositoriesComponent.apply()) |
+      ctl => RepositoriesComponent.apply(ctl)) |
     staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~> renderR(
-      ctl => NewRepositoryComponent.apply(ctl))
+      ctl => NewRepositoryComponent.apply(ctl)) |
+    dynamicRouteCT("repositories" ~ ("/" ~ string(repositoryNameFormat)).caseClass[DashboardRoute.Repository]) ~> dynRenderR((r, ctl) => RepositoryComponent.apply(ctl, r.name))
   }
 
   final case class State(ctl: RouterCtl[Route],

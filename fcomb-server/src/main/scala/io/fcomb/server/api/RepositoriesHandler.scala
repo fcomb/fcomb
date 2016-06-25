@@ -18,39 +18,33 @@ package io.fcomb.server.api
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.headers.Location
-import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
-// import io.circe.generic.auto._
-import io.fcomb.rpc.docker.distribution.ImageCreateRequest
-import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
-import io.fcomb.persist.docker.distribution.ImagesRepo
-import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.PaginationDirectives._
-import io.fcomb.server.api.{apiVersion, UserHandler}
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import scala.collection.immutable
+import io.fcomb.models.acl.Action
+import io.fcomb.models.docker.distribution.Image
+import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
+import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.ImageDirectives._
 
 object RepositoriesHandler {
   val servicePath = "repositories"
 
-  def index = {
+  def show(name: String) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        extractPagination { pg =>
-          onSuccess(ImagesRepo.findByUserOwnerWithPagination(user.getId, pg)) { p =>
-            completePagination(ImagesRepo.label, p)
-          }
-        }
+        imageByNameWithAcl(name, user, Action.Read)(completeImage)
       }
     }
-  }
 
-  def show(name: String) = {
-    complete(s"name: $name")
-  }
+  def show(id: Long) =
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        imageByIdWithAcl(id, user, Action.Read)(completeImage)
+      }
+    }
 
-  def show(id: Long) = {
-    complete(s"name: $id")
+  private def completeImage(image: Image) = {
+    val res = ImageHelpers.responseFrom(image)
+    complete((StatusCodes.OK, res))
   }
 }

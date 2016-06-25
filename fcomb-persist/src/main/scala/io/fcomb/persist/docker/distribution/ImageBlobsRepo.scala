@@ -152,7 +152,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   )(implicit ec: ExecutionContext): Future[Unit] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
       existUploadedByImageIdAndDigestCompiled((imageId, digest, id)).result.flatMap { exists =>
-        if (exists) findByPkQuery(id).delete.map(_ => ())
+        if (exists) findByIdQuery(id).delete.map(_ => ())
         else {
           table
             .filter(_.pk === id)
@@ -219,7 +219,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     runInTransaction(TransactionIsolation.ReadCommitted) {
       ImageManifestLayersRepo.isBlobLinkedCompiled(id).result.flatMap {
         case true  => DBIO.successful(Xor.left("blob is linked with manifest"))
-        case false => findByPkQuery(id).delete.map(_ => Xor.right(()))
+        case false => findByIdQuery(id).delete.map(_ => Xor.right(()))
       }
     }.recover { case _ => Xor.right(()) }
 

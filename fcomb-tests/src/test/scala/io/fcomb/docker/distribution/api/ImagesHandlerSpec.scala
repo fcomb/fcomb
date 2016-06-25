@@ -338,7 +338,7 @@ class ImagesHandlerSpec
       Delete(s"/v2/$imageName/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
 
-        ImageManifestsRepo.findByPk(im.getId).futureValue shouldBe empty
+        ImageManifestsRepo.findById(im.getId).futureValue shouldBe empty
       }
     }
   }

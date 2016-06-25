@@ -20,103 +20,45 @@ import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.docker.distribution.ImageVisibilityKind
-import io.fcomb.rpc.docker.distribution.{ImageResponse, ImageCreateRequest}
+import io.fcomb.rpc.docker.distribution.ImageResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object RepositoryComponent {
-  final case class State(name: String,
-                         visibilityKind: ImageVisibilityKind,
-                         description: Option[String],
-                         isFormDisabled: Boolean)
+  final case class Props(ctl: RouterCtl[DashboardRoute], name: String)
+  final case class State(repository: Option[ImageResponse])
 
-  final case class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
-    def create(ctl: RouterCtl[DashboardRoute]): Callback = {
-      $.state.flatMap { state =>
-        if (state.isFormDisabled) Callback.empty
-        else {
-          Callback.future {
-            val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
-            Rpc
-              .callWith[ImageCreateRequest, ImageResponse](RpcMethod.POST,
-                                                           Resource.userRepositories,
-                                                           req)
-              .map {
-                case Xor.Right(_) =>
-                  Callback.empty
-                case Xor.Left(e) =>
-                  Callback.empty
-              }
-          }
+  final case class Backend($ : BackendScope[Props, State]) {
+    def getRepository(name: String) = {
+      Callback.future {
+        Rpc.call[ImageResponse](RpcMethod.GET, Resource.repository(name)).map {
+          case Xor.Right(repository) =>
+            $.modState(_.copy(repository = Some(repository)))
+          case Xor.Left(e) =>
+            println(e)
+            Callback.empty
         }
       }
     }
 
-    def handleOnSubmit(ctl: RouterCtl[DashboardRoute])(e: ReactEventH): Callback = {
-      e.preventDefaultCB >> create(ctl)
-    }
-
-    def updateName(e: ReactEventI): Callback = {
-      val value = e.target.value
-      $.modState(_.copy(name = value))
-    }
-
-    def updateVisibilityKind(e: ReactEventI): Callback = {
-      val value = ImageVisibilityKind.withName(e.target.value)
-      $.modState(_.copy(visibilityKind = value))
-    }
-
-    def updateDescription(e: ReactEventI): Callback = {
-      val value = e.target.value match {
-        case s if s.nonEmpty => Some(s)
-        case _               => None
-      }
-      $.modState(_.copy(description = value))
-    }
-
-    def render(ctl: RouterCtl[DashboardRoute], state: State) = {
+    def render(props: Props, state: State) = {
       <.div(
-        <.h2("New repository"),
-        <.form(
-          ^.onSubmit ==> handleOnSubmit(ctl),
-          ^.disabled := state.isFormDisabled,
-          <.label(^.`for` := "name", "Name"),
-          <.input.text(^.id := "name",
-                       ^.name := "name",
-                       ^.autoFocus := true,
-                       ^.required := true,
-                       ^.tabIndex := 1,
-                       ^.value := state.name,
-                       ^.onChange ==> updateName),
-          <.br,
-          <.label(^.`for` := "visibilityKind", "Visibility"),
-          <.select(^.id := "visibilityKind",
-                   ^.name := "visibilityKind",
-                   ^.required := true,
-                   ^.tabIndex := 2,
-                   ^.value := state.visibilityKind.value,
-                   ^.onChange ==> updateVisibilityKind,
-                   ImageVisibilityKind.values.map(k => <.option(^.value := k.value)(k.entryName))),
-          <.br,
-          <.label(^.`for` := "description", "Description"),
-          <.textarea(^.id := "description",
-                     ^.name := "description",
-                     ^.tabIndex := 3,
-                     ^.value := state.description.getOrElse(""),
-                     ^.onChange ==> updateDescription),
-          <.br,
-          <.input.submit(^.tabIndex := 4, ^.value := "Create"))
+        <.h2(s"Repository ${props.name}"),
+        <.h3(state.repository.map(_.description))
       )
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("NewRepositoryComponent")
-    .initialState(State("", ImageVisibilityKind.Private, None, false))
+  private val component = ReactComponentB[Props]("RepositoryComponent")
+    .initialState(State(None))
     .renderBackend[Backend]
+    .componentDidMount { $ ⇒
+      $.backend.getRepository($.props.name)
+    }
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute]) = component(ctl)
+  def apply(ctl: RouterCtl[DashboardRoute], name: String) =
+    component(Props(ctl, name))
 }

@@ -64,7 +64,7 @@ object SessionsRepo {
   ): Future[Option[User]] = {
     redis.get(getKey(sessionId)).flatMap {
       case Some(userId) if sessionId.startsWith(prefix) =>
-        UsersRepo.findByPk(userId.utf8String.toLong)
+        UsersRepo.findById(userId.utf8String.toLong)
       case _ =>
         FastFuture.successful(None)
     }

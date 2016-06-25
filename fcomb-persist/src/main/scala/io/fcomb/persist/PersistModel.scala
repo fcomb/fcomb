@@ -212,7 +212,7 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   val tableWithPk: IntoInsertActionComposer[T, T]
 
   @inline
-  def findByPkQuery(
+  def findByIdQuery(
       id: T#PkType): AppliedCompiledFunction[T#PkType, Query[Q, T, Seq], Seq[Q#TableElementType]]
 
   @inline
@@ -229,11 +229,11 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   def recordNotFoundAsFuture[E](id: T#PkType): Future[ValidationResult[E]] =
     FastFuture.successful(recordNotFound(id))
 
-  def findByPkDBIO(id: T#PkType) =
-    findByPkQuery(id).result.headOption
+  def findByIdDBIO(id: T#PkType) =
+    findByIdQuery(id).result.headOption
 
-  def findByPk(id: T#PkType): Future[Option[T]] =
-    db.run(findByPkDBIO(id))
+  def findById(id: T#PkType): Future[Option[T]] =
+    db.run(findByIdDBIO(id))
 
   def notCurrentPkFilter(id: Rep[Option[T#PkType]]): Query[Q, T, Seq]
 
@@ -241,7 +241,7 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
       implicit ec: ExecutionContext,
       m: Manifest[T]
   ) =
-    findByPkQuery(item.getId).update(item).map(strictUpdateDBIO(item.getId, item))
+    findByIdQuery(item.getId).update(item).map(strictUpdateDBIO(item.getId, item))
 
   def strictUpdateDBIO[R](id: T#PkType, res: R)(q: Int)(
       implicit ec: ExecutionContext
@@ -263,13 +263,13 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
       implicit ec: ExecutionContext,
       m: Manifest[T]
   ): Future[ValidationModel] =
-    findByPk(id).flatMap {
+    findById(id).flatMap {
       case Some(item) => update(f(item))
       case None       => recordNotFoundAsFuture(id)
     }
 
   def destroy(id: T#PkType)(implicit ec: ExecutionContext) = db.run {
-    findByPkQuery(id).delete.map(strictDestroyDBIO(id)(_))
+    findByIdQuery(id).delete.map(strictDestroyDBIO(id)(_))
   }
 
   def strictDestroyDBIO(id: T#PkType)(q: Int)(
@@ -283,12 +283,12 @@ trait PersistModelWithUuidPk[
     extends PersistModelWithPk[T, Q] {
   lazy val tableWithPk = table.returning(table.map(_.id)).into((item, _) => item)
 
-  protected lazy val findByPkCompiled = Compiled { id: Rep[UUID] =>
+  protected lazy val findByIdCompiled = Compiled { id: Rep[UUID] =>
     table.filter(_.id === id)
   }
 
-  def findByPkQuery(id: UUID) =
-    findByPkCompiled(id)
+  def findByIdQuery(id: UUID) =
+    findByIdCompiled(id)
 
   def notCurrentPkFilter(id: Rep[Option[UUID]]) =
     table.filter { q =>
@@ -302,12 +302,12 @@ trait PersistModelWithAutoLongPk[
   lazy val tableWithPk =
     table.returning(table.map(_.id)).into((item, id) => item.withPk(id.get).asInstanceOf[T])
 
-  protected lazy val findByPkCompiled = Compiled { id: Rep[Long] =>
+  protected lazy val findByIdCompiled = Compiled { id: Rep[Long] =>
     table.filter(_.id === id)
   }
 
-  def findByPkQuery(id: Long) =
-    findByPkCompiled(id)
+  def findByIdQuery(id: Long) =
+    findByIdCompiled(id)
 
   def notCurrentPkFilter(id: Rep[Option[Long]]) =
     table.filter { q =>

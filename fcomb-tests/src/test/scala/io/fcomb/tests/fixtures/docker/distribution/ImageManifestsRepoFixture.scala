@@ -46,7 +46,7 @@ object ImageManifestsRepoFixture {
       signatures = Nil
     )
     for {
-      Some(image) <- ImagesRepo.findByPk(blob.imageId)
+      Some(image) <- ImagesRepo.findById(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV1(
                               image = image,
                               manifest = manifest,
@@ -103,7 +103,7 @@ object ImageManifestsRepoFixture {
     val sha256Digest        = DigestUtils.sha256Hex(schemaV2JsonBlob)
     val reference           = Reference.Digest(sha256Digest)
     for {
-      Some(image) <- ImagesRepo.findByPk(blob.imageId)
+      Some(image) <- ImagesRepo.findById(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV2(
                               image = image,
                               manifest = manifest,

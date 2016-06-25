@@ -66,34 +66,46 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
   def findBySlugWithAcl(slug: String, userId: Long, action: Action)(
       implicit ec: ExecutionContext): Future[Option[Image]] = {
     db.run {
-      findBySlugCompiled(slug).result.headOption.flatMap {
-        case res @ Some(image) =>
-          image.ownerKind match {
-            case OwnerKind.User =>
-              if (image.ownerId == userId) DBIO.successful(res)
-              else
-                PermissionsRepo
-                  .isAllowedActionBySourceAsUserDBIO(image.getId,
-                                                     SourceKind.DockerDistributionImage,
-                                                     userId,
-                                                     action)
-                  .map { isAllowed =>
-                    if (isAllowed) res else None
-                  }
-            case OwnerKind.Organization =>
+      findBySlugCompiled(slug).result.headOption.flatMap(mapWithAcl(_, userId, action))
+    }
+  }
+
+  def findByIdWithAcl(id: Long, userId: Long, action: Action)(
+      implicit ec: ExecutionContext): Future[Option[Image]] = {
+    db.run {
+      findByIdCompiled(id).result.headOption.flatMap(mapWithAcl(_, userId, action))
+    }
+  }
+
+  private def mapWithAcl(imageOpt: Option[Image], userId: Long, action: Action)(
+      implicit ec: ExecutionContext) = {
+    imageOpt match {
+      case res @ Some(image) =>
+        image.ownerKind match {
+          case OwnerKind.User =>
+            if (image.ownerId == userId) DBIO.successful(res)
+            else
               PermissionsRepo
-                .isAllowedActionBySourceAsGroupUserDBIO(image.getId,
-                                                        SourceKind.DockerDistributionImage,
-                                                        image.ownerId,
-                                                        userId,
-                                                        action)
+                .isAllowedActionBySourceAsUserDBIO(image.getId,
+                                                   SourceKind.DockerDistributionImage,
+                                                   userId,
+                                                   action)
                 .map { isAllowed =>
                   if (isAllowed) res else None
                 }
-          }
-        case res => DBIO.successful(res)
-      }
-    }.map(identity)
+          case OwnerKind.Organization =>
+            PermissionsRepo
+              .isAllowedActionBySourceAsGroupUserDBIO(image.getId,
+                                                      SourceKind.DockerDistributionImage,
+                                                      image.ownerId,
+                                                      userId,
+                                                      action)
+              .map { isAllowed =>
+                if (isAllowed) res else None
+              }
+        }
+      case res => DBIO.successful(res)
+    }
   }
 
   // TODO: rewrite these join's by readable union's

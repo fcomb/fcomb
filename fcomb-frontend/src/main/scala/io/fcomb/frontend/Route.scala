@@ -30,6 +30,7 @@ sealed trait DashboardRoute
 object DashboardRoute {
   final case object Root extends DashboardRoute
 
-  final case object Repositories  extends DashboardRoute
+  final case object Repositories extends DashboardRoute
+  final case class Repository(name: String) extends DashboardRoute
   final case object NewRepository extends DashboardRoute
 }
