@@ -16,11 +16,11 @@
 
 package io.fcomb.server
 
-import akka.http.scaladsl.model.headers.OAuth2BearerToken
+import akka.http.scaladsl.model.headers.{BasicHttpCredentials, OAuth2BearerToken}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.models.User
-import io.fcomb.persist.SessionsRepo
+import io.fcomb.persist.{SessionsRepo, UsersRepo}
 import scala.concurrent.ExecutionContext
 
 trait AuthenticationDirectives {
@@ -33,6 +33,18 @@ trait AuthenticationDirectives {
             case Some(token) => findByToken(token)
             case _           => reject(AuthorizationFailedRejection)
           }
+      }
+    }
+
+  def authenticateUserBasic: Directive1[User] =
+    extractExecutionContext.flatMap { implicit ec =>
+      extractCredentials.flatMap {
+        case Some(BasicHttpCredentials(username, password)) =>
+          onSuccess(UsersRepo.matchByUsernameAndPassword(username, password)).flatMap {
+            case Some(user) => provide(user)
+            case None       => reject(AuthorizationFailedRejection)
+          }
+        case _ => reject(AuthorizationFailedRejection)
       }
     }
 

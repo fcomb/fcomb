@@ -233,7 +233,7 @@ lazy val tests = project.in(file("fcomb-tests"))
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
       "org.scalacheck"     %% "scalacheck"        % "1.13.1" % "test",
       "org.specs2"         %% "specs2-core"       % "3.8.4" % "test",
-      "org.scalatest"      %% "scalatest"         % "3.0.0-RC1" % "test",
+      "org.scalatest"      %% "scalatest"         % "3.0.0-RC3" % "test",
       "com.ironcorelabs"   %% "cats-scalatest"    % "1.3.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test",
       "ch.qos.logback"     %  "logback-classic"   % "1.1.7"

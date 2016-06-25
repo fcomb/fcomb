@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.docker.distribution.server
+package io.fcomb.server
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._

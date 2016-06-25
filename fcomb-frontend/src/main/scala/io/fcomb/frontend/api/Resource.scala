@@ -21,6 +21,10 @@ object Resource {
 
   val sessions = prefix + "/sessions"
 
+  val repositories = prefix + "/repositories"
+  def repository(slug: String) = s"$repositories/$slug"
+  def repository(id: Long)     = s"$repositories/$id"
+
   val users  = prefix + "/users"
   val signUp = users + "/sign_up"
 

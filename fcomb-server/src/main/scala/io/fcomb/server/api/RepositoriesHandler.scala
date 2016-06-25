@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.server.api.user
+package io.fcomb.server.api
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
@@ -34,8 +34,6 @@ import scala.collection.immutable
 object RepositoriesHandler {
   val servicePath = "repositories"
 
-  lazy val fullPrefix = s"/$apiVersion/${UserHandler.servicePath}/$servicePath/"
-
   def index = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
@@ -48,23 +46,11 @@ object RepositoriesHandler {
     }
   }
 
-  def create = {
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        entity(as[ImageCreateRequest]) { req =>
-          onSuccess(ImagesRepo.createByRequest(req, user)) {
-            case Validated.Valid(image) =>
-              val uri     = fullPrefix + image.getId.toString
-              val headers = immutable.Seq(Location(uri))
-              val res     = ImageHelpers.responseFrom(image)
-              respondWithHeaders(headers) {
-                complete((StatusCodes.Created, res))
-              }
-            case Validated.Invalid(e) =>
-              ??? // TODO
-          }
-        }
-      }
-    }
+  def show(name: String) = {
+    complete(s"name: $name")
+  }
+
+  def show(id: Long) = {
+    complete(s"name: $id")
   }
 }

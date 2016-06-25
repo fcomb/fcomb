@@ -27,7 +27,7 @@ import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-object NewRepositoryComponent {
+object RepositoryComponent {
   final case class State(name: String,
                          visibilityKind: ImageVisibilityKind,
                          description: Option[String],
@@ -38,22 +38,18 @@ object NewRepositoryComponent {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
-
-          $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
-            Callback.future {
-              val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
-              Rpc
-                .callWith[ImageCreateRequest, ImageResponse](RpcMethod.POST,
-                                                             Resource.userRepositories,
-                                                             req)
-                .map {
-                  case Xor.Right(_) => ctl.set(DashboardRoute.Repositories)
-                  case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
-                }
-                .recover {
-                  case _ => $.setState(state.copy(isFormDisabled = false))
-                }
-            }
+          Callback.future {
+            val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
+            Rpc
+              .callWith[ImageCreateRequest, ImageResponse](RpcMethod.POST,
+                                                           Resource.userRepositories,
+                                                           req)
+              .map {
+                case Xor.Right(_) =>
+                  Callback.empty
+                case Xor.Left(e) =>
+                  Callback.empty
+              }
           }
         }
       }

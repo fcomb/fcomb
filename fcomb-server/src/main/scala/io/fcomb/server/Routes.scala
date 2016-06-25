@@ -36,6 +36,19 @@ object Routes {
     redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
       respondWithDefaultHeaders(defaultHeaders) {
         pathPrefix(apiVersion) {
+          pathPrefix(RepositoriesHandler.servicePath) {
+            pathPrefix(LongNumber) { id =>
+              pathEnd {
+                get(RepositoriesHandler.show(id))
+              }
+            } ~
+            pathPrefix(Segments(2)) { xs =>
+              val name = xs.mkString("/")
+              pathEnd {
+                get(RepositoriesHandler.show(name))
+              }
+            }
+          } ~
           pathPrefix(UserHandler.servicePath) {
             pathEnd {
               get(UserHandler.current)
