@@ -25,7 +25,9 @@ import io.fcomb.json.models.docker.distribution.Formats._
 object Formats {
   implicit final val encodeImageResponse: Encoder[ImageResponse]           = deriveEncoder
   implicit final val encodeImageCreateRequest: Encoder[ImageCreateRequest] = deriveEncoder
+  implicit final val encodeImageUpdateRequest: Encoder[ImageUpdateRequest] = deriveEncoder
 
   implicit final val decodeImageResponse: Decoder[ImageResponse]           = deriveDecoder
   implicit final val decodeImageCreateRequest: Decoder[ImageCreateRequest] = deriveDecoder
+  implicit final val decodeImageUpdateRequest: Decoder[ImageUpdateRequest] = deriveDecoder
 }

@@ -47,7 +47,7 @@ object NewRepositoryComponent {
                                                              Resource.userRepositories,
                                                              req)
                 .map {
-                  case Xor.Right(_) => ctl.set(DashboardRoute.Repositories)
+                  case Xor.Right(repository) => ctl.set(DashboardRoute.Repository(repository.slug))
                   case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
                 }
                 .recover {

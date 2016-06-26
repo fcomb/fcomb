@@ -17,8 +17,9 @@
 package io.fcomb.server
 
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server._
+import io.fcomb.models.docker.distribution.ImageKey
 import io.fcomb.server.api._
 import io.fcomb.server.headers._
 
@@ -38,15 +39,11 @@ object Routes {
         pathPrefix(apiVersion) {
           pathPrefix(RepositoriesHandler.servicePath) {
             pathPrefix(LongNumber) { id =>
-              pathEnd {
-                get(RepositoriesHandler.show(id))
-              }
+              RepositoriesHandler.routes(ImageKey.Id(id))
             } ~
             pathPrefix(Segments(2)) { xs =>
               val name = xs.mkString("/")
-              pathEnd {
-                get(RepositoriesHandler.show(name))
-              }
+              RepositoriesHandler.routes(ImageKey.Name(name))
             }
           } ~
           pathPrefix(UserHandler.servicePath) {

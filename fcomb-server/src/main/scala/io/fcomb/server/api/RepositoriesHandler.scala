@@ -18,10 +18,14 @@ package io.fcomb.server.api
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
+import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
-import io.fcomb.models.docker.distribution.Image
+import io.fcomb.models.docker.distribution.ImageKey
+import io.fcomb.persist.docker.distribution.ImagesRepo
+import io.fcomb.rpc.docker.distribution.ImageUpdateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.ImageDirectives._
@@ -29,22 +33,41 @@ import io.fcomb.server.ImageDirectives._
 object RepositoriesHandler {
   val servicePath = "repositories"
 
-  def show(name: String) =
+  def show(key: ImageKey) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByNameWithAcl(name, user, Action.Read)(completeImage)
+        imageByKeyWithAcl(key, user, Action.Read) { image =>
+          val res = ImageHelpers.responseFrom(image)
+          complete((StatusCodes.OK, res))
+        }
       }
     }
+  }
 
-  def show(id: Long) =
+  def update(key: ImageKey) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByIdWithAcl(id, user, Action.Read)(completeImage)
+        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+          entity(as[ImageUpdateRequest]) { req =>
+            onSuccess(ImagesRepo.updateByRequest(image.getId, req)) {
+              case Validated.Valid(image) =>
+                val res = ImageHelpers.responseFrom(image)
+                complete((StatusCodes.Accepted, res))
+              case Validated.Invalid(e) =>
+                ??? // TODO
+            }
+          }
+        }
       }
     }
+  }
 
-  private def completeImage(image: Image) = {
-    val res = ImageHelpers.responseFrom(image)
-    complete((StatusCodes.OK, res))
+  def routes(key: ImageKey): Route = {
+    // format: OFF
+    pathEnd {
+      get(show(key)) ~
+      put(update(key))
+    }
+    // format: ON
   }
 }

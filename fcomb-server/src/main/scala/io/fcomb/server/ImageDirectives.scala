@@ -23,7 +23,7 @@ import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.models.User
 import io.fcomb.models.acl.Action
-import io.fcomb.models.docker.distribution.Image
+import io.fcomb.models.docker.distribution.{Image, ImageKey}
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
 
@@ -37,6 +37,13 @@ trait ImageDirectives {
   def imageByIdWithAcl(id: Long, user: User, action: Action): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findByIdWithAcl(id, user.getId, action)).flatMap(provideImage)
+    }
+  }
+
+  def imageByKeyWithAcl(key: ImageKey, user: User, action: Action): Directive1[Image] = {
+    key match {
+      case ImageKey.Id(id)     => imageByIdWithAcl(id, user, action)
+      case ImageKey.Name(name) => imageByNameWithAcl(name, user, action)
     }
   }
 

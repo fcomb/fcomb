@@ -20,9 +20,9 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
-import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
+import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind, ImageKey}
 import io.fcomb.models.{OwnerKind, User, Pagination, PaginationData}
-import io.fcomb.rpc.docker.distribution.{ImageResponse, ImageCreateRequest}
+import io.fcomb.rpc.docker.distribution.{ImageResponse, ImageCreateRequest, ImageUpdateRequest}
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
@@ -191,6 +191,26 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
         createdAt = ZonedDateTime.now,
         updatedAt = None
       ))
+  }
+
+  val findBySlugDBIOCompiled = Compiled { slug: Rep[String] =>
+    table.filter(_.slug === slug)
+  }
+
+  def findByKeyDBIO(key: ImageKey) = {
+    key match {
+      case ImageKey.Id(id)     => findByIdCompiled(id)
+      case ImageKey.Name(name) => findBySlugDBIOCompiled(name.toLowerCase)
+    }
+  }
+
+  def findByKey(key: ImageKey)(implicit ec: ExecutionContext): Future[Option[Image]] = {
+    db.run(findByKeyDBIO(key).result.headOption)
+  }
+
+  def updateByRequest(id: Long, req: ImageUpdateRequest)(
+      implicit ec: ExecutionContext): Future[ValidationModel] = {
+    update(id)(_.copy(description = req.description))
   }
 
   private def findByUserOwnerScope(userId: Rep[Long]) =

@@ -16,16 +16,16 @@ lazy val buildSettings = Seq(
   scalafmtConfig := Some(file(".scalafmt"))
 )
 
-val akkaVersion = "2.4.7"
-val akkaHttpCirceVersion = "1.7.0"
-val bouncyCastleVersion = "1.53"
-val catsVersion = "0.6.0"
-val commonsVersion = "1.10"
-val circeVersion = "0.5.0-M2"
-val enumeratumVersion = "1.4.4"
-val guavaVersion = "19.0"
-val slickVersion = "3.1.1"
-val slickPgVersion = "0.14.1"
+lazy val akkaHttpCirceVersion = "1.7.0"
+lazy val akkaVersion = "2.4.7"
+lazy val bouncyCastleVersion = "1.53"
+lazy val catsVersion = "0.6.0"
+lazy val circeVersion = "0.5.0-M2"
+lazy val commonsVersion = "1.10"
+lazy val enumeratumVersion = "1.4.4"
+lazy val guavaVersion = "19.0"
+lazy val slickPgVersion = "0.14.1"
+lazy val slickVersion = "3.1.1"
 
 lazy val commonSettings =
   reformatOnCompileSettings ++
@@ -293,6 +293,23 @@ lazy val frontend = project.in(file("fcomb-frontend"))
   .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
   .dependsOn(modelsJS, rpcJS, jsonJS)
 
+lazy val javaRunOptions = Seq(
+  "-server",
+  "-Xms2g",
+  "-Xmx2g",
+  "-Xss6m",
+  "-XX:NewSize=512m",
+  "-XX:+UseNUMA",
+  "-XX:+TieredCompilation",
+  "-XX:+UseG1GC",
+  "-XX:+AlwaysPreTouch",
+  "-XX:MaxGCPauseMillis=200",
+  "-XX:ParallelGCThreads=20",
+  "-XX:ConcGCThreads=5",
+  "-XX:InitiatingHeapOccupancyPercent=70",
+  "-XX:-UseBiasedLocking"
+)
+
 lazy val root = project.in(file("."))
   .settings(allSettings:_*)
   .settings(noPublishSettings)
@@ -322,20 +339,3 @@ lazy val root = project.in(file("."))
   .aggregate(tests)
   .dependsOn(server, dockerDistribution, frontend)
   .enablePlugins(SbtNativePackager)
-
-lazy val javaRunOptions = Seq(
-  "-server",
-  "-Xms2g",
-  "-Xmx2g",
-  "-Xss6m",
-  "-XX:NewSize=512m",
-  "-XX:+UseNUMA",
-  "-XX:+TieredCompilation",
-  "-XX:+UseG1GC",
-  "-XX:+AlwaysPreTouch",
-  "-XX:MaxGCPauseMillis=200",
-  "-XX:ParallelGCThreads=20",
-  "-XX:ConcGCThreads=5",
-  "-XX:InitiatingHeapOccupancyPercent=70",
-  "-XX:-UseBiasedLocking"
-)

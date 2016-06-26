@@ -41,3 +41,10 @@ object Image {
 final case class DistributionImageCatalog(
     repositories: Seq[String]
 )
+
+sealed trait ImageKey
+
+object ImageKey {
+  final case class Id(id: Long)       extends ImageKey
+  final case class Name(name: String) extends ImageKey
+}
