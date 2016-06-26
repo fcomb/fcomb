@@ -36,7 +36,7 @@ object RepositoryComponent {
   final case class Backend($ : BackendScope[Props, State]) {
     val textarea = Ref[HTMLInputElement]("description")
 
-    def getRepository(name: String) = {
+    def getRepository(name: String): Callback = {
       Callback.future {
         Rpc.call[ImageResponse](RpcMethod.GET, Resource.repository(name)).map {
           case Xor.Right(repository) =>
@@ -48,18 +48,18 @@ object RepositoryComponent {
       }
     }
 
-    def selectAllText(e: ReactEventI) = {
+    def selectAllText(e: ReactEventI): Callback = {
       e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
     }
 
-    def editDescription(description: String)(e: ReactEventH) = {
+    def editDescription(description: String)(e: ReactEventH): Callback = {
       e.preventDefaultCB >>
       $.modState(_.copy(edit = Some(EditState(description, false, false)))) >>
       CallbackTo(textarea.apply($).map(_.setSelectionRange(0, 0))).delayMs(1).void
     }
 
     def updateRepositoryDescription(): Callback = {
-      eventState { es =>
+      editState { es =>
         if (es.isFormDisabled) Callback.empty
         for {
           _    <- $.modState(_.copy(edit = Some(es.copy(isFormDisabled = true))))
@@ -84,16 +84,16 @@ object RepositoryComponent {
       }
     }
 
-    def handleOnSubmit(e: ReactEventH) = {
+    def handleOnSubmit(e: ReactEventH): Callback = {
       e.preventDefaultCB >> updateRepositoryDescription
     }
 
-    def updateDescription(es: EditState)(e: ReactEventI) = {
+    def updateDescription(es: EditState)(e: ReactEventI): Callback = {
       val value = e.target.value
       $.modState(_.copy(edit = Some(es.copy(description = value))))
     }
 
-    def eventState(f: EditState => CallbackTo[Unit]): CallbackTo[Unit] = {
+    def editState(f: EditState => Callback): Callback = {
       $.state.flatMap { state =>
         state.edit match {
           case Some(es) => f(es)
@@ -102,8 +102,8 @@ object RepositoryComponent {
       }
     }
 
-    def switchToPreview(isPreview: Boolean)(e: ReactEventH) = {
-      e.preventDefaultCB >> eventState { es =>
+    def switchToPreview(isPreview: Boolean)(e: ReactEventH): Callback = {
+      e.preventDefaultCB >> editState { es =>
         if (es.isPreview == isPreview) Callback.empty
         else $.modState(_.copy(edit = Some(es.copy(isPreview = isPreview))))
       }
@@ -128,7 +128,7 @@ object RepositoryComponent {
       else EmptyTag
     }
 
-    def cancel(e: ReactEventH) = {
+    def cancel(e: ReactEventH): Callback = {
       e.preventDefaultCB >> $.modState(_.copy(edit = None))
     }
 
