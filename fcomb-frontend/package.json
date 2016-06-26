@@ -20,18 +20,13 @@
     "react-hot-loader": "^1.2.7",
     "style-loader": "^0.13.0",
     "url-loader": "^0.5.6",
+    "json-loader": "^0.5.4",
     "webpack": "^1.9.10",
     "webpack-dev-server": "^1.9.0"
   },
   "dependencies": {
-    "material-ui": "v0.14.4",
     "react": "^15.1.0",
     "react-dom": "^15.1.0",
-    "react-addons-css-transition-group": "^15.1.0",
-    "react-addons-create-fragment": "^15.1.0",
-    "react-addons-pure-render-mixin": "^15.1.0",
-    "react-addons-transition-group": "^15.1.0",
-    "react-addons-update": "^15.1.0",
-    "react-tap-event-plugin": "^1.0.0"
+    "react-markdown": "^2.3.0"
   }
 }

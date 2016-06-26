@@ -31,6 +31,10 @@ module.exports = {
           'url-loader?limit=8192',
           'image-webpack?optimizationLevel=7&progressive=true'
         ]
+      },
+      {
+        test: /\.json$/,
+        loader: 'json'
       }
     ]
   },

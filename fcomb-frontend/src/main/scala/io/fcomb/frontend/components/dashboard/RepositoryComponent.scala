@@ -44,9 +44,10 @@ object RepositoryComponent {
     }
 
     def render(props: Props, state: State) = {
+      val description = state.repository.map(_.description).getOrElse("")
       <.div(
         <.h2(s"Repository ${props.name}"),
-        <.h3(state.repository.map(_.description))
+        <.section(<.h3("Description"), <.div(MarkdownComponent.apply(description)))
       )
     }
   }
