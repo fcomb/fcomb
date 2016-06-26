@@ -25,6 +25,7 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 
 object RepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], name: String)
@@ -43,10 +44,19 @@ object RepositoryComponent {
       }
     }
 
+    def selectAllText(e: ReactEventI) = {
+      e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
+    }
+
     def render(props: Props, state: State) = {
-      val description = state.repository.map(_.description).getOrElse("")
+      val description       = state.repository.map(_.description).getOrElse("")
+      val dockerPullCommand = s"docker pull ${props.name}"
       <.div(
         <.h2(s"Repository ${props.name}"),
+        <.div(<.input.text(^.value := dockerPullCommand,
+                           ^.onClick ==> selectAllText,
+                           ^.readOnly := true),
+              CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("copy"))),
         <.section(<.h3("Description"), <.div(MarkdownComponent.apply(description)))
       )
     }

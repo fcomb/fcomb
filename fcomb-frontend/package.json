@@ -27,6 +27,7 @@
   "dependencies": {
     "react": "^15.1.0",
     "react-dom": "^15.1.0",
-    "react-markdown": "^2.3.0"
+    "react-markdown": "^2.3.0",
+    "react-copy-to-clipboard": "^4.1.0"
   }
 }
