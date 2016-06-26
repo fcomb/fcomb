@@ -22,8 +22,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.server.headers._
 import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.models.docker.distribution.Reference
-import java.util.UUID
+import io.fcomb.models.docker.distribution.{Reference, ImageManifest}
 import org.slf4j.LoggerFactory
 import io.fcomb.utils.Config.docker.distribution.realm
 import io.fcomb.docker.distribution.server.api._
@@ -45,56 +44,37 @@ object Routes {
           path("_catalog") {
             get(ImagesHandler.catalog)
           } ~
-          pathPrefix(Segments(2, 32)) { segments =>
-            pathEndOrSingleSlash {
-              extractRequest { implicit req =>
-                val method = req.method
-                segments.reverse match {
-                  case "uploads" :: "blobs" :: xs if method == HttpMethods.POST =>
-                    ImageBlobUploadsHandler.createBlob(imageName(xs))
-                  case id :: "uploads" :: "blobs" :: xs if isUuid(id) =>
-                    val uuid = UUID.fromString(id)
-                    val image = imageName(xs)
-                    method match {
-                      case HttpMethods.PUT =>
-                        ImageBlobUploadsHandler.uploadComplete(image, uuid)
-                      case HttpMethods.PATCH =>
-                        ImageBlobUploadsHandler.uploadBlobChunk(image, uuid)
-                      case HttpMethods.DELETE =>
-                        ImageBlobUploadsHandler.destroyBlobUpload(image, uuid)
-                      case _ => complete(notFoundResponse)
-                    }
-                  case id :: "blobs" :: xs =>
-                    val image = imageName(xs)
-                    method match {
-                      // TODO: official spec
-                      case HttpMethods.PUT if isUuid(id) =>
-                        val uuid = UUID.fromString(id)
-                        ImageBlobUploadsHandler.uploadComplete(image, uuid)
-                      case HttpMethods.HEAD if Reference.isDigest(id) =>
-                        ImageBlobsHandler.showBlob(image, id)
-                      case HttpMethods.GET if Reference.isDigest(id) =>
-                        ImageBlobsHandler.downloadBlob(image, id)
-                      case HttpMethods.DELETE if Reference.isDigest(id) =>
-                        ImageBlobsHandler.destroyBlob(image, id)
-                      case _ => complete(notFoundResponse)
-                    }
-                  case ref :: "manifests" :: xs =>
-                    val image = imageName(xs)
-                    val reference = Reference.apply(ref)
-                    method match {
-                      case HttpMethods.GET =>
-                        ImagesHandler.getManifest(image, reference)
-                      case HttpMethods.PUT =>
-                        ImagesHandler.uploadManifest(image, reference)
-                      case HttpMethods.DELETE =>
-                        ImagesHandler.destroyManifest(image, reference)
-                      case _ => complete(notFoundResponse)
-                    }
-                  case "list" :: "tags" :: xs if method == HttpMethods.GET =>
-                    ImagesHandler.tags(imageName(xs))
-                  case _ => complete(notFoundResponse)
+          pathPrefix(Segments(2)) { xs =>
+            val name = xs.mkString("/")
+            extractRequest { implicit req =>
+              pathPrefix("blobs") {
+                pathPrefix("uploads") {
+                  pathEndOrSingleSlash {
+                    post(ImageBlobUploadsHandler.createBlob(name))
+                  } ~
+                  path(JavaUUID) { id =>
+                    put(ImageBlobUploadsHandler.uploadComplete(name, id)) ~
+                    patch(ImageBlobUploadsHandler.uploadBlobChunk(name, id)) ~
+                    delete(ImageBlobUploadsHandler.destroyBlobUpload(name, id))
+                  }
+                } ~
+                path(JavaUUID) { id =>
+                  put(ImageBlobUploadsHandler.uploadComplete(name, id))
+                } ~
+                path(ImageManifest.sha256Prefix ~ Segment) { digest =>
+                  head(ImageBlobsHandler.showBlob(name, digest)) ~
+                  get(ImageBlobsHandler.downloadBlob(name, digest)) ~
+                  delete(ImageBlobsHandler.destroyBlob(name, digest))
                 }
+              } ~
+              path("manifests" / Segment) { ref =>
+                val reference = Reference.apply(ref)
+                get(ImagesHandler.getManifest(name, reference)) ~
+                put(ImagesHandler.uploadManifest(name, reference)) ~
+                delete(ImagesHandler.destroyManifest(name, reference))
+              } ~
+              path("tags" / "list") {
+                get(ImagesHandler.tags(name))
               }
             }
           }
@@ -154,15 +134,4 @@ object Routes {
   private val authenticateHeader = `WWW-Authenticate`(challengeFor(realm))
 
   private val defaultAuthenticateHeaders = authenticateHeader :: defaultHeaders
-
-  private val notFoundResponse = HttpResponse(StatusCodes.NotFound)
-
-  private val uuidRegEx =
-    """[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r
-
-  private def isUuid(s: String): Boolean =
-    uuidRegEx.findFirstIn(s).nonEmpty
-
-  private def imageName(xs: List[String]) =
-    xs.reverse.mkString("/")
 }
