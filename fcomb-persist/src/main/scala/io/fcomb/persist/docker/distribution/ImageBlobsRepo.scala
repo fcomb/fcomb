@@ -31,7 +31,7 @@ import slick.jdbc.TransactionIsolation
 class ImageBlobTable(tag: Tag)
     extends Table[ImageBlob](tag, "dd_image_blobs")
     with PersistTableWithUuidPk {
-  def imageId      = column[Long]("image_id")
+  def imageId      = column[Int]("image_id")
   def state        = column[ImageBlobState]("state")
   def sha256Digest = column[Option[String]]("sha256_digest")
   def contentType  = column[String]("content_type")
@@ -54,7 +54,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     else contentType
   }
 
-  def mount(fromImageId: Long, toImageId: Long, digest: String, userId: Long)(
+  def mount(fromImageId: Int, toImageId: Int, digest: String, userId: Int)(
       implicit ec: ExecutionContext
   ): Future[Option[ImageBlob]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
@@ -80,7 +80,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       }
     }
 
-  def create(imageId: Long, contentType: String)(
+  def create(imageId: Int, contentType: String)(
       implicit ec: ExecutionContext
   ) =
     super.create(
@@ -96,48 +96,48 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       ))
 
   private lazy val findByImageIdAndUuidCompiled = Compiled {
-    (imageId: Rep[Long], uuid: Rep[UUID]) =>
+    (imageId: Rep[Int], uuid: Rep[UUID]) =>
       table.filter { q =>
         q.imageId === imageId && q.id === uuid
       }.take(1)
   }
 
-  def findByImageIdAndUuid(imageId: Long, uuid: UUID)(
+  def findByImageIdAndUuid(imageId: Int, uuid: UUID)(
       implicit ec: ExecutionContext
   ) =
     db.run(findByImageIdAndUuidCompiled((imageId, uuid)).result.headOption)
 
   private lazy val findByImageIdAndDigestCompiled = Compiled {
-    (imageId: Rep[Long], digest: Rep[String]) =>
+    (imageId: Rep[Int], digest: Rep[String]) =>
       table.filter { q =>
         q.imageId === imageId && q.sha256Digest === digest
       }.take(1)
   }
 
-  def findByImageIdAndDigest(imageId: Long, digest: String)(
+  def findByImageIdAndDigest(imageId: Int, digest: String)(
       implicit ec: ExecutionContext
   ) =
     db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
-  private def findByImageIdAndDigestsScope(imageId: Long, digests: Set[String]) =
+  private def findByImageIdAndDigestsScope(imageId: Int, digests: Set[String]) =
     table.filter { q =>
       q.imageId === imageId && q.sha256Digest.inSetBind(digests)
     }
 
-  def findIdsWithDigestByImageIdAndDigests(imageId: Long, digests: Set[String])(
+  def findIdsWithDigestByImageIdAndDigests(imageId: Int, digests: Set[String])(
       implicit ec: ExecutionContext
   ) =
     db.run {
       findByImageIdAndDigestsScope(imageId, digests).map(t => (t.pk, t.sha256Digest)).result
     }
 
-  def findByImageIdAndDigests(imageId: Long, digests: Set[String])(
+  def findByImageIdAndDigests(imageId: Int, digests: Set[String])(
       implicit ec: ExecutionContext
   ) =
     db.run(findByImageIdAndDigestsScope(imageId, digests).result)
 
   private lazy val existUploadedByImageIdAndDigestCompiled = Compiled {
-    (imageId: Rep[Long], digest: Rep[String], exceptId: Rep[UUID]) =>
+    (imageId: Rep[Int], digest: Rep[String], exceptId: Rep[UUID]) =>
       table.filter { q =>
         q.pk =!= exceptId && q.imageId === imageId && q.sha256Digest === digest &&
         q.state === (ImageBlobState.Uploaded: ImageBlobState)
@@ -146,7 +146,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
 
   def completeUploadOrDelete(
       id: UUID,
-      imageId: Long,
+      imageId: Int,
       length: Long,
       digest: String
   )(implicit ec: ExecutionContext): Future[Unit] =
@@ -169,12 +169,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       }
     }
 
-  def updateState(
-      id: UUID,
-      length: Long,
-      digest: String,
-      state: ImageBlobState
-  )(
+  def updateState(id: UUID, length: Long, digest: String, state: ImageBlobState)(
       implicit ec: ExecutionContext
   ) = db.run {
     table
@@ -196,7 +191,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   def findOutdatedUploads(until: ZonedDateTime) =
     db.stream(findOutdatedUploadsCompiled(until).result)
 
-  def createEmptyTarIfNotExists(imageId: Long)(implicit ec: ExecutionContext): Future[Unit] =
+  def createEmptyTarIfNotExists(imageId: Int)(implicit ec: ExecutionContext): Future[Unit] =
     db.run {
       findByImageIdAndDigestCompiled((imageId, emptyTarSha256Digest)).result.headOption.flatMap {
         case Some(_) => DBIO.successful(())

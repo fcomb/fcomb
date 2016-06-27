@@ -24,9 +24,9 @@ import java.time.ZonedDateTime
 
 class OrganizationTable(tag: Tag)
     extends Table[Organization](tag, "organizations")
-    with PersistTableWithAutoLongPk {
+    with PersistTableWithAutoIntPk {
   def name            = column[String]("name")
-  def createdByUserId = column[Long]("created_by_user_id")
+  def createdByUserId = column[Int]("created_by_user_id")
   def createdAt       = column[ZonedDateTime]("created_at")
   def updatedAt       = column[Option[ZonedDateTime]]("updated_at")
 
@@ -35,7 +35,7 @@ class OrganizationTable(tag: Tag)
       ((Organization.apply _).tupled, Organization.unapply)
 }
 
-object OrganizationsRepo extends PersistModelWithAutoLongPk[Organization, OrganizationTable] {
+object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, OrganizationTable] {
   val table = TableQuery[OrganizationTable]
 
   def groupUsersScope =
@@ -45,13 +45,13 @@ object OrganizationsRepo extends PersistModelWithAutoLongPk[Organization, Organi
       .join(OrganizationGroupUsersRepo.table)
       .on(_._2.id === _.groupId)
 
-  private lazy val isAdminCompiled = Compiled { userId: Rep[Long] =>
+  private lazy val isAdminCompiled = Compiled { userId: Rep[Int] =>
     groupUsersScope.filter {
       case ((_, gt), gut) => gut.userId === userId && gt.role === (Role.Admin: Role)
     }.exists
   }
 
-  def isAdminDBIO(userId: Long): DBIOAction[Boolean, NoStream, Effect.Read] = {
+  def isAdminDBIO(userId: Int): DBIOAction[Boolean, NoStream, Effect.Read] = {
     isAdminCompiled(userId).result
   }
 }

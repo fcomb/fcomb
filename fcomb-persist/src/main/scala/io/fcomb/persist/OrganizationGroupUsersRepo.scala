@@ -21,8 +21,8 @@ import io.fcomb.models.OrganizationGroupUser
 
 class OrganizationGroupUserTable(tag: Tag)
     extends Table[OrganizationGroupUser](tag, "organization_group_users") {
-  def groupId = column[Long]("group_id")
-  def userId  = column[Long]("user_id")
+  def groupId = column[Int]("group_id")
+  def userId  = column[Int]("user_id")
 
   def * = (groupId, userId) <> (OrganizationGroupUser.tupled, OrganizationGroupUser.unapply)
 }

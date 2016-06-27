@@ -20,10 +20,10 @@ import io.fcomb.models.OwnerKind
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
 final case class ImageResponse(
-    id: Option[Long],
+    id: Option[Int],
     name: String,
     slug: String,
-    ownerId: Long,
+    ownerId: Int,
     ownerKind: OwnerKind,
     visibilityKind: ImageVisibilityKind,
     description: String,

@@ -48,15 +48,14 @@ object ImageBlobsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user, Action.Read) { image =>
           import mat.executionContext
-          val sha256Digest = Reference.getDigest(digest)
-          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, digest)) {
             case Some(blob) if blob.isUploaded =>
               complete(
                 HttpResponse(
                   StatusCodes.OK,
                   immutable.Seq(
-                    `Docker-Content-Digest`("sha256", sha256Digest),
-                    ETag(digest),
+                    `Docker-Content-Digest`("sha256", digest),
+                    etagHeader(digest),
                     `Accept-Ranges`(RangeUnits.Bytes),
                     cacheHeader
                   ),
@@ -78,8 +77,7 @@ object ImageBlobsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user, Action.Read) { image =>
           import mat.executionContext
-          val sha256Digest = Reference.getDigest(digest)
-          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, digest)) {
             case Some(blob) if blob.isUploaded =>
               val ct = contentType(blob.contentType)
               optionalHeaderValueByType[Range]() {
@@ -96,7 +94,7 @@ object ImageBlobsHandler {
                     if (digest == ImageManifest.emptyTarSha256Digest)
                       Source.single(ByteString(
                           ImageManifest.emptyTar.drop(offset.toInt).take(chunkLength.toInt)))
-                    else BlobFile.streamBlob(sha256Digest, offset, chunkLength)
+                    else BlobFile.streamBlob(digest, offset, chunkLength)
                   complete(
                     HttpResponse(
                       StatusCodes.PartialContent,
@@ -111,8 +109,8 @@ object ImageBlobsHandler {
                     case _ =>
                       val headers = immutable.Seq(
                         `Accept-Ranges`(RangeUnits.Bytes),
-                        ETag(digest),
-                        `Docker-Content-Digest`("sha256", sha256Digest),
+                        etagHeader(digest),
+                        `Docker-Content-Digest`("sha256", digest),
                         cacheHeader
                       )
                       val source =
@@ -137,8 +135,7 @@ object ImageBlobsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user, Action.Manage) { image =>
           import mat.executionContext
-          val sha256Digest = Reference.getDigest(digest)
-          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, sha256Digest)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, digest)) {
             case Some(blob) if blob.isUploaded =>
               val res = ImageBlobsRepo.tryDestroy(blob.getId).flatMap {
                 case Xor.Right(_) =>
@@ -166,9 +163,10 @@ object ImageBlobsHandler {
       }
     }
 
-  private val cacheHeader = `Cache-Control`(
-    CacheDirectives.`max-age`(365.days.toSeconds)
-  )
+  private val cacheHeader = `Cache-Control`(CacheDirectives.`max-age`(365.days.toSeconds))
+
+  @inline
+  private def etagHeader(digest: String) = ETag(s"sha256:$digest")
 
   private def contentType(contentType: String) =
     ContentType.parse(contentType) match {

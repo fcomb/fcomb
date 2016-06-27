@@ -19,11 +19,11 @@ package io.fcomb.models
 import java.time.ZonedDateTime
 
 final case class Organization(
-    id: Option[Long] = None,
+    id: Option[Int],
     name: String,
-    createdByUserId: Long,
+    createdByUserId: Int,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoLongPk {
-  def withPk(id: Long) = this.copy(id = Some(id))
+) extends ModelWithAutoIntPk {
+  def withPk(id: Int) = this.copy(id = Some(id))
 }

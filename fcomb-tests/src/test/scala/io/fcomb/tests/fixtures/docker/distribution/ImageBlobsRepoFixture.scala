@@ -30,44 +30,43 @@ import akka.stream.scaladsl.{Source, FileIO}
 import akka.stream.Materializer
 
 object ImageBlobsRepoFixture {
-  def create(userId: Long, imageName: String): Future[ImageBlob] =
+  def create(userId: Int, imageId: Int): Future[ImageBlob] = {
+    val id = UUID.randomUUID()
+    val blob = ImageBlob(
+      id = Some(id),
+      state = ImageBlobState.Created,
+      imageId = imageId,
+      sha256Digest = None,
+      contentType = "application/octet-stream",
+      length = 0L,
+      createdAt = ZonedDateTime.now(),
+      uploadedAt = None
+    )
     (for {
-      imageId <- ImagesRepoFixture.create(userId, imageName)
-      id = UUID.randomUUID()
-      blob = ImageBlob(
-        id = Some(id),
-        state = ImageBlobState.Created,
-        imageId = imageId,
-        sha256Digest = None,
-        contentType = "application/octet-stream",
-        length = 0L,
-        createdAt = ZonedDateTime.now(),
-        uploadedAt = None
-      )
       Validated.Valid(res) <- ImageBlobsRepo.create(blob)
     } yield res)
+  }
 
   def createAs(
-      userId: Long,
-      imageName: String,
+      userId: Int,
+      imageId: Int,
       bs: ByteString,
       state: ImageBlobState,
       digestOpt: Option[String] = None
   )(implicit mat: Materializer): Future[ImageBlob] = {
+    val id     = UUID.randomUUID()
+    val digest = digestOpt.getOrElse(DigestUtils.sha256Hex(bs.toArray))
+    val blob = ImageBlob(
+      id = Some(id),
+      state = state,
+      imageId = imageId,
+      sha256Digest = Some(digest),
+      length = bs.length.toLong,
+      contentType = "application/octet-stream",
+      createdAt = ZonedDateTime.now(),
+      uploadedAt = None
+    )
     for {
-      imageId <- ImagesRepoFixture.create(userId, imageName)
-      id     = UUID.randomUUID()
-      digest = digestOpt.getOrElse(DigestUtils.sha256Hex(bs.toArray))
-      blob = ImageBlob(
-        id = Some(id),
-        state = state,
-        imageId = imageId,
-        sha256Digest = Some(digest),
-        length = bs.length.toLong,
-        contentType = "application/octet-stream",
-        createdAt = ZonedDateTime.now(),
-        uploadedAt = None
-      )
       Validated.Valid(im) <- ImageBlobsRepo.create(blob)
       file = BlobFile.getFile(blob)
       _    = file.getParentFile.mkdirs()

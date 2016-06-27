@@ -16,7 +16,7 @@
 
 package io.fcomb.models.docker.distribution
 
-import io.fcomb.models.ModelWithAutoLongPk
+import io.fcomb.models.ModelWithAutoIntPk
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.util.control.NoStackTrace
@@ -29,9 +29,9 @@ final case class ImageManifestSchemaV2Details(
 )
 
 final case class ImageManifest(
-    id: Option[Long] = None,
+    id: Option[Int],
     sha256Digest: String,
-    imageId: Long,
+    imageId: Int,
     tags: List[String],
     layersBlobId: List[UUID],
     schemaVersion: Int,
@@ -39,8 +39,8 @@ final case class ImageManifest(
     schemaV2Details: Option[ImageManifestSchemaV2Details],
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoLongPk {
-  def withPk(id: Long) = this.copy(id = Some(id))
+) extends ModelWithAutoIntPk {
+  def withPk(id: Int) = this.copy(id = Some(id))
 
   def getSchemaV2JsonBlob() =
     schemaV2Details.map(_.jsonBlob).getOrElse(throw new EmptySchemaV2JsonBlobException)

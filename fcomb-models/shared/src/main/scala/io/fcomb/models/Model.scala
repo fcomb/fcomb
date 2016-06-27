@@ -30,15 +30,17 @@ sealed trait ModelWithPk {
     )
 }
 
-trait ModelWithLongPk extends ModelWithPk {
-  type PkType = Long
+trait ModelWithIntPk extends ModelWithPk {
+  type PkType = Int
 }
 
-sealed trait ModelWithAutoPk[T] {
-  def withPk(id: T): ModelWithAutoPk[T]
+sealed trait ModelWithAutoPk {
+  this: ModelWithPk =>
+
+  def withPk(id: PkType): ModelWithAutoPk
 }
 
-trait ModelWithAutoLongPk extends ModelWithLongPk with ModelWithAutoPk[Long]
+trait ModelWithAutoIntPk extends ModelWithIntPk with ModelWithAutoPk
 
 trait ModelWithUuidPk extends ModelWithPk {
   type PkType = UUID

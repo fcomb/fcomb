@@ -30,15 +30,15 @@ import org.apache.commons.codec.digest.DigestUtils
 
 object ImageManifestsRepoFixture {
   def createV1(
-      userId: Long,
-      imageName: String,
+      userId: Int,
+      imageSlug: String,
       blob: ImageBlob,
       tag: String
   ): Future[ImageManifest] = {
-    val schemaV1JsonBlob = getSchemaV1JsonBlob(imageName, tag, blob)
+    val schemaV1JsonBlob = getSchemaV1JsonBlob(imageSlug, tag, blob)
     val sha256Digest     = DigestUtils.sha256Hex(schemaV1JsonBlob)
     val manifest = SchemaV1.Manifest(
-      name = imageName,
+      name = imageSlug,
       tag = tag,
       fsLayers = List(SchemaV1.FsLayer(s"sha256:${blob.sha256Digest.get}")),
       architecture = "amd64",
@@ -56,10 +56,10 @@ object ImageManifestsRepoFixture {
     } yield im
   }
 
-  private def getSchemaV1JsonBlob(imageName: String, tag: String, blob: ImageBlob) = {
+  private def getSchemaV1JsonBlob(imageSlug: String, tag: String, blob: ImageBlob) = {
     val Xor.Right(jsonBlob) = parse(s"""
     {
-      "name": "$imageName",
+      "name": "$imageSlug",
       "tag": "$tag",
       "fsLayers": [
         {"blobSum": "sha256:${blob.sha256Digest.get}"}
@@ -75,12 +75,12 @@ object ImageManifestsRepoFixture {
   }
 
   def createV2(
-      userId: Long,
-      imageName: String,
+      userId: Int,
+      imageSlug: String,
       blob: ImageBlob,
       tags: List[String]
   ): Future[ImageManifest] = {
-    val schemaV1JsonBlob    = getSchemaV1JsonBlob(imageName, tags.headOption.getOrElse(""), blob)
+    val schemaV1JsonBlob    = getSchemaV1JsonBlob(imageSlug, tags.headOption.getOrElse(""), blob)
     val schemaV2JsonBlob    = s"""
     {
       "schemaVersion": 2,
@@ -113,11 +113,10 @@ object ImageManifestsRepoFixture {
                               schemaV2JsonBlob = schemaV2JsonBlob,
                               sha256Digest = sha256Digest
                             )
-      _ <- db.run(
-            for {
-          _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
-          _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
-        } yield ())
+      _ <- db.run(for {
+            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
+            _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
+          } yield ())
     } yield im
   }
 }

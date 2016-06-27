@@ -17,7 +17,7 @@
 package io.fcomb.rpc
 
 final case class UserProfileResponse(
-    id: Option[Long] = None,
+    id: Option[Int],
     email: String,
     username: String,
     fullName: Option[String]

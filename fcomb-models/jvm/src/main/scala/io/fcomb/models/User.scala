@@ -20,15 +20,15 @@ import com.github.t3hnar.bcrypt._
 import java.time.ZonedDateTime
 
 final case class User(
-    id: Option[Long] = None,
+    id: Option[Int],
     email: String,
     username: String,
     fullName: Option[String],
     passwordHash: String,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoLongPk {
-  def withPk(id: Long) = this.copy(id = Some(id))
+) extends ModelWithAutoIntPk {
+  def withPk(id: Int) = this.copy(id = Some(id))
 
   def isValidPassword(password: String) =
     password.isBcrypted(passwordHash)

@@ -24,8 +24,8 @@ import scala.concurrent.ExecutionContext
 
 class ImageManifestTagTable(_tag: Tag)
     extends Table[ImageManifestTag](_tag, "dd_image_manifest_tags") {
-  def imageId         = column[Long]("image_id")
-  def imageManifestId = column[Long]("image_manifest_id")
+  def imageId         = column[Int]("image_id")
+  def imageManifestId = column[Int]("image_manifest_id")
   def tag             = column[String]("tag")
 
   def * =
@@ -36,7 +36,7 @@ class ImageManifestTagTable(_tag: Tag)
 object ImageManifestTagsRepo extends PersistModel[ImageManifestTag, ImageManifestTagTable] {
   val table = TableQuery[ImageManifestTagTable]
 
-  def upsertTagsDBIO(imageId: Long, imageManifestId: Long, tags: List[String])(
+  def upsertTagsDBIO(imageId: Int, imageManifestId: Int, tags: List[String])(
       implicit ec: ExecutionContext
   ) = {
     for {
@@ -53,14 +53,14 @@ object ImageManifestTagsRepo extends PersistModel[ImageManifestTag, ImageManifes
     } yield ()
   }
 
-  private def findAllExistingTagsDBIO(imageId: Long, imageManifestId: Long, tags: List[String]) =
+  private def findAllExistingTagsDBIO(imageId: Int, imageManifestId: Int, tags: List[String]) =
     table.filter { q =>
       q.imageId === imageId && q.imageManifestId =!= imageManifestId && q.tag.inSetBind(tags)
     }
     // .forUpdate
     .result
 
-  private def updateTagDBIO(imt: ImageManifestTag, imageManifestId: Long)(
+  private def updateTagDBIO(imt: ImageManifestTag, imageManifestId: Int)(
       implicit ec: ExecutionContext
   ) = {
     for {

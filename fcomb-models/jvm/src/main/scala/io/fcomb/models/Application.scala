@@ -29,14 +29,14 @@ object ApplicationState extends Enum[ApplicationState] {
 }
 
 final case class Application(
-    id: Option[Long] = None,
+    id: Option[Int],
     name: String,
     state: ApplicationState,
     token: String,
-    ownerId: Long,
+    ownerId: Int,
     ownerKind: OwnerKind,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoLongPk {
-  def withPk(id: Long) = this.copy(id = Some(id))
+) extends ModelWithAutoIntPk {
+  def withPk(id: Int) = this.copy(id = Some(id))
 }

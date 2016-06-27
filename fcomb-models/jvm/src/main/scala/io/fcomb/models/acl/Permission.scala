@@ -16,7 +16,7 @@
 
 package io.fcomb.models.acl
 
-import io.fcomb.models.ModelWithAutoLongPk
+import io.fcomb.models.ModelWithAutoIntPk
 import io.fcomb.models.common.{Enum, EnumItem}
 import java.time.ZonedDateTime
 
@@ -38,14 +38,14 @@ object MemberKind extends Enum[MemberKind] {
 }
 
 final case class Permission(
-    id: Option[Long] = None,
-    sourceId: Long,
+    id: Option[Int],
+    sourceId: Int,
     sourceKind: SourceKind,
-    memberId: Long,
+    memberId: Int,
     memberKind: MemberKind,
     action: Action,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoLongPk {
-  def withPk(id: Long) = this.copy(id = Some(id))
+) extends ModelWithAutoIntPk {
+  def withPk(id: Int) = this.copy(id = Some(id))
 }

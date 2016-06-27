@@ -23,7 +23,7 @@ import java.util.UUID
 
 class ImageManifestLayerTable(_tag: Tag)
     extends Table[ImageManifestLayer](_tag, "dd_image_manifest_layers") {
-  def imageManifestId = column[Long]("image_manifest_id")
+  def imageManifestId = column[Int]("image_manifest_id")
   def layerBlobId     = column[UUID]("layer_blob_id")
 
   def * =
@@ -34,7 +34,7 @@ class ImageManifestLayerTable(_tag: Tag)
 object ImageManifestLayersRepo extends PersistModel[ImageManifestLayer, ImageManifestLayerTable] {
   val table = TableQuery[ImageManifestLayerTable]
 
-  def insertLayersDBIO(imageManifestId: Long, layers: List[UUID]) = {
+  def insertLayersDBIO(imageManifestId: Int, layers: List[UUID]) = {
     if (layers.isEmpty) DBIO.successful(())
     else table ++= layers.map(l => ImageManifestLayer(imageManifestId, l))
   }

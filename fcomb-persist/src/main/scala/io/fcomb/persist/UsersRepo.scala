@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import cats.data.Validated
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 
-class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWithAutoLongPk {
+class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWithAutoIntPk {
   def email        = column[String]("email")
   def username     = column[String]("username")
   def fullName     = column[Option[String]]("full_name")
@@ -40,7 +40,7 @@ class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWit
       ((User.apply _).tupled, User.unapply)
 }
 
-object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
+object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
   val table = TableQuery[UserTable]
 
   def create(
@@ -52,6 +52,7 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
     val timeAt = ZonedDateTime.now()
     val user = mapModel(
       User(
+        id = None,
         email = email,
         username = username,
         fullName = fullName,
@@ -77,7 +78,7 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
     )
   }
 
-  def update(id: Long, req: UserUpdateRequest)(
+  def update(id: Int, req: UserUpdateRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] =
     update(id)(
       _.copy(
@@ -87,14 +88,14 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
         updatedAt = Some(ZonedDateTime.now())
       ))
 
-  private lazy val updatePasswordCompiled = Compiled { (userId: Rep[Long]) =>
+  private lazy val updatePasswordCompiled = Compiled { (userId: Rep[Int]) =>
     table.filter(_.id === userId).map { t =>
       (t.passwordHash, t.updatedAt)
     }
   }
 
   def updatePassword(
-      userId: Long,
+      userId: Int,
       password: String
   )(implicit ec: ExecutionContext): Future[Boolean] = {
     val salt         = generateSalt
@@ -144,11 +145,11 @@ object UsersRepo extends PersistModelWithAutoLongPk[User, UserTable] {
   import Validations._
 
   private lazy val uniqueUsernameCompiled = Compiled {
-    (id: Rep[Option[Long]], username: Rep[String]) =>
+    (id: Rep[Option[Int]], username: Rep[String]) =>
       notCurrentPkFilter(id).filter(_.username === username).exists
   }
 
-  private lazy val uniqueEmailCompiled = Compiled { (id: Rep[Option[Long]], email: Rep[String]) =>
+  private lazy val uniqueEmailCompiled = Compiled { (id: Rep[Option[Int]], email: Rep[String]) =>
     notCurrentPkFilter(id).filter(_.email === email).exists
   }
 

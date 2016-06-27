@@ -23,11 +23,11 @@ import java.time.ZonedDateTime
 
 class ApplicationTable(tag: Tag)
     extends Table[Application](tag, "applications")
-    with PersistTableWithAutoLongPk {
+    with PersistTableWithAutoIntPk {
   def name      = column[String]("name")
   def state     = column[ApplicationState]("state")
   def token     = column[String]("token")
-  def ownerId   = column[Long]("owner_id")
+  def ownerId   = column[Int]("owner_id")
   def ownerKind = column[OwnerKind]("owner_kind")
 
   def createdAt = column[ZonedDateTime]("created_at")
@@ -38,6 +38,6 @@ class ApplicationTable(tag: Tag)
       ((Application.apply _).tupled, Application.unapply)
 }
 
-object ApplicationsRepo extends PersistModelWithAutoLongPk[Application, ApplicationTable] {
+object ApplicationsRepo extends PersistModelWithAutoIntPk[Application, ApplicationTable] {
   val table = TableQuery[ApplicationTable]
 }

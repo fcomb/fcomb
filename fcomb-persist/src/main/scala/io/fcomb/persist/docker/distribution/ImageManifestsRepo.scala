@@ -29,9 +29,9 @@ import slick.jdbc.TransactionIsolation
 
 class ImageManifestTable(tag: Tag)
     extends Table[ImageManifest](tag, "dd_image_manifests")
-    with PersistTableWithAutoLongPk {
+    with PersistTableWithAutoIntPk {
   def sha256Digest     = column[String]("sha256_digest")
-  def imageId          = column[Long]("image_id")
+  def imageId          = column[Int]("image_id")
   def tags             = column[List[String]]("tags")
   def layersBlobId     = column[List[UUID]]("layers_blob_id")
   def schemaVersion    = column[Int]("schema_version")
@@ -57,9 +57,9 @@ class ImageManifestTable(tag: Tag)
       ((apply2 _).tupled, unapply2)
 
   private def apply2(
-      id: Option[Long],
+      id: Option[Int],
       sha256Digest: String,
-      imageId: Long,
+      imageId: Int,
       tags: List[String],
       layersBlobId: List[UUID],
       schemaVersion: Int,
@@ -107,17 +107,17 @@ class ImageManifestTable(tag: Tag)
   }
 }
 
-object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, ImageManifestTable] {
+object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, ImageManifestTable] {
   val table = TableQuery[ImageManifestTable]
 
   private lazy val findByImageIdAndDigestCompiled = Compiled {
-    (imageId: Rep[Long], digest: Rep[String]) =>
+    (imageId: Rep[Int], digest: Rep[String]) =>
       table.filter { q =>
         q.imageId === imageId && q.sha256Digest === digest
       }.take(1)
   }
 
-  def findByImageIdAndDigest(imageId: Long, digest: String) =
+  def findByImageIdAndDigest(imageId: Int, digest: String) =
     db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
   private def blobsCountIsLessThanExpected(
@@ -151,6 +151,7 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
             else
               create(
                 ImageManifest(
+                  id = None,
                   sha256Digest = sha256Digest,
                   imageId = image.getId,
                   tags = tags,
@@ -199,6 +200,7 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
             }
             create(
               ImageManifest(
+                id = None,
                 sha256Digest = sha256Digest,
                 imageId = image.getId,
                 tags = tags,
@@ -250,7 +252,7 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
     )
   }
 
-  def findByImageIdAndReference(imageId: Long, reference: Reference)(
+  def findByImageIdAndReference(imageId: Int, reference: Reference)(
       implicit ec: ExecutionContext
   ): Future[Option[ImageManifest]] = reference match {
     case Reference.Digest(dgst) => findByImageIdAndDigest(imageId, dgst)
@@ -258,7 +260,7 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
   }
 
   private lazy val findByImageIdAndTagCompiled = Compiled {
-    (imageId: Rep[Long], tag: Rep[String]) =>
+    (imageId: Rep[Int], tag: Rep[String]) =>
       table
         .join(ImageManifestTagsRepo.table)
         .on(_.id === _.imageManifestId)
@@ -266,18 +268,18 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
         .map(_._1)
   }
 
-  def findByImageIdAndTag(imageId: Long, tag: String): Future[Option[ImageManifest]] =
+  def findByImageIdAndTag(imageId: Int, tag: String): Future[Option[ImageManifest]] =
     db.run(findByImageIdAndTagCompiled((imageId, tag)).result.headOption)
 
   private lazy val findIdAndTagsByImageIdAndTagCompiled = Compiled {
-    (imageId: Rep[Long], tag: Rep[String]) =>
+    (imageId: Rep[Int], tag: Rep[String]) =>
       table.filter { q =>
         q.imageId === imageId && tag === q.tags.any
       }.map(m => (m.pk, m.tags))
   }
 
   private lazy val findTagsByImageIdCompiled = Compiled {
-    (imageId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long], offset: ConstColumn[Long]) =>
+    (imageId: Rep[Int], limit: ConstColumn[Long], id: Rep[Int], offset: ConstColumn[Long]) =>
       table.filter { q =>
         q.imageId === imageId && q.pk >= id
       }.sortBy(_.id.asc).map(_.tags.unnest).drop(offset).take(limit)
@@ -285,7 +287,7 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
 
   val fetchLimit = 256
 
-  def findTagsByImageId(imageId: Long, n: Option[Int], last: Option[String])(
+  def findTagsByImageId(imageId: Int, n: Option[Int], last: Option[String])(
       implicit ec: ExecutionContext
   ): Future[(Seq[String], Int, Boolean)] = {
     val limit = n match {
@@ -296,9 +298,9 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       case Some(tag) =>
         findIdAndTagsByImageIdAndTagCompiled((imageId, tag)).result.headOption.map {
           case Some((id, tags)) => (id, tags.indexOf(tag) + 1L)
-          case None             => (0L, 0L)
+          case None             => (0, 0L)
         }
-      case None => DBIO.successful((0L, 0L))
+      case None => DBIO.successful((0, 0L))
     }
     db.run(for {
         (id, offset) <- since
@@ -310,7 +312,7 @@ object ImageManifestsRepo extends PersistModelWithAutoLongPk[ImageManifest, Imag
       }
   }
 
-  def destroy(imageId: Long, digest: String)(implicit ec: ExecutionContext): Future[Boolean] =
+  def destroy(imageId: Int, digest: String)(implicit ec: ExecutionContext): Future[Boolean] =
     db.run {
       table.filter { q =>
         q.imageId === imageId && q.sha256Digest === digest

@@ -26,15 +26,15 @@ import io.fcomb.rpc.docker.distribution.{ImageResponse, ImageCreateRequest, Imag
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
-import io.fcomb.persist.{PersistTableWithAutoLongPk, PersistModelWithAutoLongPk, OrganizationGroupsRepo, OrganizationGroupUsersRepo}
+import io.fcomb.persist.{PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, OrganizationGroupUsersRepo}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
 
-class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTableWithAutoLongPk {
+class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTableWithAutoIntPk {
   def name           = column[String]("name")
   def slug           = column[String]("slug")
-  def ownerId        = column[Long]("owner_id")
+  def ownerId        = column[Int]("owner_id")
   def ownerKind      = column[OwnerKind]("owner_kind")
   def visibilityKind = column[ImageVisibilityKind]("visibility_kind")
   def description    = column[String]("description")
@@ -46,7 +46,7 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
       ((Image.apply _).tupled, Image.unapply)
 }
 
-object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
+object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   val table = TableQuery[ImageTable]
   val label = "images"
 
@@ -63,21 +63,21 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
     }.take(1)
   }
 
-  def findBySlugWithAcl(slug: String, userId: Long, action: Action)(
+  def findBySlugWithAcl(slug: String, userId: Int, action: Action)(
       implicit ec: ExecutionContext): Future[Option[Image]] = {
     db.run {
       findBySlugCompiled(slug).result.headOption.flatMap(mapWithAcl(_, userId, action))
     }
   }
 
-  def findByIdWithAcl(id: Long, userId: Long, action: Action)(
+  def findByIdWithAcl(id: Int, userId: Int, action: Action)(
       implicit ec: ExecutionContext): Future[Option[Image]] = {
     db.run {
       findByIdCompiled(id).result.headOption.flatMap(mapWithAcl(_, userId, action))
     }
   }
 
-  private def mapWithAcl(imageOpt: Option[Image], userId: Long, action: Action)(
+  private def mapWithAcl(imageOpt: Option[Image], userId: Int, action: Action)(
       implicit ec: ExecutionContext) = {
     imageOpt match {
       case res @ Some(image) =>
@@ -109,7 +109,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
   }
 
   // TODO: rewrite these join's by readable union's
-  private def availableScope(userId: Rep[Long]) = {
+  private def availableScope(userId: Rep[Int]) = {
     table
       .joinLeft(PermissionsRepo.table)
       .on {
@@ -140,18 +140,18 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
   }
 
   private lazy val findIdByUserIdAndNameCompiled = Compiled {
-    (userId: Rep[Long], name: Rep[String]) =>
+    (userId: Rep[Int], name: Rep[String]) =>
       availableScope(userId).filter(_.name === name).map(_.pk)
   }
 
   private lazy val findRepositoriesByUserIdCompiled = Compiled {
-    (userId: Rep[Long], limit: ConstColumn[Long], id: Rep[Long]) =>
+    (userId: Rep[Int], limit: ConstColumn[Long], id: Rep[Int]) =>
       availableScope(userId).filter(_.pk > id).sortBy(_.id.asc).map(_.name).take(limit)
   }
 
   val fetchLimit = 64
 
-  def findRepositoriesByUserId(userId: Long, n: Option[Int], last: Option[String])(
+  def findRepositoriesByUserId(userId: Int, n: Option[Int], last: Option[String])(
       implicit ec: ExecutionContext): Future[(Seq[String], Int, Boolean)] = {
     val limit = n match {
       case Some(v) if v > 0 && v <= fetchLimit => v
@@ -161,9 +161,9 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
       case Some(imageName) =>
         findIdByUserIdAndNameCompiled((userId, imageName)).result.headOption.map {
           case Some(id) => id
-          case None     => 0L
+          case None     => 0
         }
-      case None => DBIO.successful(0L)
+      case None => DBIO.successful(0)
     }
     db.run(for {
         id <- since
@@ -208,26 +208,26 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
     db.run(findByKeyDBIO(key).result.headOption)
   }
 
-  def updateByRequest(id: Long, req: ImageUpdateRequest)(
+  def updateByRequest(id: Int, req: ImageUpdateRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     update(id)(_.copy(description = req.description))
   }
 
-  private def findByUserOwnerScope(userId: Rep[Long]) =
+  private def findByUserOwnerScope(userId: Rep[Int]) =
     table.filter { q =>
       q.ownerId === userId && q.ownerKind === (OwnerKind.User: OwnerKind)
     }
 
-  private lazy val findByUserOwnerTotalCompiled = Compiled { userId: Rep[Long] =>
+  private lazy val findByUserOwnerTotalCompiled = Compiled { userId: Rep[Int] =>
     findByUserOwnerScope(userId).length
   }
 
   private lazy val findByUserOwnerWithPaginationCompiled = Compiled {
-    (userId: Rep[Long], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
+    (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
       findByUserOwnerScope(userId).drop(offset).take(limit)
   }
 
-  def findByUserOwnerWithPagination(userId: Long, pg: Pagination)(
+  def findByUserOwnerWithPagination(userId: Int, pg: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[ImageResponse]] = {
     db.run {
       for {
@@ -238,7 +238,7 @@ object ImagesRepo extends PersistModelWithAutoLongPk[Image, ImageTable] {
     }
   }
 
-  private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Long]], name: Rep[String]) =>
+  private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
     notCurrentPkFilter(id).filter { q =>
       q.name.toLowerCase === name.toLowerCase
     }.exists

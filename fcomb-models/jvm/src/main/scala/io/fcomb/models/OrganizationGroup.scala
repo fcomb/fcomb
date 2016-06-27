@@ -20,18 +20,18 @@ import io.fcomb.models.acl.Role
 import java.time.ZonedDateTime
 
 final case class OrganizationGroup(
-    id: Option[Long] = None,
-    organizationId: Long,
+    id: Option[Int],
+    organizationId: Int,
     name: String,
     role: Role,
-    createdByUserId: Long,
+    createdByUserId: Int,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoLongPk {
-  def withPk(id: Long) = this.copy(id = Some(id))
+) extends ModelWithAutoIntPk {
+  def withPk(id: Int) = this.copy(id = Some(id))
 }
 
 final case class OrganizationGroupUser(
-    groupId: Long,
-    userId: Long
+    groupId: Int,
+    userId: Int
 )

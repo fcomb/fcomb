@@ -38,7 +38,7 @@ object Routes {
       respondWithDefaultHeaders(defaultHeaders) {
         pathPrefix(apiVersion) {
           pathPrefix(RepositoriesHandler.servicePath) {
-            pathPrefix(LongNumber) { id =>
+            pathPrefix(IntNumber) { id =>
               RepositoriesHandler.routes(ImageKey.Id(id))
             } ~
             pathPrefix(Segments(2)) { xs =>

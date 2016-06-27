@@ -34,7 +34,7 @@ trait ImageDirectives {
     }
   }
 
-  def imageByIdWithAcl(id: Long, user: User, action: Action): Directive1[Image] = {
+  def imageByIdWithAcl(id: Int, user: User, action: Action): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findByIdWithAcl(id, user.getId, action)).flatMap(provideImage)
     }

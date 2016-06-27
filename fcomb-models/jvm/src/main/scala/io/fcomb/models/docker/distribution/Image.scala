@@ -16,21 +16,21 @@
 
 package io.fcomb.models.docker.distribution
 
-import io.fcomb.models.{ModelWithAutoLongPk, OwnerKind}
+import io.fcomb.models.{ModelWithAutoIntPk, OwnerKind}
 import java.time.ZonedDateTime
 
 final case class Image(
-    id: Option[Long],
+    id: Option[Int],
     name: String,
     slug: String,
-    ownerId: Long,
+    ownerId: Int,
     ownerKind: OwnerKind,
     visibilityKind: ImageVisibilityKind,
     description: String,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoLongPk {
-  def withPk(id: Long) = this.copy(id = Some(id))
+) extends ModelWithAutoIntPk {
+  def withPk(id: Int) = this.copy(id = Some(id))
 }
 
 object Image {
@@ -45,6 +45,6 @@ final case class DistributionImageCatalog(
 sealed trait ImageKey
 
 object ImageKey {
-  final case class Id(id: Long)       extends ImageKey
+  final case class Id(id: Int)        extends ImageKey
   final case class Name(name: String) extends ImageKey
 }

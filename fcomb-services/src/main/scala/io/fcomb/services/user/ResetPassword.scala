@@ -71,7 +71,7 @@ object ResetPassword {
       case Validated.Valid(_) =>
         redis.get(key).flatMap {
           case Some(id) =>
-            val updateF = UsersRepo.updatePassword(id.utf8String.toLong, password).map {
+            val updateF = UsersRepo.updatePassword(id.utf8String.toInt, password).map {
               case true  => Validated.Valid(())
               case false => UsersRepo.validationError("id", "not found")
             }

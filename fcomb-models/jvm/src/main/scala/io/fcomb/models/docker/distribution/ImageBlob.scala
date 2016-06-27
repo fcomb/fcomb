@@ -34,7 +34,7 @@ object ImageBlobState extends Enum[ImageBlobState] {
 
 case class ImageBlob(
     id: Option[UUID] = None,
-    imageId: Long,
+    imageId: Int,
     state: ImageBlobState,
     sha256Digest: Option[String],
     contentType: String,

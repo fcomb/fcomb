@@ -19,16 +19,16 @@ package io.fcomb.persist.acl
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl._
 import io.fcomb.persist.EnumsMapping._
-import io.fcomb.persist.{PersistTableWithAutoLongPk, PersistModelWithAutoLongPk, OrganizationsRepo}
+import io.fcomb.persist.{PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo}
 import java.time.ZonedDateTime
 import scala.concurrent.ExecutionContext
 
 class PermissionTable(tag: Tag)
     extends Table[Permission](tag, "acl_permissions")
-    with PersistTableWithAutoLongPk {
-  def sourceId   = column[Long]("source_id")
+    with PersistTableWithAutoIntPk {
+  def sourceId   = column[Int]("source_id")
   def sourceKind = column[SourceKind]("source_kind")
-  def memberId   = column[Long]("member_id")
+  def memberId   = column[Int]("member_id")
   def memberKind = column[MemberKind]("member_id")
   def action     = column[Action]("action")
   def createdAt  = column[ZonedDateTime]("created_at")
@@ -39,12 +39,12 @@ class PermissionTable(tag: Tag)
       ((Permission.apply _).tupled, Permission.unapply)
 }
 
-object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, PermissionTable] {
+object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionTable] {
   val table = TableQuery[PermissionTable]
 
-  private def bySourceAndMemberScope(sourceId: Rep[Long],
+  private def bySourceAndMemberScope(sourceId: Rep[Int],
                                      sourceKind: Rep[SourceKind],
-                                     memberId: Rep[Long],
+                                     memberId: Rep[Int],
                                      memberKind: Rep[MemberKind]) =
     table.filter { q =>
       q.sourceId === sourceId && q.sourceKind === sourceKind && q.memberId === memberId &&
@@ -52,13 +52,13 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
     }
 
   private lazy val canReadBySourceAndMemberCompiled = Compiled {
-    (sourceId: Rep[Long], sourceKind: Rep[SourceKind], memberId: Rep[Long],
+    (sourceId: Rep[Int], sourceKind: Rep[SourceKind], memberId: Rep[Int],
      memberKind: Rep[MemberKind]) =>
       bySourceAndMemberScope(sourceId, sourceKind, memberId, memberKind).exists
   }
 
   private lazy val canWriteBySourceAndMemberCompiled = Compiled {
-    (sourceId: Rep[Long], sourceKind: Rep[SourceKind], memberId: Rep[Long],
+    (sourceId: Rep[Int], sourceKind: Rep[SourceKind], memberId: Rep[Int],
      memberKind: Rep[MemberKind]) =>
       bySourceAndMemberScope(sourceId, sourceKind, memberId, memberKind).filter { q =>
         q.action === (Action.Write: Action) || q.action === (Action.Manage: Action)
@@ -66,7 +66,7 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
   }
 
   private lazy val canManageBySourceAndMemberCompiled = Compiled {
-    (sourceId: Rep[Long], sourceKind: Rep[SourceKind], memberId: Rep[Long],
+    (sourceId: Rep[Int], sourceKind: Rep[SourceKind], memberId: Rep[Int],
      memberKind: Rep[MemberKind]) =>
       bySourceAndMemberScope(sourceId, sourceKind, memberId, memberKind).filter { q =>
         q.action === (Action.Manage: Action)
@@ -74,9 +74,9 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
   }
 
   private def isAllowedActionBySourceAndMemberDBIO(
-      sourceId: Long,
+      sourceId: Int,
       sourceKind: SourceKind,
-      memberId: Long,
+      memberId: Int,
       memberKind: MemberKind,
       action: Action): DBIOAction[Boolean, NoStream, Effect.Read] = {
     val args = (sourceId, sourceKind, memberId, memberKind)
@@ -89,18 +89,18 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
   }
 
   def isAllowedActionBySourceAsUserDBIO(
-      sourceId: Long,
+      sourceId: Int,
       sourceKind: SourceKind,
-      userId: Long,
+      userId: Int,
       action: Action): DBIOAction[Boolean, NoStream, Effect.Read] = {
     isAllowedActionBySourceAndMemberDBIO(sourceId, sourceKind, userId, MemberKind.User, action)
   }
 
   private def bySourceAndGroupMemberScope(
-      sourceId: Rep[Long],
+      sourceId: Rep[Int],
       sourceKind: Rep[SourceKind],
-      organizationId: Rep[Long],
-      userId: Rep[Long]
+      organizationId: Rep[Int],
+      userId: Rep[Int]
   ) =
     OrganizationsRepo.groupUsersScope.join(table).on {
       case (((_, gt), gut), pt) =>
@@ -109,14 +109,14 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
     }
 
   private lazy val canReadBySourceAndGroupMemberCompiled = Compiled {
-    (sourceId: Rep[Long], sourceKind: Rep[SourceKind], organizationId: Rep[Long],
-     userId: Rep[Long]) =>
+    (sourceId: Rep[Int], sourceKind: Rep[SourceKind], organizationId: Rep[Int],
+     userId: Rep[Int]) =>
       bySourceAndGroupMemberScope(sourceId, sourceKind, organizationId, userId).exists
   }
 
   private lazy val canWriteBySourceAndGroupMemberCompiled = Compiled {
-    (sourceId: Rep[Long], sourceKind: Rep[SourceKind], organizationId: Rep[Long],
-     userId: Rep[Long]) =>
+    (sourceId: Rep[Int], sourceKind: Rep[SourceKind], organizationId: Rep[Int],
+     userId: Rep[Int]) =>
       bySourceAndGroupMemberScope(sourceId, sourceKind, organizationId, userId).filter {
         case (((_, _), _), pt) =>
           pt.action === (Action.Write: Action) || pt.action === (Action.Manage: Action)
@@ -124,18 +124,18 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
   }
 
   private lazy val canManageBySourceAndGroupMemberCompiled = Compiled {
-    (sourceId: Rep[Long], sourceKind: Rep[SourceKind], organizationId: Rep[Long],
-     userId: Rep[Long]) =>
+    (sourceId: Rep[Int], sourceKind: Rep[SourceKind], organizationId: Rep[Int],
+     userId: Rep[Int]) =>
       bySourceAndGroupMemberScope(sourceId, sourceKind, organizationId, userId).filter {
         case (((_, _), _), pt) => pt.action === (Action.Manage: Action)
       }.exists
   }
 
   private def isAllowedActionBySourceAsGroupMemberDBIO(
-      sourceId: Long,
+      sourceId: Int,
       sourceKind: SourceKind,
-      organizationId: Long,
-      userId: Long,
+      organizationId: Int,
+      userId: Int,
       action: Action): DBIOAction[Boolean, NoStream, Effect.Read] = {
     val args = (sourceId, sourceKind, organizationId, userId)
     val q = action match {
@@ -146,10 +146,10 @@ object PermissionsRepo extends PersistModelWithAutoLongPk[Permission, Permission
     q.result
   }
 
-  def isAllowedActionBySourceAsGroupUserDBIO(sourceId: Long,
+  def isAllowedActionBySourceAsGroupUserDBIO(sourceId: Int,
                                              sourceKind: SourceKind,
-                                             organizationId: Long,
-                                             userId: Long,
+                                             organizationId: Int,
+                                             userId: Int,
                                              action: Action)(
       implicit ec: ExecutionContext): DBIOAction[Boolean, NoStream, Effect.Read] = {
     isAllowedActionBySourceAsUserDBIO(sourceId, sourceKind, userId, action).flatMap {

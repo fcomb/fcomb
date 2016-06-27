@@ -22,7 +22,7 @@ final case class ImageTagsResponse(
 )
 
 final case class ImageManifestTag(
-    imageId: Long,
-    imageManifestId: Long,
+    imageId: Int,
+    imageManifestId: Int,
     tag: String
 )
