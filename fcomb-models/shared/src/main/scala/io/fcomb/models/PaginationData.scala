@@ -16,6 +16,13 @@
 
 package io.fcomb.models
 
+sealed trait SortOrder
+
+object SortOrder {
+  final case object Asc  extends SortOrder
+  final case object Desc extends SortOrder
+}
+
 final case class PaginationData[T](
     data: Seq[T],
     total: Int,
@@ -24,6 +31,9 @@ final case class PaginationData[T](
 )
 
 final case class Pagination(
+    // filter: List[(String, String)],
+    // filterNot: List[(String, String)],
+    sort: List[(String, SortOrder)],
     limit: Long,
     offset: Long
 )
@@ -32,7 +42,7 @@ object Pagination {
   val defaultLimit  = 64L
   val defaultOffset = 0L
 
-  def apply(limitOpt: Option[Long], offsetOpt: Option[Long]): Pagination = {
+  def apply(sortOpt: Option[String], limitOpt: Option[Long], offsetOpt: Option[Long]): Pagination = {
     val limit = limitOpt match {
       case Some(v) if v >= 1 && v <= defaultLimit => v
       case _                                      => defaultLimit
@@ -41,8 +51,14 @@ object Pagination {
       case Some(v) if v >= defaultOffset => v
       case _                             => defaultOffset
     }
-    Pagination(limit, offset)
+    val sort = sortOpt match {
+      case Some(s) if s.nonEmpty =>
+        s.split(',').toList.map {
+          case column if column.startsWith("-") => (column.drop(1), SortOrder.Desc)
+          case column                           => (column, SortOrder.Asc)
+        }
+      case _ => Nil
+    }
+    Pagination(sort, limit, offset)
   }
-
-  lazy val withDefaults = Pagination(defaultLimit, defaultOffset)
 }

@@ -40,7 +40,7 @@ class HttpApiService(routes: Route)(
       error: T,
       status: StatusCode
   ) = {
-    complete(status, FailureResponse.fromException(error))
+    complete((status, FailureResponse.fromException(error)))
   }
 
   private def handleException(e: Throwable) =

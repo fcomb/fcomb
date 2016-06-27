@@ -69,7 +69,7 @@ object Mandrill {
       .map { entity =>
         HttpRequest(
           method = HttpMethods.POST,
-          uri = "https://$hostname/api/1.0/messages/send-template.json",
+          uri = s"https://$hostname/api/1.0/messages/send-template.json",
           entity = entity
         )
       }

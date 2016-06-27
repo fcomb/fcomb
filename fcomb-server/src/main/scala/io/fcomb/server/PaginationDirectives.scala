@@ -31,19 +31,23 @@ trait PaginationDirectives {
   def extractPagination: Directive1[Pagination] =
     optionalHeaderValueByType[Range](()).flatMap {
       case Some(Range(_, range +: _)) =>
-        val p = Pagination(
-          limitOpt = range.getSliceLast.asScala,
-          offsetOpt = range.getOffset.asScala
-        )
-        provide(p)
+        parameter('sort.?).flatMap { sortOpt =>
+          val p = Pagination(
+            sortOpt = sortOpt,
+            limitOpt = range.getSliceLast.asScala,
+            offsetOpt = range.getOffset.asScala
+          )
+          provide(p)
+        }
       case _ =>
-        parameters(('limit.as[Long].?, 'offset.as[Long].?)).tflatMap {
-          case (limitOpt, offsetOpt) =>
-            val p = Pagination(limitOpt = limitOpt, offsetOpt = offsetOpt)
+        parameters(('sort.?, 'limit.as[Long].?, 'offset.as[Long].?)).tflatMap {
+          case (sortOpt, limitOpt, offsetOpt) =>
+            val p = Pagination(sortOpt = sortOpt, limitOpt = limitOpt, offsetOpt = offsetOpt)
             provide(p)
         }
     }
 
+  // TODO: add Link: <api?limit=&offset=>; rel="next", <api?limit=&offset=>; rel="last"
   def completePagination[T](label: String, pd: PaginationData[T])(implicit encoder: Encoder[T]) = {
     val position = pd.data.length + pd.offset - 1L
     val (status, headers) =
