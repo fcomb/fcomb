@@ -27,7 +27,7 @@ class OrganizationGroupTable(tag: Tag)
     with PersistTableWithAutoIntPk {
   def organizationId  = column[Int]("organization_id")
   def name            = column[String]("name")
-  def role            = column[Role]("kind")
+  def role            = column[Role]("role")
   def createdByUserId = column[Int]("created_by_user_id")
   def createdAt       = column[ZonedDateTime]("created_at")
   def updatedAt       = column[Option[ZonedDateTime]]("updated_at")

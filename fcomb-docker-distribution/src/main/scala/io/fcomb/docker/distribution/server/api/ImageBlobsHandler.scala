@@ -50,15 +50,16 @@ object ImageBlobsHandler {
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, digest)) {
             case Some(blob) if blob.isUploaded =>
+              val headers = immutable.Seq(
+                `Docker-Content-Digest`("sha256", digest),
+                etagHeader(digest),
+                `Accept-Ranges`(RangeUnits.Bytes),
+                cacheHeader
+              )
               complete(
                 HttpResponse(
                   StatusCodes.OK,
-                  immutable.Seq(
-                    `Docker-Content-Digest`("sha256", digest),
-                    etagHeader(digest),
-                    `Accept-Ranges`(RangeUnits.Bytes),
-                    cacheHeader
-                  ),
+                  headers,
                   HttpEntity(contentType(blob.contentType), blob.length, Source.empty)
                 )
               )

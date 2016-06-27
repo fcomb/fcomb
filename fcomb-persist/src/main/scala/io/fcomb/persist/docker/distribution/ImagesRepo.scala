@@ -108,45 +108,75 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     }
   }
 
-  // TODO: rewrite these join's by readable union's
-  private def availableScope(userId: Rep[Int]) = {
+  private def availableByUserOwnerScope(userId: Rep[Int]) = {
+    table.filter { t =>
+      t.ownerId === userId && t.ownerKind === (OwnerKind.User: OwnerKind)
+    }
+  }
+
+  private def availableByUserPermissionsScope(userId: Rep[Int]) = {
     table
-      .joinLeft(PermissionsRepo.table)
+      .join(PermissionsRepo.table)
       .on {
         case (t, pt) =>
           pt.sourceId === t.pk &&
             pt.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
       }
-      .joinLeft(OrganizationGroupUsersRepo.table)
-      .on {
-        case (_, gut) => gut.userId === userId
-      }
-      .joinLeft(OrganizationGroupsRepo.table)
-      .on {
-        case ((_, gut), gt) => gt.id === gut.map(_.groupId)
-      }
       .filter {
-        case (((t, pt), gut), gt) =>
-          (t.ownerId === userId && t.ownerKind === (OwnerKind.User: OwnerKind)) ||
-            (pt.map(_.memberId) === userId &&
-                  pt.map(_.memberKind) === (MemberKind.User: MemberKind)) ||
-            (pt.map(_.memberId) === gut.map(_.groupId) &&
-                  pt.map(_.memberKind) === (MemberKind.Group: MemberKind)) ||
-            (gt.map(_.role) === (Role.Admin: Role) && t.ownerId === gt.map(_.organizationId) &&
-                  t.ownerKind === (OwnerKind.Organization: OwnerKind))
+        case (_, pt) =>
+          pt.memberId === userId && pt.memberKind === (MemberKind.User: MemberKind)
       }
-      .map(_._1._1._1)
-      .distinct
+      .map(_._1)
+  }
+
+  private def availableByUserGroupsScope(userId: Rep[Int]) = {
+    table
+      .join(PermissionsRepo.table)
+      .on {
+        case (t, pt) =>
+          pt.sourceId === t.pk &&
+            pt.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
+      }
+      .join(OrganizationGroupUsersRepo.table)
+      .on { case (_, gut) => gut.userId === userId }
+      .filter {
+        case ((_, pt), gut) =>
+          pt.memberId === gut.groupId && pt.memberKind === (MemberKind.Group: MemberKind)
+      }
+      .map(_._1._1)
+  }
+
+  private def availableByUserOrganizationsScope(userId: Rep[Int]) = {
+    table
+      .join(OrganizationGroupsRepo.table)
+      .on {
+        case (t, ogt) =>
+          ogt.role === (Role.Admin: Role) && t.ownerId === ogt.organizationId &&
+            t.ownerKind === (OwnerKind.Organization: OwnerKind)
+      }
+      .join(OrganizationGroupUsersRepo.table)
+      .on { case ((t, ogt), ogut) => ogt.id === ogut.groupId }
+      .filter {
+        case ((_, _), ogut) => ogut.userId === userId
+      }
+      .map(_._1._1)
+  }
+
+  private def availableScope(userId: Rep[Int]) = {
+    availableByUserOwnerScope(userId) union
+    availableByUserPermissionsScope(userId) union
+    availableByUserGroupsScope(userId) union
+    availableByUserOrganizationsScope(userId)
   }
 
   private lazy val findIdByUserIdAndNameCompiled = Compiled {
-    (userId: Rep[Int], name: Rep[String]) =>
-      availableScope(userId).filter(_.name === name).map(_.pk)
+    (userId: Rep[Int], imageSlug: Rep[String]) =>
+      availableScope(userId).filter(_.slug === imageSlug).map(_.pk)
   }
 
   private lazy val findRepositoriesByUserIdCompiled = Compiled {
     (userId: Rep[Int], limit: ConstColumn[Long], id: Rep[Int]) =>
-      availableScope(userId).filter(_.pk > id).sortBy(_.id.asc).map(_.name).take(limit)
+      availableScope(userId).filter(_.pk > id).sortBy(_.id.asc).map(_.slug).take(limit)
   }
 
   val fetchLimit = 64
@@ -158,8 +188,8 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       case _                                   => fetchLimit
     }
     val since = last match {
-      case Some(imageName) =>
-        findIdByUserIdAndNameCompiled((userId, imageName)).result.headOption.map {
+      case Some(imageSlug) =>
+        findIdByUserIdAndNameCompiled((userId, imageSlug)).result.headOption.map {
           case Some(id) => id
           case None     => 0
         }
