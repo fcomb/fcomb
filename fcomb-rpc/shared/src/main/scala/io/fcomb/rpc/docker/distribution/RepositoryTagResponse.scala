@@ -18,7 +18,7 @@ package io.fcomb.rpc.docker.distribution
 
 final case class RepositoryTagResponse(
     tag: String,
-    imageId: String,
+    imageSha256Digest: String,
     length: Long,
     updatedAt: String
 )

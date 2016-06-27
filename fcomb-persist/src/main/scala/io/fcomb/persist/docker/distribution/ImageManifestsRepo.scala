@@ -36,6 +36,7 @@ class ImageManifestTable(tag: Tag)
   def layersBlobId     = column[List[UUID]]("layers_blob_id")
   def schemaVersion    = column[Int]("schema_version")
   def schemaV1JsonBlob = column[String]("schema_v1_json_blob")
+  def length           = column[Long]("length")
   def createdAt        = column[ZonedDateTime]("created_at")
   def updatedAt        = column[Option[ZonedDateTime]]("updated_at")
 
@@ -51,6 +52,7 @@ class ImageManifestTable(tag: Tag)
      layersBlobId,
      schemaVersion,
      schemaV1JsonBlob,
+     length,
      createdAt,
      updatedAt,
      (v2ConfigBlobId, v2JsonBlob)) <>
@@ -64,6 +66,7 @@ class ImageManifestTable(tag: Tag)
       layersBlobId: List[UUID],
       schemaVersion: Int,
       schemaV1JsonBlob: String,
+      length: Long,
       createdAt: ZonedDateTime,
       updatedAt: Option[ZonedDateTime],
       v2DetailsTuple: (Option[UUID], Option[String])
@@ -82,6 +85,7 @@ class ImageManifestTable(tag: Tag)
       schemaVersion = schemaVersion,
       schemaV1JsonBlob = schemaV1JsonBlob,
       schemaV2Details = schemaV2Details,
+      length = length,
       createdAt = createdAt,
       updatedAt = updatedAt
     )
@@ -101,6 +105,7 @@ class ImageManifestTable(tag: Tag)
        m.layersBlobId,
        m.schemaVersion,
        m.schemaV1JsonBlob,
+       m.length,
        m.createdAt,
        m.updatedAt,
        v2DetailsTuple))
@@ -121,10 +126,10 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
     db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
   private def blobsCountIsLessThanExpected(
-      blobs: Seq[(UUID, Option[String])],
+      blobs: Seq[(UUID, Option[String], Long)],
       digests: Set[String]
   ) = {
-    val existingDigests = blobs.collect { case (_, Some(dgst)) => dgst }.toSet
+    val existingDigests = blobs.collect { case (_, Some(dgst), _) => dgst }.toSet
     val notFound = digests
       .filterNot(existingDigests.contains)
       .map(dgst => s"${ImageManifest.sha256Prefix}$dgst")
@@ -148,7 +153,8 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
         ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId, digests).flatMap {
           blobs =>
             if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
-            else
+            else {
+              val length = blobs.map(_._3).sum
               create(
                 ImageManifest(
                   id = None,
@@ -159,9 +165,11 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
                   schemaVersion = 1,
                   schemaV1JsonBlob = schemaV1JsonBlob,
                   schemaV2Details = None,
+                  length = length,
                   createdAt = ZonedDateTime.now,
                   updatedAt = None
                 ))
+            }
         }
     }
   }
@@ -198,6 +206,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
               case Reference.Tag(tag) => List(tag)
               case _                  => Nil
             }
+            val length = blobs.map(_._3).sum
             create(
               ImageManifest(
                 id = None,
@@ -208,6 +217,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
                 schemaVersion = 2,
                 schemaV1JsonBlob = schemaV1JsonBlob,
                 schemaV2Details = Some(schemaV2Details),
+                length = length,
                 createdAt = ZonedDateTime.now,
                 updatedAt = None
               ))

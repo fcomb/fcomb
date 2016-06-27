@@ -126,9 +126,11 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
 
   def findIdsWithDigestByImageIdAndDigests(imageId: Int, digests: Set[String])(
       implicit ec: ExecutionContext
-  ) =
+  ): Future[Seq[(UUID, Option[String], Long)]] =
     db.run {
-      findByImageIdAndDigestsScopeDBIO(imageId, digests).map(t => (t.pk, t.sha256Digest)).result
+      findByImageIdAndDigestsScopeDBIO(imageId, digests)
+        .map(t => (t.pk, t.sha256Digest, t.length))
+        .result
     }
 
   def findByImageIdAndDigests(imageId: Int, digests: Set[String])(

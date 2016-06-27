@@ -37,6 +37,7 @@ final case class ImageManifest(
     schemaVersion: Int,
     schemaV1JsonBlob: String,
     schemaV2Details: Option[ImageManifestSchemaV2Details],
+    length: Long,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
 ) extends ModelWithAutoIntPk {

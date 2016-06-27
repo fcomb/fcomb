@@ -93,17 +93,17 @@ object ImageManifestTagsRepo
       .on(_.imageManifestId === _.id)
       .filter(_._1.imageId === imageId)
 
-  private def sortByPF(q: (Rep[String], Rep[String], ConstColumn[Long], Rep[ZonedDateTime]))
+  private def sortByPF(q: (Rep[String], Rep[String], Rep[Long], Rep[ZonedDateTime]))
     : PartialFunction[String, Rep[_]] = {
-    case "tag"       => q._1
-    case "imageId"   => q._2
-    case "length"    => q._3
-    case "updatedAt" => q._4
+    case "tag"               => q._1
+    case "imageSha256Digest" => q._2
+    case "length"            => q._3
+    case "updatedAt"         => q._4
   }
 
   private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {
     val q = findByImageIdScopeDBIO(imageId).map {
-      case (t, imt) => (t.tag, imt.sha256Digest, /*TODO: imt.length*/ 0L, t.updatedAt)
+      case (t, imt) => (t.tag, imt.sha256Digest, imt.length, t.updatedAt)
     }.drop(p.offset).take(p.limit)
     sortByQuery(q, p)(sortByPF, _._1)
   }
