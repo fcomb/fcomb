@@ -16,36 +16,45 @@
 
 package io.fcomb.persist.docker.distribution
 
+import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.ImageManifestTag
+import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist._
+import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
+import io.fcomb.rpc.helpers.time.Implicits._
 import java.time.ZonedDateTime
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Future, ExecutionContext}
 
 class ImageManifestTagTable(_tag: Tag)
     extends Table[ImageManifestTag](_tag, "dd_image_manifest_tags") {
   def imageId         = column[Int]("image_id")
   def imageManifestId = column[Int]("image_manifest_id")
   def tag             = column[String]("tag")
+  def updatedAt       = column[ZonedDateTime]("updated_at")
 
   def * =
-    (imageId, imageManifestId, tag) <>
+    (imageId, imageManifestId, tag, updatedAt) <>
       ((ImageManifestTag.apply _).tupled, ImageManifestTag.unapply)
 }
 
-object ImageManifestTagsRepo extends PersistModel[ImageManifestTag, ImageManifestTagTable] {
+object ImageManifestTagsRepo
+    extends PersistModel[ImageManifestTag, ImageManifestTagTable]
+    with PaginationActions {
   val table = TableQuery[ImageManifestTagTable]
+  val label = "tags"
 
   def upsertTagsDBIO(imageId: Int, imageManifestId: Int, tags: List[String])(
       implicit ec: ExecutionContext
   ) = {
+    val timeNow = ZonedDateTime.now()
     for {
       existingTags <- findAllExistingTagsDBIO(imageId, imageManifestId, tags)
       _            <- DBIO.seq(existingTags.map(updateTagDBIO(_, imageManifestId)): _*)
       existingTagsSet = existingTags.map(_.tag).toSet
       newTags = tags
         .filterNot(existingTagsSet.contains)
-        .map(t => ImageManifestTag(imageId, imageManifestId, t))
+        .map(t => ImageManifestTag(imageId, imageManifestId, t, timeNow))
       _ <- {
         if (newTags.isEmpty) DBIO.successful(())
         else table ++= newTags
@@ -73,7 +82,45 @@ object ImageManifestTagsRepo extends PersistModel[ImageManifestTag, ImageManifes
       _ <- table.filter { q =>
             q.imageId === imt.imageId && q.imageManifestId === imt.imageManifestId &&
             q.tag === imt.tag
-          }.map(_.imageManifestId).update(imageManifestId)
+          }.map(t => (t.imageManifestId, t.updatedAt))
+            .update((imageManifestId, ZonedDateTime.now()))
     } yield ()
   }
+
+  private def findByImageIdScopeDBIO(imageId: Rep[Int]) =
+    table
+      .join(ImageManifestsRepo.table)
+      .on(_.imageManifestId === _.id)
+      .filter(_._1.imageId === imageId)
+
+  private def sortByPF(q: (Rep[String], Rep[String], ConstColumn[Long], Rep[ZonedDateTime]))
+    : PartialFunction[String, Rep[_]] = {
+    case "tag"       => q._1
+    case "imageId"   => q._2
+    case "length"    => q._3
+    case "updatedAt" => q._4
+  }
+
+  private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {
+    val q = findByImageIdScopeDBIO(imageId).map {
+      case (t, imt) => (t.tag, imt.sha256Digest, /*TODO: imt.length*/ 0L, t.updatedAt)
+    }.drop(p.offset).take(p.limit)
+    sortByQuery(q, p)(sortByPF, _._1)
+  }
+
+  private lazy val findByImageIdTotalCompiled = Compiled { imageId: Rep[Int] =>
+    findByImageIdScopeDBIO(imageId).length
+  }
+
+  def findByImageIdWithPagination(imageId: Int, p: Pagination)(
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryTagResponse]] = {
+    db.run {
+      for {
+        tags  <- findByImageIdAsReponseDBIO(imageId, p).result
+        total <- findByImageIdTotalCompiled(imageId).result
+        data = tags.map(t => RepositoryTagResponse.tupled(t.copy(_4 = t._4.toIso8601)))
+      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
+    }
+  }
+
 }

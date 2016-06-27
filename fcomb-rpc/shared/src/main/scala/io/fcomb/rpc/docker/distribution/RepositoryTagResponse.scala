@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.docker.distribution
+package io.fcomb.rpc.docker.distribution
 
-import java.time.ZonedDateTime
-
-final case class ImageManifestTag(
-    imageId: Int,
-    imageManifestId: Int,
+final case class RepositoryTagResponse(
     tag: String,
-    updatedAt: ZonedDateTime
-)
-
-final case class ImageTagsResponse(
-    name: String,
-    tags: Seq[String]
+    imageId: String,
+    length: Long,
+    updatedAt: String
 )

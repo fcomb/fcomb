@@ -22,33 +22,35 @@ import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.PaginationData
-import io.fcomb.rpc.docker.distribution.ImageResponse
+import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object RepositoriesComponent {
-  final case class State(repositories: Seq[ImageResponse])
+  final case class State(repositories: Seq[RepositoryResponse])
 
   final case class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
     def getRepositories() = {
       Callback.future {
-        Rpc.call[PaginationData[ImageResponse]](RpcMethod.GET, Resource.userRepositories).map {
-          case Xor.Right(pd) =>
-            $.modState(_.copy(pd.data))
-          case Xor.Left(e) =>
-            println(e)
-            Callback.empty
-        }
+        Rpc
+          .call[PaginationData[RepositoryResponse]](RpcMethod.GET, Resource.userRepositories)
+          .map {
+            case Xor.Right(pd) =>
+              $.modState(_.copy(pd.data))
+            case Xor.Left(e) =>
+              println(e)
+              Callback.empty
+          }
       }
     }
 
-    def renderRepository(ctl: RouterCtl[DashboardRoute], repository: ImageResponse) = {
+    def renderRepository(ctl: RouterCtl[DashboardRoute], repository: RepositoryResponse) = {
       <.li(ctl.link(DashboardRoute.Repository(repository.slug))(repository.name))
     }
 
-    def renderRepositories(ctl: RouterCtl[DashboardRoute], repositories: Seq[ImageResponse]) = {
+    def renderRepositories(ctl: RouterCtl[DashboardRoute], repositories: Seq[RepositoryResponse]) = {
       if (repositories.isEmpty) <.span("No repositories. Create one!")
       else <.ul(repositories.map(renderRepository(ctl, _)))
     }

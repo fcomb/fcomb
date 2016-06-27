@@ -20,7 +20,7 @@ import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.rpc.docker.distribution.{ImageResponse, ImageUpdateRequest}
+import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageUpdateRequest}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -31,14 +31,14 @@ import scala.scalajs.js
 object RepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], name: String)
   final case class EditState(description: String, isPreview: Boolean, isFormDisabled: Boolean)
-  final case class State(repository: Option[ImageResponse], edit: Option[EditState])
+  final case class State(repository: Option[RepositoryResponse], edit: Option[EditState])
 
   final case class Backend($ : BackendScope[Props, State]) {
     val textarea = Ref[HTMLInputElement]("description")
 
     def getRepository(name: String): Callback = {
       Callback.future {
-        Rpc.call[ImageResponse](RpcMethod.GET, Resource.repository(name)).map {
+        Rpc.call[RepositoryResponse](RpcMethod.GET, Resource.repository(name)).map {
           case Xor.Right(repository) =>
             $.modState(_.copy(repository = Some(repository)))
           case Xor.Left(e) =>
@@ -67,9 +67,9 @@ object RepositoryComponent {
           _ <- Callback.future {
                 val req = ImageUpdateRequest(es.description)
                 Rpc
-                  .callWith[ImageUpdateRequest, ImageResponse](RpcMethod.PUT,
-                                                               Resource.repository(name),
-                                                               req)
+                  .callWith[ImageUpdateRequest, RepositoryResponse](RpcMethod.PUT,
+                                                                    Resource.repository(name),
+                                                                    req)
                   .map {
                     case Xor.Right(repository) =>
                       $.modState(_.copy(repository = Some(repository), edit = None))

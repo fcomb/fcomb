@@ -22,7 +22,7 @@ import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind, ImageKey}
 import io.fcomb.models.{OwnerKind, User, Pagination, PaginationData}
-import io.fcomb.rpc.docker.distribution.{ImageResponse, ImageCreateRequest, ImageUpdateRequest}
+import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest, ImageUpdateRequest}
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
@@ -108,13 +108,13 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     }
   }
 
-  private def availableByUserOwnerScope(userId: Rep[Int]) = {
+  private def availableByUserOwnerScopeDBIO(userId: Rep[Int]) = {
     table.filter { t =>
       t.ownerId === userId && t.ownerKind === (OwnerKind.User: OwnerKind)
     }
   }
 
-  private def availableByUserPermissionsScope(userId: Rep[Int]) = {
+  private def availableByUserPermissionsScopeDBIO(userId: Rep[Int]) = {
     table
       .join(PermissionsRepo.table)
       .on {
@@ -129,7 +129,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       .map(_._1)
   }
 
-  private def availableByUserGroupsScope(userId: Rep[Int]) = {
+  private def availableByUserGroupsScopeDBIO(userId: Rep[Int]) = {
     table
       .join(PermissionsRepo.table)
       .on {
@@ -146,7 +146,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       .map(_._1._1)
   }
 
-  private def availableByUserOrganizationsScope(userId: Rep[Int]) = {
+  private def availableByUserOrganizationsScopeDBIO(userId: Rep[Int]) = {
     table
       .join(OrganizationGroupsRepo.table)
       .on {
@@ -162,21 +162,21 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       .map(_._1._1)
   }
 
-  private def availableScope(userId: Rep[Int]) = {
-    availableByUserOwnerScope(userId) union
-    availableByUserPermissionsScope(userId) union
-    availableByUserGroupsScope(userId) union
-    availableByUserOrganizationsScope(userId)
+  private def availableScopeDBIO(userId: Rep[Int]) = {
+    availableByUserOwnerScopeDBIO(userId) union
+    availableByUserPermissionsScopeDBIO(userId) union
+    availableByUserGroupsScopeDBIO(userId) union
+    availableByUserOrganizationsScopeDBIO(userId)
   }
 
   private lazy val findIdByUserIdAndNameCompiled = Compiled {
     (userId: Rep[Int], imageSlug: Rep[String]) =>
-      availableScope(userId).filter(_.slug === imageSlug).map(_.pk)
+      availableScopeDBIO(userId).filter(_.slug === imageSlug).map(_.pk)
   }
 
   private lazy val findRepositoriesByUserIdCompiled = Compiled {
     (userId: Rep[Int], limit: ConstColumn[Long], id: Rep[Int]) =>
-      availableScope(userId).filter(_.pk > id).sortBy(_.id.asc).map(_.slug).take(limit)
+      availableScopeDBIO(userId).filter(_.pk > id).sortBy(_.id.asc).map(_.slug).take(limit)
   }
 
   val fetchLimit = 64
@@ -243,28 +243,28 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     update(id)(_.copy(description = req.description))
   }
 
-  private def findByUserOwnerScope(userId: Rep[Int]) =
+  private def findByUserOwnerScopeDBIO(userId: Rep[Int]) =
     table.filter { q =>
       q.ownerId === userId && q.ownerKind === (OwnerKind.User: OwnerKind)
     }
 
   private lazy val findByUserOwnerTotalCompiled = Compiled { userId: Rep[Int] =>
-    findByUserOwnerScope(userId).length
+    findByUserOwnerScopeDBIO(userId).length
   }
 
   private lazy val findByUserOwnerWithPaginationCompiled = Compiled {
     (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      findByUserOwnerScope(userId).drop(offset).take(limit)
+      findByUserOwnerScopeDBIO(userId).drop(offset).take(limit)
   }
 
-  def findByUserOwnerWithPagination(userId: Int, pg: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[ImageResponse]] = {
+  def findByUserOwnerWithPagination(userId: Int, p: Pagination)(
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
     db.run {
       for {
-        images <- findByUserOwnerWithPaginationCompiled((userId, pg.offset, pg.limit)).result
+        images <- findByUserOwnerWithPaginationCompiled((userId, p.offset, p.limit)).result
         total  <- findByUserOwnerTotalCompiled(userId).result
         data = images.map(ImageHelpers.responseFrom)
-      } yield PaginationData(data, total = total, offset = pg.offset, limit = pg.limit)
+      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
   }
 

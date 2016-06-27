@@ -19,7 +19,7 @@ package io.fcomb.rpc.docker.distribution
 import io.fcomb.models.OwnerKind
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
-final case class ImageResponse(
+final case class RepositoryResponse(
     id: Option[Int],
     name: String,
     slug: String,

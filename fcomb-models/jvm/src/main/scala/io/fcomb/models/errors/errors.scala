@@ -23,4 +23,4 @@ trait Error
 trait ErrorResponse
 
 @SerialVersionUID(1L)
-case class ThrowableError(error: Error) extends Throwable with NoStackTrace
+final case class ThrowableError(error: Error) extends Throwable with NoStackTrace

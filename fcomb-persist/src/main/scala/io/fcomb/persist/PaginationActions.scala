@@ -37,12 +37,12 @@ trait PaginationActions {
       case xs =>
         xs.foldLeft(scope) {
           case (q, (column, order)) =>
-            val sortOrder = order match {
-              case SortOrder.Asc  => Ordering(Ordering.Asc)
-              case SortOrder.Desc => Ordering(Ordering.Desc)
-            }
             q.sortBy { t =>
               val c = f(t).applyOrElse(column, unknownSortColumnPF)
+              val sortOrder = order match {
+                case SortOrder.Asc  => Ordering(Ordering.Asc)
+                case SortOrder.Desc => Ordering(Ordering.Desc)
+              }
               ColumnOrdered(c, sortOrder)
             }
         }

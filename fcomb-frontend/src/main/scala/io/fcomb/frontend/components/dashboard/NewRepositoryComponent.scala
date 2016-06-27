@@ -21,7 +21,7 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
-import io.fcomb.rpc.docker.distribution.{ImageResponse, ImageCreateRequest}
+import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -43,7 +43,7 @@ object NewRepositoryComponent {
             Callback.future {
               val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
               Rpc
-                .callWith[ImageCreateRequest, ImageResponse](RpcMethod.POST,
+                .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST,
                                                              Resource.userRepositories,
                                                              req)
                 .map {

@@ -42,10 +42,10 @@ class PermissionTable(tag: Tag)
 object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionTable] {
   val table = TableQuery[PermissionTable]
 
-  private def bySourceAndMemberScope(sourceId: Rep[Int],
-                                     sourceKind: Rep[SourceKind],
-                                     memberId: Rep[Int],
-                                     memberKind: Rep[MemberKind]) =
+  private def bySourceAndMemberScopeDBIO(sourceId: Rep[Int],
+                                         sourceKind: Rep[SourceKind],
+                                         memberId: Rep[Int],
+                                         memberKind: Rep[MemberKind]) =
     table.filter { q =>
       q.sourceId === sourceId && q.sourceKind === sourceKind && q.memberId === memberId &&
       q.memberKind === memberKind
@@ -54,13 +54,13 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
   private lazy val canReadBySourceAndMemberCompiled = Compiled {
     (sourceId: Rep[Int], sourceKind: Rep[SourceKind], memberId: Rep[Int],
      memberKind: Rep[MemberKind]) =>
-      bySourceAndMemberScope(sourceId, sourceKind, memberId, memberKind).exists
+      bySourceAndMemberScopeDBIO(sourceId, sourceKind, memberId, memberKind).exists
   }
 
   private lazy val canWriteBySourceAndMemberCompiled = Compiled {
     (sourceId: Rep[Int], sourceKind: Rep[SourceKind], memberId: Rep[Int],
      memberKind: Rep[MemberKind]) =>
-      bySourceAndMemberScope(sourceId, sourceKind, memberId, memberKind).filter { q =>
+      bySourceAndMemberScopeDBIO(sourceId, sourceKind, memberId, memberKind).filter { q =>
         q.action === (Action.Write: Action) || q.action === (Action.Manage: Action)
       }.exists
   }
@@ -68,7 +68,7 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
   private lazy val canManageBySourceAndMemberCompiled = Compiled {
     (sourceId: Rep[Int], sourceKind: Rep[SourceKind], memberId: Rep[Int],
      memberKind: Rep[MemberKind]) =>
-      bySourceAndMemberScope(sourceId, sourceKind, memberId, memberKind).filter { q =>
+      bySourceAndMemberScopeDBIO(sourceId, sourceKind, memberId, memberKind).filter { q =>
         q.action === (Action.Manage: Action)
       }.exists
   }
@@ -96,7 +96,7 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
     isAllowedActionBySourceAndMemberDBIO(sourceId, sourceKind, userId, MemberKind.User, action)
   }
 
-  private def bySourceAndGroupMemberScope(
+  private def bySourceAndGroupMemberScopeDBIO(
       sourceId: Rep[Int],
       sourceKind: Rep[SourceKind],
       organizationId: Rep[Int],
@@ -111,13 +111,13 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
   private lazy val canReadBySourceAndGroupMemberCompiled = Compiled {
     (sourceId: Rep[Int], sourceKind: Rep[SourceKind], organizationId: Rep[Int],
      userId: Rep[Int]) =>
-      bySourceAndGroupMemberScope(sourceId, sourceKind, organizationId, userId).exists
+      bySourceAndGroupMemberScopeDBIO(sourceId, sourceKind, organizationId, userId).exists
   }
 
   private lazy val canWriteBySourceAndGroupMemberCompiled = Compiled {
     (sourceId: Rep[Int], sourceKind: Rep[SourceKind], organizationId: Rep[Int],
      userId: Rep[Int]) =>
-      bySourceAndGroupMemberScope(sourceId, sourceKind, organizationId, userId).filter {
+      bySourceAndGroupMemberScopeDBIO(sourceId, sourceKind, organizationId, userId).filter {
         case (((_, _), _), pt) =>
           pt.action === (Action.Write: Action) || pt.action === (Action.Manage: Action)
       }.exists
@@ -126,7 +126,7 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
   private lazy val canManageBySourceAndGroupMemberCompiled = Compiled {
     (sourceId: Rep[Int], sourceKind: Rep[SourceKind], organizationId: Rep[Int],
      userId: Rep[Int]) =>
-      bySourceAndGroupMemberScope(sourceId, sourceKind, organizationId, userId).filter {
+      bySourceAndGroupMemberScopeDBIO(sourceId, sourceKind, organizationId, userId).filter {
         case (((_, _), _), pt) => pt.action === (Action.Manage: Action)
       }.exists
   }
