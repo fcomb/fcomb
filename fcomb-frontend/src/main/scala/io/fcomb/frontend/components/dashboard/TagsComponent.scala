@@ -51,14 +51,17 @@ object TagsComponent {
       } yield ()
     }
 
-    def renderTag(props: Props, tag: RepositoryTagResponse) = {
+    def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
       // <.li(ctl.link(DashboardRoute.Repository(props.repositoryName, tag.tag))(tag.tag))
-      <.li(tag.tag)
+      <.tr(<.td(tag.tag), <.td(tag.updatedAt), <.td(tag.length), <.td(tag.imageSha256Digest))
     }
 
     def renderTags(props: Props, tags: Seq[RepositoryTagResponse]) = {
       if (tags.isEmpty) <.span("No tags. Create one!")
-      else <.ul(tags.map(renderTag(props, _)))
+      else {
+        <.table(<.thead(<.tr(<.th("Tag"), <.th("Last modified"), <.th("Size"), <.th("Image"))),
+                <.tbody(tags.map(renderTagRow(props, _))))
+      }
     }
 
     def render(props: Props, state: State) = {
