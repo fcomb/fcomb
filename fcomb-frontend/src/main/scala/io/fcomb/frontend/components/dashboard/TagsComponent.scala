@@ -53,7 +53,10 @@ object TagsComponent {
 
     def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
       // <.li(ctl.link(DashboardRoute.Repository(props.repositoryName, tag.tag))(tag.tag))
-      <.tr(<.td(tag.tag), <.td(tag.updatedAt), <.td(tag.length), <.td(tag.imageSha256Digest))
+      <.tr(<.td(tag.tag),
+           <.td(TimeagoComponent.apply(tag.updatedAt)),
+           <.td(SizeInBytesComponent.apply(tag.length)),
+           <.td(tag.imageSha256Digest))
     }
 
     def renderTags(props: Props, tags: Seq[RepositoryTagResponse]) = {
@@ -72,9 +75,7 @@ object TagsComponent {
   private val component = ReactComponentB[Props]("TagsComponent")
     .initialState(State(Seq.empty))
     .renderBackend[Backend]
-    .componentDidMount { $ ⇒
-      $.backend.getTags()
-    }
+    .componentDidMount(_.backend.getTags())
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String) =

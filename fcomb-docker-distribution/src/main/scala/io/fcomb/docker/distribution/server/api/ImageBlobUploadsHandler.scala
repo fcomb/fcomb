@@ -115,8 +115,9 @@ object ImageBlobUploadsHandler {
         val blobResFut = for {
           Validated.Valid(blob)  <- ImageBlobsRepo.create(image.getId, contentType)
           (length, sha256Digest) <- BlobFile.uploadBlob(blob.getId, req.entity.dataBytes)
+          totalLength = blob.length + length
           _ <- ImageBlobsRepo
-                .completeUploadOrDelete(blob.getId, blob.imageId, length, sha256Digest)
+                .completeUploadOrDelete(blob.getId, blob.imageId, totalLength, sha256Digest)
         } yield (blob, sha256Digest)
         onSuccess(blobResFut) {
           case (blob, sha256Digest) =>
@@ -236,6 +237,7 @@ object ImageBlobUploadsHandler {
                   case (length, sha256Digest) =>
                     complete {
                       if (sha256Digest == Reference.getDigest(digest)) {
+                        val totalLength = blob.length + length
                         val headers = immutable.Seq(
                           Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
                           `Docker-Upload-Uuid`(uuid),
@@ -245,7 +247,7 @@ object ImageBlobUploadsHandler {
                           _ <- BlobFile.renameOrDelete(uuid, sha256Digest)
                           _ <- ImageBlobsRepo.completeUploadOrDelete(uuid,
                                                                      blob.imageId,
-                                                                     length,
+                                                                     totalLength,
                                                                      sha256Digest)
                         } yield HttpResponse(StatusCodes.Created, headers)
                       } else {
