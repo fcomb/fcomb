@@ -24,7 +24,7 @@ import scala.concurrent.duration._
 import scala.scalajs.js.Date
 import scala.scalajs.js.timers
 
-object TimeagoComponent {
+object TimeAgoComponent {
   final case class State(distance: String)
 
   final case class Backend($ : BackendScope[Date, State]) {
@@ -58,7 +58,7 @@ object TimeagoComponent {
     }
   }
 
-  private val component = ReactComponentB[Date]("TimeagoComponent")
+  private val component = ReactComponentB[Date]("TimeAgoComponent")
     .initialState(State(""))
     .renderBackend[Backend]
     .componentWillMount(_.backend.updateDistance())

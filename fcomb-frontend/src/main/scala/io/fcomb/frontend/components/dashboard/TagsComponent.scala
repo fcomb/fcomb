@@ -54,7 +54,7 @@ object TagsComponent {
     def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
       // <.li(ctl.link(DashboardRoute.Repository(props.repositoryName, tag.tag))(tag.tag))
       <.tr(<.td(tag.tag),
-           <.td(TimeagoComponent.apply(tag.updatedAt)),
+           <.td(TimeAgoComponent.apply(tag.updatedAt)),
            <.td(SizeInBytesComponent.apply(tag.length)),
            <.td(tag.imageSha256Digest))
     }
