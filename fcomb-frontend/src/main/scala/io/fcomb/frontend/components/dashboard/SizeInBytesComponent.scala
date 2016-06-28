@@ -25,5 +25,5 @@ object SizeInBytesComponent {
     <.span(UnitUtils.sizeInBytes(size))
   }.build
 
-  def apply(size: Long) = component(size)
+  def apply(size: Long) = component.apply(size)
 }

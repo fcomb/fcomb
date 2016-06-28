@@ -17,16 +17,22 @@
 package io.fcomb.frontend.utils
 
 object UnitUtils {
-  val kb = 1024L
+  val kb = 1024.0
   val mb = kb * kb
   val gb = mb * kb
   val tb = gb * kb
 
   def sizeInBytes(n: Long): String = {
-    if (n < kb) s"$n B"
-    else if (n < mb) s"${n / kb} KB"
-    else if (n < gb) s"${n / mb} MB"
-    else if (n < tb) s"${n / gb} GB"
-    else s"${n / tb} TB"
+    if (n < kb) s"${format(n.toDouble)} B"
+    else if (n < mb) s"${format(n / kb)} KB"
+    else if (n < gb) s"${format(n / mb)} MB"
+    else if (n < tb) s"${format(n / gb)} GB"
+    else s"${format(n / tb)} TB"
+  }
+
+  private def format(n: Double) = {
+    val s = "%.1f".format(n)
+    if (s.endsWith(".0")) s.dropRight(2)
+    else s
   }
 }
