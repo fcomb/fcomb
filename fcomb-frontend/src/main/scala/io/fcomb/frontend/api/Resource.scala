@@ -23,7 +23,9 @@ object Resource {
 
   val repositories = prefix + "/repositories"
   def repository(slug: String) = s"$repositories/$slug"
-  def repository(id: Int)      = s"$repositories/$id"
+
+  def repositoryTags(slug: String)             = repository(slug) + "/tags"
+  def repositoryTag(slug: String, tag: String) = repositoryTags(slug) + s"/$tag"
 
   val users  = prefix + "/users"
   val signUp = users + "/sign_up"

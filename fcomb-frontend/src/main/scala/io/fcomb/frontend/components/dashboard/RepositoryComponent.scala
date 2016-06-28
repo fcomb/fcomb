@@ -163,7 +163,8 @@ object RepositoryComponent {
         <.div(<.input.text(^.value := dockerPullCommand,
                            ^.onClick ==> selectAllText,
                            ^.readOnly := true),
-              CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("copy"))),
+              CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("Copy"))),
+        <.div(props.ctl.link(DashboardRoute.RepositoryTags(props.name))("Tags")),
         <.section(<.h3("Description"), renderDescription(state))
       )
     }

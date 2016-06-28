@@ -154,7 +154,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
           blobs =>
             if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
             else {
-              val length = blobs.map(_._3).sum
+              val length = blobs.foldLeft(0L)(_ + _._3)
               create(
                 ImageManifest(
                   id = None,
@@ -206,7 +206,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
               case Reference.Tag(tag) => List(tag)
               case _                  => Nil
             }
-            val length = blobs.map(_._3).sum
+            val length = blobs.foldLeft(0L)(_ + _._3)
             create(
               ImageManifest(
                 id = None,

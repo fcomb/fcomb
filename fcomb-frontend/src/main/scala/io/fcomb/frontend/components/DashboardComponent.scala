@@ -31,6 +31,7 @@ object DashboardComponent {
     import dsl._
 
     val repositoryNameFormat = """[\w-]+/[\w-]+"""
+    val repositoryNamePath = "repositories" / string(repositoryNameFormat)
 
     trimSlashes |
     staticRoute(root, DashboardRoute.Root) ~> redirectToPage(DashboardRoute.Repositories)(
@@ -39,7 +40,8 @@ object DashboardComponent {
       ctl => RepositoriesComponent.apply(ctl)) |
     staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~> renderR(
       ctl => NewRepositoryComponent.apply(ctl)) |
-    dynamicRouteCT("repositories" ~ ("/" ~ string(repositoryNameFormat)).caseClass[DashboardRoute.Repository]) ~> dynRenderR((r, ctl) => RepositoryComponent.apply(ctl, r.name))
+    dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~> dynRenderR((r, ctl) => RepositoryComponent.apply(ctl, r.name)) |
+    dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~> dynRenderR((r, ctl) => TagsComponent.apply(ctl, r.name))
   }
 
   final case class State(ctl: RouterCtl[Route],
