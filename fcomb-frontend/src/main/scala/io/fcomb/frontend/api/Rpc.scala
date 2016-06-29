@@ -17,14 +17,14 @@
 package io.fcomb.frontend.api
 
 import cats.data.Xor
+import io.circe.scalajs.decodeJs
+import io.circe.{Encoder, Decoder}
+import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.dispatcher.actions.LogOut
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.window
-import scala.scalajs.js.JSON
-import io.fcomb.frontend.dispatcher.actions.LogOut
-import io.fcomb.frontend.dispatcher.AppCircuit
-import io.circe.{Encoder, Decoder}
-import io.circe.scalajs.decodeJs
 import scala.concurrent.{ExecutionContext, Future}
+import scala.scalajs.js.{JSON, URIUtils}
 
 sealed trait RpcMethod
 
@@ -40,14 +40,17 @@ object Rpc {
   def callWith[T, U](method: RpcMethod,
                      url: String,
                      req: T,
+                     queryParams: Map[String, String] = Map.empty,
                      headers: Map[String, String] = Map.empty,
                      timeout: Int = 0)(implicit ec: ExecutionContext,
                                        encoder: Encoder[T],
                                        decoder: Decoder[U]): Future[Xor[String, U]] = {
-    val hm      = if (headers.isEmpty) defaultHeaders else headers ++ defaultHeaders
-    val reqBody = encoder.apply(req).noSpaces
+    val hm        = if (headers.isEmpty) defaultHeaders else headers ++ defaultHeaders
+    val reqBody   = encoder.apply(req).noSpaces
+    val urlParams = queryParams.map { case (k, v) => s"$k=$v" }.mkString("&")
+    val targetUrl = URIUtils.encodeURI(s"$url?$urlParams")
     Ajax
-      .apply(method.toString, url, reqBody, timeout, hm, withCredentials = false, "")
+      .apply(method.toString, targetUrl, reqBody, timeout, hm, withCredentials = false, "")
       .map { res =>
         if (res.status == 401) {
           AppCircuit.dispatch(LogOut)
@@ -69,10 +72,11 @@ object Rpc {
 
   def call[U](method: RpcMethod,
               url: String,
+              queryParams: Map[String, String] = Map.empty,
               headers: Map[String, String] = Map.empty,
               timeout: Int = 0)(implicit ec: ExecutionContext,
                                 decoder: Decoder[U]): Future[Xor[String, U]] = {
-    callWith(method, url, (), headers, timeout)
+    callWith(method, url, (), queryParams, headers, timeout)
   }
 
   private def handleThrowable[E](e: Throwable): Xor[String, E] = {

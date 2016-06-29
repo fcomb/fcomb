@@ -54,7 +54,7 @@ object TimeAgoComponent {
     }
 
     def render(date: Date, state: State) = {
-      <.span(state.distance)
+      <.span(^.title := date.toISOString(), state.distance)
     }
   }
 

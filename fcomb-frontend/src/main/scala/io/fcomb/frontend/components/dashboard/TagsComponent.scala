@@ -17,11 +17,12 @@
 package io.fcomb.frontend.components.dashboard
 
 import cats.data.Xor
+import cats.syntax.eq._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.PaginationData
+import io.fcomb.models.{PaginationData, SortOrder}
 import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -30,24 +31,33 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object TagsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
-  final case class State(tags: Seq[RepositoryTagResponse])
+  final case class State(tags: Seq[RepositoryTagResponse],
+                         sortColumn: String,
+                         sortOrder: SortOrder)
 
   final case class Backend($ : BackendScope[Props, State]) {
-    def getTags() = {
+    private def getTagsCB(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
+      Callback.future {
+        val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
+        Rpc
+          .call[PaginationData[RepositoryTagResponse]](RpcMethod.GET,
+                                                       Resource.repositoryTags(name),
+                                                       queryParams = queryParams)
+          .map {
+            case Xor.Right(pd) =>
+              $.modState(_.copy(tags = pd.data))
+            case Xor.Left(e) =>
+              println(e)
+              Callback.empty
+          }
+      }
+    }
+
+    def getTags(): Callback = {
       for {
-        name <- $.props.map(_.repositoryName)
-        _ <- Callback.future {
-              Rpc
-                .call[PaginationData[RepositoryTagResponse]](RpcMethod.GET,
-                                                             Resource.repositoryTags(name))
-                .map {
-                  case Xor.Right(pd) =>
-                    $.modState(_.copy(pd.data))
-                  case Xor.Left(e) =>
-                    println(e)
-                    Callback.empty
-                }
-            }
+        name  <- $.props.map(_.repositoryName)
+        state <- $.state
+        _     <- getTagsCB(name, state.sortColumn, state.sortOrder)
       } yield ()
     }
 
@@ -59,21 +69,51 @@ object TagsComponent {
            <.td(tag.imageSha256Digest))
     }
 
-    def renderTags(props: Props, tags: Seq[RepositoryTagResponse]) = {
-      if (tags.isEmpty) <.span("No tags. Create one!")
+    def changeSortOrder(column: String)(e: ReactEventH): Callback = {
+      for {
+        _     <- e.preventDefaultCB
+        name  <- $.props.map(_.repositoryName)
+        state <- $.state
+        sortOrder = {
+          if (state.sortColumn == column) {
+            state.sortOrder match {
+              case SortOrder.Asc => SortOrder.Desc
+              case _             => SortOrder.Asc
+            }
+          } else state.sortOrder
+        }
+        _ <- $.modState(_.copy(sortColumn = column, sortOrder = sortOrder))
+        _ <- getTagsCB(name, column, sortOrder)
+      } yield ()
+    }
+
+    def renderHeader(title: String, column: String, state: State) = {
+      val header = if (state.sortColumn == column) {
+        if (state.sortOrder === SortOrder.Asc) s"$title ↑"
+        else s"$title ↓"
+      } else title
+      <.th(<.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
+    }
+
+    def renderTags(props: Props, state: State) = {
+      if (state.tags.isEmpty) <.span("No tags. Create one!")
       else {
-        <.table(<.thead(<.tr(<.th("Tag"), <.th("Last modified"), <.th("Size"), <.th("Image"))),
-                <.tbody(tags.map(renderTagRow(props, _))))
+        <.table(<.thead(
+                  <.tr(renderHeader("Tag", "tag", state),
+                       renderHeader("Last modified", "updatedAt", state),
+                       renderHeader("Size", "length", state),
+                       renderHeader("Image", "imageSha256Digest", state))),
+                <.tbody(state.tags.map(renderTagRow(props, _))))
       }
     }
 
     def render(props: Props, state: State) = {
-      <.div(<.h2("Tags"), renderTags(props, state.tags))
+      <.div(<.h2("Tags"), renderTags(props, state))
     }
   }
 
   private val component = ReactComponentB[Props]("TagsComponent")
-    .initialState(State(Seq.empty))
+    .initialState(State(Seq.empty, "updatedAt", SortOrder.Desc))
     .renderBackend[Backend]
     .componentDidMount(_.backend.getTags())
     .build
