@@ -28,6 +28,7 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 
 object TagsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
@@ -36,6 +37,8 @@ object TagsComponent {
                          sortOrder: SortOrder)
 
   final case class Backend($ : BackendScope[Props, State]) {
+    val digestLength = 12
+
     def getTags(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
       Callback.future {
         val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
@@ -55,10 +58,13 @@ object TagsComponent {
 
     def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
       // <.li(ctl.link(DashboardRoute.Repository(props.repositoryName, tag.tag))(tag.tag))
-      <.tr(<.td(tag.tag),
-           <.td(TimeAgoComponent.apply(tag.updatedAt)),
-           <.td(SizeInBytesComponent.apply(tag.length)),
-           <.td(tag.imageSha256Digest))
+      <.tr(
+        <.td(tag.tag),
+        <.td(TimeAgoComponent.apply(tag.updatedAt)),
+        <.td(SizeInBytesComponent.apply(tag.length)),
+        <.td(^.title := tag.imageSha256Digest,
+             tag.imageSha256Digest.take(digestLength),
+             CopyToClipboardComponent.apply(tag.imageSha256Digest, js.undefined, <.span("Copy"))))
     }
 
     def changeSortOrder(column: String)(e: ReactEventH): Callback = {
