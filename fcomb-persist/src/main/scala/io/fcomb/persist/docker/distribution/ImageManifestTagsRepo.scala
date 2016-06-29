@@ -122,5 +122,4 @@ object ImageManifestTagsRepo
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
   }
-
 }

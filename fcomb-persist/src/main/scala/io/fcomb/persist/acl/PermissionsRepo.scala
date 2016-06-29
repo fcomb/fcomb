@@ -16,12 +16,14 @@
 
 package io.fcomb.persist.acl
 
+import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl._
+import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
-import io.fcomb.persist.{PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo}
+import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo}
 import java.time.ZonedDateTime
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Future, ExecutionContext}
 
 class PermissionTable(tag: Tag)
     extends Table[Permission](tag, "acl_permissions")
@@ -39,8 +41,11 @@ class PermissionTable(tag: Tag)
       ((Permission.apply _).tupled, Permission.unapply)
 }
 
-object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionTable] {
+object PermissionsRepo
+    extends PersistModelWithAutoIntPk[Permission, PermissionTable]
+    with PaginationActions {
   val table = TableQuery[PermissionTable]
+  val label = "permissions"
 
   private def bySourceAndMemberScopeDBIO(sourceId: Rep[Int],
                                          sourceKind: Rep[SourceKind],
@@ -178,5 +183,34 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
       createdAt = ZonedDateTime.now(),
       updatedAt = None
     )
+  }
+
+  private def findByImageIdScopeDBIO(imageId: Rep[Int]) =
+    table.filter { q =>
+      q.sourceId === imageId && q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
+    }
+
+  private def sortByPF(q: TableType): PartialFunction[String, Rep[_]] = {
+    case "updatedAt" => q.updatedAt
+  }
+
+  private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {
+    val q = findByImageIdScopeDBIO(imageId).drop(p.offset).take(p.limit)
+    sortByQuery(q, p)(sortByPF, _.updatedAt.asc)
+  }
+
+  private lazy val findByImageIdTotalCompiled = Compiled { (imageId: Rep[Int]) =>
+    findByImageIdScopeDBIO(imageId).length
+  }
+
+  def findByImageIdWithPagination(imageId: Int, p: Pagination)(
+      implicit ec: ExecutionContext): Future[PaginationData[Permission]] = {
+    db.run {
+      for {
+        data  <- findByImageIdAsReponseDBIO(imageId, p).result
+        total <- findByImageIdTotalCompiled(imageId).result
+        // TODO: PermissionResponse
+      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
+    }
   }
 }

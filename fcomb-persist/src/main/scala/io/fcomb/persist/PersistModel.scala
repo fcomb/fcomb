@@ -56,10 +56,13 @@ trait PersistTypes[T] {
 }
 
 trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
-  val table: TableQuery[Q]
-
+  type ModelType       = T
+  type TableType       = Q
+  type QueryType       = Query[TableType, ModelType, Seq]
   type ModelDBIO       = DBIOAction[T, NoStream, Effect.All]
   type ModelDBIOOption = DBIOAction[Option[T], NoStream, Effect.All]
+
+  val table: TableQuery[Q]
 
   val validationsOpt = Option.empty[T => Future[ValidationResult[_]]]
 

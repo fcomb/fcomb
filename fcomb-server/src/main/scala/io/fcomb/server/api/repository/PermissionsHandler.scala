@@ -18,13 +18,18 @@ package io.fcomb.server.api.repository
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.json.models.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution.ImageKey
-import io.fcomb.persist.docker.distribution.ImageManifestTagsRepo
+import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
+
+// TODO
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.circe.generic.auto._
+import io.circe.java8.time._
 
 object PermissionsHandler {
   val servicePath = "permissions"
@@ -33,7 +38,11 @@ object PermissionsHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageByKeyWithAcl(key, user, Action.Manage) { image =>
-          ???
+          extractPagination { pg =>
+            onSuccess(PermissionsRepo.findByImageIdWithPagination(image.getId, pg)) { p =>
+              completePagination(PermissionsRepo.label, p)
+            }
+          }
         }
       }
     }
