@@ -29,7 +29,7 @@ import io.fcomb.rpc.docker.distribution.ImageUpdateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.ImageDirectives._
-import io.fcomb.server.api.repository.TagsHandler
+import io.fcomb.server.api.repository._
 
 object RepositoriesHandler {
   val servicePath = "repositories"
@@ -69,7 +69,8 @@ object RepositoriesHandler {
       get(show(key)) ~
       put(update(key))
     } ~
-    TagsHandler.routes(key)
+    TagsHandler.routes(key) ~
+    PermissionsHandler.routes(key)
     // format: ON
   }
 }

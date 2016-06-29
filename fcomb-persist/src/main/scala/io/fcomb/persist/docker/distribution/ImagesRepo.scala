@@ -223,6 +223,20 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       ))
   }
 
+  override def createDBIO(item: Image)(implicit ec: ExecutionContext): ModelDBIO = {
+    for {
+      res <- super.createDBIO(item)
+      _ <- item.ownerKind match {
+            case OwnerKind.User =>
+              PermissionsRepo.createUserOwnerDBIO(res.getId,
+                                                  SourceKind.DockerDistributionImage,
+                                                  item.ownerId,
+                                                  Action.Manage)
+            case _ => DBIO.successful(())
+          }
+    } yield res
+  }
+
   val findBySlugDBIOCompiled = Compiled { slug: Rep[String] =>
     table.filter(_.slug === slug)
   }

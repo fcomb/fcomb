@@ -166,4 +166,17 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
       case res => DBIO.successful(res)
     }
   }
+
+  def createUserOwnerDBIO(sourceId: Int, sourceKind: SourceKind, userId: Int, action: Action) = {
+    table += Permission(
+      id = None,
+      sourceId = sourceId,
+      sourceKind = sourceKind,
+      memberId = userId,
+      memberKind = MemberKind.User,
+      action = action,
+      createdAt = ZonedDateTime.now(),
+      updatedAt = None
+    )
+  }
 }

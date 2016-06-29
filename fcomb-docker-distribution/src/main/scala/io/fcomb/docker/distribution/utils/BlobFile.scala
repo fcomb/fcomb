@@ -17,17 +17,16 @@
 package io.fcomb.docker.distribution.utils
 
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Source, StreamConverters, FileIO}
+import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
+import com.google.common.io.ByteStreams
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
 import io.fcomb.models.docker.distribution.{ImageBlob => ImageBlob, ImageManifest => ImageManifest}
-import io.fcomb.utils.{Config, StringUtils}
+import io.fcomb.utils.Config
 import java.io.File
 import java.nio.file.Files
-import java.security.MessageDigest
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future, blocking}
-import com.google.common.io.ByteStreams
 
 object BlobFile {
   def getUploadFilePath(uuid: UUID): File =
@@ -74,20 +73,6 @@ object BlobFile {
       implicit ec: ExecutionContext
   ): Future[Unit] =
     renameOrDelete(getUploadFilePath(uuid), digest)
-
-  def uploadBlob(uuid: UUID, data: Source[ByteString, Any])(
-      implicit mat: Materializer
-  ): Future[(Long, String)] = {
-    import mat.executionContext
-    val md = MessageDigest.getInstance("SHA-256")
-    for {
-      file <- createUploadFile(uuid)
-      _ <- data.map { chunk =>
-            md.update(chunk.toArray)
-            chunk
-          }.runWith(FileIO.toPath(file.toPath))
-    } yield (file.length, StringUtils.hexify(md.digest))
-  }
 
   def uploadBlobChunk(uuid: UUID, data: Source[ByteString, Any])(
       implicit mat: Materializer

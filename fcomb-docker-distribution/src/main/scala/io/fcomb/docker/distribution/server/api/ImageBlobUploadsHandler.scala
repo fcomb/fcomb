@@ -24,9 +24,6 @@ import akka.http.scaladsl.server._
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
-import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.CommonDirectives._
-import io.fcomb.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFile
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
@@ -36,6 +33,9 @@ import io.fcomb.models.docker.distribution.{ImageBlobState, Reference}
 import io.fcomb.models.errors._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
+import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.ImageDirectives._
 import java.util.UUID
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
@@ -114,10 +114,9 @@ object ImageBlobUploadsHandler {
         val contentType = req.entity.contentType.mediaType.value
         val blobResFut = for {
           Validated.Valid(blob)  <- ImageBlobsRepo.create(image.getId, contentType)
-          (length, sha256Digest) <- BlobFile.uploadBlob(blob.getId, req.entity.dataBytes)
-          totalLength = blob.length + length
+          (length, sha256Digest) <- BlobFile.uploadBlobChunk(blob.getId, req.entity.dataBytes)
           _ <- ImageBlobsRepo
-                .completeUploadOrDelete(blob.getId, blob.imageId, totalLength, sha256Digest)
+                .completeUploadOrDelete(blob.getId, blob.imageId, length, sha256Digest)
         } yield (blob, sha256Digest)
         onSuccess(blobResFut) {
           case (blob, sha256Digest) =>
@@ -230,14 +229,11 @@ object ImageBlobUploadsHandler {
             import mat.executionContext
             onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId, uuid)) {
               case Some(blob) if !blob.isUploaded =>
-                val uploadResFut =
-                  if (blob.isCreated) BlobFile.uploadBlob(uuid, req.entity.dataBytes)
-                  else BlobFile.uploadBlobChunk(uuid, req.entity.dataBytes)
-                onSuccess(uploadResFut) {
+                onSuccess(BlobFile.uploadBlobChunk(uuid, req.entity.dataBytes)) {
                   case (length, sha256Digest) =>
+                    val totalLength = blob.length + length
                     complete {
                       if (sha256Digest == Reference.getDigest(digest)) {
-                        val totalLength = blob.length + length
                         val headers = immutable.Seq(
                           Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
                           `Docker-Upload-Uuid`(uuid),

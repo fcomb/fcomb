@@ -16,29 +16,25 @@
 
 package io.fcomb.docker.distribution.services
 
-import io.fcomb.utils.StringUtils
 import akka.actor._
-import akka.cluster.sharding._
-import akka.stream.{Materializer, ClosedShape}
-import akka.stream.scaladsl._
-import akka.util.{ByteString, Timeout}
-import cats.data.Xor
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
-import java.security.MessageDigest
-import java.util.UUID
-import java.nio.file.StandardOpenOption
-import java.io.File
-
-import akka.actor._
-import akka.stream.Materializer
 import akka.cluster.sharding._
 import akka.pattern.ask
+import akka.stream.Materializer
+import akka.stream.scaladsl._
+import akka.stream.{Materializer, ClosedShape}
 import akka.util.Timeout
+import akka.util.{ByteString, Timeout}
+import cats.data.Xor
 import io.fcomb.services.Exceptions._
+import io.fcomb.utils.StringUtils
+import java.io.File
+import java.nio.file.StandardOpenOption
+import java.security.MessageDigest
+import java.util.UUID
+import org.slf4j.LoggerFactory
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Success, Failure}
-import org.slf4j.LoggerFactory
 
 sealed trait EntityMessage
 
@@ -76,11 +72,7 @@ trait ProcessorClustedSharding[Id] {
     ref
   }
 
-  protected def askRef[T](
-      id: Id,
-      entity: Entity,
-      timeout: Timeout
-  )(
+  protected def askRef[T](id: Id, entity: Entity, timeout: Timeout)(
       implicit ec: ExecutionContext,
       m: Manifest[T]
   ): Future[T] =
@@ -113,8 +105,9 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
   ) =
     startClustedSharding(props(timeout))
 
-  def props(timeout: Duration)(implicit mat: Materializer) =
+  def props(timeout: Duration)(implicit mat: Materializer) = {
     Props(new ImageBlobPushProcessor(timeout))
+  }
 
   def uploadChunk(blobId: UUID, source: Source[ByteString, Any], file: File)(
       implicit ec: ExecutionContext,
@@ -127,11 +120,7 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
     } yield (length, StringUtils.hexify(fileDigest.digest))
   }
 
-  private def uploadChunkGraph(
-      md: MessageDigest,
-      source: Source[ByteString, Any],
-      file: File
-  ) = {
+  private def uploadChunkGraph(md: MessageDigest, source: Source[ByteString, Any], file: File) = {
     val fileOptions = Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
 
     val sink = Sink.fold[(Long, MessageDigest), ByteString]((0L, md)) {
@@ -141,19 +130,18 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
     }
 
     RunnableGraph.fromGraph(
-      GraphDSL.create(source.completionTimeout(25.minutes), sink)(
-        Keep.right
-      ) { implicit b => (source, sink) =>
-      import GraphDSL.Implicits._
+      GraphDSL.create(source.completionTimeout(25.minutes), sink)(Keep.right) {
+      implicit b => (source, sink) =>
+        import GraphDSL.Implicits._
 
-      val broadcast = b.add(Broadcast[ByteString](2))
+        val broadcast = b.add(Broadcast[ByteString](2))
 
-      source ~> broadcast.in
+        source ~> broadcast.in
 
-      broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
-      broadcast.out(1) ~> sink
+        broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
+        broadcast.out(1) ~> sink
 
-      ClosedShape
+        ClosedShape
     })
   }
 
@@ -166,8 +154,9 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
   def begin(blobId: UUID)(
       implicit ec: ExecutionContext,
       timeout: Timeout = Timeout(30.seconds)
-  ): Future[Xor[String, MessageDigest]] =
+  ): Future[Xor[String, MessageDigest]] = {
     askRef[Xor[String, MessageDigest]](blobId, Begin, timeout)
+  }
 
   def commit(blobId: UUID, md: MessageDigest)(
       implicit ec: ExecutionContext,

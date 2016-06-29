@@ -137,15 +137,13 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   @inline
   def mapModel(item: T): T = item
 
-  def createDBIO(item: T): ModelDBIO =
+  def createDBIO(item: T)(implicit ec: ExecutionContext): ModelDBIO =
     table returning table.map(i => i) += item.asInstanceOf[Q#TableElementType]
 
   def createDBIO(items: Seq[T]) =
     table returning table.map(i => i) ++= items.asInstanceOf[Seq[Q#TableElementType]]
 
-  def createDBIO(
-      itemOpt: Option[T]
-  )(implicit ec: ExecutionContext): ModelDBIOOption =
+  def createDBIO(itemOpt: Option[T])(implicit ec: ExecutionContext): ModelDBIOOption =
     itemOpt match {
       case Some(item) => createDBIO(item).map(Some(_))
       case None       => DBIO.successful(Option.empty[T])
@@ -216,7 +214,7 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
       id: T#PkType): AppliedCompiledFunction[T#PkType, Query[Q, T, Seq], Seq[Q#TableElementType]]
 
   @inline
-  override def createDBIO(item: T) =
+  override def createDBIO(item: T)(implicit ec: ExecutionContext): ModelDBIO =
     tableWithPk += item
 
   @inline

@@ -22,6 +22,7 @@ import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
@@ -41,6 +42,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
 import io.fcomb.docker.distribution.server.Routes
+import akka.http.scaladsl.testkit.RouteTestTimeout
 
 class ImageBlobUploadsHandlerSpec
     extends WordSpec
@@ -50,6 +52,8 @@ class ImageBlobUploadsHandlerSpec
     with PersistSpec
     with ActorClusterSpec
     with FutureSpec {
+  implicit val routeTimeout = RouteTestTimeout(5.seconds)
+
   val route            = Routes()
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
@@ -269,11 +273,42 @@ class ImageBlobUploadsHandlerSpec
                  bs,
                  ImageBlobState.Uploading
                )
+        _ <- BlobFile.uploadBlobChunk(blob.getId, Source.single(bs))
       } yield (blob, image.slug))
 
       Put(
         s"/v2/$imageSlug/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
-        HttpEntity(`application/octet-stream`, bs)
+        HttpEntity(`application/octet-stream`, ByteString.empty)
+      ) ~> addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.Created
+        responseAs[ByteString] shouldBe empty
+        header[Location] should contain(Location(s"/v2/$imageSlug/blobs/sha256:$bsDigest"))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+
+        val b = await(ImageBlobsRepo.findById(blob.getId)).get
+        b.length shouldEqual bs.length
+        b.state shouldEqual ImageBlobState.Uploaded
+        b.sha256Digest shouldEqual Some(bsDigest)
+      }
+    }
+
+    "return successful response for PUT request with final chunk to complete blob upload path" in {
+      val (blob, imageSlug) = Fixtures.await(for {
+        user  <- UsersRepoFixture.create()
+        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsRepoFixture.createAs(
+                 user.getId,
+                 image.getId,
+                 bs.take(1),
+                 ImageBlobState.Uploading
+               )
+        _ <- BlobFile.uploadBlobChunk(blob.getId, Source.single(bs.take(1)))
+      } yield (blob, image.slug))
+
+      Put(
+        s"/v2/$imageSlug/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
+        HttpEntity(`application/octet-stream`, bs.drop(1))
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseAs[ByteString] shouldBe empty
@@ -298,11 +333,42 @@ class ImageBlobUploadsHandlerSpec
                  bs,
                  ImageBlobState.Uploading
                )
+        _ <- BlobFile.uploadBlobChunk(blob.getId, Source.single(bs))
       } yield (blob, image.slug))
 
       Put(
         s"/v2/$imageSlug/blobs/${blob.getId}?digest=sha256:$bsDigest",
-        HttpEntity(`application/octet-stream`, bs)
+        HttpEntity(`application/octet-stream`, ByteString.empty)
+      ) ~> addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.Created
+        responseAs[ByteString] shouldBe empty
+        header[Location] should contain(Location(s"/v2/$imageSlug/blobs/sha256:$bsDigest"))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+
+        val b = await(ImageBlobsRepo.findById(blob.getId)).get
+        b.length shouldEqual bs.length
+        b.state shouldEqual ImageBlobState.Uploaded
+        b.sha256Digest shouldEqual Some(bsDigest)
+      }
+    }
+
+    "return successful response for PUT request with final chunk to complete blob path" in {
+      val (blob, imageSlug) = Fixtures.await(for {
+        user  <- UsersRepoFixture.create()
+        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsRepoFixture.createAs(
+                 user.getId,
+                 image.getId,
+                 bs.take(1),
+                 ImageBlobState.Uploading
+               )
+        _ <- BlobFile.uploadBlobChunk(blob.getId, Source.single(bs.take(1)))
+      } yield (blob, image.slug))
+
+      Put(
+        s"/v2/$imageSlug/blobs/${blob.getId}?digest=sha256:$bsDigest",
+        HttpEntity(`application/octet-stream`, bs.drop(1))
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseAs[ByteString] shouldBe empty
