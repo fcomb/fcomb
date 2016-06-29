@@ -99,7 +99,7 @@ object SignInComponent {
   private val component = ReactComponentB[RouterCtl[Route]]("SignInComponent")
     .initialState(State("", "", false))
     .renderBackend[Backend]
-    .componentDidMount { $ ⇒
+    .componentWillMount { $ ⇒
       if (AppCircuit.session.nonEmpty) $.props.set(Route.Dashboard(DashboardRoute.Root)).delayMs(1).void
       else Callback.empty
     }

@@ -36,7 +36,7 @@ object TagsComponent {
                          sortOrder: SortOrder)
 
   final case class Backend($ : BackendScope[Props, State]) {
-    private def getTagsCB(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
+    def getTags(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
       Callback.future {
         val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
         Rpc
@@ -51,14 +51,6 @@ object TagsComponent {
               Callback.empty
           }
       }
-    }
-
-    def getTags(): Callback = {
-      for {
-        name  <- $.props.map(_.repositoryName)
-        state <- $.state
-        _     <- getTagsCB(name, state.sortColumn, state.sortOrder)
-      } yield ()
     }
 
     def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
@@ -83,7 +75,7 @@ object TagsComponent {
           } else state.sortOrder
         }
         _ <- $.modState(_.copy(sortColumn = column, sortOrder = sortOrder))
-        _ <- getTagsCB(name, column, sortOrder)
+        _ <- getTags(name, column, sortOrder)
       } yield ()
     }
 
@@ -115,7 +107,9 @@ object TagsComponent {
   private val component = ReactComponentB[Props]("TagsComponent")
     .initialState(State(Seq.empty, "updatedAt", SortOrder.Desc))
     .renderBackend[Backend]
-    .componentDidMount(_.backend.getTags())
+    .componentWillMount { $ =>
+      $.backend.getTags($.props.repositoryName, $.state.sortColumn, $.state.sortOrder)
+    }
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String) =

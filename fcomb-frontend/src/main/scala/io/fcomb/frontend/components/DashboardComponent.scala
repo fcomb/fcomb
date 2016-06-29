@@ -66,7 +66,7 @@ object DashboardComponent {
 
   private val component = ReactComponentB[State]("DashboardComponent")
     .renderBackend[Backend]
-    .componentDidMount { $ ⇒
+    .componentWillMount { $ ⇒
       if ($.props.session().isEmpty) $.props.ctl.set(Route.SignIn).delayMs(1).void
       else Callback.empty
     }

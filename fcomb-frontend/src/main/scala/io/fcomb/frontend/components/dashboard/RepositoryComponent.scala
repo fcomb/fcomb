@@ -173,7 +173,7 @@ object RepositoryComponent {
   private val component = ReactComponentB[Props]("RepositoryComponent")
     .initialState(State(None, None))
     .renderBackend[Backend]
-    .componentDidMount($ => $.backend.getRepository($.props.name))
+    .componentWillMount($ => $.backend.getRepository($.props.name))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], name: String) =
