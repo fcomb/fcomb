@@ -14,29 +14,25 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.acl
+package io.fcomb.rpc.acl
 
-import io.fcomb.models.ModelWithAutoIntPk
-import io.fcomb.models.common.{Enum, EnumItem}
-import java.time.ZonedDateTime
+import io.fcomb.models.acl.{Action, MemberKind}
 
-sealed trait SourceKind extends EnumItem
-
-object SourceKind extends Enum[SourceKind] {
-  final case object DockerDistributionImage extends SourceKind
-
-  val values = findValues
+sealed trait PermissionMember {
+  val id: Int
+  val kind: MemberKind
 }
 
-final case class Permission(
-    id: Option[Int],
-    sourceId: Int,
-    sourceKind: SourceKind,
-    memberId: Int,
-    memberKind: MemberKind,
+final case class PermissionUserMember(
+    id: Int,
+    kind: MemberKind,
+    username: Option[String],
+    fullName: Option[String]
+) extends PermissionMember
+
+final case class PermissionResponse(
+    member: PermissionUserMember,
     action: Action,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
-}
+    createdAt: String,
+    updatedAt: Option[String]
+)

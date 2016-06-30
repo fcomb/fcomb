@@ -21,7 +21,9 @@ import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl._
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
-import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo}
+import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo, UsersRepo}
+import io.fcomb.rpc.acl.{PermissionResponse, PermissionUserMember}
+import io.fcomb.rpc.helpers.time.Implicits._
 import java.time.ZonedDateTime
 import scala.concurrent.{Future, ExecutionContext}
 
@@ -185,18 +187,47 @@ object PermissionsRepo
     )
   }
 
-  private def findByImageIdScopeDBIO(imageId: Rep[Int]) =
-    table.filter { q =>
-      q.sourceId === imageId && q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
-    }
+  private type PermissionResponseTuple = (Int,
+                                          MemberKind,
+                                          Action,
+                                          ZonedDateTime,
+                                          Option[ZonedDateTime],
+                                          (Option[String], Option[String]))
 
-  private def sortByPF(q: TableType): PartialFunction[String, Rep[_]] = {
-    case "updatedAt" => q.updatedAt
+  private type PermissionResponseTupleRep = (Rep[Int],
+                                             Rep[MemberKind],
+                                             Rep[Action],
+                                             Rep[ZonedDateTime],
+                                             Rep[Option[ZonedDateTime]],
+                                             (Rep[Option[String]], Rep[Option[String]]))
+
+  private def findByImageIdScopeDBIO(imageId: Rep[Int]) =
+    table
+      .joinLeft(UsersRepo.table)
+      .on {
+        case (t, ut) => t.memberKind === (MemberKind.User: MemberKind) && t.memberId === ut.id
+      }
+      .filter {
+        case (t, ut) =>
+          t.sourceId === imageId && t.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
+      }
+      .map {
+        case (t, ut) =>
+          (t.memberId,
+           t.memberKind,
+           t.action,
+           t.createdAt,
+           t.updatedAt,
+           (ut.map(_.username), ut.flatMap(_.fullName)))
+      }
+
+  private def sortByPF(q: PermissionResponseTupleRep): PartialFunction[String, Rep[_]] = {
+    case "updatedAt" => q._5
   }
 
   private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {
     val q = findByImageIdScopeDBIO(imageId).drop(p.offset).take(p.limit)
-    sortByQuery(q, p)(sortByPF, _.updatedAt.asc)
+    sortByQuery(q, p)(sortByPF, _._5.asc)
   }
 
   private lazy val findByImageIdTotalCompiled = Compiled { (imageId: Rep[Int]) =>
@@ -204,13 +235,27 @@ object PermissionsRepo
   }
 
   def findByImageIdWithPagination(imageId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[Permission]] = {
+      implicit ec: ExecutionContext): Future[PaginationData[PermissionResponse]] = {
     db.run {
       for {
-        data  <- findByImageIdAsReponseDBIO(imageId, p).result
-        total <- findByImageIdTotalCompiled(imageId).result
-        // TODO: PermissionResponse
+        permissions <- findByImageIdAsReponseDBIO(imageId, p).result
+        total       <- findByImageIdTotalCompiled(imageId).result
+        data = permissions.map(applyResponse)
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
+  }
+
+  private def applyResponse(t: PermissionResponseTuple): PermissionResponse = t match {
+    case (userId, kind, action, createdAt, updatedAt, (username, fullName)) =>
+      val member = PermissionUserMember(id = userId,
+                                        kind = MemberKind.User,
+                                        username = username,
+                                        fullName = fullName)
+      PermissionResponse(
+        member = member,
+        action = action,
+        createdAt = createdAt.toIso8601,
+        updatedAt = updatedAt.map(_.toIso8601)
+      )
   }
 }
