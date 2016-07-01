@@ -31,7 +31,8 @@ object Tls {
   ): SSLContext = {
     def certificate(bytes: Array[Byte]): JavaCertificate = {
       val is = new ByteArrayInputStream(bytes)
-      try CertificateFactory.getInstance("X.509").generateCertificate(is) finally is.close()
+      try CertificateFactory.getInstance("X.509").generateCertificate(is)
+      finally is.close()
     }
 
     val keyManagers = {
