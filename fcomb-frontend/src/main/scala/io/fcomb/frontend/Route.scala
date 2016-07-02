@@ -32,6 +32,7 @@ object DashboardRoute {
 
   final case object Repositories  extends DashboardRoute
   final case object NewRepository extends DashboardRoute
-  final case class Repository(name: String)     extends DashboardRoute
-  final case class RepositoryTags(name: String) extends DashboardRoute
+  final case class Repository(name: String)         extends DashboardRoute
+  final case class RepositoryTags(name: String)     extends DashboardRoute
+  final case class RepositorySettings(name: String) extends DashboardRoute
 }

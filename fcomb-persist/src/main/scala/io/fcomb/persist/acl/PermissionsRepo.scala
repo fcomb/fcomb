@@ -222,7 +222,11 @@ object PermissionsRepo
       }
 
   private def sortByPF(q: PermissionResponseTupleRep): PartialFunction[String, Rep[_]] = {
-    case "updatedAt" => q._5
+    case "member.id"   => q._1
+    case "member.kind" => q._2
+    case "action"      => q._3
+    case "createdAt"   => q._4
+    case "updatedAt"   => q._5
   }
 
   private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {

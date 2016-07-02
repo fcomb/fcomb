@@ -28,26 +28,26 @@ import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
 
 trait ImageDirectives {
-  def imageByNameWithAcl(slug: String, user: User, action: Action): Directive1[Image] = {
+  final def imageByNameWithAcl(slug: String, user: User, action: Action): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlugWithAcl(slug, user.getId, action)).flatMap(provideImage)
     }
   }
 
-  def imageByIdWithAcl(id: Int, user: User, action: Action): Directive1[Image] = {
+  final def imageByIdWithAcl(id: Int, user: User, action: Action): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findByIdWithAcl(id, user.getId, action)).flatMap(provideImage)
     }
   }
 
-  def imageByKeyWithAcl(key: ImageKey, user: User, action: Action): Directive1[Image] = {
+  final def imageByKeyWithAcl(key: ImageKey, user: User, action: Action): Directive1[Image] = {
     key match {
       case ImageKey.Id(id)     => imageByIdWithAcl(id, user, action)
       case ImageKey.Name(name) => imageByNameWithAcl(name, user, action)
     }
   }
 
-  private def provideImage(imageOpt: Option[Image]): Directive1[Image] = {
+  private final def provideImage(imageOpt: Option[Image]): Directive1[Image] = {
     imageOpt match {
       case Some(image) => provide(image)
       case None =>

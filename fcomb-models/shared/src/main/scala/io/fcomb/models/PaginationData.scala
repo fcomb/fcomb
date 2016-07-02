@@ -18,11 +18,18 @@ package io.fcomb.models
 
 import cats.Eq
 
-sealed trait SortOrder
+sealed trait SortOrder {
+  def flip: SortOrder
+}
 
 object SortOrder {
-  final case object Asc  extends SortOrder
-  final case object Desc extends SortOrder
+  final case object Asc extends SortOrder {
+    def flip = Desc
+  }
+
+  final case object Desc extends SortOrder {
+    def flip = Asc
+  }
 
   def toQueryParams(params: Seq[(String, SortOrder)]): Map[String, String] = {
     val value = params.map {
@@ -43,8 +50,6 @@ final case class PaginationData[T](
 )
 
 final case class Pagination(
-    // filter: List[(String, String)],
-    // filterNot: List[(String, String)],
     sort: List[(String, SortOrder)],
     limit: Long,
     offset: Long

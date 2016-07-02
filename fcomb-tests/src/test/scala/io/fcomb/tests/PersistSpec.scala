@@ -35,7 +35,8 @@ private[this] object PersistSpec {
       DROP SCHEMA IF EXISTS public CASCADE;
       CREATE SCHEMA public;
     """)
-    try st.executeUpdate() finally conn.close()
+    try st.executeUpdate()
+    finally conn.close()
     logger.info("Migrate db schema")
     Await.result(Db.migrate(), 30.seconds)
   }
@@ -65,6 +66,7 @@ trait PersistSpec extends BeforeAndAfterAll with BeforeAndAfterEach {
     logger.debug("Truncate tables")
     val conn = Db.db.createSession().conn
     val st   = conn.prepareStatement(PersistSpec.truncateQuery)
-    try st.executeUpdate() finally conn.close()
+    try st.executeUpdate()
+    finally conn.close()
   }
 }

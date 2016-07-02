@@ -21,12 +21,10 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model._
 
 trait CommonDirectives {
-  @inline
-  def completeWithStatus(status: StatusCode): Route =
+  final def completeWithStatus(status: StatusCode): Route =
     complete(HttpResponse(status))
 
-  @inline
-  def completeNotFound(): Route =
+  final def completeNotFound(): Route =
     completeWithStatus(StatusCodes.NotFound)
 }
 

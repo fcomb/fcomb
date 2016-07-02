@@ -27,6 +27,8 @@ object Resource {
   def repositoryTags(slug: String)             = repository(slug) + "/tags"
   def repositoryTag(slug: String, tag: String) = repositoryTags(slug) + s"/$tag"
 
+  def repositoryPermissions(slug: String) = repository(slug) + "/permissions"
+
   val users  = prefix + "/users"
   val signUp = users + "/sign_up"
 

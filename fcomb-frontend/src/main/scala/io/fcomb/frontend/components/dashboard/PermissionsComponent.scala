@@ -21,34 +21,31 @@ import cats.syntax.eq._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
-import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.{PaginationData, SortOrder}
-import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
+import io.fcomb.rpc.acl.PermissionResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js
 
-object TagsComponent {
+object PermissionsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
-  final case class State(tags: Seq[RepositoryTagResponse],
+  final case class State(permissions: Seq[PermissionResponse],
                          sortColumn: String,
                          sortOrder: SortOrder)
 
   final case class Backend($ : BackendScope[Props, State]) {
-    val digestLength = 12
-
-    def getTags(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
+    def getPermissions(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
       Callback.future {
         val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
         Rpc
-          .call[PaginationData[RepositoryTagResponse]](RpcMethod.GET,
-                                                       Resource.repositoryTags(name),
-                                                       queryParams = queryParams)
+          .call[PaginationData[PermissionResponse]](RpcMethod.GET,
+                                                    Resource.repositoryPermissions(name),
+                                                    queryParams = queryParams)
           .map {
             case Xor.Right(pd) =>
-              $.modState(_.copy(tags = pd.data))
+              $.modState(_.copy(permissions = pd.data))
             case Xor.Left(e) =>
               println(e)
               Callback.empty
@@ -56,15 +53,8 @@ object TagsComponent {
       }
     }
 
-    def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
-      // <.li(ctl.link(DashboardRoute.Repository(props.repositoryName, tag.tag))(tag.tag))
-      <.tr(
-        <.td(tag.tag),
-        <.td(TimeAgoComponent.apply(tag.updatedAt)),
-        <.td(SizeInBytesComponent.apply(tag.length)),
-        <.td(^.title := tag.imageSha256Digest,
-             tag.imageSha256Digest.take(digestLength),
-             CopyToClipboardComponent.apply(tag.imageSha256Digest, js.undefined, <.span("Copy"))))
+    def renderPermissionRow(props: Props, permission: PermissionResponse) = {
+      <.tr(<.td(permission.member.username), <.td(permission.action.toString()), <.td())
     }
 
     def changeSortOrder(column: String)(e: ReactEventH): Callback = {
@@ -77,7 +67,7 @@ object TagsComponent {
           else state.sortOrder
         }
         _ <- $.modState(_.copy(sortColumn = column, sortOrder = sortOrder))
-        _ <- getTags(name, column, sortOrder)
+        _ <- getPermissions(name, column, sortOrder)
       } yield ()
     }
 
@@ -89,28 +79,27 @@ object TagsComponent {
       <.th(<.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
     }
 
-    def renderTags(props: Props, state: State) = {
-      if (state.tags.isEmpty) <.span("No tags. Create one!")
+    def renderPermissions(props: Props, state: State) = {
+      if (state.permissions.isEmpty) <.span("No permissions. Create one!")
       else {
         <.table(<.thead(
-                  <.tr(renderHeader("Tag", "tag", state),
-                       renderHeader("Last modified", "updatedAt", state),
-                       renderHeader("Size", "length", state),
-                       renderHeader("Image", "imageSha256Digest", state))),
-                <.tbody(state.tags.map(renderTagRow(props, _))))
+                  <.tr(renderHeader("User", "member.id", state),
+                       renderHeader("Action", "action", state),
+                       <.th())),
+                <.tbody(state.permissions.map(renderPermissionRow(props, _))))
       }
     }
 
     def render(props: Props, state: State) = {
-      <.div(<.h2("Tags"), renderTags(props, state))
+      <.div(<.h2("Permissions"), renderPermissions(props, state))
     }
   }
 
-  private val component = ReactComponentB[Props]("TagsComponent")
-    .initialState(State(Seq.empty, "updatedAt", SortOrder.Desc))
+  private val component = ReactComponentB[Props]("PermissionsComponent")
+    .initialState(State(Seq.empty, "action", SortOrder.Desc))
     .renderBackend[Backend]
     .componentWillMount { $ =>
-      $.backend.getTags($.props.repositoryName, $.state.sortColumn, $.state.sortOrder)
+      $.backend.getPermissions($.props.repositoryName, $.state.sortColumn, $.state.sortOrder)
     }
     .build
 
