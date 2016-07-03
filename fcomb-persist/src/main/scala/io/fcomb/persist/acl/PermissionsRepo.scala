@@ -19,11 +19,13 @@ package io.fcomb.persist.acl
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl._
+import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo, UsersRepo}
-import io.fcomb.rpc.acl.{PermissionResponse, PermissionUserMember}
+import io.fcomb.rpc.acl.{PermissionUserCreateRequest, PermissionResponse, PermissionUserMemberResponse}
 import io.fcomb.rpc.helpers.time.Implicits._
+import io.fcomb.validations.ValidationResult
 import java.time.ZonedDateTime
 import scala.concurrent.{Future, ExecutionContext}
 
@@ -251,15 +253,28 @@ object PermissionsRepo
 
   private def applyResponse(t: PermissionResponseTuple): PermissionResponse = t match {
     case (userId, kind, action, createdAt, updatedAt, (username, fullName)) =>
-      val member = PermissionUserMember(id = userId,
-                                        kind = MemberKind.User,
-                                        username = username,
-                                        fullName = fullName)
+      val member = PermissionUserMemberResponse(id = userId,
+                                                kind = MemberKind.User,
+                                                username = username,
+                                                fullName = fullName)
       PermissionResponse(
         member = member,
         action = action,
         createdAt = createdAt.toIso8601,
         updatedAt = updatedAt.map(_.toIso8601)
       )
+  }
+
+  def createByImage(image: Image, req: PermissionUserCreateRequest)(
+      implicit ec: ExecutionContext): Future[ValidationResult[PermissionResponse]] = {
+    println(s"req: $req")
+    val memberId: Int = ??? // req.member.id
+    table.filter { q =>
+      q.sourceId === image.getId &&
+      q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind) &&
+      q.memberId === memberId &&
+      q.memberKind === (MemberKind.User: MemberKind)
+    }
+    ???
   }
 }

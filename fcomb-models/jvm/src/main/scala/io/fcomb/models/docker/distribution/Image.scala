@@ -34,7 +34,7 @@ final case class Image(
 }
 
 object Image {
-  val nameRegEx = """[\w-]+""".r
+  val nameRegEx = """[A-Za-z][\w\-\.]*""".r
 }
 
 final case class DistributionImageCatalog(

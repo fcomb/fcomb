@@ -30,7 +30,7 @@ object DashboardComponent {
   val routes = RouterConfigDsl[DashboardRoute].buildRule { dsl =>
     import dsl._
 
-    val repositoryNameFormat = """[\w-]+/[\w-]+"""
+    val repositoryNameFormat = """[\w\-\.]+/[\w\-\.]+"""
     val repositoryNamePath = "repositories" / string(repositoryNameFormat)
 
     trimSlashes |

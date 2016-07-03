@@ -207,7 +207,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       }
   }
 
-  def createByRequest(req: ImageCreateRequest, user: User)(
+  def create(req: ImageCreateRequest, user: User)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     create(
       Image(
@@ -252,7 +252,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     db.run(findByKeyDBIO(key).result.headOption)
   }
 
-  def updateByRequest(id: Int, req: ImageUpdateRequest)(
+  def update(id: Int, req: ImageUpdateRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     update(id)(_.copy(description = req.description))
   }

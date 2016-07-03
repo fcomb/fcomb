@@ -16,12 +16,16 @@
 
 package io.fcomb.server.api.repository
 
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import cats.data.Validated
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution.ImageKey
 import io.fcomb.persist.acl.PermissionsRepo
+import io.fcomb.rpc.acl.PermissionUserCreateRequest
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
@@ -43,10 +47,26 @@ object PermissionsHandler {
     }
   }
 
+  def create(key: ImageKey) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+          entity(as[PermissionUserCreateRequest]) { req =>
+            onSuccess(PermissionsRepo.createByImage(image, req)) {
+              case Validated.Valid(p)   => complete((StatusCodes.Created, p))
+              case Validated.Invalid(e) => ??? // TODO
+            }
+          }
+        }
+      }
+    }
+  }
+
   def routes(key: ImageKey): Route = {
     // format: OFF
     path(servicePath) {
-      get(index(key))
+      get(index(key)) ~
+      post(create(key))
     }
     // format: ON
   }

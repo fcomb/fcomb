@@ -52,7 +52,7 @@ object RepositoriesHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         entity(as[ImageCreateRequest]) { req =>
-          onSuccess(ImagesRepo.createByRequest(req, user)) {
+          onSuccess(ImagesRepo.create(req, user)) {
             case Validated.Valid(image) =>
               val uri     = fullPrefix + image.getId.toString
               val headers = immutable.Seq(Location(uri))

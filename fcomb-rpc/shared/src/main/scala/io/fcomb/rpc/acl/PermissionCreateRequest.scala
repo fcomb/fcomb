@@ -18,21 +18,19 @@ package io.fcomb.rpc.acl
 
 import io.fcomb.models.acl.{Action, MemberKind}
 
-sealed trait PermissionMemberResponse {
-  val id: Int
+sealed trait PermissionMemberRequest {
   val kind: MemberKind
 }
 
-final case class PermissionUserMemberResponse(
-    id: Int,
-    kind: MemberKind,
-    username: Option[String],
-    fullName: Option[String]
-) extends PermissionMemberResponse
+sealed trait PermissionUserRequest extends PermissionMemberRequest {
+  val kind = MemberKind.User
+}
 
-final case class PermissionResponse(
-    member: PermissionUserMemberResponse,
-    action: Action,
-    createdAt: String,
-    updatedAt: Option[String]
+final case class PermissionUserIdRequest(id: Int) extends PermissionUserRequest
+
+final case class PermissionUsernameRequest(username: String) extends PermissionUserRequest
+
+final case class PermissionUserCreateRequest(
+    member: PermissionUserRequest,
+    action: Action
 )

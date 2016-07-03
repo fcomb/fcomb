@@ -16,15 +16,42 @@
 
 package io.fcomb.json.rpc.acl
 
+import cats.data.Xor
 import io.circe.generic.semiauto._
-import io.circe.{Encoder, Decoder}
+import io.circe.{Encoder, Decoder, DecodingFailure}
 import io.fcomb.json.models.acl.Formats._
 import io.fcomb.rpc.acl._
 
 object Formats {
-  implicit final val encodePermissionUserMember: Encoder[PermissionUserMember] = deriveEncoder
-  implicit final val encodePermissionResponse: Encoder[PermissionResponse]     = deriveEncoder
+  implicit final val encodePermissionUserMemberResponse: Encoder[PermissionUserMemberResponse] =
+    deriveEncoder
+  implicit final val encodePermissionResponse: Encoder[PermissionResponse] = deriveEncoder
+  implicit final val encodePermissionUserIdRequest: Encoder[PermissionUserIdRequest] =
+    deriveEncoder
+  implicit final val encodePermissionUsernameRequest: Encoder[PermissionUsernameRequest] =
+    deriveEncoder
+  implicit final val encodePermissionPermissionUserRequest = new Encoder[PermissionUserRequest] {
+    def apply(req: PermissionUserRequest) = req match {
+      case r: PermissionUserIdRequest   => encodePermissionUserIdRequest.apply(r)
+      case r: PermissionUsernameRequest => encodePermissionUsernameRequest.apply(r)
+    }
+  }
+  implicit final val encodePermissionPermissionUserCreateRequest: Encoder[
+    PermissionUserCreateRequest] = deriveEncoder
 
-  implicit final val decodePermissionUserMember: Decoder[PermissionUserMember] = deriveDecoder
-  implicit final val decodePermissionResponse: Decoder[PermissionResponse]     = deriveDecoder
+  implicit final val decodePermissionUserMemberResponse: Decoder[PermissionUserMemberResponse] =
+    deriveDecoder
+  implicit final val decodePermissionResponse: Decoder[PermissionResponse] = deriveDecoder
+  implicit final val decodePermissionPermissionUserRequest: Decoder[PermissionUserRequest] =
+    Decoder.instance { c =>
+      val id       = c.downField("id")
+      val username = c.downField("username")
+      if (id.succeeded && !username.succeeded) {
+        Decoder[Int].apply(id.any).map(PermissionUserIdRequest)
+      } else if (!id.succeeded && username.succeeded) {
+        Decoder[String].apply(username.any).map(PermissionUsernameRequest)
+      } else Xor.left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
+    }
+  implicit final val decodePermissionPermissionUserCreateRequest: Decoder[
+    PermissionUserCreateRequest] = deriveDecoder
 }

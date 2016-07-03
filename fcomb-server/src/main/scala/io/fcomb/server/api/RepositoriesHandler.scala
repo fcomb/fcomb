@@ -50,7 +50,7 @@ object RepositoriesHandler {
       authenticateUser { user =>
         imageByKeyWithAcl(key, user, Action.Manage) { image =>
           entity(as[ImageUpdateRequest]) { req =>
-            onSuccess(ImagesRepo.updateByRequest(image.getId, req)) {
+            onSuccess(ImagesRepo.update(image.getId, req)) {
               case Validated.Valid(image) =>
                 val res = ImageHelpers.responseFrom(image)
                 complete((StatusCodes.Accepted, res))
