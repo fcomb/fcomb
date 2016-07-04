@@ -66,7 +66,6 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 
   val validationsOpt = Option.empty[T => Future[ValidationResult[_]]]
 
-  // @inline
   // private def recoverPersistExceptions(
   //   f: Future[ValidationModel]
   // )(implicit ec: ExecutionContext): Future[ValidationModel] =
@@ -74,7 +73,6 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   //     case _: RecordNotFound => ("record", "not found").failureNel[T]
   //   }
 
-  @inline
   def runInTransaction[B](isolation: TransactionIsolation)(
       q: DBIOAction[B, NoStream, Effect.All]
   )(implicit ec: ExecutionContext): Future[B] =
@@ -137,7 +135,6 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   def allAsStream() =
     db.stream(table.result)
 
-  @inline
   def mapModel(item: T): T = item
 
   def createDBIO(item: T)(implicit ec: ExecutionContext): ModelDBIO =
@@ -212,15 +209,12 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
     extends PersistModel[T, Q] {
   val tableWithPk: IntoInsertActionComposer[T, T]
 
-  @inline
   def findByIdQuery(
       id: T#PkType): AppliedCompiledFunction[T#PkType, Query[Q, T, Seq], Seq[Q#TableElementType]]
 
-  @inline
   override def createDBIO(item: T)(implicit ec: ExecutionContext): ModelDBIO =
     tableWithPk += item
 
-  @inline
   override def createDBIO(items: Seq[T]) =
     tableWithPk ++= items
 
@@ -242,7 +236,7 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
       implicit ec: ExecutionContext,
       m: Manifest[T]
   ) =
-    findByIdQuery(item.getId).update(item).map(strictUpdateDBIO(item.getId, item))
+    findByIdQuery(item.getId()).update(item).map(strictUpdateDBIO(item.getId(), item))
 
   def strictUpdateDBIO[R](id: T#PkType, res: R)(q: Int)(
       implicit ec: ExecutionContext

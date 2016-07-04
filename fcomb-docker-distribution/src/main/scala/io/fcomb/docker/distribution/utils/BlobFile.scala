@@ -51,7 +51,7 @@ object BlobFile {
   def getFile(blob: ImageBlob): File = {
     blob.sha256Digest match {
       case Some(digest) if blob.isUploaded => getBlobFilePath(digest)
-      case _                               => getUploadFilePath(blob.getId)
+      case _                               => getUploadFilePath(blob.getId())
     }
   }
 

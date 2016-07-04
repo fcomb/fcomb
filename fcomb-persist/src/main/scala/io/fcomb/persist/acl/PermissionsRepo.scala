@@ -301,17 +301,17 @@ object PermissionsRepo
         case Validated.Valid(user) =>
           val memberId = user.getId
           if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
-            DBIO.successful(validationError("owner", "Cannot create a permission for owner"))
+            DBIO.successful(validationError("owner", "Cannot set a permission for owner"))
           else {
-            findIdByImageAndSourceCompiled((image.getId, memberId)).result.headOption.flatMap {
+            findIdByImageAndSourceCompiled((image.getId(), memberId)).result.headOption.flatMap {
               case Some(p) =>
                 val up = p.copy(
                   action = req.action,
                   updatedAt = Some(ZonedDateTime.now)
                 )
-                findByIdQuery(p.getId).update(up).map(_ => up)
+                findByIdQuery(p.getId()).update(up).map(_ => up)
               case _ =>
-                createUserOwnerDBIO(image.getId,
+                createUserOwnerDBIO(image.getId(),
                                     SourceKind.DockerDistributionImage,
                                     memberId,
                                     req.action)

@@ -113,7 +113,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     if (oldPassword == newPassword)
       validationErrorAsFuture("password", "can't be the same")
     else if (user.isValidPassword(oldPassword))
-      updatePassword(user.getId, newPassword).map(_ => Validated.Valid(user))
+      updatePassword(user.getId(), newPassword).map(_ => Validated.Valid(user))
     else
       validationErrorAsFuture("password", "doesn't match")
   }
@@ -125,7 +125,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
   def findByEmail(email: String) =
     db.run(findByEmailCompiled(email).result.headOption)
 
-  lazy val findByUsernameCompiled = Compiled { username: Rep[String] =>
+  private lazy val findByUsernameCompiled = Compiled { username: Rep[String] =>
     table.filter(_.username === username).take(1)
   }
 

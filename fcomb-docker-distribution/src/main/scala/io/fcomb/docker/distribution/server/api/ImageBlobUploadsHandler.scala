@@ -64,7 +64,7 @@ object ImageBlobUploadsHandler {
   ): Route = {
     val contentType = req.entity.contentType.mediaType.value
     imageByNameWithAcl(imageName, user, Action.Write) { image =>
-      onSuccess(ImageBlobsRepo.create(image.getId, contentType)) {
+      onSuccess(ImageBlobsRepo.create(image.getId(), contentType)) {
         case Validated.Valid(blob) =>
           val uuid = blob.getId
           val headers = immutable.Seq(
@@ -88,7 +88,7 @@ object ImageBlobUploadsHandler {
     imageByNameWithAcl(imageName, user, Action.Write) { toImage =>
       imageByNameWithAcl(from, user, Action.Read) { fromImage =>
         val mountResFut = ImageBlobsRepo
-          .mount(fromImage.getId, toImage.getId, Reference.getDigest(digest), user.getId)
+          .mount(fromImage.getId(), toImage.getId(), Reference.getDigest(digest), user.getId())
         onSuccess(mountResFut) {
           case Some(blob) =>
             val sha256Digest = blob.sha256Digest.get
@@ -113,10 +113,10 @@ object ImageBlobUploadsHandler {
         import mat.executionContext
         val contentType = req.entity.contentType.mediaType.value
         val blobResFut = for {
-          Validated.Valid(blob)  <- ImageBlobsRepo.create(image.getId, contentType)
-          (length, sha256Digest) <- BlobFile.uploadBlobChunk(blob.getId, req.entity.dataBytes)
+          Validated.Valid(blob)  <- ImageBlobsRepo.create(image.getId(), contentType)
+          (length, sha256Digest) <- BlobFile.uploadBlobChunk(blob.getId(), req.entity.dataBytes)
           _ <- ImageBlobsRepo
-                .completeUploadOrDelete(blob.getId, blob.imageId, length, sha256Digest)
+                .completeUploadOrDelete(blob.getId(), blob.imageId, length, sha256Digest)
         } yield (blob, sha256Digest)
         onSuccess(blobResFut) {
           case (blob, sha256Digest) =>
@@ -157,7 +157,7 @@ object ImageBlobUploadsHandler {
         optionalHeaderValueByType[`Content-Range`]() { rangeOpt =>
           imageByNameWithAcl(imageName, user, Action.Write) { image =>
             import mat.executionContext
-            onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId, uuid)) {
+            onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
               case Some(blob) if !blob.isUploaded =>
                 val (rangeFrom, rangeTo) = rangeOpt match {
                   case Some(r) =>
@@ -227,7 +227,7 @@ object ImageBlobUploadsHandler {
         extractMaterializer { implicit mat =>
           imageByNameWithAcl(imageName, user, Action.Write) { image =>
             import mat.executionContext
-            onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId, uuid)) {
+            onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
               case Some(blob) if !blob.isUploaded =>
                 onSuccess(BlobFile.uploadBlobChunk(uuid, req.entity.dataBytes)) {
                   case (length, sha256Digest) =>
@@ -269,10 +269,10 @@ object ImageBlobUploadsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user, Action.Manage) { image =>
           import mat.executionContext
-          onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId, uuid)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
             case Some(blob) if !blob.isUploaded =>
               complete(for {
-                _ <- BlobFile.destroyBlob(blob.getId)
+                _ <- BlobFile.destroyBlob(blob.getId())
                 _ <- ImageBlobsRepo.destroy(uuid)
               } yield HttpResponse(StatusCodes.NoContent))
             case _ =>

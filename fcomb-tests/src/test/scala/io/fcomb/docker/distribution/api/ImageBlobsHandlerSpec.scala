@@ -61,8 +61,8 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         _ <- ImageBlobsRepoFixture.createAs(
-              user.getId,
-              image.getId,
+              user.getId(),
+              image.getId(),
               bs,
               ImageBlobState.Uploaded
             )
@@ -84,8 +84,8 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         _ <- ImageBlobsRepoFixture.createAs(
-              user.getId,
-              image.getId,
+              user.getId(),
+              image.getId(),
               bs,
               ImageBlobState.Uploaded
             )
@@ -107,8 +107,8 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId,
-                 image.getId,
+                 user.getId(),
+                 image.getId(),
                  bs,
                  ImageBlobState.Uploaded
                )
@@ -140,8 +140,8 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         _ <- ImageBlobsRepoFixture.createAs(
-              user.getId,
-              image.getId,
+              user.getId(),
+              image.getId(),
               bs,
               ImageBlobState.Uploaded
             )
@@ -159,8 +159,8 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId,
-                 image.getId,
+                 user.getId(),
+                 image.getId(),
                  bs,
                  ImageBlobState.Uploaded
                )
@@ -171,7 +171,7 @@ class ImageBlobsHandlerSpec
         status shouldEqual StatusCodes.NoContent
         responseEntity shouldEqual HttpEntity.Empty
 
-        val file = BlobFile.getUploadFilePath(blob.getId)
+        val file = BlobFile.getUploadFilePath(blob.getId())
         file.exists() should be(false)
       }
     }

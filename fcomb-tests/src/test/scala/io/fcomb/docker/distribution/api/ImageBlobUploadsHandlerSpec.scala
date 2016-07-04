@@ -140,8 +140,8 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId,
-                 image.getId,
+                 user.getId(),
+                 image.getId(),
                  bs,
                  ImageBlobState.Uploaded
                )
@@ -162,7 +162,7 @@ class ImageBlobUploadsHandlerSpec
 
         val newBlob = await({
           for {
-            Some(blob) <- ImageBlobsRepo.findByImageIdAndDigest(mountImage.getId, bsDigest)
+            Some(blob) <- ImageBlobsRepo.findByImageIdAndDigest(mountImage.getId(), bsDigest)
           } yield blob
         })
         newBlob.length shouldEqual bs.length
@@ -175,7 +175,7 @@ class ImageBlobUploadsHandlerSpec
       val (blob, imageSlug) = Fixtures.await(for {
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob  <- ImageBlobsRepoFixture.create(user.getId, image.getId)
+        blob  <- ImageBlobsRepoFixture.create(user.getId(), image.getId())
       } yield (blob, image.slug))
 
       Put(
@@ -206,7 +206,7 @@ class ImageBlobUploadsHandlerSpec
       val (blob, imageSlug) = Fixtures.await(for {
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob  <- ImageBlobsRepoFixture.create(user.getId, image.getId)
+        blob  <- ImageBlobsRepoFixture.create(user.getId(), image.getId())
       } yield (blob, image.slug))
 
       val blobPart1       = bs.take(bs.length / 2)
@@ -220,16 +220,16 @@ class ImageBlobUploadsHandlerSpec
         status shouldEqual StatusCodes.Accepted
         responseEntity shouldEqual HttpEntity.Empty
         header[Location] should contain(Location(s"/v2/$imageSlug/blobs/${blob.getId}"))
-        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[RangeCustom] should contain(RangeCustom(0L, blobPart1.length - 1L))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val updatedBlob = await(ImageBlobsRepo.findById(blob.getId)).get
+        val updatedBlob = await(ImageBlobsRepo.findById(blob.getId())).get
         updatedBlob.length shouldEqual blobPart1.length
         updatedBlob.state shouldEqual ImageBlobState.Uploading
         updatedBlob.sha256Digest shouldEqual Some(blobPart1Digest)
 
-        val file = BlobFile.getUploadFilePath(blob.getId)
+        val file = BlobFile.getUploadFilePath(blob.getId())
         file.length shouldEqual blobPart1.length
         val fis        = new FileInputStream(file)
         val fileDigest = DigestUtils.sha256Hex(fis)
@@ -246,16 +246,16 @@ class ImageBlobUploadsHandlerSpec
         status shouldEqual StatusCodes.Accepted
         responseEntity shouldEqual HttpEntity.Empty
         header[Location] should contain(Location(s"/v2/$imageSlug/blobs/${blob.getId}"))
-        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[RangeCustom] should contain(RangeCustom(0L, bs.length - 1L))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val updatedBlob = await(ImageBlobsRepo.findById(blob.getId)).get
+        val updatedBlob = await(ImageBlobsRepo.findById(blob.getId())).get
         updatedBlob.length shouldEqual bs.length
         updatedBlob.state shouldEqual ImageBlobState.Uploading
         updatedBlob.sha256Digest shouldEqual Some(bsDigest)
 
-        val file = BlobFile.getUploadFilePath(blob.getId)
+        val file = BlobFile.getUploadFilePath(blob.getId())
         file.length shouldEqual bs.length
         val fis        = new FileInputStream(file)
         val fileDigest = DigestUtils.sha256Hex(fis)
@@ -268,12 +268,12 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId,
-                 image.getId,
+                 user.getId(),
+                 image.getId(),
                  bs,
                  ImageBlobState.Uploading
                )
-        _ <- BlobFile.uploadBlobChunk(blob.getId, Source.single(bs))
+        _ <- BlobFile.uploadBlobChunk(blob.getId(), Source.single(bs))
       } yield (blob, image.slug))
 
       Put(
@@ -283,10 +283,10 @@ class ImageBlobUploadsHandlerSpec
         status shouldEqual StatusCodes.Created
         responseAs[ByteString] shouldBe empty
         header[Location] should contain(Location(s"/v2/$imageSlug/blobs/sha256:$bsDigest"))
-        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findById(blob.getId)).get
+        val b = await(ImageBlobsRepo.findById(blob.getId())).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.sha256Digest shouldEqual Some(bsDigest)
@@ -298,12 +298,12 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId,
-                 image.getId,
+                 user.getId(),
+                 image.getId(),
                  bs.take(1),
                  ImageBlobState.Uploading
                )
-        _ <- BlobFile.uploadBlobChunk(blob.getId, Source.single(bs.take(1)))
+        _ <- BlobFile.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
       } yield (blob, image.slug))
 
       Put(
@@ -313,10 +313,10 @@ class ImageBlobUploadsHandlerSpec
         status shouldEqual StatusCodes.Created
         responseAs[ByteString] shouldBe empty
         header[Location] should contain(Location(s"/v2/$imageSlug/blobs/sha256:$bsDigest"))
-        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findById(blob.getId)).get
+        val b = await(ImageBlobsRepo.findById(blob.getId())).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.sha256Digest shouldEqual Some(bsDigest)
@@ -328,12 +328,12 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId,
-                 image.getId,
+                 user.getId(),
+                 image.getId(),
                  bs,
                  ImageBlobState.Uploading
                )
-        _ <- BlobFile.uploadBlobChunk(blob.getId, Source.single(bs))
+        _ <- BlobFile.uploadBlobChunk(blob.getId(), Source.single(bs))
       } yield (blob, image.slug))
 
       Put(
@@ -343,10 +343,10 @@ class ImageBlobUploadsHandlerSpec
         status shouldEqual StatusCodes.Created
         responseAs[ByteString] shouldBe empty
         header[Location] should contain(Location(s"/v2/$imageSlug/blobs/sha256:$bsDigest"))
-        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findById(blob.getId)).get
+        val b = await(ImageBlobsRepo.findById(blob.getId())).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.sha256Digest shouldEqual Some(bsDigest)
@@ -358,12 +358,12 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId,
-                 image.getId,
+                 user.getId(),
+                 image.getId(),
                  bs.take(1),
                  ImageBlobState.Uploading
                )
-        _ <- BlobFile.uploadBlobChunk(blob.getId, Source.single(bs.take(1)))
+        _ <- BlobFile.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
       } yield (blob, image.slug))
 
       Put(
@@ -373,10 +373,10 @@ class ImageBlobUploadsHandlerSpec
         status shouldEqual StatusCodes.Created
         responseAs[ByteString] shouldBe empty
         header[Location] should contain(Location(s"/v2/$imageSlug/blobs/sha256:$bsDigest"))
-        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId))
+        header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findById(blob.getId)).get
+        val b = await(ImageBlobsRepo.findById(blob.getId())).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.sha256Digest shouldEqual Some(bsDigest)
@@ -388,8 +388,8 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId,
-                 image.getId,
+                 user.getId(),
+                 image.getId(),
                  bs,
                  ImageBlobState.Uploading
                )
@@ -399,7 +399,7 @@ class ImageBlobUploadsHandlerSpec
         status shouldEqual StatusCodes.NoContent
         responseEntity shouldEqual HttpEntity.Empty
 
-        val file = BlobFile.getUploadFilePath(blob.getId)
+        val file = BlobFile.getUploadFilePath(blob.getId())
         file.exists() should be(false)
       }
     }

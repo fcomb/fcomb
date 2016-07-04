@@ -48,7 +48,7 @@ object ImageBlobsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user, Action.Read) { image =>
           import mat.executionContext
-          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, digest)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>
               val headers = immutable.Seq(
                 `Docker-Content-Digest`("sha256", digest),
@@ -78,7 +78,7 @@ object ImageBlobsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user, Action.Read) { image =>
           import mat.executionContext
-          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, digest)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>
               val ct = contentType(blob.contentType)
               optionalHeaderValueByType[Range]() {
@@ -136,14 +136,14 @@ object ImageBlobsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user, Action.Manage) { image =>
           import mat.executionContext
-          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId, digest)) {
+          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>
-              val res = ImageBlobsRepo.tryDestroy(blob.getId).flatMap {
+              val res = ImageBlobsRepo.tryDestroy(blob.getId()).flatMap {
                 case Xor.Right(_) =>
                   ImageBlobsRepo
                     .existByDigest(digest)
                     .flatMap {
-                      case false => BlobFile.destroyBlob(blob.getId)
+                      case false => BlobFile.destroyBlob(blob.getId())
                       case true  => FastFuture.successful(())
                     }
                     .fast
@@ -166,7 +166,6 @@ object ImageBlobsHandler {
 
   private val cacheHeader = `Cache-Control`(CacheDirectives.`max-age`(365.days.toSeconds))
 
-  @inline
   private def etagHeader(digest: String) = ETag(s"sha256:$digest")
 
   private def contentType(contentType: String) =

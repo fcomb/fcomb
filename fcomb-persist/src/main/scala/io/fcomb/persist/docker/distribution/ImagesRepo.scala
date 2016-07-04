@@ -109,7 +109,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
             if (image.owner.id == userId) DBIO.successful(res)
             else
               PermissionsRepo
-                .isAllowedActionBySourceAsUserDBIO(image.getId,
+                .isAllowedActionBySourceAsUserDBIO(image.getId(),
                                                    SourceKind.DockerDistributionImage,
                                                    userId,
                                                    action)
@@ -118,7 +118,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
                 }
           case OwnerKind.Organization =>
             PermissionsRepo
-              .isAllowedActionBySourceAsGroupUserDBIO(image.getId,
+              .isAllowedActionBySourceAsGroupUserDBIO(image.getId(),
                                                       SourceKind.DockerDistributionImage,
                                                       image.owner.id,
                                                       userId,
@@ -232,7 +232,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   def create(req: ImageCreateRequest, user: User)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
-    val owner = Owner(user.getId, OwnerKind.User)
+    val owner = Owner(user.getId(), OwnerKind.User)
     create(
       Image(
         id = None,
@@ -251,7 +251,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       res <- super.createDBIO(item)
       _ <- item.owner.kind match {
             case OwnerKind.User =>
-              PermissionsRepo.createUserOwnerDBIO(res.getId,
+              PermissionsRepo.createUserOwnerDBIO(res.getId(),
                                                   SourceKind.DockerDistributionImage,
                                                   item.owner.id,
                                                   Action.Manage)

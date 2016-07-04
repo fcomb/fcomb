@@ -143,14 +143,14 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       schemaV1JsonBlob: String,
       sha256Digest: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
-    findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
+    findByImageIdAndDigest(image.getId(), sha256Digest).flatMap {
       case Some(im) => FastFuture.successful(Validated.valid(im))
       case None =>
         val digests = manifest.fsLayers.map(_.getDigest).toSet
         val tags =
           if (manifest.tag.nonEmpty) List(manifest.tag)
           else Nil
-        ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId, digests).flatMap {
+        ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId(), digests).flatMap {
           blobs =>
             if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
             else {
@@ -159,7 +159,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
                 ImageManifest(
                   id = None,
                   sha256Digest = sha256Digest,
-                  imageId = image.getId,
+                  imageId = image.getId(),
                   tags = tags,
                   layersBlobId = blobs.map(_._1).toList,
                   schemaVersion = 1,
@@ -183,18 +183,18 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       schemaV2JsonBlob: String,
       sha256Digest: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
-    findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
+    findByImageIdAndDigest(image.getId(), sha256Digest).flatMap {
       case Some(im) =>
         updateTagsByReference(im, reference).fast.map(_ => Validated.valid(im))
       case None =>
         val digests = manifest.layers.map(_.getDigest).toSet
         val emptyTarResFut =
           if (digests.contains(ImageManifest.emptyTarSha256Digest))
-            ImageBlobsRepo.createEmptyTarIfNotExists(image.getId)
+            ImageBlobsRepo.createEmptyTarIfNotExists(image.getId())
           else FastFuture.successful(())
         (for {
           _       <- emptyTarResFut
-          blobIds <- ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId, digests)
+          blobIds <- ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId(), digests)
         } yield blobIds).flatMap { blobs =>
           if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
           else {
@@ -211,7 +211,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
               ImageManifest(
                 id = None,
                 sha256Digest = sha256Digest,
-                imageId = image.getId,
+                imageId = image.getId(),
                 tags = tags,
                 layersBlobId = blobs.map(_._1).toList,
                 schemaVersion = 2,
@@ -235,7 +235,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
     }
     if (tags.nonEmpty)
       runInTransaction(TransactionIsolation.Serializable)(for {
-        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
+        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), tags)
         _ <- sqlu"""
           UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
             SET tags = tags || ${reference.value},
@@ -254,8 +254,8 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       createWithValidationDBIO(manifest).flatMap {
         case res @ Validated.Valid(im) =>
           for {
-            _ <- ImageManifestLayersRepo.insertLayersDBIO(im.getId, im.layersBlobId)
-            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, im.tags)
+            _ <- ImageManifestLayersRepo.insertLayersDBIO(im.getId(), im.layersBlobId)
+            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), im.tags)
           } yield res
         case res => DBIO.successful(res)
       }

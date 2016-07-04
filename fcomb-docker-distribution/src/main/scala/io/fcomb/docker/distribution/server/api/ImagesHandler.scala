@@ -47,7 +47,7 @@ object ImagesHandler {
         optionalHeaderValueByType[Accept]() { acceptOpt =>
           imageByNameWithAcl(imageName, user, Action.Read) { image =>
             import mat.executionContext
-            onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId, reference)) {
+            onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId(), reference)) {
               case Some(im) =>
                 val (ct: ContentType, manifest: String) = if (im.schemaVersion == 1) {
                   val jb = SchemaV1Manifest.addSignature(im.schemaV1JsonBlob)
@@ -137,7 +137,7 @@ object ImagesHandler {
         imageByNameWithAcl(imageName, user, Action.Manage) { image =>
           reference match {
             case Reference.Digest(digest) =>
-              onSuccess(ImageManifestsRepo.destroy(image.getId, digest)) { res =>
+              onSuccess(ImageManifestsRepo.destroy(image.getId(), digest)) { res =>
                 if (res) complete(HttpResponse(StatusCodes.Accepted))
                 else
                   complete(
@@ -162,7 +162,7 @@ object ImagesHandler {
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
           imageByNameWithAcl(imageName, user, Action.Read) { image =>
-            onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId, n, last)) {
+            onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId(), n, last)) {
               (tags, limit, hasNext) =>
                 val headers = if (hasNext) {
                   val uri = Uri(s"/v2/$imageName/tags/list?n=$limit&last=${tags.last}")
@@ -181,7 +181,7 @@ object ImagesHandler {
     authenticateUserBasic { user =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
-          onSuccess(ImagesRepo.findRepositoriesByUserId(user.getId, n, last)) {
+          onSuccess(ImagesRepo.findRepositoriesByUserId(user.getId(), n, last)) {
             (repositories, limit, hasNext) =>
               val headers = if (hasNext) {
                 val uri = Uri(s"/v2/_catalog?n=$limit&last=${repositories.last}")

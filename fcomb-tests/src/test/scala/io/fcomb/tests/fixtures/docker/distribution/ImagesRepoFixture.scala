@@ -29,7 +29,7 @@ object ImagesRepoFixture {
              imageName: String,
              visibilityKind: ImageVisibilityKind,
              description: String = ""): Future[Image] = {
-    val owner = Owner(user.getId, OwnerKind.User)
+    val owner = Owner(user.getId(), OwnerKind.User)
     val image = Image(
       id = None,
       name = imageName,

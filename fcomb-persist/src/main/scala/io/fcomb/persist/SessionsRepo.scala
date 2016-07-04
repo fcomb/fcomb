@@ -73,7 +73,6 @@ object SessionsRepo {
   def destroy(sessionId: String) =
     redis.del(getKey(sessionId))
 
-  @inline
   private def getKey(sessionId: String) =
     DigestUtils.sha1Hex(sessionId.take(sessionIdLength))
 

@@ -114,7 +114,7 @@ object ImageManifestsRepoFixture {
                               sha256Digest = sha256Digest
                             )
       _ <- db.run(for {
-            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId, tags)
+            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), tags)
             _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
           } yield ())
     } yield im

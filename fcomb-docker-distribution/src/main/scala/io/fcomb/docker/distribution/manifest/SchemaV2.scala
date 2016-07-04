@@ -38,7 +38,7 @@ object SchemaV2 {
       rawManifest: String
   )(implicit ec: ExecutionContext, mat: Materializer): Future[Xor[DistributionError, String]] = {
     val sha256Digest = DigestUtils.sha256Hex(rawManifest)
-    ImageManifestsRepo.findByImageIdAndDigest(image.getId, sha256Digest).flatMap {
+    ImageManifestsRepo.findByImageIdAndDigest(image.getId(), sha256Digest).flatMap {
       case Some(im) =>
         ImageManifestsRepo
           .updateTagsByReference(im, reference)
@@ -46,7 +46,7 @@ object SchemaV2 {
           .map(_ => Xor.right(im.sha256Digest))
       case None =>
         val configDigest = manifest.config.getDigest
-        ImageBlobsRepo.findByImageIdAndDigest(image.getId, configDigest).flatMap {
+        ImageBlobsRepo.findByImageIdAndDigest(image.getId(), configDigest).flatMap {
           case Some(configBlob) =>
             if (configBlob.length > 1.MB)
               FastFuture.successful(unknowError("Config JSON size is more than 1 MB"))
@@ -79,7 +79,6 @@ object SchemaV2 {
     }
   }
 
-  @inline
   private def unknowError(msg: String) =
     Xor.left[DistributionError, String](Unknown(msg))
 

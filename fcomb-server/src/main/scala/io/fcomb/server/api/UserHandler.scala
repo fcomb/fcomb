@@ -40,7 +40,7 @@ object UserHandler {
   // authorizeUser { user =>
   //   requestBodyAs[UserRequest] { req =>
   //     completeValidationWithoutContent(
-  //       UsersRepo.update(user.getId)(
+  //       UsersRepo.update(user.getId())(
   //         email = req.email,
   //         username = req.username,
   //         fullName = req.fullName
