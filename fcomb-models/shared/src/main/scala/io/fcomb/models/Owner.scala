@@ -26,3 +26,5 @@ object OwnerKind extends Enum[OwnerKind] {
 
   val values = findValues
 }
+
+final case class Owner(id: Int, kind: OwnerKind)

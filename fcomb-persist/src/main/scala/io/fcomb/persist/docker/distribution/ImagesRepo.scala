@@ -21,7 +21,7 @@ import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind, ImageKey}
-import io.fcomb.models.{OwnerKind, User, Pagination, PaginationData}
+import io.fcomb.models.{OwnerKind, Owner, User, Pagination, PaginationData}
 import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest, ImageUpdateRequest}
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.persist.EnumsMapping._
@@ -34,16 +34,39 @@ import scala.concurrent.{ExecutionContext, Future}
 class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTableWithAutoIntPk {
   def name           = column[String]("name")
   def slug           = column[String]("slug")
-  def ownerId        = column[Int]("owner_id")
-  def ownerKind      = column[OwnerKind]("owner_kind")
   def visibilityKind = column[ImageVisibilityKind]("visibility_kind")
   def description    = column[String]("description")
   def createdAt      = column[ZonedDateTime]("created_at")
   def updatedAt      = column[Option[ZonedDateTime]]("updated_at")
 
+  // owner
+  def ownerId   = column[Int]("owner_id")
+  def ownerKind = column[OwnerKind]("owner_kind")
+
   def * =
-    (id, name, slug, ownerId, ownerKind, visibilityKind, description, createdAt, updatedAt) <>
-      ((Image.apply _).tupled, Image.unapply)
+    (id, name, slug, (ownerId, ownerKind), visibilityKind, description, createdAt, updatedAt).shaped <>
+      ({
+        case (id,
+              name,
+              slug,
+              (ownerId, ownerKind),
+              visibilityKind,
+              description,
+              createdAt,
+              updatedAt) =>
+          val owner = Owner(ownerId, ownerKind)
+          Image(id, name, slug, owner, visibilityKind, description, createdAt, updatedAt)
+      }, { img: Image =>
+        Some(
+          (img.id,
+           img.name,
+           img.slug,
+           (img.owner.id, img.owner.kind),
+           img.visibilityKind,
+           img.description,
+           img.createdAt,
+           img.updatedAt))
+      })
 }
 
 object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
@@ -81,9 +104,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       implicit ec: ExecutionContext) = {
     imageOpt match {
       case res @ Some(image) =>
-        image.ownerKind match {
+        image.owner.kind match {
           case OwnerKind.User =>
-            if (image.ownerId == userId) DBIO.successful(res)
+            if (image.owner.id == userId) DBIO.successful(res)
             else
               PermissionsRepo
                 .isAllowedActionBySourceAsUserDBIO(image.getId,
@@ -97,7 +120,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
             PermissionsRepo
               .isAllowedActionBySourceAsGroupUserDBIO(image.getId,
                                                       SourceKind.DockerDistributionImage,
-                                                      image.ownerId,
+                                                      image.owner.id,
                                                       userId,
                                                       action)
               .map { isAllowed =>
@@ -209,13 +232,13 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   def create(req: ImageCreateRequest, user: User)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
+    val owner = Owner(user.getId, OwnerKind.User)
     create(
       Image(
         id = None,
         name = req.name,
         slug = s"${user.username}/${req.name}",
-        ownerId = user.getId,
-        ownerKind = OwnerKind.User,
+        owner = owner,
         visibilityKind = req.visibilityKind,
         description = req.description.getOrElse(""),
         createdAt = ZonedDateTime.now,
@@ -226,11 +249,11 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   override def createDBIO(item: Image)(implicit ec: ExecutionContext): ModelDBIO = {
     for {
       res <- super.createDBIO(item)
-      _ <- item.ownerKind match {
+      _ <- item.owner.kind match {
             case OwnerKind.User =>
               PermissionsRepo.createUserOwnerDBIO(res.getId,
                                                   SourceKind.DockerDistributionImage,
-                                                  item.ownerId,
+                                                  item.owner.id,
                                                   Action.Manage)
             case _ => DBIO.successful(())
           }

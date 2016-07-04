@@ -47,13 +47,13 @@ object PermissionsHandler {
     }
   }
 
-  def create(key: ImageKey) = {
+  def upsert(key: ImageKey) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageByKeyWithAcl(key, user, Action.Manage) { image =>
           entity(as[PermissionUserCreateRequest]) { req =>
-            onSuccess(PermissionsRepo.createByImage(image, req)) {
-              case Validated.Valid(p)   => complete((StatusCodes.Created, p))
+            onSuccess(PermissionsRepo.upsertByImage(image, req)) {
+              case Validated.Valid(p)   => complete((StatusCodes.Accepted, p))
               case Validated.Invalid(e) => ??? // TODO
             }
           }
@@ -66,7 +66,7 @@ object PermissionsHandler {
     // format: OFF
     path(servicePath) {
       get(index(key)) ~
-      post(create(key))
+      put(upsert(key))
     }
     // format: ON
   }

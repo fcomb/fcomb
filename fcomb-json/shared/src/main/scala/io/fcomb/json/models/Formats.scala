@@ -24,6 +24,7 @@ import io.fcomb.models._
 object Formats {
   implicit final val encodeOwnerKind: Encoder[OwnerKind] = Circe.encoder(OwnerKind)
 
+  implicit final val encodeOwner: Encoder[Owner]     = deriveEncoder
   implicit final val encodeSession: Encoder[Session] = deriveEncoder
   implicit final def encodePaginationData[T](
       implicit encoder: Encoder[T]): Encoder[PaginationData[T]] =
@@ -31,6 +32,7 @@ object Formats {
 
   implicit final val decodeOwnerKind: Decoder[OwnerKind] = Circe.decoder(OwnerKind)
 
+  implicit final val decodeOwner: Decoder[Owner]     = deriveDecoder
   implicit final val decodeSession: Decoder[Session] = deriveDecoder
   implicit final def decodePaginationData[T](
       implicit decoder: Decoder[T]): Decoder[PaginationData[T]] =

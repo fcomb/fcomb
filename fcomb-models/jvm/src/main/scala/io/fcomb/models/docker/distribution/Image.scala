@@ -16,15 +16,14 @@
 
 package io.fcomb.models.docker.distribution
 
-import io.fcomb.models.{ModelWithAutoIntPk, OwnerKind}
+import io.fcomb.models.{ModelWithAutoIntPk, Owner}
 import java.time.ZonedDateTime
 
 final case class Image(
     id: Option[Int],
     name: String,
     slug: String,
-    ownerId: Int,
-    ownerKind: OwnerKind,
+    owner: Owner,
     visibilityKind: ImageVisibilityKind,
     description: String,
     createdAt: ZonedDateTime,

@@ -16,18 +16,21 @@
 
 package io.fcomb.persist.acl
 
+import cats.data.Validated
+import cats.syntax.eq._
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl._
 import io.fcomb.models.docker.distribution.Image
-import io.fcomb.models.{Pagination, PaginationData}
+import io.fcomb.models.{Pagination, PaginationData, OwnerKind, User}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo, UsersRepo}
-import io.fcomb.rpc.acl.{PermissionUserCreateRequest, PermissionResponse, PermissionUserMemberResponse}
+import io.fcomb.rpc.acl._
 import io.fcomb.rpc.helpers.time.Implicits._
 import io.fcomb.validations.ValidationResult
 import java.time.ZonedDateTime
 import scala.concurrent.{Future, ExecutionContext}
+import slick.jdbc.TransactionIsolation
 
 class PermissionTable(tag: Tag)
     extends Table[Permission](tag, "acl_permissions")
@@ -177,7 +180,7 @@ object PermissionsRepo
   }
 
   def createUserOwnerDBIO(sourceId: Int, sourceKind: SourceKind, userId: Int, action: Action) = {
-    table += Permission(
+    tableWithPk += Permission(
       id = None,
       sourceId = sourceId,
       sourceKind = sourceKind,
@@ -265,16 +268,69 @@ object PermissionsRepo
       )
   }
 
-  def createByImage(image: Image, req: PermissionUserCreateRequest)(
-      implicit ec: ExecutionContext): Future[ValidationResult[PermissionResponse]] = {
-    println(s"req: $req")
-    val memberId: Int = ??? // req.member.id
-    table.filter { q =>
-      q.sourceId === image.getId &&
-      q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind) &&
-      q.memberId === memberId &&
-      q.memberKind === (MemberKind.User: MemberKind)
+  private def userIdByMemberRequestDBIO(req: PermissionMemberRequest)(
+      implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
+    req match {
+      case PermissionUserIdRequest(id) =>
+        UsersRepo.findByIdDBIO(id).map {
+          case Some(u) => Validated.Valid(u)
+          case _       => validationError("member.id", "Not found")
+        }
+      case PermissionUsernameRequest(username) =>
+        UsersRepo.findByUsernameDBIO(username).map {
+          case Some(u) => Validated.Valid(u)
+          case _       => validationError("member.username", "Not found")
+        }
     }
-    ???
+  }
+
+  private lazy val findIdByImageAndSourceCompiled = Compiled {
+    (imageId: Rep[Int], memberId: Rep[Int]) =>
+      table.filter { q =>
+        q.sourceId === imageId &&
+        q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind) &&
+        q.memberId === memberId &&
+        q.memberKind === (MemberKind.User: MemberKind)
+      }
+  }
+
+  def upsertByImage(image: Image, req: PermissionUserCreateRequest)(
+      implicit ec: ExecutionContext): Future[ValidationResult[PermissionResponse]] = {
+    runInTransaction(TransactionIsolation.Serializable) {
+      userIdByMemberRequestDBIO(req.member).flatMap {
+        case Validated.Valid(user) =>
+          val memberId = user.getId
+          if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
+            DBIO.successful(validationError("owner", "Cannot create a permission for owner"))
+          else {
+            findIdByImageAndSourceCompiled((image.getId, memberId)).result.headOption.flatMap {
+              case Some(p) =>
+                val up = p.copy(
+                  action = req.action,
+                  updatedAt = Some(ZonedDateTime.now)
+                )
+                findByIdQuery(p.getId).update(up).map(_ => up)
+              case _ =>
+                createUserOwnerDBIO(image.getId,
+                                    SourceKind.DockerDistributionImage,
+                                    memberId,
+                                    req.action)
+            }.map { p =>
+              val member = PermissionUserMemberResponse(id = memberId,
+                                                        kind = MemberKind.User,
+                                                        username = Some(user.username),
+                                                        fullName = user.fullName)
+              Validated.Valid(
+                PermissionResponse(
+                  member = member,
+                  action = p.action,
+                  createdAt = p.createdAt.toIso8601,
+                  updatedAt = p.updatedAt.map(_.toIso8601)
+                ))
+            }
+          }
+        case res @ Validated.Invalid(_) => DBIO.successful(res)
+      }
+    }
   }
 }

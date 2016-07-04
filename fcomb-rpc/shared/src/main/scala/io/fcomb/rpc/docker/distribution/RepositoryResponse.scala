@@ -16,15 +16,14 @@
 
 package io.fcomb.rpc.docker.distribution
 
-import io.fcomb.models.OwnerKind
+import io.fcomb.models.Owner
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
 final case class RepositoryResponse(
     id: Option[Int],
     name: String,
     slug: String,
-    ownerId: Int,
-    ownerKind: OwnerKind,
+    owner: Owner,
     visibilityKind: ImageVisibilityKind,
     description: String,
     createdAt: String,

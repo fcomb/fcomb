@@ -17,7 +17,7 @@
 package io.fcomb.tests.fixtures.docker.distribution
 
 import cats.data.Validated
-import io.fcomb.models.{OwnerKind, User}
+import io.fcomb.models.{OwnerKind, Owner, User}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -29,12 +29,12 @@ object ImagesRepoFixture {
              imageName: String,
              visibilityKind: ImageVisibilityKind,
              description: String = ""): Future[Image] = {
+    val owner = Owner(user.getId, OwnerKind.User)
     val image = Image(
       id = None,
       name = imageName,
       slug = s"${user.username}/$imageName",
-      ownerId = user.getId,
-      ownerKind = OwnerKind.User,
+      owner = owner,
       visibilityKind = visibilityKind,
       description = description,
       createdAt = ZonedDateTime.now,

@@ -125,9 +125,12 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
   def findByEmail(email: String) =
     db.run(findByEmailCompiled(email).result.headOption)
 
-  private lazy val findByUsernameCompiled = Compiled { username: Rep[String] =>
+  lazy val findByUsernameCompiled = Compiled { username: Rep[String] =>
     table.filter(_.username === username).take(1)
   }
+
+  def findByUsernameDBIO(username: String) =
+    findByUsernameCompiled(username.toLowerCase).result.headOption
 
   def matchByUsernameAndPassword(username: String, password: String)(
       implicit ec: ExecutionContext
