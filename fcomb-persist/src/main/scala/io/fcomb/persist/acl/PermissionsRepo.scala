@@ -243,30 +243,34 @@ object PermissionsRepo
     findByImageIdScopeDBIO(imageId).length
   }
 
-  def findByImageIdWithPagination(imageId: Int, p: Pagination)(
+  def findByImageIdWithPagination(image: Image, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[PermissionResponse]] = {
+    val imageId = image.getId()
     db.run {
       for {
         permissions <- findByImageIdAsReponseDBIO(imageId, p).result
         total       <- findByImageIdTotalCompiled(imageId).result
-        data = permissions.map(applyResponse)
+        data = permissions.map(applyResponse(image))
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
   }
 
-  private def applyResponse(t: PermissionResponseTuple): PermissionResponse = t match {
-    case (userId, kind, action, createdAt, updatedAt, (username, fullName)) =>
-      val member = PermissionUserMemberResponse(id = userId,
-                                                kind = MemberKind.User,
-                                                username = username,
-                                                fullName = fullName)
-      PermissionResponse(
-        member = member,
-        action = action,
-        createdAt = createdAt.toIso8601,
-        updatedAt = updatedAt.map(_.toIso8601)
-      )
-  }
+  private def applyResponse(image: Image)(t: PermissionResponseTuple): PermissionResponse =
+    t match {
+      case (userId, kind, action, createdAt, updatedAt, (username, fullName)) =>
+        val isOwner = image.owner.kind === OwnerKind.User && image.owner.id == userId
+        val member = PermissionUserMemberResponse(id = userId,
+                                                  kind = MemberKind.User,
+                                                  isOwner = isOwner,
+                                                  username = username,
+                                                  fullName = fullName)
+        PermissionResponse(
+          member = member,
+          action = action,
+          createdAt = createdAt.toIso8601,
+          updatedAt = updatedAt.map(_.toIso8601)
+        )
+    }
 
   private def userIdByMemberRequestDBIO(req: PermissionMemberRequest)(
       implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
@@ -291,7 +295,7 @@ object PermissionsRepo
         q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind) &&
         q.memberId === memberId &&
         q.memberKind === (MemberKind.User: MemberKind)
-      }
+      }.take(1)
   }
 
   def upsertByImage(image: Image, req: PermissionUserCreateRequest)(
@@ -316,10 +320,12 @@ object PermissionsRepo
                                     memberId,
                                     req.action)
             }.map { p =>
-              val member = PermissionUserMemberResponse(id = memberId,
-                                                        kind = MemberKind.User,
-                                                        username = Some(user.username),
-                                                        fullName = user.fullName)
+              val member = PermissionUserMemberResponse(
+                id = memberId,
+                kind = MemberKind.User,
+                isOwner = false, // impossible to change the permissions for the owner
+                username = Some(user.username),
+                fullName = user.fullName)
               Validated.Valid(
                 PermissionResponse(
                   member = member,

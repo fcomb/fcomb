@@ -26,6 +26,7 @@ sealed trait PermissionMemberResponse {
 final case class PermissionUserMemberResponse(
     id: Int,
     kind: MemberKind,
+    isOwner: Boolean,
     username: Option[String],
     fullName: Option[String]
 ) extends PermissionMemberResponse
