@@ -59,8 +59,44 @@ object PermissionsComponent {
       }
     }
 
-    def renderPermissionRow(props: Props, permission: PermissionResponse) = {
-      <.tr(<.td(permission.member.username), <.td(permission.action.toString()), <.td())
+    def updatePermission(repositoryName: String, username: String)(e: ReactEventI) = {
+      val action = Action.withName(e.target.value)
+      $.state.flatMap { state =>
+        $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
+        Callback.future {
+          upsertPermissionRpc(repositoryName, username, action).map {
+            case Xor.Right(repository) =>
+              updateFormDisabled(false) >>
+                getPermissions(repositoryName, state.sortColumn, state.sortOrder)
+            case Xor.Left(e) =>
+              // TODO
+              updateFormDisabled(false)
+          }.recover {
+            case _ => updateFormDisabled(false)
+          }
+        }
+      }
+    }
+
+    lazy val actions = Action.values.map(k => <.option(^.value := k.value)(k.entryName))
+
+    def renderActionCell(repositoryName: String, state: State, permission: PermissionResponse) = {
+      permission.member.username match {
+        case Some(username) if !permission.member.isOwner =>
+          <.td(
+            <.select(^.disabled := state.form.isFormDisabled,
+                     ^.required := true,
+                     ^.value := permission.action.value,
+                     ^.onChange ==> updatePermission(repositoryName, username),
+                     actions))
+        case _ => <.td(permission.action.toString())
+      }
+    }
+
+    def renderPermissionRow(repositoryName: String, state: State, permission: PermissionResponse) = {
+      <.tr(<.td(permission.member.username),
+           renderActionCell(repositoryName, state, permission),
+           <.td())
     }
 
     def changeSortOrder(column: String)(e: ReactEventH): Callback = {
@@ -85,19 +121,28 @@ object PermissionsComponent {
       <.th(<.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
     }
 
-    def renderPermissions(props: Props, state: State) = {
+    def renderPermissions(repositoryName: String, state: State) = {
       if (state.permissions.isEmpty) <.span("No permissions. Create one!")
       else {
         <.table(<.thead(
-                  <.tr(renderHeader("User", "member.id", state),
+                  <.tr(renderHeader("User", "member.username", state),
                        renderHeader("Action", "action", state),
                        <.th())),
-                <.tbody(state.permissions.map(renderPermissionRow(props, _))))
+                <.tbody(state.permissions.map(renderPermissionRow(repositoryName, state, _))))
       }
     }
 
-    def enableForm(): Callback = {
-      $.modState(s => s.copy(form = s.form.copy(isFormDisabled = false)))
+    def updateFormDisabled(isFormDisabled: Boolean): Callback = {
+      $.modState(s => s.copy(form = s.form.copy(isFormDisabled = isFormDisabled)))
+    }
+
+    private def upsertPermissionRpc(repositoryName: String, username: String, action: Action) = {
+      val member = PermissionUsernameRequest(username)
+      val req    = PermissionUserCreateRequest(member, action)
+      Rpc.callWith[PermissionUserCreateRequest, PermissionResponse](
+        RpcMethod.PUT,
+        Resource.repositoryPermissions(repositoryName),
+        req)
     }
 
     def add(props: Props): Callback = {
@@ -105,26 +150,17 @@ object PermissionsComponent {
         val fs = state.form
         if (fs.isFormDisabled) Callback.empty
         else {
-          $.setState(state.copy(form = fs.copy(isFormDisabled = true))).flatMap { _ =>
-            Callback.future {
-              val member = PermissionUsernameRequest(fs.username)
-              val req    = PermissionUserCreateRequest(member, fs.action)
-              Rpc
-                .callWith[PermissionUserCreateRequest, PermissionResponse](
-                  RpcMethod.PUT,
-                  Resource.repositoryPermissions(props.repositoryName),
-                  req)
-                .map {
-                  case Xor.Right(repository) =>
-                    $.modState(_.copy(form = defaultFormState)) >>
-                      getPermissions(props.repositoryName, state.sortColumn, state.sortOrder)
-                  case Xor.Left(e) =>
-                    // TODO
-                    enableForm()
-                }
-                .recover {
-                  case _ => enableForm()
-                }
+          $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
+          Callback.future {
+            upsertPermissionRpc(props.repositoryName, fs.username, fs.action).map {
+              case Xor.Right(repository) =>
+                $.modState(_.copy(form = defaultFormState)) >>
+                  getPermissions(props.repositoryName, state.sortColumn, state.sortOrder)
+              case Xor.Left(e) =>
+                // TODO
+                updateFormDisabled(false)
+            }.recover {
+              case _ => updateFormDisabled(false)
             }
           }
         }
@@ -162,12 +198,15 @@ object PermissionsComponent {
                       ^.tabIndex := 2,
                       ^.value := state.form.action.value,
                       ^.onChange ==> updateAction,
-                      Action.values.map(k => <.option(^.value := k.value)(k.entryName))),
+                      actions),
              <.input.submit(^.tabIndex := 3, ^.value := "Add"))
     }
 
     def render(props: Props, state: State) = {
-      <.div(<.h2("Permissions"), renderPermissions(props, state), <.hr, renderForm(props, state))
+      <.div(<.h2("Permissions"),
+            renderPermissions(props.repositoryName, state),
+            <.hr,
+            renderForm(props, state))
     }
   }
 

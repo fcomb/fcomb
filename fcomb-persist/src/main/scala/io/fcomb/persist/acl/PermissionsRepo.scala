@@ -227,11 +227,12 @@ object PermissionsRepo
       }
 
   private def sortByPF(q: PermissionResponseTupleRep): PartialFunction[String, Rep[_]] = {
-    case "member.id"   => q._1
-    case "member.kind" => q._2
-    case "action"      => q._3
-    case "createdAt"   => q._4
-    case "updatedAt"   => q._5
+    case "member.id"       => q._1
+    case "member.kind"     => q._2
+    case "action"          => q._3
+    case "createdAt"       => q._4
+    case "updatedAt"       => q._5
+    case "member.username" => q._6._1
   }
 
   private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {
@@ -246,12 +247,12 @@ object PermissionsRepo
   def findByImageIdWithPagination(image: Image, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[PermissionResponse]] = {
     val imageId = image.getId()
+    val f       = applyResponse(image)(_)
     db.run {
       for {
         permissions <- findByImageIdAsReponseDBIO(imageId, p).result
         total       <- findByImageIdTotalCompiled(imageId).result
-        data = permissions.map(applyResponse(image))
-      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
+      } yield PaginationData(permissions.map(f), total = total, offset = p.offset, limit = p.limit)
     }
   }
 
