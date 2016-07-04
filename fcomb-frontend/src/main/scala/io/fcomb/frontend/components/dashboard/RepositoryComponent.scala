@@ -30,8 +30,8 @@ import scala.scalajs.js
 
 object RepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], name: String)
-  final case class EditState(description: String, isPreview: Boolean, isFormDisabled: Boolean)
-  final case class State(repository: Option[RepositoryResponse], edit: Option[EditState])
+  final case class FormState(description: String, isPreview: Boolean, isFormDisabled: Boolean)
+  final case class State(repository: Option[RepositoryResponse], form: Option[FormState])
 
   final case class Backend($ : BackendScope[Props, State]) {
     val textarea = Ref[HTMLInputElement]("description")
@@ -52,32 +52,32 @@ object RepositoryComponent {
       e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
     }
 
-    def editDescription(description: String)(e: ReactEventH): Callback = {
+    def formDescription(description: String)(e: ReactEventH): Callback = {
       e.preventDefaultCB >>
-      $.modState(_.copy(edit = Some(EditState(description, false, false)))) >>
+      $.modState(_.copy(form = Some(FormState(description, false, false)))) >>
       CallbackTo(textarea.apply($).map(_.setSelectionRange(0, 0))).delayMs(1).void
     }
 
     def updateRepositoryDescription(): Callback = {
-      editState { es =>
-        if (es.isFormDisabled) Callback.empty
+      formState { fs =>
+        if (fs.isFormDisabled) Callback.empty
         for {
-          _    <- $.modState(_.copy(edit = Some(es.copy(isFormDisabled = true))))
+          _    <- $.modState(_.copy(form = Some(fs.copy(isFormDisabled = true))))
           name <- $.props.map(_.name)
           _ <- Callback.future {
-                val req = ImageUpdateRequest(es.description)
+                val req = ImageUpdateRequest(fs.description)
                 Rpc
                   .callWith[ImageUpdateRequest, RepositoryResponse](RpcMethod.PUT,
                                                                     Resource.repository(name),
                                                                     req)
                   .map {
                     case Xor.Right(repository) =>
-                      $.modState(_.copy(repository = Some(repository), edit = None))
+                      $.modState(_.copy(repository = Some(repository), form = None))
                     case Xor.Left(e) =>
-                      $.modState(_.copy(edit = Some(es.copy(isFormDisabled = false))))
+                      $.modState(_.copy(form = Some(fs.copy(isFormDisabled = false))))
                   }
                   .recover {
-                    case _ => $.modState(_.copy(edit = Some(es.copy(isFormDisabled = false))))
+                    case _ => $.modState(_.copy(form = Some(fs.copy(isFormDisabled = false))))
                   }
               }
         } yield ()
@@ -88,29 +88,29 @@ object RepositoryComponent {
       e.preventDefaultCB >> updateRepositoryDescription
     }
 
-    def updateDescription(es: EditState)(e: ReactEventI): Callback = {
+    def updateDescription(fs: FormState)(e: ReactEventI): Callback = {
       val value = e.target.value
-      $.modState(_.copy(edit = Some(es.copy(description = value))))
+      $.modState(_.copy(form = Some(fs.copy(description = value))))
     }
 
-    def editState(f: EditState => Callback): Callback = {
+    def formState(f: FormState => Callback): Callback = {
       $.state.flatMap { state =>
-        state.edit match {
-          case Some(es) => f(es)
+        state.form match {
+          case Some(fs) => f(fs)
           case None     => Callback.empty
         }
       }
     }
 
     def switchToPreview(isPreview: Boolean)(e: ReactEventH): Callback = {
-      e.preventDefaultCB >> editState { es =>
-        if (es.isPreview == isPreview) Callback.empty
-        else $.modState(_.copy(edit = Some(es.copy(isPreview = isPreview))))
+      e.preventDefaultCB >> formState { fs =>
+        if (fs.isPreview == isPreview) Callback.empty
+        else $.modState(_.copy(form = Some(fs.copy(isPreview = isPreview))))
       }
     }
 
-    def renderTextarea(es: EditState) = {
-      if (es.isPreview) EmptyTag
+    def renderTextarea(fs: FormState) = {
+      if (fs.isPreview) EmptyTag
       else
         <.textarea(^.ref := textarea,
                    ^.id := "description",
@@ -119,38 +119,38 @@ object RepositoryComponent {
                    ^.tabIndex := 1,
                    ^.rows := 24,
                    ^.cols := 120,
-                   ^.value := es.description,
-                   ^.onChange ==> updateDescription(es))
+                   ^.value := fs.description,
+                   ^.onChange ==> updateDescription(fs))
     }
 
-    def renderPreview(es: EditState) = {
-      if (es.isPreview) <.article(MarkdownComponent.apply(es.description))
+    def renderPreview(fs: FormState) = {
+      if (fs.isPreview) <.article(MarkdownComponent.apply(fs.description))
       else EmptyTag
     }
 
     def cancel(e: ReactEventH): Callback = {
-      e.preventDefaultCB >> $.modState(_.copy(edit = None))
+      e.preventDefaultCB >> $.modState(_.copy(form = None))
     }
 
     def renderDescription(state: State) = {
-      state.edit match {
-        case Some(es) =>
+      state.form match {
+        case Some(fs) =>
           <.form(^.onSubmit ==> handleOnSubmit,
-                 ^.disabled := es.isFormDisabled,
+                 ^.disabled := fs.isFormDisabled,
                  <.div(
-                   <.a(^.onClick ==> switchToPreview(false), ^.href := "#", "Edit"),
+                   <.a(^.onClick ==> switchToPreview(false), ^.href := "#", "Form"),
                    "|",
                    <.a(^.onClick ==> switchToPreview(true), ^.href := "#", "Preview")
                  ),
-                 renderTextarea(es),
-                 renderPreview(es),
+                 renderTextarea(fs),
+                 renderPreview(fs),
                  <.br,
                  <.button(^.`type` := "button", ^.tabIndex := 2, ^.onClick ==> cancel, "Cancel"),
                  <.input.submit(^.tabIndex := 3, ^.value := "Update"))
         case None =>
           val description = state.repository.map(_.description).getOrElse("")
           <.div(
-            <.a(^.onClick ==> editDescription(description), ^.href := "#", "Edit"),
+            <.a(^.onClick ==> formDescription(description), ^.href := "#", "Form"),
             <.article(MarkdownComponent.apply(description))
           )
       }
