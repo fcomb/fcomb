@@ -22,7 +22,7 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.acl.Formats._
-import io.fcomb.models.acl.Action
+import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.{PaginationData, SortOrder}
 import io.fcomb.rpc.acl.{PermissionResponse, PermissionUserCreateRequest, PermissionUsernameRequest}
 import japgolly.scalajs.react._
@@ -61,11 +61,12 @@ object PermissionsComponent {
 
     def updatePermission(repositoryName: String, username: String)(e: ReactEventI) = {
       val action = Action.withName(e.target.value)
+      e.preventDefaultCB >>
       $.state.flatMap { state =>
         $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
         Callback.future {
           upsertPermissionRpc(repositoryName, username, action).map {
-            case Xor.Right(repository) =>
+            case Xor.Right(_) =>
               updateFormDisabled(false) >>
                 getPermissions(repositoryName, state.sortColumn, state.sortOrder)
             case Xor.Left(e) =>
@@ -93,10 +94,45 @@ object PermissionsComponent {
       }
     }
 
+    def deletePermission(repositoryName: String, username: String)(e: ReactEventI) = {
+      e.preventDefaultCB >>
+      $.state.flatMap { state => // TODO: DRY
+        $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
+        Callback.future {
+          val url = Resource.repositoryPermission(repositoryName, MemberKind.User, username)
+          Rpc
+            .call[Unit](RpcMethod.DELETE, url)
+            .map {
+              case Xor.Right(_) =>
+                updateFormDisabled(false) >>
+                  getPermissions(repositoryName, state.sortColumn, state.sortOrder)
+              case Xor.Left(e) =>
+                // TODO
+                updateFormDisabled(false)
+            }
+            .recover {
+              case _ => updateFormDisabled(false)
+            }
+        }
+      }
+    }
+
+    def renderOptionsCell(repositoryName: String, state: State, permission: PermissionResponse) = {
+      permission.member.username match {
+        case Some(username) if !permission.member.isOwner =>
+          <.td(
+            <.button(^.`type` := "button",
+                     ^.disabled := state.form.isFormDisabled,
+                     ^.onClick ==> deletePermission(repositoryName, username),
+                     "Delete"))
+        case _ => EmptyTag
+      }
+    }
+
     def renderPermissionRow(repositoryName: String, state: State, permission: PermissionResponse) = {
       <.tr(<.td(permission.member.username),
            renderActionCell(repositoryName, state, permission),
-           <.td())
+           renderOptionsCell(repositoryName, state, permission))
     }
 
     def changeSortOrder(column: String)(e: ReactEventH): Callback = {

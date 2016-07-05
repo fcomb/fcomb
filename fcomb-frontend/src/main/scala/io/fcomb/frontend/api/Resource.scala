@@ -16,18 +16,22 @@
 
 package io.fcomb.frontend.api
 
+import io.fcomb.models.acl.MemberKind
+
 object Resource {
   val prefix = "/api/v1"
 
   val sessions = prefix + "/sessions"
 
   val repositories = prefix + "/repositories"
-  def repository(slug: String) = s"$repositories/$slug"
+  def repository(imageSlug: String) = s"$repositories/$imageSlug"
 
-  def repositoryTags(slug: String)             = repository(slug) + "/tags"
-  def repositoryTag(slug: String, tag: String) = repositoryTags(slug) + s"/$tag"
+  def repositoryTags(imageSlug: String)             = repository(imageSlug) + "/tags"
+  def repositoryTag(imageSlug: String, tag: String) = repositoryTags(imageSlug) + s"/$tag"
 
-  def repositoryPermissions(slug: String) = repository(slug) + "/permissions"
+  def repositoryPermissions(imageSlug: String) = repository(imageSlug) + "/permissions"
+  def repositoryPermission(imageSlug: String, kind: MemberKind, slug: String) =
+    repositoryPermissions(imageSlug) + s"/${kind.entryName}/$slug"
 
   val users  = prefix + "/users"
   val signUp = users + "/sign_up"
