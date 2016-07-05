@@ -23,11 +23,12 @@ import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
-import io.fcomb.models.docker.distribution.ImageKey
+import io.fcomb.models.docker.distribution.{ImageKey, ImageVisibilityKind}
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageUpdateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.api.repository._
 
@@ -63,11 +64,38 @@ object RepositoriesHandler {
     }
   }
 
+  def updateVisibility(key: ImageKey, visibilityKind: ImageVisibilityKind) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+          onSuccess(ImagesRepo.updateVisibility(image.getId(), visibilityKind)) { _ =>
+            completeAccepted()
+          }
+        }
+      }
+    }
+  }
+
+  def destroy(key: ImageKey) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+          ???
+        }
+      }
+    }
+  }
+
   def routes(key: ImageKey): Route = {
     // format: OFF
     pathEnd {
       get(show(key)) ~
-      put(update(key))
+      put(update(key)) ~
+      delete(destroy(key))
+    } ~
+    pathPrefix("visibility") {
+      path("public")(post(updateVisibility(key, ImageVisibilityKind.Public))) ~
+      path("private")(post(updateVisibility(key, ImageVisibilityKind.Private)))
     } ~
     TagsHandler.routes(key) ~
     PermissionsHandler.routes(key)

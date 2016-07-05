@@ -45,7 +45,7 @@ object SessionsHandler {
       extractCredentials {
         case Some(OAuth2BearerToken(token)) =>
           onSuccess(SessionsRepo.destroy(token)) { _ =>
-            completeNoContent()
+            completeAccepted()
           }
         case Some(_) => complete(HttpResponse(StatusCodes.BadRequest))
         case None    => complete(HttpResponse(StatusCodes.Unauthorized))

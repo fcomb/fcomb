@@ -29,6 +29,9 @@ trait CommonDirectives {
 
   final def completeNoContent(): Route =
     completeWithStatus(StatusCodes.NoContent)
+
+  final def completeAccepted(): Route =
+    completeWithStatus(StatusCodes.Accepted)
 }
 
 object CommonDirectives extends CommonDirectives

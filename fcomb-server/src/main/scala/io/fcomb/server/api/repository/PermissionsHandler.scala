@@ -70,7 +70,7 @@ object PermissionsHandler {
       authenticateUser { user =>
         imageByKeyWithAcl(key, user, Action.Manage) { image =>
           onSuccess(PermissionsRepo.destroyByImage(image, memberKind, slug)) {
-            case Validated.Valid(p)   => completeNoContent()
+            case Validated.Valid(p)   => completeAccepted()
             case Validated.Invalid(e) => ??? // TODO
           }
         }

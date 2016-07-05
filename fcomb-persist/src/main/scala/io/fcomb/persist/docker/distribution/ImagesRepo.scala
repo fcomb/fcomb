@@ -305,6 +305,12 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     }
   }
 
+  def updateVisibility(imageId: Int, visibilityKind: ImageVisibilityKind): Future[_] = {
+    db.run {
+      table.filter(_.id === imageId).map(_.visibilityKind).update(visibilityKind)
+    }
+  }
+
   private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
     notCurrentPkFilter(id).filter { q =>
       q.name.toLowerCase === name.toLowerCase
@@ -325,6 +331,6 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     val dbioValidations = validateDBIO(
       "name" -> List(unique(uniqueNameCompiled((i.id, i.name))))
     )
-    validate(plainValidations, dbioValidations)
+    validate((plainValidations, dbioValidations))
   }
 }
