@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.common
+package io.fcomb.models.errors
 
-import cats.Eq
+final case class FailureResponse(
+    errors: Seq[ErrorMessage]
+)
 
-trait EnumItem extends enumeratum.EnumEntry with enumeratum.EnumEntry.Snakecase {
-  def value = entryName
-}
+object FailureResponse {
+  def fromExceptions(errors: Seq[DtCemException]): FailureResponse =
+    FailureResponse(errors.map(_.toErrorMessage()))
 
-trait Enum[T <: EnumItem] extends enumeratum.Enum[T] {
-  implicit val valueEq: Eq[T] = Eq.fromUniversalEquals
-
-  final lazy val entryNames = values.map(_.entryName).mkString(", ")
+  def fromException(error: DtCemException): FailureResponse =
+    fromExceptions(List(error))
 }

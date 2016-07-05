@@ -16,18 +16,18 @@
 
 package io.fcomb.persist
 
-import io.fcomb.Db.redis
-import io.fcomb.models.{Session, User}
-import io.fcomb.models.errors.{FailureResponse, ValidationException}
-import io.fcomb.rpc.SessionCreateRequest
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.util.Random
-import redis._
-import cats.data.Xor
-import org.apache.commons.codec.digest.DigestUtils
-import java.security.SecureRandom
 import akka.http.scaladsl.util.FastFuture, FastFuture._
+import cats.data.Xor
+import io.fcomb.Db.redis
+import io.fcomb.models.errors.{FailureResponse, ValidationException}
+import io.fcomb.models.{Session, User}
+import io.fcomb.rpc.SessionCreateRequest
+import java.security.SecureRandom
+import org.apache.commons.codec.digest.DigestUtils
+import redis._
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Random
 
 object SessionsRepo {
   val sessionIdLength = 42

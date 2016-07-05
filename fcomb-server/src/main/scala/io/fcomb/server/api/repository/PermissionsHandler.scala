@@ -21,9 +21,11 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.docker.distribution.ImageKey
+import io.fcomb.models.errors.{FailureResponse, UnknownEnumItemException}
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.acl.PermissionUserCreateRequest
 import io.fcomb.server.AuthenticationDirectives._
@@ -96,9 +98,9 @@ object PermissionsHandler {
     MemberKind.withNameOption(kind) match {
       case Some(memberKind) => provide(memberKind)
       case None =>
-        complete((StatusCodes.BadRequest, s"$kind is not a member of Enum ($memberKindEntries)"))
+        complete(
+          (StatusCodes.BadRequest,
+           FailureResponse.fromException(UnknownEnumItemException(kind, MemberKind))))
     }
   }
-
-  private lazy val memberKindEntries = MemberKind.values.map(_.entryName).mkString(", ")
 }

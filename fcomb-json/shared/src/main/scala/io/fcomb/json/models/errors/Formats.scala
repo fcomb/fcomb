@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.common
+package io.fcomb.json.models.errors
 
-import cats.Eq
+import io.circe.generic.semiauto._
+import io.circe.{Encoder, Decoder}
+import io.fcomb.models.errors.{ErrorMessage, FailureResponse}
 
-trait EnumItem extends enumeratum.EnumEntry with enumeratum.EnumEntry.Snakecase {
-  def value = entryName
-}
+object Formats {
+  implicit final val encodeErrorMessage: Encoder[ErrorMessage]       = deriveEncoder
+  implicit final val encodeFailureResponse: Encoder[FailureResponse] = deriveEncoder
 
-trait Enum[T <: EnumItem] extends enumeratum.Enum[T] {
-  implicit val valueEq: Eq[T] = Eq.fromUniversalEquals
-
-  final lazy val entryNames = values.map(_.entryName).mkString(", ")
+  implicit final val decodeErrorMessage: Decoder[ErrorMessage]       = deriveDecoder
+  implicit final val decodeFailureResponse: Decoder[FailureResponse] = deriveDecoder
 }

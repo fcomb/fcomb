@@ -14,16 +14,10 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.common
+package io.fcomb.models.errors
 
-import cats.Eq
-
-trait EnumItem extends enumeratum.EnumEntry with enumeratum.EnumEntry.Snakecase {
-  def value = entryName
-}
-
-trait Enum[T <: EnumItem] extends enumeratum.Enum[T] {
-  implicit val valueEq: Eq[T] = Eq.fromUniversalEquals
-
-  final lazy val entryNames = values.map(_.entryName).mkString(", ")
-}
+final case class ErrorMessage(
+    message: String,
+    param: Option[String] = None,
+    code: Option[Int] = None
+)
