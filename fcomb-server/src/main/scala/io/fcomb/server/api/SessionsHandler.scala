@@ -27,6 +27,7 @@ import io.fcomb.persist.SessionsRepo
 import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats._
+import io.fcomb.server.CommonDirectives._
 
 object SessionsHandler {
   def create =
@@ -44,7 +45,7 @@ object SessionsHandler {
       extractCredentials {
         case Some(OAuth2BearerToken(token)) =>
           onSuccess(SessionsRepo.destroy(token)) { _ =>
-            complete(HttpResponse(StatusCodes.NoContent))
+            completeNoContent()
           }
         case Some(_) => complete(HttpResponse(StatusCodes.BadRequest))
         case None    => complete(HttpResponse(StatusCodes.Unauthorized))

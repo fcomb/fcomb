@@ -27,7 +27,7 @@ import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo, UsersRepo}
 import io.fcomb.rpc.acl._
 import io.fcomb.rpc.helpers.time.Implicits._
-import io.fcomb.validations.ValidationResult
+import io.fcomb.validations.{ValidationResult, ValidationResultUnit}
 import java.time.ZonedDateTime
 import scala.concurrent.{Future, ExecutionContext}
 import slick.jdbc.TransactionIsolation
@@ -276,16 +276,8 @@ object PermissionsRepo
   private def userIdByMemberRequestDBIO(req: PermissionMemberRequest)(
       implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
     req match {
-      case PermissionUserIdRequest(id) =>
-        UsersRepo.findByIdDBIO(id).map {
-          case Some(u) => Validated.Valid(u)
-          case _       => validationError("member.id", "Not found")
-        }
-      case PermissionUsernameRequest(username) =>
-        UsersRepo.findByUsernameDBIO(username).map {
-          case Some(u) => Validated.Valid(u)
-          case _       => validationError("member.username", "Not found")
-        }
+      case PermissionUserIdRequest(id)     => UsersRepo.findByIdAsValidatedDBIO(id)
+      case PermissionUsernameRequest(name) => UsersRepo.findByUsernameAsValidatedDBIO(name)
     }
   }
 
@@ -299,14 +291,17 @@ object PermissionsRepo
       }.take(1)
   }
 
+  private lazy val cannotSetPermissionForOwner =
+    validationError("owner", "Cannot set a permission for owner")
+
   def upsertByImage(image: Image, req: PermissionUserCreateRequest)(
       implicit ec: ExecutionContext): Future[ValidationResult[PermissionResponse]] = {
-    runInTransaction(TransactionIsolation.Serializable) {
+    runInTransaction(TransactionIsolation.Serializable) { // TODO: DRY
       userIdByMemberRequestDBIO(req.member).flatMap {
         case Validated.Valid(user) =>
           val memberId = user.getId
           if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
-            DBIO.successful(validationError("owner", "Cannot set a permission for owner"))
+            DBIO.successful(cannotSetPermissionForOwner)
           else {
             findIdByImageAndSourceCompiled((image.getId(), memberId)).result.headOption.flatMap {
               case Some(p) =>
@@ -340,4 +335,36 @@ object PermissionsRepo
       }
     }
   }
+
+  private def userIdBySlugDBIO(slug: String)(
+      implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
+    if (slug.forall(Character.isDigit)) UsersRepo.findByIdAsValidatedDBIO(slug.toInt)
+    else UsersRepo.findByUsernameAsValidatedDBIO(slug)
+  }
+
+  def destroyByImage(image: Image, memberKind: MemberKind, slug: String)(
+      implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
+    assert(memberKind === MemberKind.User) // TODO
+    runInTransaction(TransactionIsolation.Serializable) { // TODO: DRY
+      userIdBySlugDBIO(slug).flatMap {
+        case Validated.Valid(user) =>
+          val memberId = user.getId
+          if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
+            DBIO.successful(cannotSetPermissionForOwner)
+          else {
+            findIdByImageAndSourceCompiled((image.getId(), memberId)).result.headOption.flatMap {
+              case Some(p) =>
+                findByIdQuery(p.getId()).delete.map { res =>
+                  if (res == 0) notFound
+                  else Validated.Valid(())
+                }
+              case _ => DBIO.successful(notFound)
+            }
+          }
+        case res @ Validated.Invalid(_) => DBIO.successful(res)
+      }
+    }
+  }
+
+  private lazy val notFound = validationError("permission", "Not found")
 }

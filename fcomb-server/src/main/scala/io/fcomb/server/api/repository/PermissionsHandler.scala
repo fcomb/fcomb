@@ -18,15 +18,16 @@ package io.fcomb.server.api.repository
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Directive1, Route}
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.json.rpc.acl.Formats._
-import io.fcomb.models.acl.Action
+import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.docker.distribution.ImageKey
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.acl.PermissionUserCreateRequest
 import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 
@@ -62,12 +63,42 @@ object PermissionsHandler {
     }
   }
 
+  def destroy(key: ImageKey, memberKind: MemberKind, slug: String) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+          onSuccess(PermissionsRepo.destroyByImage(image, memberKind, slug)) {
+            case Validated.Valid(p)   => completeNoContent()
+            case Validated.Invalid(e) => ??? // TODO
+          }
+        }
+      }
+    }
+  }
+
   def routes(key: ImageKey): Route = {
     // format: OFF
-    path(servicePath) {
-      get(index(key)) ~
-      put(upsert(key))
+    pathPrefix(servicePath) {
+      pathEnd {
+        get(index(key)) ~
+        put(upsert(key))
+      } ~
+      path(Segment / Segment) { (kind, slug) =>
+        extractMemberKind(kind) { memberKind =>
+          delete(destroy(key, memberKind, slug))
+        }
+      }
     }
     // format: ON
   }
+
+  private def extractMemberKind(kind: String): Directive1[MemberKind] = {
+    MemberKind.withNameOption(kind) match {
+      case Some(memberKind) => provide(memberKind)
+      case None =>
+        complete((StatusCodes.BadRequest, s"$kind is not a member of Enum ($memberKindEntries)"))
+    }
+  }
+
+  private lazy val memberKindEntries = MemberKind.values.map(_.entryName).mkString(", ")
 }

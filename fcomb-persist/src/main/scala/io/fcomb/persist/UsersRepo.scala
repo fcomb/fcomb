@@ -145,6 +145,20 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     }
   }
 
+  def findByIdAsValidatedDBIO(id: Int)(implicit ec: ExecutionContext) = {
+    findByIdDBIO(id).map {
+      case Some(u) => Validated.Valid(u)
+      case _       => validationError("member.id", "Not found")
+    }
+  }
+
+  def findByUsernameAsValidatedDBIO(username: String)(implicit ec: ExecutionContext) = {
+    findByUsernameDBIO(username).map {
+      case Some(u) => Validated.Valid(u)
+      case _       => validationError("member.username", "Not found")
+    }
+  }
+
   import Validations._
 
   private lazy val uniqueUsernameCompiled = Compiled {
