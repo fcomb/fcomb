@@ -80,7 +80,9 @@ object RepositoriesHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageByKeyWithAcl(key, user, Action.Manage) { image =>
-          ???
+          onSuccess(ImagesRepo.destroy(image.getId())) { _ =>
+            completeAccepted()
+          }
         }
       }
     }

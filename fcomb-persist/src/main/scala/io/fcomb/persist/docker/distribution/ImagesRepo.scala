@@ -17,19 +17,21 @@
 package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
+import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind, ImageKey}
 import io.fcomb.models.{OwnerKind, Owner, User, Pagination, PaginationData}
-import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest, ImageUpdateRequest}
-import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.{PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, OrganizationGroupUsersRepo}
+import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest, ImageUpdateRequest}
+import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
+import slick.jdbc.TransactionIsolation
 
 class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTableWithAutoIntPk {
   def name           = column[String]("name")
@@ -305,10 +307,21 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     }
   }
 
-  def updateVisibility(imageId: Int, visibilityKind: ImageVisibilityKind): Future[_] = {
+  def updateVisibility(id: Int, visibilityKind: ImageVisibilityKind): Future[_] = {
     db.run {
-      table.filter(_.id === imageId).map(_.visibilityKind).update(visibilityKind)
+      table.filter(_.id === id).map(_.visibilityKind).update(visibilityKind)
     }
+  }
+
+  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
+    for {
+      _ <- PermissionsRepo.destroyByImageIdDBIO(id)
+      _ <- findByIdQuery(id).delete
+    } yield Validated.Valid(()) // TODO
+  }
+
+  override def destroy(id: Int)(implicit ec: ExecutionContext) = {
+    runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
   }
 
   private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>

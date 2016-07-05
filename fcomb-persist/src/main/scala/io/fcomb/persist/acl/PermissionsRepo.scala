@@ -367,4 +367,11 @@ object PermissionsRepo
   }
 
   private lazy val notFound = validationError("permission", "Not found")
+
+  def destroyByImageIdDBIO(imageId: Int) = {
+    table.filter { q =>
+      q.sourceId === imageId &&
+      q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
+    }.delete
+  }
 }
