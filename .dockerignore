@@ -1,0 +1,7 @@
+.ensime*
+.git/
+fcomb-frontend/node_modules/
+fcomb-frontend/src/main/resources/web/assets/
+target/
+*/target/
+**/*/target/

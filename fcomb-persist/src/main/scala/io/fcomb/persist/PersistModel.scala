@@ -33,25 +33,16 @@ trait PersistTypes[T] {
   type ValidationModel      = ValidationResult[T]
   type ValidationDBIOResult = DBIOT[ValidationResultUnit]
 
-  def validationError[E](
-      columnName: String,
-      error: String
-  ): ValidationResult[E] =
+  def validationError[E](columnName: String, error: String): ValidationResult[E] =
     validations.validationErrors(columnName -> error)
 
-  def validationErrorAsFuture[E](
-      columnName: String,
-      error: String
-  ): Future[ValidationResult[E]] =
+  def validationErrorAsFuture[E](columnName: String, error: String): Future[ValidationResult[E]] =
     FastFuture.successful(validationError(columnName, error))
 
   def recordNotFound[E](columnName: String, id: String): ValidationResult[E] =
     validationError(columnName, s"Not found `$id` record")
 
-  def recordNotFoundAsFuture[E](
-      field: String,
-      id: String
-  ): Future[ValidationResult[E]] =
+  def recordNotFoundAsFuture[E](field: String, id: String): Future[ValidationResult[E]] =
     FastFuture.successful(recordNotFound(field, id))
 }
 
