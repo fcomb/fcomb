@@ -28,7 +28,9 @@ object SettingsComponent {
     def render(props: Props) = {
       <.section(
         <.h1("Settings"),
-        PermissionsComponent.apply(props.ctl, props.repositoryName)
+        PermissionsComponent.apply(props.ctl, props.repositoryName),
+        <.hr,
+        DeleteRepositoryComponent.apply(props.ctl, props.repositoryName)
       )
     }
   }

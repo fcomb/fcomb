@@ -31,6 +31,7 @@ import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
 
+// TODO: check Config.security.isOpenSignUp
 object SignUpComponent {
   final case class State(
       email: String, password: String, username: String, fullName: String, isFormDisabled: Boolean)

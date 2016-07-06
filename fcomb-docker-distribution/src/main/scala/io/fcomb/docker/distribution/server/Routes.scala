@@ -20,12 +20,16 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.`WWW-Authenticate`
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import io.fcomb.server.headers._
-import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.models.docker.distribution.{Reference, ImageManifest}
-import org.slf4j.LoggerFactory
-import io.fcomb.utils.Config.docker.distribution.realm
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.api._
+import io.fcomb.docker.distribution.server.headers._
+import io.fcomb.json.models.docker.distribution.CompatibleFormats._
+import io.fcomb.models.docker.distribution.{Reference, ImageManifest}
+import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
+import io.fcomb.server.headers._
+import io.fcomb.utils.Config.docker.distribution.realm
+import org.slf4j.LoggerFactory
 
 object Routes {
   val apiVersion = "v2"
@@ -81,11 +85,6 @@ object Routes {
         }
       }
     // format: ON
-
-    import de.heikoseeberger.akkahttpcirce.CirceSupport._
-    import io.fcomb.json.models.docker.distribution.CompatibleFormats._
-    import io.circe.generic.auto._
-    import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 
     val exceptionHandler = ExceptionHandler {
       case e =>

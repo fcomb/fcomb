@@ -3,14 +3,14 @@ package io.fcomb.application.server
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
+import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.json.models.errors.Formats._
 import io.fcomb.models.errors._
 import org.slf4j.LoggerFactory
-import io.circe.generic.auto._
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
 
 class HttpApiService(routes: Route)(
     implicit sys: ActorSystem,
