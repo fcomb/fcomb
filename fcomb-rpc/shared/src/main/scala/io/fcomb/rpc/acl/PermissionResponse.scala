@@ -21,13 +21,14 @@ import io.fcomb.models.acl.{Action, MemberKind}
 sealed trait PermissionMemberResponse {
   val id: Int
   val kind: MemberKind
+  val name: String
 }
 
 final case class PermissionUserMemberResponse(
     id: Int,
     kind: MemberKind,
     isOwner: Boolean,
-    username: Option[String],
+    name: String,
     fullName: Option[String]
 ) extends PermissionMemberResponse
 

@@ -82,16 +82,14 @@ object PermissionsComponent {
     lazy val actions = Action.values.map(k => <.option(^.value := k.value)(k.entryName))
 
     def renderActionCell(repositoryName: String, state: State, permission: PermissionResponse) = {
-      permission.member.username match {
-        case Some(username) if !permission.member.isOwner =>
-          <.td(
-            <.select(^.disabled := state.form.isFormDisabled,
-                     ^.required := true,
-                     ^.value := permission.action.value,
-                     ^.onChange ==> updatePermission(repositoryName, username),
-                     actions))
-        case _ => <.td(permission.action.toString())
-      }
+      if (permission.member.isOwner) <.td(permission.action.toString())
+      else
+        <.td(
+          <.select(^.disabled := state.form.isFormDisabled,
+                   ^.required := true,
+                   ^.value := permission.action.value,
+                   ^.onChange ==> updatePermission(repositoryName, permission.member.name),
+                   actions))
     }
 
     def deletePermission(repositoryName: String, username: String)(e: ReactEventI) = {
@@ -118,19 +116,17 @@ object PermissionsComponent {
     }
 
     def renderOptionsCell(repositoryName: String, state: State, permission: PermissionResponse) = {
-      permission.member.username match {
-        case Some(username) if !permission.member.isOwner =>
-          <.td(
-            <.button(^.`type` := "button",
-                     ^.disabled := state.form.isFormDisabled,
-                     ^.onClick ==> deletePermission(repositoryName, username),
-                     "Delete"))
-        case _ => EmptyTag
-      }
+      if (permission.member.isOwner) EmptyTag
+      else
+        <.td(
+          <.button(^.`type` := "button",
+                   ^.disabled := state.form.isFormDisabled,
+                   ^.onClick ==> deletePermission(repositoryName, permission.member.name),
+                   "Delete"))
     }
 
     def renderPermissionRow(repositoryName: String, state: State, permission: PermissionResponse) = {
-      <.tr(<.td(permission.member.username),
+      <.tr(<.td(permission.member.name),
            renderActionCell(repositoryName, state, permission),
            renderOptionsCell(repositoryName, state, permission))
     }

@@ -192,23 +192,19 @@ object PermissionsRepo
     )
   }
 
-  private type PermissionResponseTuple = (Int,
-                                          MemberKind,
-                                          Action,
-                                          ZonedDateTime,
-                                          Option[ZonedDateTime],
-                                          (Option[String], Option[String]))
+  private type PermissionResponseTuple =
+    (Int, MemberKind, Action, ZonedDateTime, Option[ZonedDateTime], (String, Option[String]))
 
   private type PermissionResponseTupleRep = (Rep[Int],
                                              Rep[MemberKind],
                                              Rep[Action],
                                              Rep[ZonedDateTime],
                                              Rep[Option[ZonedDateTime]],
-                                             (Rep[Option[String]], Rep[Option[String]]))
+                                             (Rep[String], Rep[Option[String]]))
 
   private def findByImageIdScopeDBIO(imageId: Rep[Int]) =
     table
-      .joinLeft(UsersRepo.table)
+      .join(UsersRepo.table)
       .on {
         case (t, ut) => t.memberKind === (MemberKind.User: MemberKind) && t.memberId === ut.id
       }
@@ -223,7 +219,7 @@ object PermissionsRepo
            t.action,
            t.createdAt,
            t.updatedAt,
-           (ut.map(_.username), ut.flatMap(_.fullName)))
+           (ut.username, ut.fullName))
       }
 
   private def sortByPF(q: PermissionResponseTupleRep): PartialFunction[String, Rep[_]] = {
@@ -263,7 +259,7 @@ object PermissionsRepo
         val member = PermissionUserMemberResponse(id = userId,
                                                   kind = MemberKind.User,
                                                   isOwner = isOwner,
-                                                  username = username,
+                                                  name = username,
                                                   fullName = fullName)
         PermissionResponse(
           member = member,
@@ -320,7 +316,7 @@ object PermissionsRepo
                 id = memberId,
                 kind = MemberKind.User,
                 isOwner = false, // impossible to change the permissions for the owner
-                username = Some(user.username),
+                name = user.username,
                 fullName = user.fullName)
               Validated.Valid(
                 PermissionResponse(
