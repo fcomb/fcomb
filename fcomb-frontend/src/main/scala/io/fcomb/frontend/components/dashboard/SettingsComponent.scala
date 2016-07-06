@@ -30,6 +30,8 @@ object SettingsComponent {
         <.h1("Settings"),
         PermissionsComponent.apply(props.ctl, props.repositoryName),
         <.hr,
+        RepositoryVisibilityComponent.apply(props.ctl, props.repositoryName),
+        <.hr,
         DeleteRepositoryComponent.apply(props.ctl, props.repositoryName)
       )
     }

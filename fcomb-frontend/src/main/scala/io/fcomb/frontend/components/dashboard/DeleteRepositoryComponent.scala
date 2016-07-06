@@ -26,39 +26,39 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object DeleteRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
-  final case class State(isFormDisabled: Boolean)
+  final case class State(isDisabled: Boolean)
 
   final case class Backend($ : BackendScope[Props, State]) {
     def delete(props: Props)(e: ReactEventI): Callback = {
       e.preventDefaultCB >>
       $.state.flatMap { state => // TODO: DRY
-        $.setState(state.copy(isFormDisabled = true)) >>
+        $.setState(state.copy(isDisabled = true)) >>
         Callback.future {
           Rpc
             .call[Unit](RpcMethod.DELETE, Resource.repository(props.repositoryName))
             .map {
               case Xor.Right(_) =>
-                updateFormDisabled(false) >>
+                updateDisabled(false) >>
                   props.ctl.set(DashboardRoute.Root)
               case Xor.Left(e) =>
                 // TODO
-                updateFormDisabled(false)
+                updateDisabled(false)
             }
             .recover {
-              case _ => updateFormDisabled(false)
+              case _ => updateDisabled(false)
             }
         }
       }
     }
 
-    def updateFormDisabled(isFormDisabled: Boolean): Callback = {
-      $.modState(_.copy(isFormDisabled = isFormDisabled))
+    def updateDisabled(isDisabled: Boolean): Callback = {
+      $.modState(_.copy(isDisabled = isDisabled))
     }
 
     def render(props: Props, state: State) = {
       <.div(<.h2("Delete repository"),
             <.button(^.`type` := "button",
-                     ^.disabled := state.isFormDisabled,
+                     ^.disabled := state.isDisabled,
                      ^.onClick ==> delete(props),
                      "Destroy"))
     }

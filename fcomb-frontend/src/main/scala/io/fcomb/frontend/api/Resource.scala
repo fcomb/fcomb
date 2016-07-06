@@ -17,6 +17,7 @@
 package io.fcomb.frontend.api
 
 import io.fcomb.models.acl.MemberKind
+import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
 object Resource {
   val prefix = "/api/v1"
@@ -32,6 +33,9 @@ object Resource {
   def repositoryPermissions(imageSlug: String) = repository(imageSlug) + "/permissions"
   def repositoryPermission(imageSlug: String, kind: MemberKind, slug: String) =
     repositoryPermissions(imageSlug) + s"/${kind.entryName}/$slug"
+
+  def repositoryVisibility(imageSlug: String, kind: ImageVisibilityKind) =
+    repository(imageSlug) + s"/visibility/${kind.entryName}"
 
   val users  = prefix + "/users"
   val signUp = users + "/sign_up"
