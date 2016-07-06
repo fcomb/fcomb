@@ -31,6 +31,11 @@ object Config {
     }
   }
 
+  object security {
+    val isOpenSignUp                  = config.getBoolean("security.open-sign-up")
+    val isAnonymousPublicRepositories = config.getBoolean("security.anonymous-public-repositories")
+  }
+
   val redis       = config.getConfig("redis")
   val mandrillKey = config.getString("mandrill.key")
 }

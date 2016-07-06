@@ -74,3 +74,7 @@ final case class ValidationException(
     Some(param)
   )
 }
+
+final case object RegistrationIsDisabled extends DtCemException {
+  def toErrorMessage() = ErrorMessage("User registration is disabled by administrator")
+}

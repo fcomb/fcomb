@@ -21,21 +21,27 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
-import io.circe.generic.auto._
-import io.fcomb.rpc.UserSignUpRequest
-import io.fcomb.persist.UsersRepo
+import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.Formats._
+import io.fcomb.models.errors.{FailureResponse, RegistrationIsDisabled}
+import io.fcomb.persist.UsersRepo
+import io.fcomb.rpc.UserSignUpRequest
+import io.fcomb.utils.Config
 
 object UsersHandler {
   val servicePath = "users"
 
-  def signUp =
-    extractExecutionContext { implicit ec =>
-      entity(as[UserSignUpRequest]) { req =>
-        onSuccess(UsersRepo.create(req)) {
-          case Validated.Valid(_)   => complete(HttpResponse(StatusCodes.Created))
-          case Validated.Invalid(e) => complete((StatusCodes.BadRequest, e))
+  def signUp = {
+    if (Config.security.isOpenSignUp) {
+      extractExecutionContext { implicit ec =>
+        entity(as[UserSignUpRequest]) { req =>
+          onSuccess(UsersRepo.create(req)) {
+            case Validated.Valid(_) => complete(HttpResponse(StatusCodes.Created))
+            case Validated.Invalid(e) =>
+              complete((StatusCodes.BadRequest, FailureResponse.fromExceptions(e)))
+          }
         }
       }
-    }
+    } else complete((StatusCodes.Forbidden, FailureResponse.fromException(RegistrationIsDisabled)))
+  }
 }

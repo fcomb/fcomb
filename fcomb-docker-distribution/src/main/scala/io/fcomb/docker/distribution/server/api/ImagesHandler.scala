@@ -86,9 +86,7 @@ object ImagesHandler {
     }
   }
 
-  def uploadManifest(imageName: String, reference: Reference)(
-      implicit req: HttpRequest
-  ) =
+  def uploadManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user, Action.Write) { image =>
