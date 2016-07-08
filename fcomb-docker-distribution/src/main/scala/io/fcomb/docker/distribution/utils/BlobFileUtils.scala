@@ -28,7 +28,7 @@ import java.nio.file.Files
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future, blocking}
 
-object BlobFile {
+object BlobFileUtils {
   def getUploadFilePath(uuid: UUID): File =
     imageFilePath("uploads", uuid.toString)
 

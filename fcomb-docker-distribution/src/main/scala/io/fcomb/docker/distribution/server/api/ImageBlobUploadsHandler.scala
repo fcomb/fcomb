@@ -25,7 +25,7 @@ import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.docker.distribution.utils.BlobFile
+import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.User
 import io.fcomb.models.acl.Action
@@ -113,8 +113,9 @@ object ImageBlobUploadsHandler {
         import mat.executionContext
         val contentType = req.entity.contentType.mediaType.value
         val blobResFut = for {
-          Validated.Valid(blob)  <- ImageBlobsRepo.create(image.getId(), contentType)
-          (length, sha256Digest) <- BlobFile.uploadBlobChunk(blob.getId(), req.entity.dataBytes)
+          Validated.Valid(blob) <- ImageBlobsRepo.create(image.getId(), contentType)
+          (length, sha256Digest) <- BlobFileUtils.uploadBlobChunk(blob.getId(),
+                                                                  req.entity.dataBytes)
           _ <- ImageBlobsRepo
                 .completeUploadOrDelete(blob.getId(), blob.imageId, length, sha256Digest)
         } yield (blob, sha256Digest)
@@ -122,7 +123,7 @@ object ImageBlobUploadsHandler {
           case (blob, sha256Digest) =>
             val uuid = blob.getId
             if (Reference.getDigest(digest) == sha256Digest) {
-              onSuccess(BlobFile.renameOrDelete(uuid, sha256Digest)) {
+              onSuccess(BlobFileUtils.renameOrDelete(uuid, sha256Digest)) {
                 val headers = immutable.Seq(
                   Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
                   `Docker-Upload-Uuid`(uuid),
@@ -134,7 +135,7 @@ object ImageBlobUploadsHandler {
               }
             } else {
               val res = for {
-                _ <- BlobFile.destroyBlob(uuid)
+                _ <- BlobFileUtils.destroyBlob(uuid)
                 _ <- ImageBlobsRepo.destroy(uuid)
               } yield ()
               onSuccess(res) {
@@ -189,7 +190,7 @@ object ImageBlobUploadsHandler {
                     case _ => req.entity.dataBytes
                   }
                   val totalLengthFut = for {
-                    (length, digest) <- BlobFile.uploadBlobChunk(uuid, data)
+                    (length, digest) <- BlobFileUtils.uploadBlobChunk(uuid, data)
                     totalLength = blob.length + length
                     _ <- ImageBlobsRepo.updateState(uuid,
                                                     totalLength,
@@ -229,7 +230,7 @@ object ImageBlobUploadsHandler {
             import mat.executionContext
             onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
               case Some(blob) if !blob.isUploaded =>
-                onSuccess(BlobFile.uploadBlobChunk(uuid, req.entity.dataBytes)) {
+                onSuccess(BlobFileUtils.uploadBlobChunk(uuid, req.entity.dataBytes)) {
                   case (length, sha256Digest) =>
                     val totalLength = blob.length + length
                     complete {
@@ -240,7 +241,7 @@ object ImageBlobUploadsHandler {
                           `Docker-Content-Digest`("sha256", sha256Digest)
                         )
                         for {
-                          _ <- BlobFile.renameOrDelete(uuid, sha256Digest)
+                          _ <- BlobFileUtils.renameOrDelete(uuid, sha256Digest)
                           _ <- ImageBlobsRepo.completeUploadOrDelete(uuid,
                                                                      blob.imageId,
                                                                      totalLength,
@@ -272,7 +273,7 @@ object ImageBlobUploadsHandler {
           onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
             case Some(blob) if !blob.isUploaded =>
               complete(for {
-                _ <- BlobFile.destroyBlob(blob.getId())
+                _ <- BlobFileUtils.destroyBlob(blob.getId())
                 _ <- ImageBlobsRepo.destroy(uuid)
               } yield HttpResponse(StatusCodes.NoContent))
             case _ =>

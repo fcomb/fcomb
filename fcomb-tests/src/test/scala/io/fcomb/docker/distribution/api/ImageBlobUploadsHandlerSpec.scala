@@ -28,7 +28,7 @@ import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
-import io.fcomb.docker.distribution.utils.BlobFile
+import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
@@ -69,7 +69,7 @@ class ImageBlobUploadsHandlerSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    BlobFile.getBlobFilePath(bsDigest).delete()
+    BlobFileUtils.getBlobFilePath(bsDigest).delete()
   }
 
   "The image blob upload handler" should {
@@ -111,7 +111,7 @@ class ImageBlobUploadsHandlerSpec
         blob.state shouldEqual ImageBlobState.Uploaded
         blob.sha256Digest shouldEqual Some(bsDigest)
 
-        val file = BlobFile.getBlobFilePath(blob.sha256Digest.get)
+        val file = BlobFileUtils.getBlobFilePath(blob.sha256Digest.get)
         file.length shouldEqual bs.length
         val fis        = new FileInputStream(file)
         val fileDigest = DigestUtils.sha256Hex(fis)
@@ -194,7 +194,7 @@ class ImageBlobUploadsHandlerSpec
         blob.state shouldEqual ImageBlobState.Uploaded
         blob.sha256Digest shouldEqual Some(bsDigest)
 
-        val file = BlobFile.getBlobFilePath(bsDigest)
+        val file = BlobFileUtils.getBlobFilePath(bsDigest)
         file.length shouldEqual bs.length
         val fis        = new FileInputStream(file)
         val fileDigest = DigestUtils.sha256Hex(fis)
@@ -229,7 +229,7 @@ class ImageBlobUploadsHandlerSpec
         updatedBlob.state shouldEqual ImageBlobState.Uploading
         updatedBlob.sha256Digest shouldEqual Some(blobPart1Digest)
 
-        val file = BlobFile.getUploadFilePath(blob.getId())
+        val file = BlobFileUtils.getUploadFilePath(blob.getId())
         file.length shouldEqual blobPart1.length
         val fis        = new FileInputStream(file)
         val fileDigest = DigestUtils.sha256Hex(fis)
@@ -255,7 +255,7 @@ class ImageBlobUploadsHandlerSpec
         updatedBlob.state shouldEqual ImageBlobState.Uploading
         updatedBlob.sha256Digest shouldEqual Some(bsDigest)
 
-        val file = BlobFile.getUploadFilePath(blob.getId())
+        val file = BlobFileUtils.getUploadFilePath(blob.getId())
         file.length shouldEqual bs.length
         val fis        = new FileInputStream(file)
         val fileDigest = DigestUtils.sha256Hex(fis)
@@ -273,7 +273,7 @@ class ImageBlobUploadsHandlerSpec
                  bs,
                  ImageBlobState.Uploading
                )
-        _ <- BlobFile.uploadBlobChunk(blob.getId(), Source.single(bs))
+        _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs))
       } yield (blob, image.slug))
 
       Put(
@@ -303,7 +303,7 @@ class ImageBlobUploadsHandlerSpec
                  bs.take(1),
                  ImageBlobState.Uploading
                )
-        _ <- BlobFile.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
+        _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
       } yield (blob, image.slug))
 
       Put(
@@ -333,7 +333,7 @@ class ImageBlobUploadsHandlerSpec
                  bs,
                  ImageBlobState.Uploading
                )
-        _ <- BlobFile.uploadBlobChunk(blob.getId(), Source.single(bs))
+        _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs))
       } yield (blob, image.slug))
 
       Put(
@@ -363,7 +363,7 @@ class ImageBlobUploadsHandlerSpec
                  bs.take(1),
                  ImageBlobState.Uploading
                )
-        _ <- BlobFile.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
+        _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
       } yield (blob, image.slug))
 
       Put(
@@ -399,7 +399,7 @@ class ImageBlobUploadsHandlerSpec
         status shouldEqual StatusCodes.NoContent
         responseEntity shouldEqual HttpEntity.Empty
 
-        val file = BlobFile.getUploadFilePath(blob.getId())
+        val file = BlobFileUtils.getUploadFilePath(blob.getId())
         file.exists() should be(false)
       }
     }

@@ -24,7 +24,7 @@ import akka.util.ByteString
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.docker.distribution.utils.BlobFile
+import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.tests._
@@ -52,7 +52,7 @@ class ImageBlobsHandlerSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    BlobFile.getBlobFilePath(bsDigest).delete()
+    BlobFileUtils.getBlobFilePath(bsDigest).delete()
   }
 
   "The image blob handler" should {
@@ -171,7 +171,7 @@ class ImageBlobsHandlerSpec
         status shouldEqual StatusCodes.NoContent
         responseEntity shouldEqual HttpEntity.Empty
 
-        val file = BlobFile.getUploadFilePath(blob.getId())
+        val file = BlobFileUtils.getUploadFilePath(blob.getId())
         file.exists() should be(false)
       }
     }

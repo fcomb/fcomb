@@ -22,7 +22,7 @@ import akka.util.ByteString
 import cats.data.Validated
 import io.fcomb.models.docker.distribution.{ImageBlob, ImageBlobState}
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
-import io.fcomb.docker.distribution.utils.BlobFile
+import io.fcomb.docker.distribution.utils.BlobFileUtils
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.apache.commons.codec.digest.DigestUtils
@@ -68,7 +68,7 @@ object ImageBlobsRepoFixture {
     )
     for {
       Validated.Valid(im) <- ImageBlobsRepo.create(blob)
-      file = BlobFile.getFile(blob)
+      file = BlobFileUtils.getFile(blob)
       _    = file.getParentFile.mkdirs()
       _ <- Source.single(bs).runWith(FileIO.toPath(file.toPath))
     } yield im

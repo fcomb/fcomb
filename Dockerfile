@@ -1,21 +1,22 @@
 FROM fcomb/alpine-jre8-sbt:v2.11_0.13
 MAINTAINER Timothy Klim <fcomb@timothyklim.com>
 
+USER root
+
+RUN adduser -D -g '' -h /app fcomb
+ENV APP /app
 ENV HOME /home/java
-ENV APPDIR ${HOME}/app
 ENV WORKDIR ${HOME}/project
 
 COPY . ${WORKDIR}
 WORKDIR ${WORKDIR}
 
-USER root
-RUN chown -R java:java ${WORKDIR}
+RUN su java -m -c "${HOME}/bin/sbt universal:packageZipTarball" && \
+    tar -xf ${WORKDIR}/target/universal/dist.tgz -C / && \
+    mv /dist ${APP} && \
+    chown -R fcomb:fcomb ${APP} && \
+    deluser --remove-home java
 
-USER java
-RUN ${HOME}/bin/sbt universal:packageZipTarball && \
-    tar -xf ${WORKDIR}/target/universal/dist.tgz -C /tmp && \
-    mv /tmp/dist ${APPDIR} && \
-    rm -rf ${WORKDIR} ${HOME}/bin ${HOME}/.sbt ${HOME}/.coursier ${HOME}/.ivy2
-
-WORKDIR ${APPDIR}
-CMD ${APPDIR}/bin/start
+USER fcomb
+WORKDIR ${APP}
+CMD ${APP}/bin/start

@@ -31,7 +31,7 @@ import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.docker.distribution.utils.BlobFile
+import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
@@ -95,7 +95,7 @@ object ImageBlobsHandler {
                     if (digest == ImageManifest.emptyTarSha256Digest)
                       Source.single(ByteString(
                           ImageManifest.emptyTar.drop(offset.toInt).take(chunkLength.toInt)))
-                    else BlobFile.streamBlob(digest, offset, chunkLength)
+                    else BlobFileUtils.streamBlob(digest, offset, chunkLength)
                   complete(
                     HttpResponse(
                       StatusCodes.PartialContent,
@@ -116,7 +116,7 @@ object ImageBlobsHandler {
                       )
                       val source =
                         if (digest == ImageManifest.emptyTarSha256Digest) emptyTarSource
-                        else FileIO.fromPath(BlobFile.getFile(blob).toPath)
+                        else FileIO.fromPath(BlobFileUtils.getFile(blob).toPath)
                       complete(
                         HttpResponse(
                           StatusCodes.OK,
@@ -143,7 +143,7 @@ object ImageBlobsHandler {
                   ImageBlobsRepo
                     .existByDigest(digest)
                     .flatMap {
-                      case false => BlobFile.destroyBlob(blob.getId())
+                      case false => BlobFileUtils.destroyBlob(blob.getId())
                       case true  => FastFuture.successful(())
                     }
                     .fast

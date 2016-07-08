@@ -25,7 +25,7 @@ import io.fcomb.models.docker.distribution.{Reference, Image => Image}
 import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImageBlobsRepo}
-import io.fcomb.docker.distribution.utils.BlobFile
+import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.utils.Units._
 import org.apache.commons.codec.digest.DigestUtils
 import scala.concurrent.{ExecutionContext, Future}
@@ -51,7 +51,7 @@ object SchemaV2 {
             if (configBlob.length > 1.MB)
               FastFuture.successful(unknowError("Config JSON size is more than 1 MB"))
             else {
-              val configFile = BlobFile.getBlobFilePath(configDigest)
+              val configFile = BlobFileUtils.getBlobFilePath(configDigest)
               getImageConfig(configFile).flatMap { imageConfig =>
                 SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
                   case Xor.Right(schemaV1JsonBlob) =>
