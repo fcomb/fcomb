@@ -47,23 +47,24 @@ object RepositoryVisibilityComponent {
 
     def updateVisibility(props: Props, kind: ImageVisibilityKind)(e: ReactEventI): Callback = {
       e.preventDefaultCB >>
-      $.state.flatMap { state => // TODO: DRY
-        $.setState(state.copy(isFormDisabled = true)) >>
-        Callback.future {
-          Rpc
-            .call[Unit](RpcMethod.POST, Resource.repositoryVisibility(props.repositoryName, kind))
-            .map {
-              case Xor.Right(_) =>
-                updateFormDisabled(false) >> getVisibility(props.repositoryName)
-              case Xor.Left(e) =>
-                // TODO
-                updateFormDisabled(false)
-            }
-            .recover {
-              case _ => updateFormDisabled(false)
+        $.state.flatMap { state => // TODO: DRY
+          $.setState(state.copy(isFormDisabled = true)) >>
+            Callback.future {
+              Rpc
+                .call[Unit](RpcMethod.POST,
+                            Resource.repositoryVisibility(props.repositoryName, kind))
+                .map {
+                  case Xor.Right(_) =>
+                    updateFormDisabled(false) >> getVisibility(props.repositoryName)
+                  case Xor.Left(e) =>
+                    // TODO
+                    updateFormDisabled(false)
+                }
+                .recover {
+                  case _ => updateFormDisabled(false)
+                }
             }
         }
-      }
     }
 
     def handleOnSubmit(e: ReactEventH): Callback = {

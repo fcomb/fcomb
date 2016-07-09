@@ -17,7 +17,7 @@
 package io.fcomb.docker.distribution.server
 
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.`WWW-Authenticate`
+import akka.http.scaladsl.model.headers.{HttpChallenges, `WWW-Authenticate`}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
@@ -130,7 +130,7 @@ object Routes {
     `X-XSS-Protection`("1; mode=block")
   )
 
-  private val authenticateHeader = `WWW-Authenticate`(challengeFor(realm))
+  private val authenticateHeader = `WWW-Authenticate`(HttpChallenges.basic(realm))
 
   private val defaultAuthenticateHeaders = authenticateHeader :: defaultHeaders
 }

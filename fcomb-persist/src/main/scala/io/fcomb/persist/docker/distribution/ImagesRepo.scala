@@ -189,9 +189,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   private def availableScopeDBIO(userId: Rep[Int]) = {
     availableByUserOwnerScopeDBIO(userId) union
-    availableByUserPermissionsScopeDBIO(userId) union
-    availableByUserGroupsScopeDBIO(userId) union
-    availableByUserOrganizationsScopeDBIO(userId)
+      availableByUserPermissionsScopeDBIO(userId) union
+      availableByUserGroupsScopeDBIO(userId) union
+      availableByUserOrganizationsScopeDBIO(userId)
   }
 
   private lazy val findIdByUserIdAndNameCompiled = Compiled {

@@ -54,8 +54,8 @@ object RepositoryComponent {
 
     def formDescription(description: String)(e: ReactEventH): Callback = {
       e.preventDefaultCB >>
-      $.modState(_.copy(form = Some(FormState(description, false, false)))) >>
-      CallbackTo(textarea.apply($).map(_.setSelectionRange(0, 0))).delayMs(1).void
+        $.modState(_.copy(form = Some(FormState(description, false, false)))) >>
+        CallbackTo(textarea.apply($).map(_.setSelectionRange(0, 0))).delayMs(1).void
     }
 
     def updateRepositoryDescription(): Callback = {

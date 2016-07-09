@@ -62,21 +62,21 @@ object PermissionsComponent {
     def updatePermission(repositoryName: String, username: String)(e: ReactEventI) = {
       val action = Action.withName(e.target.value)
       e.preventDefaultCB >>
-      $.state.flatMap { state =>
-        $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
-        Callback.future {
-          upsertPermissionRpc(repositoryName, username, action).map {
-            case Xor.Right(_) =>
-              updateFormDisabled(false) >>
-                getPermissions(repositoryName, state.sortColumn, state.sortOrder)
-            case Xor.Left(e) =>
-              // TODO
-              updateFormDisabled(false)
-          }.recover {
-            case _ => updateFormDisabled(false)
-          }
+        $.state.flatMap { state =>
+          $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
+            Callback.future {
+              upsertPermissionRpc(repositoryName, username, action).map {
+                case Xor.Right(_) =>
+                  updateFormDisabled(false) >>
+                    getPermissions(repositoryName, state.sortColumn, state.sortOrder)
+                case Xor.Left(e) =>
+                  // TODO
+                  updateFormDisabled(false)
+              }.recover {
+                case _ => updateFormDisabled(false)
+              }
+            }
         }
-      }
     }
 
     lazy val actions = Action.values.map(k => <.option(^.value := k.value)(k.entryName))
@@ -94,25 +94,25 @@ object PermissionsComponent {
 
     def deletePermission(repositoryName: String, username: String)(e: ReactEventI) = {
       e.preventDefaultCB >>
-      $.state.flatMap { state => // TODO: DRY
-        $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
-        Callback.future {
-          val url = Resource.repositoryPermission(repositoryName, MemberKind.User, username)
-          Rpc
-            .call[Unit](RpcMethod.DELETE, url)
-            .map {
-              case Xor.Right(_) =>
-                updateFormDisabled(false) >>
-                  getPermissions(repositoryName, state.sortColumn, state.sortOrder)
-              case Xor.Left(e) =>
-                // TODO
-                updateFormDisabled(false)
-            }
-            .recover {
-              case _ => updateFormDisabled(false)
+        $.state.flatMap { state => // TODO: DRY
+          $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
+            Callback.future {
+              val url = Resource.repositoryPermission(repositoryName, MemberKind.User, username)
+              Rpc
+                .call[Unit](RpcMethod.DELETE, url)
+                .map {
+                  case Xor.Right(_) =>
+                    updateFormDisabled(false) >>
+                      getPermissions(repositoryName, state.sortColumn, state.sortOrder)
+                  case Xor.Left(e) =>
+                    // TODO
+                    updateFormDisabled(false)
+                }
+                .recover {
+                  case _ => updateFormDisabled(false)
+                }
             }
         }
-      }
     }
 
     def renderOptionsCell(repositoryName: String, state: State, permission: PermissionResponse) = {
@@ -183,18 +183,18 @@ object PermissionsComponent {
         if (fs.isFormDisabled) Callback.empty
         else {
           $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
-          Callback.future {
-            upsertPermissionRpc(props.repositoryName, fs.username, fs.action).map {
-              case Xor.Right(repository) =>
-                $.modState(_.copy(form = defaultFormState)) >>
-                  getPermissions(props.repositoryName, state.sortColumn, state.sortOrder)
-              case Xor.Left(e) =>
-                // TODO
-                updateFormDisabled(false)
-            }.recover {
-              case _ => updateFormDisabled(false)
+            Callback.future {
+              upsertPermissionRpc(props.repositoryName, fs.username, fs.action).map {
+                case Xor.Right(repository) =>
+                  $.modState(_.copy(form = defaultFormState)) >>
+                    getPermissions(props.repositoryName, state.sortColumn, state.sortOrder)
+                case Xor.Left(e) =>
+                  // TODO
+                  updateFormDisabled(false)
+              }.recover {
+                case _ => updateFormDisabled(false)
+              }
             }
-          }
         }
       }
     }

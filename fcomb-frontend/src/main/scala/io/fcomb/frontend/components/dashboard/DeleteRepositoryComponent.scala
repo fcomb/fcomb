@@ -31,24 +31,24 @@ object DeleteRepositoryComponent {
   final case class Backend($ : BackendScope[Props, State]) {
     def delete(props: Props)(e: ReactEventI): Callback = {
       e.preventDefaultCB >>
-      $.state.flatMap { state => // TODO: DRY
-        $.setState(state.copy(isDisabled = true)) >>
-        Callback.future {
-          Rpc
-            .call[Unit](RpcMethod.DELETE, Resource.repository(props.repositoryName))
-            .map {
-              case Xor.Right(_) =>
-                updateDisabled(false) >>
-                  props.ctl.set(DashboardRoute.Root)
-              case Xor.Left(e) =>
-                // TODO
-                updateDisabled(false)
-            }
-            .recover {
-              case _ => updateDisabled(false)
+        $.state.flatMap { state => // TODO: DRY
+          $.setState(state.copy(isDisabled = true)) >>
+            Callback.future {
+              Rpc
+                .call[Unit](RpcMethod.DELETE, Resource.repository(props.repositoryName))
+                .map {
+                  case Xor.Right(_) =>
+                    updateDisabled(false) >>
+                      props.ctl.set(DashboardRoute.Root)
+                  case Xor.Left(e) =>
+                    // TODO
+                    updateDisabled(false)
+                }
+                .recover {
+                  case _ => updateDisabled(false)
+                }
             }
         }
-      }
     }
 
     def updateDisabled(isDisabled: Boolean): Callback = {

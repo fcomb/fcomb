@@ -17,7 +17,7 @@ lazy val buildSettings = Seq(
 )
 
 lazy val akkaHttpCirceVersion = "1.7.0"
-lazy val akkaVersion = "2.4.7"
+lazy val akkaVersion = "2.4.8"
 lazy val bouncyCastleVersion = "1.53"
 lazy val catsVersion = "0.6.0"
 lazy val circeVersion = "0.5.0-M2"
