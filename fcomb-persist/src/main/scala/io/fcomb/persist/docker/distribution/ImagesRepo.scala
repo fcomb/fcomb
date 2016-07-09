@@ -315,8 +315,10 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
     for {
       _   <- PermissionsRepo.destroyByImageIdDBIO(id)
+      _   <- ImageManifestsRepo.destroyByImageIdDBIO(id)
+      _   <- ImageBlobsRepo.destroyByImageIdDBIO(id)
       res <- super.destroyDBIO(id)
-    } yield res // TODO
+    } yield res
   }
 
   override def destroy(id: Int)(implicit ec: ExecutionContext) = {

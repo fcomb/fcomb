@@ -199,6 +199,28 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     }
   }
 
+  def duplicateDigestsByImageIdDBIO(imageId: Int) = {
+    table
+      .join(table)
+      .on(_.sha256Digest === _.sha256Digest)
+      .filter {
+        case (t, tt) =>
+          t.sha256Digest.nonEmpty && t.imageId === imageId && tt.imageId =!= imageId
+      }
+      .map(_._1.sha256Digest)
+  }
+
+  private lazy val destroyByImageIdCompiled = { imageId: Rep[Int] =>
+    table.filter(_.imageId === imageId).delete
+  }
+
+  def destroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) = {
+    for {
+      _   <- BlobFilesRepo.markOrDestroyByImageIdDBIO(imageId)
+      res <- destroyByImageIdCompiled(imageId)
+    } yield res
+  }
+
   def findByIds(ids: List[UUID]) =
     db.run(table.filter(_.id.inSetBind(ids)).result)
 
@@ -243,8 +265,6 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     table.filter(_.sha256Digest === digest).exists
   }
 
-  def existByDigest(digest: String)(
-      implicit ec: ExecutionContext
-  ): Future[Boolean] =
+  def existByDigest(digest: String)(implicit ec: ExecutionContext): Future[Boolean] =
     db.run(existByDigestCompiled(digest).result)
 }

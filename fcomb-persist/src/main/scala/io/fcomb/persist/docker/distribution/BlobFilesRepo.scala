@@ -108,4 +108,18 @@ object BlobFilesRepo {
       case _ => DBIO.successful(())
     }
   }
+
+  def markOrDestroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) = {
+    table
+      .join(ImageBlobsRepo.table)
+      .on(_.uuid === _.id)
+      .filter {
+        case (t, ibt) =>
+          ibt.imageId === imageId &&
+            (t.digest.isEmpty ||
+                  !t.digest.in(ImageBlobsRepo.duplicateDigestsByImageIdDBIO(imageId)))
+      }
+      .map(_._1.state)
+      .update(BlobFileState.Deleting)
+  }
 }
