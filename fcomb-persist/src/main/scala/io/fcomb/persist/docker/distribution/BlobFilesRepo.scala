@@ -122,4 +122,13 @@ object BlobFilesRepo {
       .map(_._1.state)
       .update(BlobFileState.Deleting)
   }
+
+  def destroyOutdatedUploadsDBIO(until: Rep[ZonedDateTime]) = {
+    ImageBlobsRepo
+      .destroyOutdatedUploadsDBIO(until)
+      .join(table)
+      .on(_.id === _.uuid)
+      .map(_._2.state)
+      .update(BlobFileState.Deleting)
+  }
 }

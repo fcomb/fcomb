@@ -80,9 +80,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       }
     }
 
-  def create(imageId: Int, contentType: String)(
-      implicit ec: ExecutionContext
-  ) =
+  def create(imageId: Int, contentType: String)(implicit ec: ExecutionContext) =
     super.create(
       ImageBlob(
         id = Some(UUID.randomUUID()),
@@ -109,9 +107,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       }.take(1)
   }
 
-  def findByImageIdAndUuid(imageId: Int, uuid: UUID)(
-      implicit ec: ExecutionContext
-  ) =
+  def findByImageIdAndUuid(imageId: Int, uuid: UUID)(implicit ec: ExecutionContext) =
     db.run(findByImageIdAndUuidCompiled((imageId, uuid)).result.headOption)
 
   private lazy val findByImageIdAndDigestCompiled = Compiled {
@@ -121,9 +117,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       }.take(1)
   }
 
-  def findByImageIdAndDigest(imageId: Int, digest: String)(
-      implicit ec: ExecutionContext
-  ) =
+  def findByImageIdAndDigest(imageId: Int, digest: String)(implicit ec: ExecutionContext) =
     db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
   private def findByImageIdAndDigestsScopeDBIO(imageId: Int, digests: Set[String]) =
@@ -140,9 +134,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         .result
     }
 
-  def findByImageIdAndDigests(imageId: Int, digests: Set[String])(
-      implicit ec: ExecutionContext
-  ) =
+  def findByImageIdAndDigests(imageId: Int, digests: Set[String])(implicit ec: ExecutionContext) =
     db.run(findByImageIdAndDigestsScopeDBIO(imageId, digests).result)
 
   private lazy val existUploadedByImageIdAndDigestCompiled = Compiled {
@@ -221,18 +213,24 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     } yield res
   }
 
-  def findByIds(ids: List[UUID]) =
-    db.run(table.filter(_.id.inSetBind(ids)).result)
-
-  private lazy val findOutdatedUploadsCompiled = Compiled { until: Rep[ZonedDateTime] =>
+  def destroyOutdatedUploadsDBIO(until: Rep[ZonedDateTime]) = {
     table.filter { q =>
-      q.createdAt <= until && (q.state === (ImageBlobState.Created: ImageBlobState) ||
-          q.state === (ImageBlobState.Uploading: ImageBlobState))
+      q.createdAt <= until && q.state =!= (ImageBlobState.Uploaded: ImageBlobState)
     }
   }
 
-  def findOutdatedUploads(until: ZonedDateTime) =
-    db.stream(findOutdatedUploadsCompiled(until).result)
+  // TODO: configure and schedule
+  def destroyOutdatedUploads(until: ZonedDateTime)(implicit ec: ExecutionContext) = {
+    runInTransaction(TransactionIsolation.ReadCommitted) {
+      for {
+        _   <- BlobFilesRepo.destroyOutdatedUploadsDBIO(until)
+        res <- destroyOutdatedUploadsDBIO(until).delete
+      } yield res
+    }
+  }
+
+  def findByIds(ids: List[UUID]) =
+    db.run(table.filter(_.id.inSetBind(ids)).result)
 
   def createEmptyTarIfNotExists(imageId: Int)(implicit ec: ExecutionContext): Future[Unit] =
     db.run {
