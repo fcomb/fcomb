@@ -81,20 +81,22 @@ object ImageBlobUploadsHandler {
     }
   }
 
-  private def mountImageBlob(user: User, imageName: String, digest: String, from: String)(
+  private def mountImageBlob(user: User, imageName: String, sha256Digest: String, from: String)(
       implicit ec: ExecutionContext,
       req: HttpRequest
   ): Route = {
     imageByNameWithAcl(imageName, user, Action.Write) { toImage =>
       imageByNameWithAcl(from, user, Action.Read) { fromImage =>
-        val mountResFut = ImageBlobsRepo
-          .mount(fromImage.getId(), toImage.getId(), Reference.getDigest(digest), user.getId())
+        val digest = Reference.getDigest(sha256Digest)
+        val mountResFut = ImageBlobsRepo.mount(fromImage.getId(),
+                                               toImage.getId(),
+                                               digest,
+                                               user.getId())
         onSuccess(mountResFut) {
           case Some(blob) =>
-            val sha256Digest = blob.sha256Digest.get
             val headers = immutable.Seq(
-              Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
-              `Docker-Content-Digest`("sha256", sha256Digest)
+              Location(s"/v2/$imageName/blobs/$sha256Digest"),
+              `Docker-Content-Digest`("sha256", digest)
             )
             respondWithHeaders(headers) {
               completeWithStatus(StatusCodes.Created)
@@ -105,29 +107,26 @@ object ImageBlobUploadsHandler {
     }
   }
 
-  private def createImageBlob(user: User, imageName: String, digest: String)(
-      implicit req: HttpRequest
-  ): Route =
+  private def createImageBlob(user: User, imageName: String, sha256Digest: String)(
+      implicit req: HttpRequest): Route =
     extractMaterializer { implicit mat =>
       imageByNameWithAcl(imageName, user, Action.Write) { image =>
         import mat.executionContext
         val contentType = req.entity.contentType.mediaType.value
         val blobResFut = for {
           Validated.Valid(blob) <- ImageBlobsRepo.create(image.getId(), contentType)
-          (length, sha256Digest) <- BlobFileUtils.uploadBlobChunk(blob.getId(),
-                                                                  req.entity.dataBytes)
-          _ <- ImageBlobsRepo
-                .completeUploadOrDelete(blob.getId(), blob.imageId, length, sha256Digest)
-        } yield (blob, sha256Digest)
+          (length, digest)      <- BlobFileUtils.uploadBlobChunk(blob.getId(), req.entity.dataBytes)
+          _                     <- ImageBlobsRepo.completeUploadOrDelete(blob.getId(), blob.imageId, length, digest)
+        } yield (blob, digest)
         onSuccess(blobResFut) {
-          case (blob, sha256Digest) =>
+          case (blob, digest) =>
             val uuid = blob.getId
-            if (Reference.getDigest(digest) == sha256Digest) {
-              onSuccess(BlobFileUtils.rename(uuid, sha256Digest)) {
+            if (Reference.getDigest(sha256Digest) == digest) {
+              onSuccess(BlobFileUtils.rename(uuid, digest)) {
                 val headers = immutable.Seq(
-                  Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
+                  Location(s"/v2/$imageName/blobs/$sha256Digest"),
                   `Docker-Upload-Uuid`(uuid),
-                  `Docker-Content-Digest`("sha256", sha256Digest)
+                  `Docker-Content-Digest`("sha256", digest)
                 )
                 respondWithHeaders(headers) {
                   completeWithStatus(StatusCodes.Created)
@@ -218,28 +217,28 @@ object ImageBlobUploadsHandler {
 
   def uploadComplete(imageName: String, uuid: UUID)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
-      parameters('digest) { digest =>
+      parameters('digest) { sha256Digest =>
         extractMaterializer { implicit mat =>
           imageByNameWithAcl(imageName, user, Action.Write) { image =>
             import mat.executionContext
             onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
               case Some(blob) if !blob.isUploaded =>
                 onSuccess(BlobFileUtils.uploadBlobChunk(uuid, req.entity.dataBytes)) {
-                  case (length, sha256Digest) =>
+                  case (length, digest) =>
                     val totalLength = blob.length + length
                     complete {
-                      if (sha256Digest == Reference.getDigest(digest)) {
+                      if (digest == Reference.getDigest(sha256Digest)) {
                         val headers = immutable.Seq(
-                          Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
+                          Location(s"/v2/$imageName/blobs/$sha256Digest"),
                           `Docker-Upload-Uuid`(uuid),
-                          `Docker-Content-Digest`("sha256", sha256Digest)
+                          `Docker-Content-Digest`("sha256", digest)
                         )
                         for {
-                          _ <- BlobFileUtils.rename(uuid, sha256Digest)
+                          _ <- BlobFileUtils.rename(uuid, digest)
                           _ <- ImageBlobsRepo.completeUploadOrDelete(uuid,
                                                                      blob.imageId,
                                                                      totalLength,
-                                                                     sha256Digest)
+                                                                     digest)
                         } yield HttpResponse(StatusCodes.Created, headers)
                       } else {
                         val e = DistributionErrorResponse.from(DistributionError.DigestInvalid())

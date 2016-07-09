@@ -31,16 +31,16 @@ import slick.jdbc.TransactionIsolation
 class ImageBlobTable(tag: Tag)
     extends Table[ImageBlob](tag, "dd_image_blobs")
     with PersistTableWithUuidPk {
-  def imageId      = column[Int]("image_id")
-  def state        = column[ImageBlobState]("state")
-  def sha256Digest = column[Option[String]]("sha256_digest")
-  def contentType  = column[String]("content_type")
-  def length       = column[Long]("length")
-  def createdAt    = column[ZonedDateTime]("created_at")
-  def uploadedAt   = column[Option[ZonedDateTime]]("uploaded_at")
+  def imageId     = column[Int]("image_id")
+  def state       = column[ImageBlobState]("state")
+  def digest      = column[Option[String]]("digest")
+  def contentType = column[String]("content_type")
+  def length      = column[Long]("length")
+  def createdAt   = column[ZonedDateTime]("created_at")
+  def uploadedAt  = column[Option[ZonedDateTime]]("uploaded_at")
 
   def * =
-    (id, imageId, state, sha256Digest, contentType, length, createdAt, uploadedAt) <>
+    (id, imageId, state, digest, contentType, length, createdAt, uploadedAt) <>
       ((ImageBlob.apply _).tupled, ImageBlob.unapply)
 }
 
@@ -69,7 +69,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
                   id = Some(UUID.randomUUID()),
                   state = ImageBlobState.Uploaded,
                   imageId = toImageId,
-                  sha256Digest = blob.sha256Digest,
+                  digest = blob.digest,
                   contentType = mapContentType(blob.contentType),
                   length = blob.length,
                   createdAt = timeNow,
@@ -86,7 +86,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         id = Some(UUID.randomUUID()),
         state = ImageBlobState.Created,
         imageId = imageId,
-        sha256Digest = None,
+        digest = None,
         contentType = mapContentType(contentType),
         length = 0L,
         createdAt = ZonedDateTime.now(),
@@ -113,7 +113,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   private lazy val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Int], digest: Rep[String]) =>
       table.filter { q =>
-        q.imageId === imageId && q.sha256Digest === digest
+        q.imageId === imageId && q.digest === digest
       }.take(1)
   }
 
@@ -122,7 +122,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
 
   private def findByImageIdAndDigestsScopeDBIO(imageId: Int, digests: Set[String]) =
     table.filter { q =>
-      q.imageId === imageId && q.sha256Digest.inSetBind(digests)
+      q.imageId === imageId && q.digest.inSetBind(digests)
     }
 
   def findIdsWithDigestByImageIdAndDigests(imageId: Int, digests: Set[String])(
@@ -130,7 +130,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   ): Future[Seq[(UUID, Option[String], Long)]] =
     db.run {
       findByImageIdAndDigestsScopeDBIO(imageId, digests)
-        .map(t => (t.pk, t.sha256Digest, t.length))
+        .map(t => (t.pk, t.digest, t.length))
         .result
     }
 
@@ -140,7 +140,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   private lazy val existUploadedByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Int], digest: Rep[String], exceptId: Rep[UUID]) =>
       table.filter { q =>
-        q.pk =!= exceptId && q.imageId === imageId && q.sha256Digest === digest &&
+        q.pk =!= exceptId && q.imageId === imageId && q.digest === digest &&
         q.state === (ImageBlobState.Uploaded: ImageBlobState)
       }.exists
   }
@@ -158,7 +158,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
           for {
             _ <- table
                   .filter(_.pk === id)
-                  .map(t => (t.state, t.length, t.sha256Digest, t.uploadedAt))
+                  .map(t => (t.state, t.length, t.digest, t.uploadedAt))
                   .update(
                     (
                       ImageBlobState.Uploaded,
@@ -178,7 +178,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   ) = db.run {
     table
       .filter(_.id === id)
-      .map(t => (t.state, t.length, t.sha256Digest))
+      .map(t => (t.state, t.length, t.digest))
       .update((state, length, Some(digest)))
   }
 
@@ -194,12 +194,12 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   def duplicateDigestsByImageIdDBIO(imageId: Int) = {
     table
       .join(table)
-      .on(_.sha256Digest === _.sha256Digest)
+      .on(_.digest === _.digest)
       .filter {
         case (t, tt) =>
-          t.sha256Digest.nonEmpty && t.imageId === imageId && tt.imageId =!= imageId
+          t.digest.nonEmpty && t.imageId === imageId && tt.imageId =!= imageId
       }
-      .map(_._1.sha256Digest)
+      .map(_._1.digest)
   }
 
   private lazy val destroyByImageIdCompiled = { imageId: Rep[Int] =>
@@ -241,7 +241,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
             id = Some(UUID.randomUUID()),
             state = ImageBlobState.Uploaded,
             imageId = imageId,
-            sha256Digest = Some(emptyTarSha256Digest),
+            digest = Some(emptyTarSha256Digest),
             contentType = `application/octet-stream`,
             length = emptyTar.length.toLong,
             createdAt = ZonedDateTime.now(),
@@ -260,7 +260,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     }.recover { case _ => Xor.right(()) }
 
   private lazy val existByDigestCompiled = Compiled { digest: Rep[String] =>
-    table.filter(_.sha256Digest === digest).exists
+    table.filter(_.digest === digest).exists
   }
 
   def existByDigest(digest: String)(implicit ec: ExecutionContext): Future[Boolean] =

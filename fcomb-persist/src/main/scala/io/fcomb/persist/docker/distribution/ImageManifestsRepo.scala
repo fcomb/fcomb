@@ -30,7 +30,7 @@ import slick.jdbc.TransactionIsolation
 class ImageManifestTable(tag: Tag)
     extends Table[ImageManifest](tag, "dd_image_manifests")
     with PersistTableWithAutoIntPk {
-  def sha256Digest     = column[String]("sha256_digest")
+  def digest           = column[String]("digest")
   def imageId          = column[Int]("image_id")
   def tags             = column[List[String]]("tags")
   def layersBlobId     = column[List[UUID]]("layers_blob_id")
@@ -46,7 +46,7 @@ class ImageManifestTable(tag: Tag)
 
   def * =
     (id,
-     sha256Digest,
+     digest,
      imageId,
      tags,
      layersBlobId,
@@ -60,7 +60,7 @@ class ImageManifestTable(tag: Tag)
 
   private def apply2(
       id: Option[Int],
-      sha256Digest: String,
+      digest: String,
       imageId: Int,
       tags: List[String],
       layersBlobId: List[UUID],
@@ -78,7 +78,7 @@ class ImageManifestTable(tag: Tag)
     }
     ImageManifest(
       id = id,
-      sha256Digest = sha256Digest,
+      digest = digest,
       imageId = imageId,
       tags = tags,
       layersBlobId = layersBlobId,
@@ -99,7 +99,7 @@ class ImageManifestTable(tag: Tag)
     }
     Some(
       (m.id,
-       m.sha256Digest,
+       m.digest,
        m.imageId,
        m.tags,
        m.layersBlobId,
@@ -118,7 +118,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
   private lazy val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Int], digest: Rep[String]) =>
       table.filter { q =>
-        q.imageId === imageId && q.sha256Digest === digest
+        q.imageId === imageId && q.digest === digest
       }.take(1)
   }
 
@@ -141,9 +141,9 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       image: Image,
       manifest: SchemaV1.Manifest,
       schemaV1JsonBlob: String,
-      sha256Digest: String
+      digest: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
-    findByImageIdAndDigest(image.getId(), sha256Digest).flatMap {
+    findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) => FastFuture.successful(Validated.valid(im))
       case None =>
         val digests = manifest.fsLayers.map(_.getDigest).toSet
@@ -158,7 +158,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
               create(
                 ImageManifest(
                   id = None,
-                  sha256Digest = sha256Digest,
+                  digest = digest,
                   imageId = image.getId(),
                   tags = tags,
                   layersBlobId = blobs.map(_._1).toList,
@@ -181,9 +181,9 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       configBlob: ImageBlob,
       schemaV1JsonBlob: String,
       schemaV2JsonBlob: String,
-      sha256Digest: String
+      digest: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
-    findByImageIdAndDigest(image.getId(), sha256Digest).flatMap {
+    findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
         updateTagsByReference(im, reference).fast.map(_ => Validated.valid(im))
       case None =>
@@ -210,7 +210,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
             create(
               ImageManifest(
                 id = None,
-                sha256Digest = sha256Digest,
+                digest = digest,
                 imageId = image.getId(),
                 tags = tags,
                 layersBlobId = blobs.map(_._1).toList,
@@ -325,7 +325,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
   def destroy(imageId: Int, digest: String)(implicit ec: ExecutionContext): Future[Boolean] =
     db.run {
       table.filter { q =>
-        q.imageId === imageId && q.sha256Digest === digest
+        q.imageId === imageId && q.digest === digest
       }.delete.map(_ != 0)
     }
 

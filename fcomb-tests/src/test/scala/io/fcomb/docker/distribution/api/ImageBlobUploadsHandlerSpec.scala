@@ -109,9 +109,9 @@ class ImageBlobUploadsHandlerSpec
         val blob = await(ImageBlobsRepo.findById(uuid)).get
         blob.length shouldEqual bs.length
         blob.state shouldEqual ImageBlobState.Uploaded
-        blob.sha256Digest shouldEqual Some(bsDigest)
+        blob.digest shouldEqual Some(bsDigest)
 
-        val file = BlobFileUtils.getBlobFilePath(blob.sha256Digest.get)
+        val file = BlobFileUtils.getBlobFilePath(blob.digest.get)
         file.length shouldEqual bs.length
         val fis        = new FileInputStream(file)
         val fileDigest = DigestUtils.sha256Hex(fis)
@@ -167,7 +167,7 @@ class ImageBlobUploadsHandlerSpec
         })
         newBlob.length shouldEqual bs.length
         newBlob.state shouldEqual ImageBlobState.Uploaded
-        newBlob.sha256Digest shouldEqual Some(bsDigest)
+        newBlob.digest shouldEqual Some(bsDigest)
       }
     }
 
@@ -192,7 +192,7 @@ class ImageBlobUploadsHandlerSpec
         val blob = await(ImageBlobsRepo.findById(uuid)).get
         blob.length shouldEqual bs.length
         blob.state shouldEqual ImageBlobState.Uploaded
-        blob.sha256Digest shouldEqual Some(bsDigest)
+        blob.digest shouldEqual Some(bsDigest)
 
         val file = BlobFileUtils.getBlobFilePath(bsDigest)
         file.length shouldEqual bs.length
@@ -227,7 +227,7 @@ class ImageBlobUploadsHandlerSpec
         val updatedBlob = await(ImageBlobsRepo.findById(blob.getId())).get
         updatedBlob.length shouldEqual blobPart1.length
         updatedBlob.state shouldEqual ImageBlobState.Uploading
-        updatedBlob.sha256Digest shouldEqual Some(blobPart1Digest)
+        updatedBlob.digest shouldEqual Some(blobPart1Digest)
 
         val file = BlobFileUtils.getUploadFilePath(blob.getId())
         file.length shouldEqual blobPart1.length
@@ -253,7 +253,7 @@ class ImageBlobUploadsHandlerSpec
         val updatedBlob = await(ImageBlobsRepo.findById(blob.getId())).get
         updatedBlob.length shouldEqual bs.length
         updatedBlob.state shouldEqual ImageBlobState.Uploading
-        updatedBlob.sha256Digest shouldEqual Some(bsDigest)
+        updatedBlob.digest shouldEqual Some(bsDigest)
 
         val file = BlobFileUtils.getUploadFilePath(blob.getId())
         file.length shouldEqual bs.length
@@ -289,7 +289,7 @@ class ImageBlobUploadsHandlerSpec
         val b = await(ImageBlobsRepo.findById(blob.getId())).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
-        b.sha256Digest shouldEqual Some(bsDigest)
+        b.digest shouldEqual Some(bsDigest)
       }
     }
 
@@ -319,7 +319,7 @@ class ImageBlobUploadsHandlerSpec
         val b = await(ImageBlobsRepo.findById(blob.getId())).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
-        b.sha256Digest shouldEqual Some(bsDigest)
+        b.digest shouldEqual Some(bsDigest)
       }
     }
 
@@ -349,7 +349,7 @@ class ImageBlobUploadsHandlerSpec
         val b = await(ImageBlobsRepo.findById(blob.getId())).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
-        b.sha256Digest shouldEqual Some(bsDigest)
+        b.digest shouldEqual Some(bsDigest)
       }
     }
 
@@ -379,7 +379,7 @@ class ImageBlobUploadsHandlerSpec
         val b = await(ImageBlobsRepo.findById(blob.getId())).get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
-        b.sha256Digest shouldEqual Some(bsDigest)
+        b.digest shouldEqual Some(bsDigest)
       }
     }
 

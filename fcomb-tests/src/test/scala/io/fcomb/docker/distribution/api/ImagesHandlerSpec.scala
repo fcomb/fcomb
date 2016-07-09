@@ -203,7 +203,7 @@ class ImagesHandlerSpec
                                              configBlobBs,
                                              ImageBlobState.Uploaded)
       } yield (cb, image.slug))
-      configBlob.sha256Digest should contain(
+      configBlob.digest should contain(
         "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
 
       Put(
@@ -250,7 +250,7 @@ class ImagesHandlerSpec
                 ImageBlobState.Uploaded
               )
       } yield res)
-      configBlob.sha256Digest should contain(
+      configBlob.digest should contain(
         "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
 
       Put(
@@ -281,17 +281,17 @@ class ImagesHandlerSpec
         status shouldEqual StatusCodes.OK
         contentType shouldEqual `application/vnd.docker.distribution.manifest.v1+prettyjws`
         header[`Docker-Content-Digest`] should contain(
-          `Docker-Content-Digest`("sha256", im.sha256Digest))
-        header[ETag] should contain(ETag(s"sha256:${im.sha256Digest}"))
+          `Docker-Content-Digest`("sha256", im.digest))
+        header[ETag] should contain(ETag(s"sha256:${im.digest}"))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val rawManifest         = responseAs[ByteString].utf8String
         val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
         manifest.tag shouldEqual "1.0"
         SchemaV1Manifest.verify(manifest, rawManifest) shouldBe (Xor.right(
-              (rawManifest, im.sha256Digest)))
+              (rawManifest, im.digest)))
       }
 
-      Get(s"/v2/$imageSlug/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {
+      Get(s"/v2/$imageSlug/manifests/sha256:${im.digest}") ~> addCredentials(credentials) ~> route ~> check {
         checkResponse()
       }
 
@@ -316,8 +316,8 @@ class ImagesHandlerSpec
         status shouldEqual StatusCodes.OK
         contentType shouldEqual `application/vnd.docker.distribution.manifest.v1+prettyjws`
         header[`Docker-Content-Digest`] should contain(
-          `Docker-Content-Digest`("sha256", im.sha256Digest))
-        header[ETag] should contain(ETag(s"sha256:${im.sha256Digest}"))
+          `Docker-Content-Digest`("sha256", im.digest))
+        header[ETag] should contain(ETag(s"sha256:${im.digest}"))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val rawManifest         = responseAs[ByteString].utf8String
         val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
@@ -329,8 +329,8 @@ class ImagesHandlerSpec
         status shouldEqual StatusCodes.OK
         contentType shouldEqual `application/vnd.docker.distribution.manifest.v2+json`
         header[`Docker-Content-Digest`] should contain(
-          `Docker-Content-Digest`("sha256", im.sha256Digest))
-        header[ETag] should contain(ETag(s"sha256:${im.sha256Digest}"))
+          `Docker-Content-Digest`("sha256", im.digest))
+        header[ETag] should contain(ETag(s"sha256:${im.digest}"))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val rawManifest         = responseAs[ByteString].utf8String
         val Xor.Right(manifest) = decode[SchemaV2.Manifest](rawManifest)
@@ -341,7 +341,7 @@ class ImagesHandlerSpec
         )
       }
 
-      Get(s"/v2/$imageSlug/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {
+      Get(s"/v2/$imageSlug/manifests/sha256:${im.digest}") ~> addCredentials(credentials) ~> route ~> check {
         checkResponse()
       }
 
@@ -363,7 +363,7 @@ class ImagesHandlerSpec
         im <- ImageManifestsRepoFixture.createV2(user.getId(), imageSlug, blob1, List("1.0"))
       } yield (im, imageSlug))
 
-      Delete(s"/v2/$imageSlug/manifests/sha256:${im.sha256Digest}") ~> addCredentials(credentials) ~> route ~> check {
+      Delete(s"/v2/$imageSlug/manifests/sha256:${im.digest}") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
 
         ImageManifestsRepo.findById(im.getId()).futureValue shouldBe empty

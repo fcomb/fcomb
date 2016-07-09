@@ -30,7 +30,7 @@ final case class ImageManifestSchemaV2Details(
 
 final case class ImageManifest(
     id: Option[Int],
-    sha256Digest: String,
+    digest: String,
     imageId: Int,
     tags: List[String],
     layersBlobId: List[UUID],

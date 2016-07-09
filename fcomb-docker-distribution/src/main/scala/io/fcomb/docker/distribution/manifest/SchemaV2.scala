@@ -37,13 +37,10 @@ object SchemaV2 {
       manifest: ManifestV2,
       rawManifest: String
   )(implicit ec: ExecutionContext, mat: Materializer): Future[Xor[DistributionError, String]] = {
-    val sha256Digest = DigestUtils.sha256Hex(rawManifest)
-    ImageManifestsRepo.findByImageIdAndDigest(image.getId(), sha256Digest).flatMap {
+    val digest = DigestUtils.sha256Hex(rawManifest)
+    ImageManifestsRepo.findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
-        ImageManifestsRepo
-          .updateTagsByReference(im, reference)
-          .fast
-          .map(_ => Xor.right(im.sha256Digest))
+        ImageManifestsRepo.updateTagsByReference(im, reference).fast.map(_ => Xor.right(im.digest))
       case None =>
         val configDigest = manifest.config.getDigest
         ImageBlobsRepo.findByImageIdAndDigest(image.getId(), configDigest).flatMap {
@@ -62,10 +59,10 @@ object SchemaV2 {
                                       configBlob,
                                       schemaV1JsonBlob,
                                       rawManifest,
-                                      sha256Digest)
+                                      digest)
                       .fast
                       .map {
-                        case Validated.Valid(_)   => Xor.right(sha256Digest)
+                        case Validated.Valid(_)   => Xor.right(digest)
                         case Validated.Invalid(e) => unknowError(e.map(_.message).mkString(";"))
                       }
                   case Xor.Left(e) => FastFuture.successful(unknowError(e))

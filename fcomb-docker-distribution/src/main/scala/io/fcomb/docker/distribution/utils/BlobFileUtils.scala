@@ -49,7 +49,7 @@ object BlobFileUtils {
     new File(s"${Config.docker.distribution.imageStorage}/$path/${name.take(2)}/${name.drop(2)}")
 
   def getFile(blob: ImageBlob): File = {
-    blob.sha256Digest match {
+    blob.digest match {
       case Some(digest) if blob.isUploaded => getBlobFilePath(digest)
       case _                               => getUploadFilePath(blob.getId())
     }

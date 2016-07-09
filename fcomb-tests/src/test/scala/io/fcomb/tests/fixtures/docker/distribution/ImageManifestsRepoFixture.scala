@@ -36,11 +36,11 @@ object ImageManifestsRepoFixture {
       tag: String
   ): Future[ImageManifest] = {
     val schemaV1JsonBlob = getSchemaV1JsonBlob(imageSlug, tag, blob)
-    val sha256Digest     = DigestUtils.sha256Hex(schemaV1JsonBlob)
+    val digest           = DigestUtils.sha256Hex(schemaV1JsonBlob)
     val manifest = SchemaV1.Manifest(
       name = imageSlug,
       tag = tag,
-      fsLayers = List(SchemaV1.FsLayer(s"sha256:${blob.sha256Digest.get}")),
+      fsLayers = List(SchemaV1.FsLayer(s"sha256:${blob.digest.get}")),
       architecture = "amd64",
       history = Nil,
       signatures = Nil
@@ -51,7 +51,7 @@ object ImageManifestsRepoFixture {
                               image = image,
                               manifest = manifest,
                               schemaV1JsonBlob = schemaV1JsonBlob,
-                              sha256Digest = sha256Digest
+                              digest = digest
                             )
     } yield im
   }
@@ -62,7 +62,7 @@ object ImageManifestsRepoFixture {
       "name": "$imageSlug",
       "tag": "$tag",
       "fsLayers": [
-        {"blobSum": "sha256:${blob.sha256Digest.get}"}
+        {"blobSum": "sha256:${blob.digest.get}"}
       ],
       "architecture": "amd64",
       "history": [
@@ -88,20 +88,20 @@ object ImageManifestsRepoFixture {
       "config": {
         "mediaType": "application/vnd.docker.container.image.v1+json",
         "size": ${blob.length},
-        "digest": "sha256:${blob.sha256Digest.get}"
+        "digest": "sha256:${blob.digest.get}"
       },
       "layers": [
         {
           "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
           "size": ${blob.length},
-          "digest": "sha256:${blob.sha256Digest.get}"
+          "digest": "sha256:${blob.digest.get}"
         }
       ]
     }
     """
     val Xor.Right(manifest) = decode[SchemaV2.Manifest](schemaV2JsonBlob)
-    val sha256Digest        = DigestUtils.sha256Hex(schemaV2JsonBlob)
-    val reference           = Reference.Digest(sha256Digest)
+    val digest              = DigestUtils.sha256Hex(schemaV2JsonBlob)
+    val reference           = Reference.Digest(digest)
     for {
       Some(image) <- ImagesRepo.findById(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV2(
@@ -111,7 +111,7 @@ object ImageManifestsRepoFixture {
                               configBlob = blob,
                               schemaV1JsonBlob = schemaV1JsonBlob,
                               schemaV2JsonBlob = schemaV2JsonBlob,
-                              sha256Digest = sha256Digest
+                              digest = digest
                             )
       _ <- db.run(for {
             _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), tags)

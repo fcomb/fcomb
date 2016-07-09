@@ -103,7 +103,7 @@ object ImageManifestTagsRepo
 
   private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {
     val q = findByImageIdScopeDBIO(imageId).map {
-      case (t, imt) => (t.tag, imt.sha256Digest, imt.length, t.updatedAt)
+      case (t, imt) => (t.tag, imt.digest, imt.length, t.updatedAt)
     }.drop(p.offset).take(p.limit)
     sortByQuery(q, p)(sortByPF, _._4.desc)
   }

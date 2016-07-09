@@ -166,8 +166,7 @@ class ImageBlobsHandlerSpec
                )
       } yield (blob, image.slug))
 
-      Delete(s"/v2/$imageSlug/blobs/sha256:${blob.sha256Digest.get}") ~> addCredentials(
-        credentials) ~> route ~> check {
+      Delete(s"/v2/$imageSlug/blobs/sha256:${blob.digest.get}") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.NoContent
         responseEntity shouldEqual HttpEntity.Empty
 

@@ -62,8 +62,8 @@ object ImagesHandler {
                        im.getSchemaV2JsonBlob)
                   }
                 val headers = immutable.Seq(
-                  ETag(s"${ImageManifest.sha256Prefix}${im.sha256Digest}"),
-                  `Docker-Content-Digest`("sha256", im.sha256Digest)
+                  ETag(s"${ImageManifest.sha256Prefix}${im.digest}"),
+                  `Docker-Content-Digest`("sha256", im.digest)
                 )
                 respondWithHeaders(headers) {
                   complete(HttpEntity(ct, ByteString(manifest)))
@@ -102,10 +102,10 @@ object ImagesHandler {
                     SchemaV2Manifest.upsertAsImageManifest(image, reference, m, rawManifest)
                 }
                 onSuccess(res) {
-                  case Xor.Right(sha256Digest) =>
+                  case Xor.Right(digest) =>
                     val headers = immutable.Seq(
-                      `Docker-Content-Digest`("sha256", sha256Digest),
-                      Location(s"/v2/$imageName/manifests/sha256:$sha256Digest")
+                      `Docker-Content-Digest`("sha256", digest),
+                      Location(s"/v2/$imageName/manifests/sha256:$digest")
                     )
                     respondWithHeaders(headers) {
                       complete((StatusCodes.Created, HttpEntity.Empty))

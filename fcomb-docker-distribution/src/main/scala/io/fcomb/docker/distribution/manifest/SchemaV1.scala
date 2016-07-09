@@ -43,14 +43,11 @@ object SchemaV1 {
       rawManifest: String
   )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] = {
     verify(manifest, rawManifest) match {
-      case Xor.Right((schemaV1JsonBlob, sha256Digest)) =>
-        ImageManifestsRepo
-          .upsertSchemaV1(image, manifest, schemaV1JsonBlob, sha256Digest)
-          .fast
-          .map {
-            case Validated.Valid(_)   => Xor.right(sha256Digest)
-            case Validated.Invalid(e) => Xor.left(Unknown(e.map(_.message).mkString(";")))
-          }
+      case Xor.Right((schemaV1JsonBlob, digest)) =>
+        ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).fast.map {
+          case Validated.Valid(_)   => Xor.right(digest)
+          case Validated.Invalid(e) => Xor.left(Unknown(e.map(_.message).mkString(";")))
+        }
       case Xor.Left(e) => FastFuture.successful(Xor.left(Unknown(e.message)))
     }
   }

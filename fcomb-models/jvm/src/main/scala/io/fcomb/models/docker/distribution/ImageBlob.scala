@@ -36,7 +36,7 @@ case class ImageBlob(
     id: Option[UUID] = None,
     imageId: Int,
     state: ImageBlobState,
-    sha256Digest: Option[String],
+    digest: Option[String],
     contentType: String,
     length: Long,
     createdAt: ZonedDateTime,
