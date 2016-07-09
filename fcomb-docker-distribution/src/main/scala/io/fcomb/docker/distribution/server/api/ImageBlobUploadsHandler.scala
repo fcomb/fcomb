@@ -123,7 +123,7 @@ object ImageBlobUploadsHandler {
           case (blob, sha256Digest) =>
             val uuid = blob.getId
             if (Reference.getDigest(digest) == sha256Digest) {
-              onSuccess(BlobFileUtils.renameOrDelete(uuid, sha256Digest)) {
+              onSuccess(BlobFileUtils.rename(uuid, sha256Digest)) {
                 val headers = immutable.Seq(
                   Location(s"/v2/$imageName/blobs/sha256:$sha256Digest"),
                   `Docker-Upload-Uuid`(uuid),
@@ -134,11 +134,7 @@ object ImageBlobUploadsHandler {
                 }
               }
             } else {
-              val res = for {
-                _ <- BlobFileUtils.destroyBlob(uuid)
-                _ <- ImageBlobsRepo.destroy(uuid)
-              } yield ()
-              onSuccess(res) {
+              onSuccess(ImageBlobsRepo.destroy(uuid)) { _ =>
                 complete(
                   (
                     StatusCodes.BadRequest,
@@ -220,9 +216,7 @@ object ImageBlobUploadsHandler {
       }
     }
 
-  def uploadComplete(imageName: String, uuid: UUID)(
-      implicit req: HttpRequest
-  ) =
+  def uploadComplete(imageName: String, uuid: UUID)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       parameters('digest) { digest =>
         extractMaterializer { implicit mat =>
@@ -241,7 +235,7 @@ object ImageBlobUploadsHandler {
                           `Docker-Content-Digest`("sha256", sha256Digest)
                         )
                         for {
-                          _ <- BlobFileUtils.renameOrDelete(uuid, sha256Digest)
+                          _ <- BlobFileUtils.rename(uuid, sha256Digest)
                           _ <- ImageBlobsRepo.completeUploadOrDelete(uuid,
                                                                      blob.imageId,
                                                                      totalLength,

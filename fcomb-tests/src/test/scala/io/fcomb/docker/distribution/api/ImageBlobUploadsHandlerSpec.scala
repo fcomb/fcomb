@@ -216,7 +216,7 @@ class ImageBlobUploadsHandlerSpec
         s"/v2/$imageSlug/blobs/uploads/${blob.getId}",
         HttpEntity(`application/octet-stream`, blobPart1)
       ) ~> `Content-Range`(ContentRange(0L, blobPart1.length - 1L)) ~>
-      addCredentials(credentials) ~> route ~> check {
+        addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
         responseEntity shouldEqual HttpEntity.Empty
         header[Location] should contain(Location(s"/v2/$imageSlug/blobs/${blob.getId}"))
@@ -242,7 +242,7 @@ class ImageBlobUploadsHandlerSpec
         s"/v2/$imageSlug/blobs/uploads/${blob.getId}",
         HttpEntity(`application/octet-stream`, blobPart2)
       ) ~> `Content-Range`(ContentRange(blobPart1.length.toLong, blobPart2.length - 1L)) ~>
-      addCredentials(credentials) ~> route ~> check {
+        addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
         responseEntity shouldEqual HttpEntity.Empty
         header[Location] should contain(Location(s"/v2/$imageSlug/blobs/${blob.getId}"))

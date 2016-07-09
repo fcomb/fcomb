@@ -19,7 +19,7 @@ package io.fcomb.persist.docker.distribution
 import cats.data.Xor
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
-import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob}
+import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob, BlobFileState}
 import io.fcomb.models.docker.distribution.ImageManifest.{emptyTarSha256Digest, emptyTar}
 import io.fcomb.persist.EnumsMapping.distributionImageBlobStateColumnType
 import io.fcomb.persist.{PersistTableWithUuidPk, PersistModelWithUuidPk}
@@ -95,6 +95,13 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         uploadedAt = None
       ))
 
+  override def createDBIO(blob: ImageBlob)(implicit ec: ExecutionContext): ModelDBIO = {
+    for {
+      res <- tableWithPk += blob
+      _   <- BlobFilesRepo.createDBIO(res.getId)
+    } yield res
+  }
+
   private lazy val findByImageIdAndUuidCompiled = Compiled {
     (imageId: Rep[Int], uuid: Rep[UUID]) =>
       table.filter { q =>
@@ -146,30 +153,33 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       }.exists
   }
 
-  def completeUploadOrDelete(
-      id: UUID,
-      imageId: Int,
-      length: Long,
-      digest: String
-  )(implicit ec: ExecutionContext): Future[Unit] =
+  def completeUploadOrDelete(id: UUID, imageId: Int, length: Long, digest: String)(
+      implicit ec: ExecutionContext): Future[BlobFileState] = {
     runInTransaction(TransactionIsolation.ReadCommitted) {
       existUploadedByImageIdAndDigestCompiled((imageId, digest, id)).result.flatMap { exists =>
-        if (exists) findByIdQuery(id).delete.map(_ => ())
-        else {
-          table
-            .filter(_.pk === id)
-            .map(t => (t.state, t.length, t.sha256Digest, t.uploadedAt))
-            .update(
-              (
-                ImageBlobState.Uploaded,
-                length,
-                Some(digest),
-                Some(ZonedDateTime.now())
-              ))
-            .map(_ => ())
+        if (exists) {
+          for {
+            _   <- destroyDBIO(id)
+            res <- BlobFilesRepo.markAsDuplicateDBIO(id)
+          } yield res
+        } else {
+          for {
+            _ <- table
+                  .filter(_.pk === id)
+                  .map(t => (t.state, t.length, t.sha256Digest, t.uploadedAt))
+                  .update(
+                    (
+                      ImageBlobState.Uploaded,
+                      length,
+                      Some(digest),
+                      Some(ZonedDateTime.now())
+                    ))
+            res <- BlobFilesRepo.markDBIO(id, digest)
+          } yield res
         }
       }
     }
+  }
 
   def updateState(id: UUID, length: Long, digest: String, state: ImageBlobState)(
       implicit ec: ExecutionContext
@@ -178,6 +188,15 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       .filter(_.id === id)
       .map(t => (t.state, t.length, t.sha256Digest))
       .update((state, length, Some(digest)))
+  }
+
+  override def destroy(id: UUID)(implicit ec: ExecutionContext): Future[Int] = {
+    db.run {
+      for {
+        res <- destroyDBIO(id)
+        _   <- BlobFilesRepo.markOrDestroyDBIO(id)
+      } yield res
+    }
   }
 
   def findByIds(ids: List[UUID]) =

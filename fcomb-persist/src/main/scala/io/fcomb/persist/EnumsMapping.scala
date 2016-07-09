@@ -20,7 +20,7 @@ import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName
 import com.github.tminglei.slickpg.utils.SimpleArrayUtils
 import io.fcomb.RichPostgresDriver._
 import io.fcomb.models.acl.{Action, Role, SourceKind, MemberKind}
-import io.fcomb.models.docker.distribution.{ImageBlobState, ImageVisibilityKind}
+import io.fcomb.models.docker.distribution.{ImageBlobState, ImageVisibilityKind, BlobFileState}
 import io.fcomb.models.{ApplicationState, OwnerKind}
 import io.fcomb.models.common.{Enum, EnumItem}
 import java.sql.{PreparedStatement, ResultSet}
@@ -28,6 +28,7 @@ import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
 import slick.jdbc.JdbcType
 
+// TODO: keep only common mappings and move specific into own repo table
 object EnumsMapping {
   implicit val applicationStateColumnType =
     createEnumJdbcMapping("application_state", ApplicationState)
@@ -47,6 +48,8 @@ object EnumsMapping {
 
   implicit val distributionImageVisibilityKindColumnType =
     createEnumJdbcMapping("dd_image_visibility_kind", ImageVisibilityKind)
+
+  implicit val blobFileStateColumnType = createEnumJdbcMapping("dd_blob_file_state", BlobFileState)
 
   private def createEnumJdbcMapping[T <: EnumItem](
       sqlEnumTypeName: String,

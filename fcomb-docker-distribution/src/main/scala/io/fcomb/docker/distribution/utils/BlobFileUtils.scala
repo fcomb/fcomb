@@ -21,7 +21,7 @@ import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import com.google.common.io.ByteStreams
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
-import io.fcomb.models.docker.distribution.{ImageBlob => ImageBlob, ImageManifest => ImageManifest}
+import io.fcomb.models.docker.distribution.ImageBlob
 import io.fcomb.utils.Config
 import java.io.File
 import java.nio.file.Files
@@ -55,24 +55,17 @@ object BlobFileUtils {
     }
   }
 
-  def renameOrDelete(file: File, digest: String)(
-      implicit ec: ExecutionContext
-  ): Future[Unit] =
+  def rename(file: File, digest: String)(implicit ec: ExecutionContext): Future[Unit] =
     Future(blocking {
-      if (digest == ImageManifest.emptyTarSha256Digest) file.delete()
-      else {
-        val newFile = getBlobFilePath(digest)
-        if (!newFile.exists()) {
-          if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
-          file.renameTo(newFile)
-        }
+      val newFile = getBlobFilePath(digest)
+      if (!newFile.exists()) {
+        if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
+        file.renameTo(newFile)
       }
     })
 
-  def renameOrDelete(uuid: UUID, digest: String)(
-      implicit ec: ExecutionContext
-  ): Future[Unit] =
-    renameOrDelete(getUploadFilePath(uuid), digest)
+  def rename(uuid: UUID, digest: String)(implicit ec: ExecutionContext): Future[Unit] =
+    rename(getUploadFilePath(uuid), digest)
 
   def uploadBlobChunk(uuid: UUID, data: Source[ByteString, Any])(
       implicit mat: Materializer

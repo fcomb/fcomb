@@ -17,7 +17,6 @@
 package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
-import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
@@ -315,9 +314,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
     for {
-      _ <- PermissionsRepo.destroyByImageIdDBIO(id)
-      _ <- findByIdQuery(id).delete
-    } yield Validated.Valid(()) // TODO
+      _   <- PermissionsRepo.destroyByImageIdDBIO(id)
+      res <- super.destroyDBIO(id)
+    } yield res // TODO
   }
 
   override def destroy(id: Int)(implicit ec: ExecutionContext) = {

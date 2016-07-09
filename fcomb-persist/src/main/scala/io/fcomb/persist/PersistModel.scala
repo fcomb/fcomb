@@ -129,10 +129,10 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   def mapModel(item: T): T = item
 
   def createDBIO(item: T)(implicit ec: ExecutionContext): ModelDBIO =
-    table returning table.map(i => i) += item.asInstanceOf[Q#TableElementType]
+    table returning table.map(identity) += item.asInstanceOf[Q#TableElementType]
 
   def createDBIO(items: Seq[T]) =
-    table returning table.map(i => i) ++= items.asInstanceOf[Seq[Q#TableElementType]]
+    table returning table.map(identity) ++= items.asInstanceOf[Seq[Q#TableElementType]]
 
   def createDBIO(itemOpt: Option[T])(implicit ec: ExecutionContext): ModelDBIOOption =
     itemOpt match {
@@ -241,11 +241,7 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
     }
   }
 
-  def update(
-      id: T#PkType
-  )(
-      f: T => T
-  )(
+  def update(id: T#PkType)(f: T => T)(
       implicit ec: ExecutionContext,
       m: Manifest[T]
   ): Future[ValidationModel] =
@@ -254,13 +250,22 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
       case None       => recordNotFoundAsFuture(id)
     }
 
-  def destroy(id: T#PkType)(implicit ec: ExecutionContext) = db.run {
-    findByIdQuery(id).delete.map(strictDestroyDBIO(id)(_))
+  def destroyDBIO(id: T#PkType) = {
+    findByIdQuery(id).delete
+  }
+
+  def destroy(id: T#PkType)(implicit ec: ExecutionContext): Future[Int] = {
+    db.run(destroyDBIO(id))
+  }
+
+  def strictDestroy(id: T#PkType)(implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
+    db.run {
+      findByIdQuery(id).delete.map(strictDestroyDBIO(id)(_))
+    }
   }
 
   def strictDestroyDBIO(id: T#PkType)(q: Int)(
-      implicit ec: ExecutionContext
-  ): ValidationResultUnit =
+      implicit ec: ExecutionContext): ValidationResultUnit =
     super.strictDestroyDBIO(q, recordNotFound(id))
 }
 
