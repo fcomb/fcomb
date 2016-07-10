@@ -88,10 +88,8 @@ object ImageBlobUploadsHandler {
     imageByNameWithAcl(imageName, user, Action.Write) { toImage =>
       imageByNameWithAcl(from, user, Action.Read) { fromImage =>
         val digest = Reference.getDigest(sha256Digest)
-        val mountResFut = ImageBlobsRepo.mount(fromImage.getId(),
-                                               toImage.getId(),
-                                               digest,
-                                               user.getId())
+        val mountResFut =
+          ImageBlobsRepo.mount(fromImage.getId(), toImage.getId(), digest, user.getId())
         onSuccess(mountResFut) {
           case Some(blob) =>
             val headers = immutable.Seq(

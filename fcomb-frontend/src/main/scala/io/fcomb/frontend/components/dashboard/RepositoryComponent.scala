@@ -138,7 +138,7 @@ object RepositoryComponent {
           <.form(^.onSubmit ==> handleOnSubmit,
                  ^.disabled := fs.isFormDisabled,
                  <.div(
-                   <.a(^.onClick ==> switchToPreview(false), ^.href := "#", "Form"),
+                   <.a(^.onClick ==> switchToPreview(false), ^.href := "#", "Edit"),
                    "|",
                    <.a(^.onClick ==> switchToPreview(true), ^.href := "#", "Preview")
                  ),
@@ -150,7 +150,7 @@ object RepositoryComponent {
         case None =>
           val description = state.repository.map(_.description).getOrElse("")
           <.div(
-            <.a(^.onClick ==> formDescription(description), ^.href := "#", "Form"),
+            <.a(^.onClick ==> formDescription(description), ^.href := "#", "Edit"),
             <.article(MarkdownComponent.apply(description))
           )
       }
