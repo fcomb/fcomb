@@ -11,7 +11,8 @@ ENV WORKDIR ${HOME}/project
 COPY . ${WORKDIR}
 WORKDIR ${WORKDIR}
 
-RUN su java -m -c "${HOME}/bin/sbt universal:packageZipTarball" && \
+RUN chown -R java:java ${WORKDIR} && \
+    su java -c "${HOME}/bin/sbt universal:packageZipTarball" && \
     tar -xf ${WORKDIR}/target/universal/dist.tgz -C / && \
     mv /dist ${APP} && \
     chown -R fcomb:fcomb ${APP} && \
