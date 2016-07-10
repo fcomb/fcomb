@@ -18,10 +18,13 @@ package io.fcomb.docker.distribution.services
 
 import akka.actor._
 import akka.stream.Materializer
+import akka.stream.scaladsl.Sink
+import cats.data.Xor
 import io.fcomb.docker.distribution.utils.BlobFileUtils
-import io.fcomb.persist.docker.distribution.ImageBlobsRepo
+import io.fcomb.persist.docker.distribution.{BlobFilesRepo, ImageBlobsRepo}
 import io.fcomb.utils.Config.docker.distribution.gc
 import java.time.ZonedDateTime
+import java.util.UUID
 import org.slf4j.LoggerFactory
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -77,7 +80,7 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
         case CheckOutdated =>
           val until = ZonedDateTime.now().minus(gc.outdatedPeriod)
           ImageBlobsRepo.destroyOutdatedUploads(until)
-        case CheckDeleting => ???
+        case CheckDeleting => runDeleting()
       }).onComplete { _ =>
         context.become(idle, false)
         stashed.foreach(self ! _)
@@ -86,4 +89,28 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
   }
 
   def receive = idle
+
+  private def runDeleting() = {
+    BlobFilesRepo
+      .findDeleting()
+      .mapAsync(4) { bf =>
+        val fut = bf.digest match {
+          case Some(digest) => BlobFileUtils.destroyBlob(digest)
+          case _            => BlobFileUtils.destroyUploadBlob(bf.uuid)
+        }
+        fut.map(_ => Xor.right(bf.uuid)).recover { case _ => Xor.left(bf.uuid) }
+      }
+      .grouped(256)
+      .mapAsync(1) { items =>
+        val (successful, failed) = items.foldLeft((List.empty[UUID], List.empty[UUID])) {
+          case ((sxs, fxs), Xor.Right(uuid)) => (uuid :: sxs, fxs)
+          case ((sxs, fxs), Xor.Left(uuid))  => (sxs, uuid :: fxs)
+        }
+        for {
+          _ <- BlobFilesRepo.destroy(successful)
+          _ <- BlobFilesRepo.updateRetryCount(failed)
+        } yield ()
+      }
+      .runWith(Sink.ignore)
+  }
 }

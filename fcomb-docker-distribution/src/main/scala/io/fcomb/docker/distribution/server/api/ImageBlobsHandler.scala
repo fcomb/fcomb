@@ -142,9 +142,9 @@ object ImageBlobsHandler {
                 case Xor.Right(_) =>
                   ImageBlobsRepo
                     .existByDigest(digest)
-                    .flatMap {
-                      case false => BlobFileUtils.destroyBlob(blob.getId())
-                      case true  => FastFuture.successful(())
+                    .flatMap { exist =>
+                      if (exist) FastFuture.successful(())
+                      else BlobFileUtils.destroyUploadBlob(blob.getId())
                     }
                     .fast
                     .map(_ => HttpResponse(StatusCodes.NoContent))

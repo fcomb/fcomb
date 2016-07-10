@@ -16,9 +16,13 @@
 
 package io.fcomb.persist.docker.distribution
 
+import akka.http.scaladsl.util.FastFuture
+import akka.stream.scaladsl.Source
+import io.fcomb.Db.db
 import io.fcomb.RichPostgresDriver.api._
 import io.fcomb.models.docker.distribution.{BlobFile, BlobFileState}
 import io.fcomb.persist.EnumsMapping._
+import io.fcomb.persist.Implicits._
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.ExecutionContext
@@ -130,5 +134,37 @@ object BlobFilesRepo {
       .on(_.id === _.uuid)
       .map(_._2.state)
       .update(BlobFileState.Deleting)
+  }
+
+  def destroy(uuids: Seq[UUID]) = {
+    if (uuids.isEmpty) FastFuture.successful(())
+    else db.run(table.filter(_.uuid.inSetBind(uuids)).delete)
+  }
+
+  def updateRetryCount(uuids: Seq[UUID]) = {
+    if (uuids.isEmpty) FastFuture.successful(())
+    else {
+      val retriedAt = Some(ZonedDateTime.now())
+      db.run {
+        val uuidCol       = table.baseTableRow.uuid.toString()
+        val retryCountCol = table.baseTableRow.retryCount.toString()
+        val retriedAtCol  = table.baseTableRow.retriedAt.toString()
+        // TODO: replace it when it is ready: https://github.com/slick/slick/issues/497
+        sqlu"""
+        UPDATE #${table.baseTableRow.tableName}
+            SET #$retryCountCol = #$retryCountCol + 1,
+                #$retriedAtCol = $retriedAt
+            WHERE #$uuidCol IN ($uuids)
+        """
+      }
+    }
+  }
+
+  private lazy val findDeletingCompiled = Compiled {
+    table.filter(_.state === (BlobFileState.Deleting: BlobFileState))
+  }
+
+  def findDeleting() = {
+    Source.fromPublisher(db.stream(findDeletingCompiled.result))
   }
 }

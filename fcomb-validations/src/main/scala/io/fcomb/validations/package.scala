@@ -129,12 +129,11 @@ package object validations {
       if (regex.findFirstIn(value).isDefined) Validated.Valid(())
       else Validated.Invalid(errorMessage)
 
-    def unique(
-        action: AppliedCompiledFunction[_, Rep[Boolean], Boolean]
-    )(implicit ec: ExecutionContext): DBIOValidation = {
-      action.result.map {
-        case true  => Validated.Invalid("not unique")
-        case false => Validated.Valid(())
+    def unique(action: AppliedCompiledFunction[_, Rep[Boolean], Boolean])(
+        implicit ec: ExecutionContext): DBIOValidation = {
+      action.result.map { isUnique =>
+        if (isUnique) Validated.Invalid("not unique")
+        else Validated.Valid(())
       }
     }
 

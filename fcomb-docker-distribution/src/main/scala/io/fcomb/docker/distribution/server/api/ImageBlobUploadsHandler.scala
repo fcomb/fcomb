@@ -264,7 +264,7 @@ object ImageBlobUploadsHandler {
           onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
             case Some(blob) if !blob.isUploaded =>
               complete(for {
-                _ <- BlobFileUtils.destroyBlob(blob.getId())
+                _ <- BlobFileUtils.destroyUploadBlob(blob.getId())
                 _ <- ImageBlobsRepo.destroy(uuid)
               } yield HttpResponse(StatusCodes.NoContent))
             case _ =>

@@ -83,6 +83,9 @@ object BlobFileUtils {
     StreamConverters.fromInputStream(() => bs, 8192)
   }
 
-  def destroyBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] =
+  def destroyUploadBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] =
     Future(blocking(getUploadFilePath(uuid).delete))
+
+  def destroyBlob(digest: String)(implicit ec: ExecutionContext): Future[Unit] =
+    Future(blocking(getBlobFilePath(digest).delete))
 }

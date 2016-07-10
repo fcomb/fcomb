@@ -252,9 +252,9 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
 
   def tryDestroy(id: UUID)(implicit ec: ExecutionContext): Future[Xor[String, Unit]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
-      ImageManifestLayersRepo.isBlobLinkedCompiled(id).result.flatMap {
-        case true  => DBIO.successful(Xor.left("blob is linked with manifest"))
-        case false => findByIdQuery(id).delete.map(_ => Xor.right(()))
+      ImageManifestLayersRepo.isBlobLinkedCompiled(id).result.flatMap { isLinked =>
+        if (isLinked) DBIO.successful(Xor.left("blob is linked with manifest"))
+        else findByIdQuery(id).delete.map(_ => Xor.right(()))
       }
     }.recover { case _ => Xor.right(()) }
 
