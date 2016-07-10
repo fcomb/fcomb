@@ -28,6 +28,7 @@ import java.util.UUID
 import org.slf4j.LoggerFactory
 import scala.collection.mutable
 import scala.concurrent.duration._
+import scala.util.Failure
 
 object GarbageCollectorService {
   val actorName = "garbage-collector"
@@ -76,15 +77,21 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
   val idle: Receive = {
     case e: GarbageCollectorEntity =>
       context.become(busy, false)
-      (e match {
+      val fut = e match {
         case CheckOutdated =>
           val until = ZonedDateTime.now().minus(gc.outdatedPeriod)
           ImageBlobsRepo.destroyOutdatedUploads(until)
         case CheckDeleting => runDeleting()
-      }).onComplete { _ =>
+      }
+      fut.onComplete { res =>
         context.become(idle, false)
         stashed.foreach(self ! _)
         stashed.clear()
+
+        res match {
+          case Failure(e) => log.error(e, e.getMessage)
+          case _          =>
+        }
       }
   }
 
@@ -93,7 +100,7 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
   private def runDeleting() = {
     BlobFilesRepo
       .findDeleting()
-      .mapAsync(4) { bf =>
+      .mapAsyncUnordered(4) { bf =>
         val fut = bf.digest match {
           case Some(digest) => BlobFileUtils.destroyBlob(digest)
           case _            => BlobFileUtils.destroyUploadBlob(bf.uuid)
@@ -101,7 +108,7 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
         fut.map(_ => Xor.right(bf.uuid)).recover { case _ => Xor.left(bf.uuid) }
       }
       .grouped(256)
-      .mapAsync(1) { items =>
+      .mapAsyncUnordered(1) { items =>
         val (successful, failed) = items.foldLeft((List.empty[UUID], List.empty[UUID])) {
           case ((sxs, fxs), Xor.Right(uuid)) => (uuid :: sxs, fxs)
           case ((sxs, fxs), Xor.Left(uuid))  => (sxs, uuid :: fxs)
