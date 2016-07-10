@@ -32,9 +32,7 @@ object BlobFileUtils {
   def getUploadFilePath(uuid: UUID): File =
     imageFilePath("uploads", uuid.toString)
 
-  def createUploadFile(uuid: UUID)(
-      implicit ec: ExecutionContext
-  ): Future[File] = {
+  def createUploadFile(uuid: UUID)(implicit ec: ExecutionContext): Future[File] = {
     val file = getUploadFilePath(uuid)
     Future(blocking {
       if (!file.getParentFile.exists) file.getParentFile.mkdirs()

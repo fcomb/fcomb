@@ -60,16 +60,17 @@ trait ProcessorClustedSharding[Id] {
   protected def startClustedSharding(props: Props)(
       implicit sys: ActorSystem,
       mat: Materializer
-  ) = {
-    val ref = ClusterSharding(sys).start(
-      typeName = shardName,
-      entityProps = props,
-      settings = ClusterShardingSettings(sys),
-      extractEntityId = extractEntityId,
-      extractShardId = extractShardId
-    )
-    actorRef = ref
-    ref
+  ): ActorRef = {
+    if (actorRef eq null) {
+      actorRef = ClusterSharding(sys).start(
+        typeName = shardName,
+        entityProps = props,
+        settings = ClusterShardingSettings(sys),
+        extractEntityId = extractEntityId,
+        extractShardId = extractShardId
+      )
+    }
+    actorRef
   }
 
   protected def askRef[T](id: Id, entity: Entity, timeout: Timeout)(

@@ -28,12 +28,10 @@ import scala.collection.immutable
 import java.security.PublicKey
 
 object Jws {
-  def verify(
-      algorithm: String,
-      params: immutable.Map[String, String],
-      payload: String,
-      signatureBytes: Array[Byte]
-  ): Boolean = {
+  def verify(algorithm: String,
+             params: immutable.Map[String, String],
+             payload: String,
+             signatureBytes: Array[Byte]): Boolean = {
     try {
       val jwk = JsonWebKey.Factory
         .newJwk(params.toMap[String, Object].asJava)

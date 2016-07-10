@@ -17,8 +17,16 @@
 package io.fcomb.utils
 
 import com.typesafe.config.ConfigFactory
+import configs.syntax._
+import java.time.{Duration => JDuration}
+import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.language.implicitConversions
 
+// TODO: migrate to case class instead of object
 object Config {
+  private implicit def toFiniteDuration(d: JDuration): FiniteDuration =
+    Duration.fromNanos(d.toNanos)
+
   val config          = ConfigFactory.load().getConfig("fcomb-server")
   val actorSystemName = config.getString("actor-system-name")
   val jdbcConfig      = config.getConfig("jdbc")
@@ -28,6 +36,15 @@ object Config {
     object distribution {
       val imageStorage = config.getString("docker.distribution.image-storage")
       val realm        = config.getString("docker.distribution.realm")
+
+      object gc {
+        val outdatedPeriod: JDuration =
+          config.get[JDuration]("docker.distribution.gc.outdated-period").value
+        val outdatedCheckInterval: FiniteDuration =
+          config.get[JDuration]("docker.distribution.gc.outdated-check-interval").value
+        val deletingCheckInterval: FiniteDuration =
+          config.get[JDuration]("docker.distribution.gc.deleting-check-interval").value
+      }
     }
   }
 

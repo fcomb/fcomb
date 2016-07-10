@@ -6,7 +6,7 @@ import akka.stream.ActorMaterializer
 import io.fcomb.Db
 import io.fcomb.server.{Routes => ApiRoutes}
 import io.fcomb.docker.distribution.server.{Routes => DockerDistributionRoutes}
-import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
+import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
 import scala.concurrent.Await
@@ -27,7 +27,7 @@ object Main extends App {
     cluster.join(cluster.selfAddress)
   }
 
-  Implicits.global(sys, mat)
+  Implicits.global(sys, mat) // TODO: remove it with redis dependency
 
   val interface = Config.config.getString("rest-api.interface")
   val port      = Config.config.getInt("rest-api.port")
@@ -42,6 +42,7 @@ object Main extends App {
   } yield ()).onComplete {
     case Success(_) =>
       ImageBlobPushProcessor.startRegion(25.minutes)
+      GarbageCollectorService.start()
     case Failure(e) =>
       logger.error(e.getMessage(), e.getCause())
       try {

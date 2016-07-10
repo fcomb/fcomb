@@ -19,7 +19,6 @@ package io.fcomb.frontend.components.dashboard
 import io.fcomb.frontend.utils.DateUtils
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
-import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.duration._
 import scala.scalajs.js.Date
 import scala.scalajs.js.timers
@@ -28,7 +27,7 @@ object TimeAgoComponent {
   final case class State(distance: String)
 
   final case class Backend($ : BackendScope[Date, State]) {
-    val timer = new AtomicReference[timers.SetIntervalHandle]()
+    private var timer: timers.SetIntervalHandle = _
 
     def updateDistance(): Callback = {
       for {
@@ -43,14 +42,17 @@ object TimeAgoComponent {
     }
 
     def startTimer(): Callback = {
-      CallbackTo {
-        val interval = timers.setInterval(1.second)(updateDistance().runNow())
-        timer.set(interval)
-      }
+      stopTimer() >>
+        CallbackTo {
+          val interval = timers.setInterval(1.second)(updateDistance().runNow())
+          timer = interval
+        }
     }
 
     def stopTimer(): Callback = {
-      CallbackTo(timers.clearInterval(timer.get()))
+      CallbackTo {
+        if (timer != null) timers.clearInterval(timer)
+      }
     }
 
     def render(date: Date, state: State) = {

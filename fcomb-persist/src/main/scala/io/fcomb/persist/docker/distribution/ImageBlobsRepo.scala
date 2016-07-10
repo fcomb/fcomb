@@ -219,7 +219,6 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     }
   }
 
-  // TODO: configure and schedule
   def destroyOutdatedUploads(until: ZonedDateTime)(implicit ec: ExecutionContext) = {
     runInTransaction(TransactionIsolation.ReadCommitted) {
       for {
