@@ -27,7 +27,6 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import org.slf4j.LoggerFactory
 import scala.collection.mutable
-import scala.concurrent.duration._
 import scala.util.Failure
 
 object GarbageCollectorService {
@@ -63,10 +62,14 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
   import GarbageCollectorEntity._
 
   log.info("Outdated check interval {}", gc.outdatedCheckInterval)
-  system.scheduler.schedule(1.minute, gc.outdatedCheckInterval)(self ! CheckOutdated)
+  system.scheduler.schedule(gc.outdatedCheckInterval, gc.outdatedCheckInterval) {
+    self ! CheckOutdated
+  }
 
   log.info("Deleting check interval {}", gc.deletingCheckInterval)
-  system.scheduler.schedule(1.second, gc.deletingCheckInterval)(self ! CheckDeleting)
+  system.scheduler.schedule(gc.deletingCheckInterval, gc.deletingCheckInterval) {
+    self ! CheckDeleting
+  }
 
   private val stashed = new mutable.HashSet[GarbageCollectorEntity]()
 
