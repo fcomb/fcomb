@@ -88,7 +88,21 @@ object RepositoriesHandler {
     }
   }
 
-  def routes(key: ImageKey): Route = {
+  val routes: Route = {
+    // format: OFF
+    pathPrefix(servicePath) {
+      pathPrefix(IntNumber) { id =>
+        nestedRoutes(ImageKey.Id(id))
+      } ~
+      pathPrefix(Segments(2)) { xs =>
+        val name = xs.mkString("/")
+        nestedRoutes(ImageKey.Name(name))
+      }
+    }
+    // format: ON
+  }
+
+  private def nestedRoutes(key: ImageKey): Route = {
     // format: OFF
     pathEnd {
       get(show(key)) ~

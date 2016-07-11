@@ -18,6 +18,7 @@ package io.fcomb.server.api
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.json.rpc.Formats.encodeUserProfileResponse
 import io.fcomb.server.AuthenticationDirectives._
@@ -88,4 +89,16 @@ object UserHandler {
   //       )
   //     }
   //   }
+
+  val routes: Route = {
+    // format: OFF
+    pathPrefix(servicePath) {
+      pathEnd {
+        get(current)
+      } ~
+      user.OrganizationsHandler.routes ~
+      user.RepositoriesHandler.routes
+    }
+    // format: ON
+  }
 }

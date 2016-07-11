@@ -19,6 +19,7 @@ package io.fcomb.server.api
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.json.models.errors.Formats._
@@ -43,5 +44,15 @@ object UsersHandler {
         }
       }
     } else complete((StatusCodes.Forbidden, FailureResponse.fromException(RegistrationIsDisabled)))
+  }
+
+  val routes: Route = {
+    // format: OFF
+    pathPrefix(servicePath) {
+      path("sign_up") {
+        post(signUp)
+      }
+    }
+    // format: ON
   }
 }

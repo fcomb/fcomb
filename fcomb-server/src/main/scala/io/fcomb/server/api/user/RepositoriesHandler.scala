@@ -17,18 +17,18 @@
 package io.fcomb.server.api.user
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.headers.Location
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
-// import io.circe.generic.auto._
+import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
-import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.api.{apiVersion, UserHandler}
-import io.fcomb.json.rpc.docker.distribution.Formats._
 import scala.collection.immutable
 
 object RepositoriesHandler {
@@ -66,5 +66,16 @@ object RepositoriesHandler {
         }
       }
     }
+  }
+
+  val routes: Route = {
+    // format: OFF
+    pathPrefix(servicePath) {
+      pathEnd {
+        get(index) ~
+        post(create)
+      }
+    }
+    // format: ON
   }
 }

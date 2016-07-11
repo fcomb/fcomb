@@ -19,7 +19,6 @@ package io.fcomb.server
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import io.fcomb.models.docker.distribution.ImageKey
 import io.fcomb.server.api._
 import io.fcomb.server.headers._
 
@@ -37,38 +36,12 @@ object Routes {
     redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
       respondWithDefaultHeaders(defaultHeaders) {
         pathPrefix(apiVersion) {
-          pathPrefix(RepositoriesHandler.servicePath) {
-            pathPrefix(IntNumber) { id =>
-              RepositoriesHandler.routes(ImageKey.Id(id))
-            } ~
-            pathPrefix(Segments(2)) { xs =>
-              val name = xs.mkString("/")
-              RepositoriesHandler.routes(ImageKey.Name(name))
-            }
-          } ~
-          pathPrefix(UserHandler.servicePath) {
-            pathEnd {
-              get(UserHandler.current)
-            } ~
-            pathPrefix(user.RepositoriesHandler.servicePath) {
-              pathEnd {
-                get(user.RepositoriesHandler.index) ~
-                post(user.RepositoriesHandler.create)
-              }
-            }
-          } ~
-          pathPrefix(UsersHandler.servicePath) {
-            path("sign_up") {
-              post(UsersHandler.signUp)
-            }
-          } ~
-          path("sessions") {
-            post(SessionsHandler.create) ~
-            delete(SessionsHandler.destroy)
-          } ~
-          path("ping") {
-            complete(pongJsonResponse)
-          }
+          RepositoriesHandler.routes ~
+          OrganizationsHandler.routes ~
+          UserHandler.routes ~
+          UsersHandler.routes ~
+          SessionsHandler.routes ~
+          path("ping")(complete(pongJsonResponse))
         }
       }
     }
