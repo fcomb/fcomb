@@ -25,13 +25,13 @@ import java.time.ZonedDateTime
 class OrganizationTable(tag: Tag)
     extends Table[Organization](tag, "organizations")
     with PersistTableWithAutoIntPk {
-  def name            = column[String]("name")
-  def createdByUserId = column[Int]("created_by_user_id")
-  def createdAt       = column[ZonedDateTime]("created_at")
-  def updatedAt       = column[Option[ZonedDateTime]]("updated_at")
+  def name        = column[String]("name")
+  def ownerUserId = column[Int]("owner_user_id")
+  def createdAt   = column[ZonedDateTime]("created_at")
+  def updatedAt   = column[Option[ZonedDateTime]]("updated_at")
 
   def * =
-    (id, name, createdByUserId, createdAt, updatedAt) <>
+    (id, name, ownerUserId, createdAt, updatedAt) <>
       ((Organization.apply _).tupled, Organization.unapply)
 }
 
@@ -54,4 +54,5 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
   def isAdminDBIO(userId: Int): DBIOAction[Boolean, NoStream, Effect.Read] = {
     isAdminCompiled(userId).result
   }
+
 }

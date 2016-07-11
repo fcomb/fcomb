@@ -24,7 +24,6 @@ final case class OrganizationGroup(
     organizationId: Int,
     name: String,
     role: Role,
-    createdByUserId: Int,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
 ) extends ModelWithAutoIntPk {

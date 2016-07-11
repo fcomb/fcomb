@@ -16,7 +16,21 @@
 
 package io.fcomb.rpc
 
+final case class UserSignUpRequest(
+    email: String,
+    password: String,
+    username: String,
+    fullName: Option[String]
+)
+
 final case class UserUpdateRequest(
+    email: String,
+    username: String,
+    fullName: Option[String]
+)
+
+final case class UserProfileResponse(
+    id: Int,
     email: String,
     username: String,
     fullName: Option[String]

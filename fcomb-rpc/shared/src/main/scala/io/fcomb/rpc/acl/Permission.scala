@@ -34,3 +34,24 @@ final case class PermissionUserCreateRequest(
     member: PermissionUserRequest,
     action: Action
 )
+
+sealed trait PermissionMemberResponse {
+  val id: Int
+  val kind: MemberKind
+  val name: String
+}
+
+final case class PermissionUserMemberResponse(
+    id: Int,
+    kind: MemberKind,
+    isOwner: Boolean,
+    name: String,
+    fullName: Option[String]
+) extends PermissionMemberResponse
+
+final case class PermissionResponse(
+    member: PermissionUserMemberResponse,
+    action: Action,
+    createdAt: String,
+    updatedAt: Option[String]
+)

@@ -24,7 +24,7 @@ import io.fcomb.rpc.helpers.time.Implicits._
 object ImageHelpers {
   def responseFrom(image: Image): RepositoryResponse =
     RepositoryResponse(
-      id = image.id,
+      id = image.getId(),
       name = image.name,
       slug = image.slug,
       owner = image.owner,

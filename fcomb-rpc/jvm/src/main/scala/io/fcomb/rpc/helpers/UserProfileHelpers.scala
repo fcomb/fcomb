@@ -22,7 +22,7 @@ import io.fcomb.rpc.UserProfileResponse
 object UserProfileHelpers {
   def responseFrom(user: User): UserProfileResponse =
     UserProfileResponse(
-      id = user.id,
+      id = user.getId(),
       email = user.email,
       username = user.username,
       fullName = user.fullName

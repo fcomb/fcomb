@@ -23,3 +23,7 @@ final case class ImageCreateRequest(
     visibilityKind: ImageVisibilityKind,
     description: Option[String]
 )
+
+final case class ImageUpdateRequest(
+    description: String
+)

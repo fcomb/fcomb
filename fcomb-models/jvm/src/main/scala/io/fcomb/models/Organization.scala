@@ -21,7 +21,7 @@ import java.time.ZonedDateTime
 final case class Organization(
     id: Option[Int],
     name: String,
-    createdByUserId: Int,
+    ownerUserId: Int,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
 ) extends ModelWithAutoIntPk {

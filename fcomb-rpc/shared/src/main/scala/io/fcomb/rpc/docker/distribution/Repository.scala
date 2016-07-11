@@ -20,7 +20,7 @@ import io.fcomb.models.Owner
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
 final case class RepositoryResponse(
-    id: Option[Int],
+    id: Int,
     name: String,
     slug: String,
     owner: Owner,
