@@ -43,7 +43,7 @@ object UsersHandler {
           }
         }
       }
-    } else complete((StatusCodes.Forbidden, FailureResponse.fromException(RegistrationIsDisabled)))
+    } else complete((StatusCodes.Unauthorized, FailureResponse.fromException(RegistrationIsDisabled)))
   }
 
   val routes: Route = {
