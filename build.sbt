@@ -232,7 +232,7 @@ lazy val tests = project.in(file("fcomb-tests"))
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % "test",
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaVersion % "test",
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
-      "org.scalacheck"     %% "scalacheck"        % "1.13.1" % "test",
+      "org.scalacheck"     %% "scalacheck"        % "1.13.2" % "test",
       "org.specs2"         %% "specs2-core"       % "3.8.4" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.0-RC4" % "test",
       "com.ironcorelabs"   %% "cats-scalatest"    % "1.3.0" % "test",
