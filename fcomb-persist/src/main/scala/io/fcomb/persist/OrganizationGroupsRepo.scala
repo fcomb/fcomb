@@ -21,6 +21,7 @@ import io.fcomb.models.OrganizationGroup
 import io.fcomb.models.acl.Role
 import io.fcomb.persist.EnumsMapping._
 import java.time.ZonedDateTime
+import scala.concurrent.ExecutionContext
 
 class OrganizationGroupTable(tag: Tag)
     extends Table[OrganizationGroup](tag, "organization_groups")
@@ -40,8 +41,8 @@ object OrganizationGroupsRepo
     extends PersistModelWithAutoIntPk[OrganizationGroup, OrganizationGroupTable] {
   val table = TableQuery[OrganizationGroupTable]
 
-  def createAdminsDBIO(organizationId: Int, ownerUserId: Int) = {
-    table += OrganizationGroup(
+  def createDBIO(organizationId: Int) = {
+    tableWithPk += OrganizationGroup(
       id = None,
       organizationId = organizationId,
       name = "Admins",
@@ -49,5 +50,12 @@ object OrganizationGroupsRepo
       createdAt = ZonedDateTime.now(),
       updatedAt = None
     )
+  }
+
+  def createAdminsDBIO(organizationId: Int, ownerUserId: Int)(implicit ec: ExecutionContext) = {
+    for {
+      og <- createDBIO(organizationId)
+      _  <- OrganizationGroupUsersRepo.createDBIO(og.getId(), ownerUserId)
+    } yield og
   }
 }

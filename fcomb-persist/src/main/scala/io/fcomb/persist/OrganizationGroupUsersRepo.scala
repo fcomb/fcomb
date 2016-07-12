@@ -24,10 +24,19 @@ class OrganizationGroupUserTable(tag: Tag)
   def groupId = column[Int]("group_id")
   def userId  = column[Int]("user_id")
 
-  def * = (groupId, userId) <> (OrganizationGroupUser.tupled, OrganizationGroupUser.unapply)
+  def * =
+    (groupId, userId) <>
+      (OrganizationGroupUser.tupled, OrganizationGroupUser.unapply)
 }
 
 object OrganizationGroupUsersRepo
     extends PersistModel[OrganizationGroupUser, OrganizationGroupUserTable] {
   val table = TableQuery[OrganizationGroupUserTable]
+
+  def createDBIO(groupId: Int, userId: Int) = {
+    table += OrganizationGroupUser(
+      groupId = groupId,
+      userId = userId
+    )
+  }
 }
