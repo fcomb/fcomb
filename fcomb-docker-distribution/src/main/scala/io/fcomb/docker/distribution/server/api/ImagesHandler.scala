@@ -39,9 +39,7 @@ import io.fcomb.persist.docker.distribution.{ImagesRepo, ImageManifestsRepo}
 import scala.collection.immutable
 
 object ImagesHandler {
-  def getManifest(imageName: String, reference: Reference)(
-      implicit req: HttpRequest
-  ) =
+  def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[Accept]() { acceptOpt =>

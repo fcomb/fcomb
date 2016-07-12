@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
-package io.fcomb.rpc.helpers.time
+package io.fcomb.server
 
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
+import de.heikoseeberger.akkahttpcirce
+import io.circe.{Json, Printer}
+import scala.language.implicitConversions
 
-object Implicits {
-  implicit final class ZonedDateTimeIso8601(val dt: ZonedDateTime) extends AnyVal {
-    def toIso8601 = dt.format(DateTimeFormatter.ISO_INSTANT)
-  }
+trait CirceSupport extends akkahttpcirce.CirceSupport {
+  private final val compactPrinter: Printer = Printer(
+    preserveOrder = false,
+    dropNullKeys = true,
+    indent = ""
+  )
+
+  implicit final def printer(json: Json): String =
+    compactPrinter.pretty(json)
 }
+
+object CirceSupport extends CirceSupport
