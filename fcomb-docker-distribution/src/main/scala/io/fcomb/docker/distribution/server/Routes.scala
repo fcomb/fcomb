@@ -20,7 +20,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{HttpChallenges, `WWW-Authenticate`}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.server.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.api._
 import io.fcomb.docker.distribution.server.headers._

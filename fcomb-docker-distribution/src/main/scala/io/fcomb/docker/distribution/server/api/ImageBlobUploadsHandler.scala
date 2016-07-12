@@ -22,7 +22,7 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import cats.data.Validated
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.server.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFileUtils

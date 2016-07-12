@@ -23,7 +23,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.ByteString
 import cats.data.Xor
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.server.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest, SchemaV2 => SchemaV2Manifest}
 import io.fcomb.server.AuthenticationDirectives._

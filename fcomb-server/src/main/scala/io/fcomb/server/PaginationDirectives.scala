@@ -20,7 +20,7 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.{ContentRange, StatusCodes}
 import akka.http.scaladsl.model.headers.{`Content-Range`, Range, RangeUnits}
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.server.CirceSupport._
 import io.circe.Encoder
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.json.models.Formats._

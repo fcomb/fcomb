@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.server.CirceSupport._
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.models.errors._
 import org.slf4j.LoggerFactory

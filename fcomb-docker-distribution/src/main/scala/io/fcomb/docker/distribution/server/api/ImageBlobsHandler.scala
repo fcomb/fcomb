@@ -25,7 +25,7 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.Xor
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.server.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._

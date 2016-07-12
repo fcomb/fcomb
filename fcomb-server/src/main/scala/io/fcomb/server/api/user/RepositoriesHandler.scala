@@ -21,7 +21,7 @@ import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.server.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest

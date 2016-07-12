@@ -24,7 +24,7 @@ lazy val circeVersion = "0.5.0-M2"
 lazy val commonsVersion = "1.10"
 lazy val enumeratumVersion = "1.4.4"
 lazy val guavaVersion = "19.0"
-lazy val slickPgVersion = "0.14.2"
+lazy val slickPgVersion = "0.14.1"
 lazy val slickVersion = "3.1.1"
 
 lazy val commonSettings =

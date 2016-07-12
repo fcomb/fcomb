@@ -20,7 +20,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
 import cats.data.Validated
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.server.CirceSupport._
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}

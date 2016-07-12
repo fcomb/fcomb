@@ -22,7 +22,7 @@ import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Xor
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.server.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.persist.SessionsRepo
 import io.fcomb.rpc.SessionCreateRequest
