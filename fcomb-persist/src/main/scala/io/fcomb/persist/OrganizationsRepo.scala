@@ -16,11 +16,13 @@
 
 package io.fcomb.persist
 
-import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.Organization
 import io.fcomb.models.acl.Role
 import io.fcomb.persist.EnumsMapping._
+import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest}
 import java.time.ZonedDateTime
+import scala.concurrent.{Future, ExecutionContext}
 
 class OrganizationTable(tag: Tag)
     extends Table[Organization](tag, "organizations")
@@ -55,4 +57,27 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     isAdminCompiled(userId).result
   }
 
+  def create(req: OrganizationCreateRequest, userId: Int)(
+      implicit ec: ExecutionContext): Future[ValidationModel] = {
+    create(
+      Organization(
+        id = None,
+        name = req.name,
+        ownerUserId = userId,
+        createdAt = ZonedDateTime.now,
+        updatedAt = None
+      ))
+  }
+
+  override def createDBIO(item: Organization)(implicit ec: ExecutionContext): ModelDBIO = {
+    for {
+      res <- super.createDBIO(item)
+      _   <- OrganizationGroupsRepo.createAdminsDBIO(res.getId(), item.ownerUserId)
+    } yield res
+  }
+
+  def update(id: Int, req: OrganizationUpdateRequest)(
+      implicit ec: ExecutionContext): Future[ValidationModel] = {
+    update(id)(_.copy(name = req.name))
+  }
 }

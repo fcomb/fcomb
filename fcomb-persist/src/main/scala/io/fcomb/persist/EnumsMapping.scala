@@ -18,7 +18,7 @@ package io.fcomb.persist
 
 import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName
 import com.github.tminglei.slickpg.utils.SimpleArrayUtils
-import io.fcomb.RichPostgresDriver._
+import io.fcomb.FcombPostgresProfile._
 import io.fcomb.models.acl.{Action, Role, SourceKind, MemberKind}
 import io.fcomb.models.docker.distribution.{ImageBlobState, ImageVisibilityKind, BlobFileState}
 import io.fcomb.models.{ApplicationState, OwnerKind}

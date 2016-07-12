@@ -18,7 +18,7 @@ package io.fcomb.persist
 
 import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
-import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.User
 import io.fcomb.rpc.{UserSignUpRequest, UserUpdateRequest}
 import io.fcomb.validations._

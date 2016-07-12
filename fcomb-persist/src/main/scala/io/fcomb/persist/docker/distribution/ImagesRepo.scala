@@ -18,7 +18,7 @@ package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import io.fcomb.Db.db
-import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind, ImageKey}
 import io.fcomb.models.{OwnerKind, Owner, User, Pagination, PaginationData}
@@ -45,7 +45,7 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
   def ownerKind = column[OwnerKind]("owner_kind")
 
   def * =
-    (id, name, slug, (ownerId, ownerKind), visibilityKind, description, createdAt, updatedAt).shaped <>
+    (id, name, slug, (ownerId, ownerKind), visibilityKind, description, createdAt, updatedAt) <>
       ({
         case (id,
               name,

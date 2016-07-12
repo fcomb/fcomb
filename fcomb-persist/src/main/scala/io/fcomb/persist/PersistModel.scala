@@ -20,8 +20,8 @@ import akka.http.scaladsl.util.FastFuture
 import cats.data.Validated, cats.std.all._
 import cats.syntax.cartesian._
 import io.fcomb.Db._
-import io.fcomb.RichPostgresDriver.IntoInsertActionComposer
-import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.FcombPostgresProfile.IntoInsertActionComposer
+import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.validations.{DBIOT, ValidationResult, ValidationResultUnit}
 import io.fcomb.{models, validations}
 import java.util.UUID

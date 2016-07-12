@@ -19,7 +19,7 @@ package io.fcomb.persist.acl
 import cats.data.Validated
 import cats.syntax.eq._
 import io.fcomb.Db.db
-import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.acl._
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.{Pagination, PaginationData, OwnerKind, User}

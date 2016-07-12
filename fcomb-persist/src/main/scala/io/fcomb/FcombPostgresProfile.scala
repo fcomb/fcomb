@@ -18,8 +18,8 @@ package io.fcomb
 
 import com.github.tminglei.slickpg._
 
-trait RichPostgresDriver
-    extends ExPostgresDriver
+trait FcombPostgresProfile
+    extends ExPostgresProfile
     with PgArraySupport
     with PgDateSupport
     with PgCirceJsonSupport
@@ -38,4 +38,4 @@ trait RichPostgresDriver
   with RangeImplicits with HStoreImplicits with SearchImplicits with SearchAssistants {}
 }
 
-object RichPostgresDriver extends RichPostgresDriver
+object FcombPostgresProfile extends FcombPostgresProfile

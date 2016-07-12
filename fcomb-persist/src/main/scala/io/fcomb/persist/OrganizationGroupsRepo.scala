@@ -16,7 +16,7 @@
 
 package io.fcomb.persist
 
-import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.OrganizationGroup
 import io.fcomb.models.acl.Role
 import io.fcomb.persist.EnumsMapping._
@@ -39,4 +39,15 @@ class OrganizationGroupTable(tag: Tag)
 object OrganizationGroupsRepo
     extends PersistModelWithAutoIntPk[OrganizationGroup, OrganizationGroupTable] {
   val table = TableQuery[OrganizationGroupTable]
+
+  def createAdminsDBIO(organizationId: Int, ownerUserId: Int) = {
+    table += OrganizationGroup(
+      id = None,
+      organizationId = organizationId,
+      name = "Admins",
+      role = Role.Admin,
+      createdAt = ZonedDateTime.now(),
+      updatedAt = None
+    )
+  }
 }

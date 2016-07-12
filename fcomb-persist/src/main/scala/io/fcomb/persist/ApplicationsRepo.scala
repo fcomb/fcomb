@@ -16,7 +16,7 @@
 
 package io.fcomb.persist
 
-import io.fcomb.RichPostgresDriver.api._
+import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.{Application, ApplicationState, OwnerKind}
 import io.fcomb.persist.EnumsMapping._
 import java.time.ZonedDateTime

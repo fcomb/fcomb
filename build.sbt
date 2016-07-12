@@ -24,8 +24,8 @@ lazy val circeVersion = "0.5.0-M2"
 lazy val commonsVersion = "1.10"
 lazy val enumeratumVersion = "1.4.4"
 lazy val guavaVersion = "19.0"
-lazy val slickPgVersion = "0.14.1"
-lazy val slickVersion = "3.1.1"
+lazy val slickPgVersion = "0.15.0-M1"
+lazy val slickVersion = "3.2.0-M1"
 
 lazy val commonSettings =
   reformatOnCompileSettings ++
@@ -151,7 +151,7 @@ lazy val persist = project.in(file("fcomb-persist"))
     "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
-    "com.zaxxer"          %  "HikariCP"            % "2.4.6",
+    "com.zaxxer"          %  "HikariCP"            % "2.4.7",
     "com.etaty.rediscala" %% "rediscala"           % "1.5.0" // TODO: replace it by akka persistence
   ))
   .enablePlugins(AutomateHeaderPlugin)
@@ -236,8 +236,9 @@ lazy val tests = project.in(file("fcomb-tests"))
       "org.specs2"         %% "specs2-core"       % "3.8.4" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.0-RC4" % "test",
       "com.ironcorelabs"   %% "cats-scalatest"    % "1.3.0" % "test",
-      "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test",
-      "ch.qos.logback"     %  "logback-classic"   % "1.1.7"
+      "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude("junit", "junit-dep"),
+      "ch.qos.logback"     %  "logback-classic"   % "1.1.7",
+      "junit"              %  "junit-dep"         % "4.10" % "test"
     ),
     parallelExecution in Test := false,
     fork in Test := true
