@@ -200,8 +200,6 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     }
   }
 
-  override def validate(user: User)(
-      implicit ec: ExecutionContext
-  ): ValidationDBIOResult =
+  override def validate(user: User)(implicit ec: ExecutionContext): ValidationDBIOResult =
     validate(userValidation(user, None))
 }

@@ -64,6 +64,9 @@ class HttpApiService(routes: Route)(
     }
     val rejectionHandler = RejectionHandler
       .newBuilder()
+      .handleAll[AuthorizationFailedRejection.type] { _ =>
+        complete(HttpResponse(StatusCodes.Unauthorized))
+      }
       .handle {
         case r =>
           logger.error(r.toString, r.toString)
@@ -74,10 +77,9 @@ class HttpApiService(routes: Route)(
       }
       .result
 
-    // handleRejections(rejectionHandler) {
-    //   handleExceptions(exceptionHandler)(routes)
-    // }
-    routes
+    handleRejections(rejectionHandler) {
+      handleExceptions(exceptionHandler)(routes)
+    }
   }
 
   def bind(port: Int, interface: String) =

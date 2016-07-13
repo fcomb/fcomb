@@ -21,6 +21,7 @@ import io.fcomb.models.Organization
 import io.fcomb.models.acl.Role
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest}
+import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{Future, ExecutionContext}
 
@@ -79,5 +80,21 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
   def update(id: Int, req: OrganizationUpdateRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     update(id)(_.copy(name = req.name))
+  }
+
+  import Validations._
+
+  private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
+    notCurrentPkFilter(id).filter(_.name === name).exists
+  }
+
+  override def validate(org: Organization)(implicit ec: ExecutionContext): ValidationDBIOResult = {
+    val plainValidations = validatePlain(
+      "name" -> List(lengthRange(org.name, 1, 255))
+    )
+    val dbioValidations = validateDBIO(
+      "name" -> List(unique(uniqueNameCompiled((org.id, org.name))))
+    )
+    validate((plainValidations, dbioValidations))
   }
 }

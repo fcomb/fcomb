@@ -17,23 +17,38 @@
 package io.fcomb.server.api
 
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import io.fcomb.server.CirceSupport._
+import cats.data.Validated
+import io.fcomb.json.rpc.Formats._
+import io.fcomb.persist.OrganizationsRepo
+import io.fcomb.rpc.OrganizationCreateRequest
+import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.CirceSupport._
+import scala.collection.immutable
 
 object OrganizationsHandler {
   val servicePath = "organizations"
 
-  def index = {
+  lazy val fullPrefix = s"/$apiVersion/$servicePath/"
+
+  def create = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        extractPagination { pg =>
-          // onSuccess(???) { p =>
-          //   completePagination(???, p)
-          // }
-          ???
+        entity(as[OrganizationCreateRequest]) { req =>
+          onSuccess(OrganizationsRepo.create(req, user.getId())) {
+            case Validated.Valid(org) =>
+              val uri     = fullPrefix + org.getId().toString
+              val headers = immutable.Seq(Location(uri))
+              val res     = OrganizationHelpers.responseFrom(org)
+              respondWithHeaders(headers) {
+                complete((StatusCodes.Created, res))
+              }
+            case Validated.Invalid(e) =>
+              ??? // TODO
+          }
         }
       }
     }
@@ -42,7 +57,7 @@ object OrganizationsHandler {
   val routes: Route = {
     // format: OFF
     path(servicePath) {
-      get(index)
+      post(create)
     }
     // format: ON
   }

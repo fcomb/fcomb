@@ -109,9 +109,7 @@ object Routes {
             ))
         }
       }
-      .handleNotFound {
-        complete(HttpResponse(StatusCodes.NotFound))
-      }
+      .handleNotFound(complete(HttpResponse(StatusCodes.NotFound)))
       .result
 
     handleRejections(rejectionHandler) {
