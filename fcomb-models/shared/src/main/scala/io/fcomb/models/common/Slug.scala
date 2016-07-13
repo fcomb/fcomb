@@ -14,28 +14,11 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.docker.distribution
+package io.fcomb.models.common
 
-import io.fcomb.models.{ModelWithAutoIntPk, Owner}
-import java.time.ZonedDateTime
+sealed trait Slug
 
-final case class Image(
-    id: Option[Int],
-    name: String,
-    slug: String,
-    owner: Owner,
-    visibilityKind: ImageVisibilityKind,
-    description: String,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
+object Slug {
+  final case class Id(id: Int)        extends Slug
+  final case class Name(name: String) extends Slug
 }
-
-object Image {
-  val nameRegEx = """[A-Za-z][\w\-\.]*""".r
-}
-
-final case class DistributionImageCatalog(
-    repositories: Seq[String]
-)

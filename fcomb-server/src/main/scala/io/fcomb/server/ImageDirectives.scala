@@ -23,7 +23,8 @@ import io.fcomb.server.CirceSupport._
 import io.circe.generic.auto._
 import io.fcomb.models.User
 import io.fcomb.models.acl.Action
-import io.fcomb.models.docker.distribution.{Image, ImageKey}
+import io.fcomb.models.common.Slug
+import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
 
@@ -40,10 +41,10 @@ trait ImageDirectives {
     }
   }
 
-  final def imageByKeyWithAcl(key: ImageKey, user: User, action: Action): Directive1[Image] = {
-    key match {
-      case ImageKey.Id(id)     => imageByIdWithAcl(id, user, action)
-      case ImageKey.Name(name) => imageByNameWithAcl(name, user, action)
+  final def imageByKeyWithAcl(slug: Slug, user: User, action: Action): Directive1[Image] = {
+    slug match {
+      case Slug.Id(id)     => imageByIdWithAcl(id, user, action)
+      case Slug.Name(name) => imageByNameWithAcl(name, user, action)
     }
   }
 

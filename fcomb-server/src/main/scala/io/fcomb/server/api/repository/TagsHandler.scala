@@ -20,7 +20,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
-import io.fcomb.models.docker.distribution.ImageKey
+import io.fcomb.models.common.Slug
 import io.fcomb.persist.docker.distribution.ImageManifestTagsRepo
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.ImageDirectives._
@@ -29,10 +29,10 @@ import io.fcomb.server.PaginationDirectives._
 object TagsHandler {
   val servicePath = "tags"
 
-  def index(key: ImageKey) = {
+  def index(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(key, user, Action.Read) { image =>
+        imageByKeyWithAcl(slug, user, Action.Read) { image =>
           extractPagination { pg =>
             onSuccess(ImageManifestTagsRepo.findByImageIdWithPagination(image.getId(), pg)) { p =>
               completePagination(ImageManifestTagsRepo.label, p)
@@ -43,10 +43,10 @@ object TagsHandler {
     }
   }
 
-  def routes(key: ImageKey): Route = {
+  def routes(slug: Slug): Route = {
     // format: OFF
     path(servicePath) {
-      get(index(key))
+      get(index(slug))
     }
     // format: ON
   }

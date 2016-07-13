@@ -23,7 +23,8 @@ import cats.data.Validated
 import io.fcomb.server.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
-import io.fcomb.models.docker.distribution.{ImageKey, ImageVisibilityKind}
+import io.fcomb.models.common.Slug
+import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageUpdateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
@@ -35,10 +36,10 @@ import io.fcomb.server.api.repository._
 object RepositoriesHandler {
   val servicePath = "repositories"
 
-  def show(key: ImageKey) = {
+  def show(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(key, user, Action.Read) { image =>
+        imageByKeyWithAcl(slug, user, Action.Read) { image =>
           val res = ImageHelpers.responseFrom(image)
           complete((StatusCodes.OK, res))
         }
@@ -46,10 +47,10 @@ object RepositoriesHandler {
     }
   }
 
-  def update(key: ImageKey) = {
+  def update(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
           entity(as[ImageUpdateRequest]) { req =>
             onSuccess(ImagesRepo.update(image.getId(), req)) {
               case Validated.Valid(image) =>
@@ -64,10 +65,10 @@ object RepositoriesHandler {
     }
   }
 
-  def updateVisibility(key: ImageKey, visibilityKind: ImageVisibilityKind) = {
+  def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
           onSuccess(ImagesRepo.updateVisibility(image.getId(), visibilityKind)) { _ =>
             completeAccepted()
           }
@@ -76,10 +77,10 @@ object RepositoriesHandler {
     }
   }
 
-  def destroy(key: ImageKey) = {
+  def destroy(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
           onSuccess(ImagesRepo.destroy(image.getId())) { _ =>
             completeAccepted()
           }
@@ -92,29 +93,29 @@ object RepositoriesHandler {
     // format: OFF
     pathPrefix(servicePath) {
       pathPrefix(IntNumber) { id =>
-        nestedRoutes(ImageKey.Id(id))
+        nestedRoutes(Slug.Id(id))
       } ~
       pathPrefix(Segments(2)) { xs =>
         val name = xs.mkString("/")
-        nestedRoutes(ImageKey.Name(name))
+        nestedRoutes(Slug.Name(name))
       }
     }
     // format: ON
   }
 
-  private def nestedRoutes(key: ImageKey): Route = {
+  private def nestedRoutes(slug: Slug): Route = {
     // format: OFF
     pathEnd {
-      get(show(key)) ~
-      put(update(key)) ~
-      delete(destroy(key))
+      get(show(slug)) ~
+      put(update(slug)) ~
+      delete(destroy(slug))
     } ~
     pathPrefix("visibility") {
-      path("public")(post(updateVisibility(key, ImageVisibilityKind.Public))) ~
-      path("private")(post(updateVisibility(key, ImageVisibilityKind.Private)))
+      path("public")(post(updateVisibility(slug, ImageVisibilityKind.Public))) ~
+      path("private")(post(updateVisibility(slug, ImageVisibilityKind.Private)))
     } ~
-    TagsHandler.routes(key) ~
-    PermissionsHandler.routes(key)
+    TagsHandler.routes(slug) ~
+    PermissionsHandler.routes(slug)
     // format: ON
   }
 }

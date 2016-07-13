@@ -20,7 +20,8 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
-import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind, ImageKey}
+import io.fcomb.models.common.Slug
+import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.models.{OwnerKind, Owner, User, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
@@ -265,15 +266,15 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     table.filter(_.slug === slug)
   }
 
-  def findByKeyDBIO(key: ImageKey) = {
-    key match {
-      case ImageKey.Id(id)     => findByIdCompiled(id)
-      case ImageKey.Name(name) => findBySlugDBIOCompiled(name.toLowerCase)
+  def findBySlugDBIO(slug: Slug) = {
+    slug match {
+      case Slug.Id(id)     => findByIdCompiled(id)
+      case Slug.Name(name) => findBySlugDBIOCompiled(name.toLowerCase)
     }
   }
 
-  def findByKey(key: ImageKey)(implicit ec: ExecutionContext): Future[Option[Image]] = {
-    db.run(findByKeyDBIO(key).result.headOption)
+  def findBySlug(slug: Slug)(implicit ec: ExecutionContext): Future[Option[Image]] = {
+    db.run(findBySlugDBIO(slug).result.headOption)
   }
 
   def update(id: Int, req: ImageUpdateRequest)(

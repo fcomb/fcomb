@@ -24,7 +24,7 @@ import io.fcomb.server.CirceSupport._
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
-import io.fcomb.models.docker.distribution.ImageKey
+import io.fcomb.models.common.Slug
 import io.fcomb.models.errors.{FailureResponse, UnknownEnumItemException}
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.acl.PermissionUserCreateRequest
@@ -36,10 +36,10 @@ import io.fcomb.server.PaginationDirectives._
 object PermissionsHandler {
   val servicePath = "permissions"
 
-  def index(key: ImageKey) = {
+  def index(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
           extractPagination { pg =>
             onSuccess(PermissionsRepo.findByImageIdWithPagination(image, pg)) { p =>
               completePagination(PermissionsRepo.label, p)
@@ -50,10 +50,10 @@ object PermissionsHandler {
     }
   }
 
-  def upsert(key: ImageKey) = {
+  def upsert(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(key, user, Action.Manage) { image =>
+        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
           entity(as[PermissionUserCreateRequest]) { req =>
             onSuccess(PermissionsRepo.upsertByImage(image, req)) {
               case Validated.Valid(p)   => complete((StatusCodes.Accepted, p))
@@ -65,11 +65,11 @@ object PermissionsHandler {
     }
   }
 
-  def destroy(key: ImageKey, memberKind: MemberKind, slug: String) = {
+  def destroy(slug: Slug, memberKind: MemberKind, memberSlug: String) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(key, user, Action.Manage) { image =>
-          onSuccess(PermissionsRepo.destroyByImage(image, memberKind, slug)) {
+        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
+          onSuccess(PermissionsRepo.destroyByImage(image, memberKind, memberSlug)) {
             case Validated.Valid(p)   => completeAccepted()
             case Validated.Invalid(e) => ??? // TODO
           }
@@ -78,16 +78,16 @@ object PermissionsHandler {
     }
   }
 
-  def routes(key: ImageKey): Route = {
+  def routes(slug: Slug): Route = {
     // format: OFF
     pathPrefix(servicePath) {
       pathEnd {
-        get(index(key)) ~
-        put(upsert(key))
+        get(index(slug)) ~
+        put(upsert(slug))
       } ~
-      path(Segment / Segment) { (kind, slug) =>
+      path(Segment / Segment) { (kind, memberSlug) =>
         extractMemberKind(kind) { memberKind =>
-          delete(destroy(key, memberKind, slug))
+          delete(destroy(slug, memberKind, memberSlug))
         }
       }
     }

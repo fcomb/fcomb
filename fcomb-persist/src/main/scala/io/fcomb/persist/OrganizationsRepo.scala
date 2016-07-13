@@ -20,6 +20,7 @@ import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.Organization
 import io.fcomb.models.acl.Role
+import io.fcomb.models.common.Slug
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest}
 import io.fcomb.validations._
@@ -41,6 +42,21 @@ class OrganizationTable(tag: Tag)
 
 object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, OrganizationTable] {
   val table = TableQuery[OrganizationTable]
+
+  val findByNameDBIOCompiled = Compiled { name: Rep[String] =>
+    table.filter(_.name === name)
+  }
+
+  def findBySlugDBIO(slug: Slug) = {
+    slug match {
+      case Slug.Id(id)     => findByIdCompiled(id)
+      case Slug.Name(name) => findByNameDBIOCompiled(name.toLowerCase)
+    }
+  }
+
+  def findBySlug(slug: Slug)(implicit ec: ExecutionContext): Future[Option[Organization]] = {
+    db.run(findBySlugDBIO(slug).result.headOption)
+  }
 
   def create(req: OrganizationCreateRequest, userId: Int)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {

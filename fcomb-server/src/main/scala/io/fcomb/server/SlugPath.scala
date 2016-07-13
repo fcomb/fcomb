@@ -14,28 +14,20 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.docker.distribution
+package io.fcomb.server
 
-import io.fcomb.models.{ModelWithAutoIntPk, Owner}
-import java.time.ZonedDateTime
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.PathMatcher._
+import akka.http.scaladsl.model.Uri.Path
+import io.fcomb.models.common.Slug
 
-final case class Image(
-    id: Option[Int],
-    name: String,
-    slug: String,
-    owner: Owner,
-    visibilityKind: ImageVisibilityKind,
-    description: String,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
+object SlugPath extends PathMatcher1[Slug] {
+  def apply(path: Path) = path match {
+    case Path.Segment(segment, tail) =>
+      val slug =
+        if (segment.forall(Character.isDigit)) Slug.Id(segment.toInt)
+        else Slug.Name(segment) // TODO: check format with \w+
+      Matched(tail, Tuple1(slug))
+    case _ => Unmatched
+  }
 }
-
-object Image {
-  val nameRegEx = """[A-Za-z][\w\-\.]*""".r
-}
-
-final case class DistributionImageCatalog(
-    repositories: Seq[String]
-)

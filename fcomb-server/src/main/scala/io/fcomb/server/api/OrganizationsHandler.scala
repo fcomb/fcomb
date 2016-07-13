@@ -23,12 +23,14 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.util.FastFuture
 import cats.data.Validated
 import io.fcomb.json.rpc.Formats._
+import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationsRepo
 import io.fcomb.rpc.OrganizationCreateRequest
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.SlugPath
 import scala.collection.immutable
 
 object OrganizationsHandler {
@@ -56,16 +58,17 @@ object OrganizationsHandler {
     }
   }
 
-  def show(id: Int) = {
+  def show(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { userOpt =>
         val fut = for {
-          org <- OrganizationsRepo.findById(id)
-          isAdmin <- userOpt match {
-                      case Some(user) => OrganizationsRepo.isAdmin(id, user.getId())
-                      case _          => FastFuture.successful(false)
+          orgOpt <- OrganizationsRepo.findBySlug(slug)
+          isAdmin <- (userOpt, orgOpt) match {
+                      case (Some(user), Some(org)) =>
+                        OrganizationsRepo.isAdmin(org.getId(), user.getId())
+                      case _ => FastFuture.successful(false)
                     }
-        } yield (org, isAdmin)
+        } yield (orgOpt, isAdmin)
         onSuccess(fut) {
           case (Some(org), isAdmin) =>
             val res = OrganizationHelpers.responseFrom(org, isPublic = !isAdmin)
@@ -76,14 +79,16 @@ object OrganizationsHandler {
     }
   }
 
+  def update(slug: Slug) = {}
+
   val routes: Route = {
     // format: OFF
     pathPrefix(servicePath) {
       pathEnd {
         post(create)
       } ~
-      pathPrefix(IntNumber) { id =>
-        get(show(id))
+      pathPrefix(SlugPath) { slug =>
+        get(show(slug))
       }
     }
     // format: ON
