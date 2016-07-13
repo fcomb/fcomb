@@ -20,14 +20,15 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.util.FastFuture
 import cats.data.Validated
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.persist.OrganizationsRepo
 import io.fcomb.rpc.OrganizationCreateRequest
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.CirceSupport._
+import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 
 object OrganizationsHandler {
@@ -58,12 +59,18 @@ object OrganizationsHandler {
   def show(id: Int) = {
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { userOpt =>
-        onSuccess(OrganizationsRepo.findById(id)) {
-          case Some(org) =>
-            // TODO: check user is organization admin
-            val res = OrganizationHelpers.responseFrom(org, isPublic = userOpt.isEmpty)
+        val fut = for {
+          org <- OrganizationsRepo.findById(id)
+          isAdmin <- userOpt match {
+                      case Some(user) => OrganizationsRepo.isAdmin(id, user.getId())
+                      case _          => FastFuture.successful(false)
+                    }
+        } yield (org, isAdmin)
+        onSuccess(fut) {
+          case (Some(org), isAdmin) =>
+            val res = OrganizationHelpers.responseFrom(org, isPublic = !isAdmin)
             complete((StatusCodes.OK, res))
-          case None => completeNotFound()
+          case _ => completeNotFound()
         }
       }
     }

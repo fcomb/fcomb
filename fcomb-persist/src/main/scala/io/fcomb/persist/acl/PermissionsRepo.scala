@@ -167,7 +167,7 @@ object PermissionsRepo
     isAllowedActionBySourceAsUserDBIO(sourceId, sourceKind, userId, action).flatMap { isAllowed =>
       if (isAllowed) DBIO.successful(true)
       else {
-        OrganizationsRepo.isAdminDBIO(userId).flatMap { isAdmin =>
+        OrganizationsRepo.isAdminDBIO(organizationId, userId).flatMap { isAdmin =>
           if (isAdmin) DBIO.successful(true)
           else
             isAllowedActionBySourceAsGroupMemberDBIO(sourceId,

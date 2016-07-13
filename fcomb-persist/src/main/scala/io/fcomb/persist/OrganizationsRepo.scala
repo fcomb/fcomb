@@ -16,6 +16,7 @@
 
 package io.fcomb.persist
 
+import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.Organization
 import io.fcomb.models.acl.Role
@@ -41,23 +42,6 @@ class OrganizationTable(tag: Tag)
 object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, OrganizationTable] {
   val table = TableQuery[OrganizationTable]
 
-  def groupUsersScope =
-    table
-      .join(OrganizationGroupsRepo.table)
-      .on(_.id === _.organizationId)
-      .join(OrganizationGroupUsersRepo.table)
-      .on(_._2.id === _.groupId)
-
-  private lazy val isAdminCompiled = Compiled { userId: Rep[Int] =>
-    groupUsersScope.filter {
-      case ((_, gt), gut) => gut.userId === userId && gt.role === (Role.Admin: Role)
-    }.exists
-  }
-
-  def isAdminDBIO(userId: Int): DBIOAction[Boolean, NoStream, Effect.Read] = {
-    isAdminCompiled(userId).result
-  }
-
   def create(req: OrganizationCreateRequest, userId: Int)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     create(
@@ -80,6 +64,28 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
   def update(id: Int, req: OrganizationUpdateRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     update(id)(_.copy(name = req.name))
+  }
+
+  def groupUsersScope =
+    table
+      .join(OrganizationGroupsRepo.table)
+      .on(_.id === _.organizationId)
+      .join(OrganizationGroupUsersRepo.table)
+      .on(_._2.id === _.groupId)
+
+  lazy val isAdminCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
+    groupUsersScope.filter {
+      case ((t, ogt), ogut) =>
+        t.id === id && ogt.role === (Role.Admin: Role) && ogut.userId === userId
+    }.exists
+  }
+
+  def isAdminDBIO(id: Int, userId: Int): DBIOAction[Boolean, NoStream, Effect.Read] = {
+    isAdminCompiled((id, userId)).result
+  }
+
+  def isAdmin(id: Int, userId: Int): Future[Boolean] = {
+    db.run(isAdminDBIO(id, userId))
   }
 
   import Validations._

@@ -26,8 +26,6 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 import org.slf4j.LoggerFactory
 
 private[this] object PersistSpec {
-  println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-
   lazy val logger = LoggerFactory.getLogger(getClass)
 
   lazy val initDbOnlyOnce = {
