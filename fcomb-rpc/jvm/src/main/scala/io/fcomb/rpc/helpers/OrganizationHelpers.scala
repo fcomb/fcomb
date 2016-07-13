@@ -21,12 +21,13 @@ import io.fcomb.rpc.OrganizationResponse
 import io.fcomb.rpc.helpers.time.Implicits._
 
 object OrganizationHelpers {
-  def responseFrom(org: Organization): OrganizationResponse =
+  def responseFrom(org: Organization, isPublic: Boolean): OrganizationResponse = {
     OrganizationResponse(
       id = org.getId(),
       name = org.name,
-      ownerUserId = org.ownerUserId,
+      ownerUserId = if (isPublic) None else Some(org.ownerUserId),
       createdAt = org.createdAt.toIso8601,
       updatedAt = org.updatedAt.map(_.toIso8601)
     )
+  }
 }

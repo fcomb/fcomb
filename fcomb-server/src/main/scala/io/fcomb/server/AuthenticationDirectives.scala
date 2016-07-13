@@ -24,6 +24,18 @@ import io.fcomb.persist.{SessionsRepo, UsersRepo}
 import scala.concurrent.ExecutionContext
 
 trait AuthenticationDirectives {
+  def tryAuthenticateUser: Directive1[Option[User]] =
+    extractExecutionContext.flatMap { implicit ec =>
+      extractCredentials.flatMap {
+        case Some(OAuth2BearerToken(token)) => tryFindByToken(token)
+        case _ =>
+          parameter('token.?).flatMap {
+            case Some(token) => tryFindByToken(token)
+            case _           => provide(None)
+          }
+      }
+    }
+
   def authenticateUser: Directive1[User] =
     extractExecutionContext.flatMap { implicit ec =>
       extractCredentials.flatMap {
@@ -47,6 +59,11 @@ trait AuthenticationDirectives {
         case _ => reject(AuthorizationFailedRejection)
       }
     }
+
+  private def tryFindByToken(token: String)(
+      implicit ec: ExecutionContext): Directive1[Option[User]] = {
+    onSuccess(SessionsRepo.findById(token)).flatMap(provide)
+  }
 
   private def findByToken(token: String)(implicit ec: ExecutionContext): Directive1[User] = {
     onSuccess(SessionsRepo.findById(token)).flatMap {

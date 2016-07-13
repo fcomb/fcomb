@@ -26,6 +26,7 @@ import io.fcomb.persist.OrganizationsRepo
 import io.fcomb.rpc.OrganizationCreateRequest
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.CirceSupport._
 import scala.collection.immutable
 
@@ -42,7 +43,7 @@ object OrganizationsHandler {
             case Validated.Valid(org) =>
               val uri     = fullPrefix + org.getId().toString
               val headers = immutable.Seq(Location(uri))
-              val res     = OrganizationHelpers.responseFrom(org)
+              val res     = OrganizationHelpers.responseFrom(org, isPublic = false)
               respondWithHeaders(headers) {
                 complete((StatusCodes.Created, res))
               }
@@ -54,10 +55,29 @@ object OrganizationsHandler {
     }
   }
 
+  def show(id: Int) = {
+    extractExecutionContext { implicit ec =>
+      tryAuthenticateUser { userOpt =>
+        onSuccess(OrganizationsRepo.findById(id)) {
+          case Some(org) =>
+            // TODO: check user is organization admin
+            val res = OrganizationHelpers.responseFrom(org, isPublic = userOpt.isEmpty)
+            complete((StatusCodes.OK, res))
+          case None => completeNotFound()
+        }
+      }
+    }
+  }
+
   val routes: Route = {
     // format: OFF
-    path(servicePath) {
-      post(create)
+    pathPrefix(servicePath) {
+      pathEnd {
+        post(create)
+      } ~
+      pathPrefix(IntNumber) { id =>
+        get(show(id))
+      }
     }
     // format: ON
   }

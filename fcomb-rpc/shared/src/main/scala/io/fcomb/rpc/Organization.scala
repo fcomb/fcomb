@@ -27,7 +27,7 @@ final case class OrganizationUpdateRequest(
 final case class OrganizationResponse(
     id: Int,
     name: String,
-    ownerUserId: Int,
+    ownerUserId: Option[Int],
     createdAt: String,
     updatedAt: Option[String]
 )
