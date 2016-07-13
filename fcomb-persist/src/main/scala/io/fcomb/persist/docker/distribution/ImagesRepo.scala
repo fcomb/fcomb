@@ -76,33 +76,31 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   val label = "images"
 
   private lazy val findIdByNameCompiled = Compiled { name: Rep[String] =>
-    table.filter(_.name.toLowerCase === name.toLowerCase).map(_.pk).take(1)
+    table.filter(_.name === name.asColumnOfType[String]("citext")).map(_.pk).take(1)
   }
 
   def findIdByName(name: String) =
     db.run(findIdByNameCompiled(name).result.headOption)
 
   lazy val findBySlugCompiled = Compiled { slug: Rep[String] =>
-    table.filter { q =>
-      q.slug.toLowerCase === slug.toLowerCase
-    }.take(1)
+    table.filter(_.slug === slug.asColumnOfType[String]("citext")).take(1)
   }
 
   def findBySlugWithAcl(slug: String, userId: Int, action: Action)(
       implicit ec: ExecutionContext): Future[Option[Image]] = {
     db.run {
-      findBySlugCompiled(slug).result.headOption.flatMap(mapWithAcl(_, userId, action))
+      findBySlugCompiled(slug).result.headOption.flatMap(mapWithAclDBIO(_, userId, action))
     }
   }
 
   def findByIdWithAcl(id: Int, userId: Int, action: Action)(
       implicit ec: ExecutionContext): Future[Option[Image]] = {
     db.run {
-      findByIdCompiled(id).result.headOption.flatMap(mapWithAcl(_, userId, action))
+      findByIdCompiled(id).result.headOption.flatMap(mapWithAclDBIO(_, userId, action))
     }
   }
 
-  private def mapWithAcl(imageOpt: Option[Image], userId: Int, action: Action)(
+  private def mapWithAclDBIO(imageOpt: Option[Image], userId: Int, action: Action)(
       implicit ec: ExecutionContext) = {
     imageOpt match {
       case res @ Some(image) =>
@@ -196,7 +194,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   private lazy val findIdByUserIdAndNameCompiled = Compiled {
     (userId: Rep[Int], imageSlug: Rep[String]) =>
-      availableScopeDBIO(userId).filter(_.slug === imageSlug).map(_.pk)
+      availableScopeDBIO(userId)
+        .filter(_.slug === imageSlug.asColumnOfType[String]("citext"))
+        .map(_.pk)
   }
 
   private lazy val findRepositoriesByUserIdCompiled = Compiled {
@@ -262,14 +262,10 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     } yield res
   }
 
-  val findBySlugDBIOCompiled = Compiled { slug: Rep[String] =>
-    table.filter(_.slug === slug)
-  }
-
   def findBySlugDBIO(slug: Slug) = {
     slug match {
       case Slug.Id(id)     => findByIdCompiled(id)
-      case Slug.Name(name) => findBySlugDBIOCompiled(name.toLowerCase)
+      case Slug.Name(name) => findBySlugCompiled(name)
     }
   }
 
@@ -327,9 +323,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   }
 
   private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
-    notCurrentPkFilter(id).filter { q =>
-      q.name.toLowerCase === name.toLowerCase
-    }.exists
+    exceptIdFilter(id).filter(_.name === name.asColumnOfType[String]("citext")).exists
   }
 
   import Validations._

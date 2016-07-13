@@ -119,26 +119,25 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
   }
 
   private lazy val findByEmailCompiled = Compiled { email: Rep[String] =>
-    table.filter(_.email === email).take(1)
+    table.filter(_.email === email.asColumnOfType[String]("citext")).take(1)
   }
 
   def findByEmail(email: String) =
     db.run(findByEmailCompiled(email).result.headOption)
 
   private lazy val findByUsernameCompiled = Compiled { username: Rep[String] =>
-    table.filter(_.username === username).take(1)
+    table.filter(_.username === username.asColumnOfType[String]("citext")).take(1)
   }
 
   def findByUsernameDBIO(username: String) =
-    findByUsernameCompiled(username.toLowerCase).result.headOption
+    findByUsernameCompiled(username).result.headOption
 
   def matchByUsernameAndPassword(username: String, password: String)(
       implicit ec: ExecutionContext
   ): Future[Option[User]] = {
-    val un = username.toLowerCase
     val q =
-      if (un.indexOf('@') == -1) findByUsernameCompiled(un)
-      else findByEmailCompiled(un)
+      if (username.indexOf('@') == -1) findByUsernameCompiled(username)
+      else findByEmailCompiled(username)
     db.run(q.result.headOption).fast.map {
       case res @ Some(user) if user.isValidPassword(password) => res
       case _                                                  => None
@@ -163,11 +162,11 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
 
   private lazy val uniqueUsernameCompiled = Compiled {
     (id: Rep[Option[Int]], username: Rep[String]) =>
-      notCurrentPkFilter(id).filter(_.username === username).exists
+      exceptIdFilter(id).filter(_.username === username.asColumnOfType[String]("citext")).exists
   }
 
   private lazy val uniqueEmailCompiled = Compiled { (id: Rep[Option[Int]], email: Rep[String]) =>
-    notCurrentPkFilter(id).filter(_.email === email).exists
+    exceptIdFilter(id).filter(_.email === email.asColumnOfType[String]("citext")).exists
   }
 
   def validatePassword(password: String) =

@@ -221,7 +221,7 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   def findById(id: T#PkType): Future[Option[T]] =
     db.run(findByIdDBIO(id))
 
-  def notCurrentPkFilter(id: Rep[Option[T#PkType]]): Query[Q, T, Seq]
+  def exceptIdFilter(id: Rep[Option[T#PkType]]): Query[Q, T, Seq]
 
   def updateDBIO(item: T)(
       implicit ec: ExecutionContext,
@@ -281,10 +281,9 @@ trait PersistModelWithUuidPk[
   def findByIdQuery(id: UUID) =
     findByIdCompiled(id)
 
-  def notCurrentPkFilter(id: Rep[Option[UUID]]) =
-    table.filter { q =>
-      id.flatMap(id => q.id.map(_ =!= id)).getOrElse(id.isEmpty)
-    }
+  def exceptIdFilter(id: Rep[Option[UUID]]) = {
+    table.filter(_.id =!= id || id.isEmpty)
+  }
 }
 
 trait PersistModelWithAutoIntPk[
@@ -300,8 +299,7 @@ trait PersistModelWithAutoIntPk[
   def findByIdQuery(id: Int) =
     findByIdCompiled(id)
 
-  def notCurrentPkFilter(id: Rep[Option[Int]]) =
-    table.filter { q =>
-      id.flatMap(id => q.id.map(_ =!= id)).getOrElse(id.isEmpty)
-    }
+  def exceptIdFilter(id: Rep[Option[Int]]) = {
+    table.filter(_.id =!= id || id.isEmpty)
+  }
 }

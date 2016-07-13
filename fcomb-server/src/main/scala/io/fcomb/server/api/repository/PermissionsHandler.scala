@@ -39,7 +39,7 @@ object PermissionsHandler {
   def index(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
+        imageBySlugWithAcl(slug, user, Action.Manage) { image =>
           extractPagination { pg =>
             onSuccess(PermissionsRepo.findByImageIdWithPagination(image, pg)) { p =>
               completePagination(PermissionsRepo.label, p)
@@ -53,7 +53,7 @@ object PermissionsHandler {
   def upsert(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
+        imageBySlugWithAcl(slug, user, Action.Manage) { image =>
           entity(as[PermissionUserCreateRequest]) { req =>
             onSuccess(PermissionsRepo.upsertByImage(image, req)) {
               case Validated.Valid(p)   => complete((StatusCodes.Accepted, p))
@@ -68,7 +68,7 @@ object PermissionsHandler {
   def destroy(slug: Slug, memberKind: MemberKind, memberSlug: String) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
+        imageBySlugWithAcl(slug, user, Action.Manage) { image =>
           onSuccess(PermissionsRepo.destroyByImage(image, memberKind, memberSlug)) {
             case Validated.Valid(p)   => completeAccepted()
             case Validated.Invalid(e) => ??? // TODO

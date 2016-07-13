@@ -79,7 +79,9 @@ object OrganizationsHandler {
     }
   }
 
-  def update(slug: Slug) = {}
+  def update(slug: Slug) = ???
+
+  def destroy(slug: Slug) = ???
 
   val routes: Route = {
     // format: OFF
@@ -88,7 +90,9 @@ object OrganizationsHandler {
         post(create)
       } ~
       pathPrefix(SlugPath) { slug =>
-        get(show(slug))
+        get(show(slug)) ~
+        put(update(slug)) ~
+        delete(destroy(slug))
       }
     }
     // format: ON

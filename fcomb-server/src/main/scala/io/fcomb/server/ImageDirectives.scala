@@ -41,7 +41,7 @@ trait ImageDirectives {
     }
   }
 
-  final def imageByKeyWithAcl(slug: Slug, user: User, action: Action): Directive1[Image] = {
+  final def imageBySlugWithAcl(slug: Slug, user: User, action: Action): Directive1[Image] = {
     slug match {
       case Slug.Id(id)     => imageByIdWithAcl(id, user, action)
       case Slug.Name(name) => imageByNameWithAcl(name, user, action)

@@ -32,7 +32,7 @@ object TagsHandler {
   def index(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(slug, user, Action.Read) { image =>
+        imageBySlugWithAcl(slug, user, Action.Read) { image =>
           extractPagination { pg =>
             onSuccess(ImageManifestTagsRepo.findByImageIdWithPagination(image.getId(), pg)) { p =>
               completePagination(ImageManifestTagsRepo.label, p)

@@ -39,7 +39,7 @@ object RepositoriesHandler {
   def show(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(slug, user, Action.Read) { image =>
+        imageBySlugWithAcl(slug, user, Action.Read) { image =>
           val res = ImageHelpers.responseFrom(image)
           complete((StatusCodes.OK, res))
         }
@@ -50,7 +50,7 @@ object RepositoriesHandler {
   def update(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
+        imageBySlugWithAcl(slug, user, Action.Manage) { image =>
           entity(as[ImageUpdateRequest]) { req =>
             onSuccess(ImagesRepo.update(image.getId(), req)) {
               case Validated.Valid(image) =>
@@ -68,7 +68,7 @@ object RepositoriesHandler {
   def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
+        imageBySlugWithAcl(slug, user, Action.Manage) { image =>
           onSuccess(ImagesRepo.updateVisibility(image.getId(), visibilityKind)) { _ =>
             completeAccepted()
           }
@@ -80,7 +80,7 @@ object RepositoriesHandler {
   def destroy(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageByKeyWithAcl(slug, user, Action.Manage) { image =>
+        imageBySlugWithAcl(slug, user, Action.Manage) { image =>
           onSuccess(ImagesRepo.destroy(image.getId())) { _ =>
             completeAccepted()
           }

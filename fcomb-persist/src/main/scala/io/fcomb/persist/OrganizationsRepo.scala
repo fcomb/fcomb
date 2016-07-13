@@ -43,19 +43,65 @@ class OrganizationTable(tag: Tag)
 object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, OrganizationTable] {
   val table = TableQuery[OrganizationTable]
 
-  val findByNameDBIOCompiled = Compiled { name: Rep[String] =>
-    table.filter(_.name === name)
+  lazy val findByNameCompiled = Compiled { name: Rep[String] =>
+    table.filter(_.name === name.asColumnOfType[String]("citext")).take(1)
   }
 
   def findBySlugDBIO(slug: Slug) = {
     slug match {
       case Slug.Id(id)     => findByIdCompiled(id)
-      case Slug.Name(name) => findByNameDBIOCompiled(name.toLowerCase)
+      case Slug.Name(name) => findByNameCompiled(name)
     }
   }
 
   def findBySlug(slug: Slug)(implicit ec: ExecutionContext): Future[Option[Organization]] = {
     db.run(findBySlugDBIO(slug).result.headOption)
+  }
+
+  def findBySlugWithAclDBIO(slug: Slug, userId: Int, role: Role)(implicit ec: ExecutionContext) = {
+    findBySlugDBIO(slug).result.headOption.flatMap(mapWithAclDBIO(_, userId, role))
+  }
+
+  def findBySlugWithAcl(slug: Slug, userId: Int, role: Role)(
+      implicit ec: ExecutionContext): Future[Option[Organization]] = {
+    db.run(findBySlugWithAclDBIO(slug, userId, role))
+  }
+
+  def groupUsersScope =
+    table
+      .join(OrganizationGroupsRepo.table)
+      .on(_.id === _.organizationId)
+      .join(OrganizationGroupUsersRepo.table)
+      .on(_._2.id === _.groupId)
+
+  private def userGroupScope(id: Rep[Int], userId: Rep[Int]) = {
+    groupUsersScope.filter {
+      case ((t, _), ogut) =>
+        t.id === id && ogut.userId === userId
+    }
+  }
+
+  lazy val hasRoleCompiled = Compiled { (id: Rep[Int], userId: Rep[Int], role: Rep[Role]) =>
+    userGroupScope(id, userId).filter { case ((_, ogt), _) => ogt.role === role }.exists
+  }
+
+  def mapWithAclDBIO(orgOpt: Option[Organization], userId: Int, role: Role)(
+      implicit ec: ExecutionContext): DBIOAction[Option[Organization], NoStream, Effect.Read] = {
+    orgOpt match {
+      case Some(org) =>
+        hasRoleCompiled((org.getId(), userId, role)).result.map { hasRole =>
+          if (hasRole) orgOpt else None
+        }
+      case _ => DBIO.successful(None)
+    }
+  }
+
+  def isAdminDBIO(id: Int, userId: Int) = {
+    hasRoleCompiled((id, userId, Role.Admin)).result
+  }
+
+  def isAdmin(id: Int, userId: Int): Future[Boolean] = {
+    db.run(isAdminDBIO(id, userId))
   }
 
   def create(req: OrganizationCreateRequest, userId: Int)(
@@ -82,32 +128,10 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     update(id)(_.copy(name = req.name))
   }
 
-  def groupUsersScope =
-    table
-      .join(OrganizationGroupsRepo.table)
-      .on(_.id === _.organizationId)
-      .join(OrganizationGroupUsersRepo.table)
-      .on(_._2.id === _.groupId)
-
-  lazy val isAdminCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
-    groupUsersScope.filter {
-      case ((t, ogt), ogut) =>
-        t.id === id && ogt.role === (Role.Admin: Role) && ogut.userId === userId
-    }.exists
-  }
-
-  def isAdminDBIO(id: Int, userId: Int): DBIOAction[Boolean, NoStream, Effect.Read] = {
-    isAdminCompiled((id, userId)).result
-  }
-
-  def isAdmin(id: Int, userId: Int): Future[Boolean] = {
-    db.run(isAdminDBIO(id, userId))
-  }
-
   import Validations._
 
   private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
-    notCurrentPkFilter(id).filter(_.name === name).exists
+    exceptIdFilter(id).filter(_.name === name.asColumnOfType[String]("citext")).exists
   }
 
   override def validate(org: Organization)(implicit ec: ExecutionContext): ValidationDBIOResult = {
