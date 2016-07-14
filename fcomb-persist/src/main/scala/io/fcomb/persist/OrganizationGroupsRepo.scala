@@ -58,4 +58,12 @@ object OrganizationGroupsRepo
       _  <- OrganizationGroupUsersRepo.createDBIO(og.getId(), ownerUserId)
     } yield og
   }
+
+  def findIdsByOrganizationIdDBIO(organizationId: Int) = {
+    table.filter(_.organizationId === organizationId).map(_.pk)
+  }
+
+  def destroyByOrganizationIdDBIO(organizationId: Int) = {
+    table.filter(_.organizationId === organizationId).delete
+  }
 }

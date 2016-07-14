@@ -43,7 +43,7 @@ object ImagesHandler {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[Accept]() { acceptOpt =>
-          imageByNameWithAcl(imageName, user, Action.Read) { image =>
+          imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
             import mat.executionContext
             onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId(), reference)) {
               case Some(im) =>
@@ -87,7 +87,7 @@ object ImagesHandler {
   def uploadManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user, Action.Write) { image =>
+        imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
           import mat.executionContext
           entity(as[ByteString]) { rawManifestBs =>
             respondWithContentType(`application/json`) {
@@ -130,7 +130,7 @@ object ImagesHandler {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
-        imageByNameWithAcl(imageName, user, Action.Manage) { image =>
+        imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
           reference match {
             case Reference.Digest(digest) =>
               onSuccess(ImageManifestsRepo.destroy(image.getId(), digest)) { res =>
@@ -157,7 +157,7 @@ object ImagesHandler {
     authenticateUserBasic { user =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
-          imageByNameWithAcl(imageName, user, Action.Read) { image =>
+          imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
             onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId(), n, last)) {
               (tags, limit, hasNext) =>
                 val headers = if (hasNext) {

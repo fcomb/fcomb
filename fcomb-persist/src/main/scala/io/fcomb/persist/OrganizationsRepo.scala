@@ -22,10 +22,13 @@ import io.fcomb.models.Organization
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.EnumsMapping._
+import io.fcomb.persist.acl.PermissionsRepo
+import io.fcomb.persist.docker.distribution.{ImageBlobsRepo, ImageManifestsRepo}
 import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{Future, ExecutionContext}
+import slick.jdbc.TransactionIsolation
 
 class OrganizationTable(tag: Tag)
     extends Table[Organization](tag, "organizations")
@@ -126,6 +129,20 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
   def update(id: Int, req: OrganizationUpdateRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     update(id)(_.copy(name = req.name))
+  }
+
+  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
+    for {
+      _   <- PermissionsRepo.destroyByOrganizationIdDBIO(id)
+      _   <- OrganizationGroupsRepo.destroyByOrganizationIdDBIO(id)
+      _   <- ImageManifestsRepo.destroyByOrganizationIdDBIO(id)
+      _   <- ImageBlobsRepo.destroyByOrganizationIdDBIO(id)
+      res <- super.destroyDBIO(id)
+    } yield res
+  }
+
+  override def destroy(id: Int)(implicit ec: ExecutionContext) = {
+    runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
   }
 
   import Validations._

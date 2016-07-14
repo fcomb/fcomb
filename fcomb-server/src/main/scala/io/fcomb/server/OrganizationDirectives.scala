@@ -20,17 +20,16 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.models.Organization
-import io.fcomb.models.User
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationsRepo
 
 trait OrganizationDirectives {
   final def organizationBySlugWithAcl(slug: Slug,
-                                      user: User,
+                                      userId: Int,
                                       role: Role): Directive1[Organization] = {
     extractExecutionContext.flatMap { implicit ec =>
-      onSuccess(OrganizationsRepo.findBySlugWithAcl(slug, user.getId(), role))
+      onSuccess(OrganizationsRepo.findBySlugWithAcl(slug, userId, role))
         .flatMap(provideOrganization)
     }
   }

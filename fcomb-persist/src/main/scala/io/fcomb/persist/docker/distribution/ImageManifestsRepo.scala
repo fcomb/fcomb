@@ -329,11 +329,11 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       }.delete.map(_ != 0)
     }
 
-  private lazy val destroyByImageIdCompiled = { imageId: Rep[Int] =>
+  def destroyByImageIdDBIO(imageId: Int) = {
     table.filter(_.imageId === imageId).delete
   }
 
-  def destroyByImageIdDBIO(imageId: Int) = {
-    destroyByImageIdCompiled(imageId)
+  def destroyByOrganizationIdDBIO(organizationId: Int) = {
+    table.filter(_.imageId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId))).delete
   }
 }

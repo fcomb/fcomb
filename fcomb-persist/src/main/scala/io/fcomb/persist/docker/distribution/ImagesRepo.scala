@@ -103,19 +103,17 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   private def mapWithAclDBIO(imageOpt: Option[Image], userId: Int, action: Action)(
       implicit ec: ExecutionContext) = {
     imageOpt match {
-      case res @ Some(image) =>
+      case Some(image) =>
         image.owner.kind match {
           case OwnerKind.User =>
-            if (image.owner.id == userId) DBIO.successful(res)
+            if (image.owner.id == userId) DBIO.successful(imageOpt)
             else
               PermissionsRepo
                 .isAllowedActionBySourceAsUserDBIO(image.getId(),
                                                    SourceKind.DockerDistributionImage,
                                                    userId,
                                                    action)
-                .map { isAllowed =>
-                  if (isAllowed) res else None
-                }
+                .map(isAllowed => if (isAllowed) imageOpt else None)
           case OwnerKind.Organization =>
             PermissionsRepo
               .isAllowedActionBySourceAsGroupUserDBIO(image.getId(),
@@ -123,12 +121,17 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
                                                       image.owner.id,
                                                       userId,
                                                       action)
-              .map { isAllowed =>
-                if (isAllowed) res else None
-              }
+              .map(isAllowed => if (isAllowed) imageOpt else None)
         }
       case res => DBIO.successful(res)
     }
+  }
+
+  def findIdsByOrganizationIdDBIO(organizationId: Int) = {
+    table.filter { q =>
+      q.ownerId === organizationId &&
+      q.ownerKind === (OwnerKind.Organization: OwnerKind)
+    }.map(_.pk)
   }
 
   private def availableByUserOwnerScopeDBIO(userId: Rep[Int]) = {

@@ -27,6 +27,8 @@ object Formats {
   implicit final val encodeUserUpdateRequest: Encoder[UserUpdateRequest]       = deriveEncoder
   implicit final val encodeOrganizationCreateRequest: Encoder[OrganizationCreateRequest] =
     deriveEncoder
+  implicit final val encodeOrganizationUpdateRequest: Encoder[OrganizationUpdateRequest] =
+    deriveEncoder
   implicit final val encodeOrganizationResponse: Encoder[OrganizationResponse] = deriveEncoder
 
   implicit final val decodeSessionCreateRequest: Decoder[SessionCreateRequest] = deriveDecoder
@@ -35,5 +37,7 @@ object Formats {
   implicit final val decodeUserUpdateRequest: Decoder[UserUpdateRequest]       = deriveDecoder
   implicit final val decodeOrganizationCreateRequest: Decoder[OrganizationCreateRequest] =
     deriveDecoder
+  implicit final val decodeOrganizationOrganizationUpdateRequest: Decoder[
+    OrganizationUpdateRequest]                                                 = deriveDecoder
   implicit final val decodeOrganizationResponse: Decoder[OrganizationResponse] = deriveDecoder
 }

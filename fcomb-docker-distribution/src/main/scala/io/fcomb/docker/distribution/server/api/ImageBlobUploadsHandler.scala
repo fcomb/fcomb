@@ -63,7 +63,7 @@ object ImageBlobUploadsHandler {
       req: HttpRequest
   ): Route = {
     val contentType = req.entity.contentType.mediaType.value
-    imageByNameWithAcl(imageName, user, Action.Write) { image =>
+    imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
       onSuccess(ImageBlobsRepo.create(image.getId(), contentType)) {
         case Validated.Valid(blob) =>
           val uuid = blob.getId
@@ -85,11 +85,11 @@ object ImageBlobUploadsHandler {
       implicit ec: ExecutionContext,
       req: HttpRequest
   ): Route = {
-    imageByNameWithAcl(imageName, user, Action.Write) { toImage =>
-      imageByNameWithAcl(from, user, Action.Read) { fromImage =>
-        val digest = Reference.getDigest(sha256Digest)
-        val mountResFut =
-          ImageBlobsRepo.mount(fromImage.getId(), toImage.getId(), digest, user.getId())
+    val userId = user.getId()
+    imageByNameWithAcl(imageName, userId, Action.Write) { toImage =>
+      imageByNameWithAcl(from, userId, Action.Read) { fromImage =>
+        val digest      = Reference.getDigest(sha256Digest)
+        val mountResFut = ImageBlobsRepo.mount(fromImage.getId(), toImage.getId(), digest, userId)
         onSuccess(mountResFut) {
           case Some(blob) =>
             val headers = immutable.Seq(
@@ -108,7 +108,7 @@ object ImageBlobUploadsHandler {
   private def createImageBlob(user: User, imageName: String, sha256Digest: String)(
       implicit req: HttpRequest): Route =
     extractMaterializer { implicit mat =>
-      imageByNameWithAcl(imageName, user, Action.Write) { image =>
+      imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
         import mat.executionContext
         val contentType = req.entity.contentType.mediaType.value
         val blobResFut = for {
@@ -149,7 +149,7 @@ object ImageBlobUploadsHandler {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[`Content-Range`]() { rangeOpt =>
-          imageByNameWithAcl(imageName, user, Action.Write) { image =>
+          imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
             import mat.executionContext
             onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
               case Some(blob) if !blob.isUploaded =>
@@ -217,7 +217,7 @@ object ImageBlobUploadsHandler {
     authenticateUserBasic { user =>
       parameters('digest) { sha256Digest =>
         extractMaterializer { implicit mat =>
-          imageByNameWithAcl(imageName, user, Action.Write) { image =>
+          imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
             import mat.executionContext
             onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
               case Some(blob) if !blob.isUploaded =>
@@ -259,7 +259,7 @@ object ImageBlobUploadsHandler {
   def destroyBlobUpload(imageName: String, uuid: UUID) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user, Action.Manage) { image =>
+        imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
             case Some(blob) if !blob.isUploaded =>

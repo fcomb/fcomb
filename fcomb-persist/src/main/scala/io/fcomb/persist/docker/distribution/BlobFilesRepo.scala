@@ -127,6 +127,19 @@ object BlobFilesRepo {
       .update(BlobFileState.Deleting)
   }
 
+  def markOrDestroyByOrganizationIdDBIO(orgId: Int)(implicit ec: ExecutionContext) = {
+    for {
+      _ <- table
+            .filter(_.uuid.in(ImageBlobsRepo.findIdsWithEmptyDigestsByOrganizationIdDBIO(orgId)))
+            .map(_.state)
+            .update(BlobFileState.Deleting)
+      _ <- table
+            .filter(_.digest.in(ImageBlobsRepo.uniqueDigestsByOrganizationIdDBIO(orgId)))
+            .map(_.state)
+            .update(BlobFileState.Deleting)
+    } yield ()
+  }
+
   def destroyOutdatedUploadsDBIO(until: Rep[ZonedDateTime]) = {
     ImageBlobsRepo
       .destroyOutdatedUploadsDBIO(until)

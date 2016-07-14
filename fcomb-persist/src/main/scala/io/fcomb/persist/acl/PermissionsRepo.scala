@@ -24,7 +24,8 @@ import io.fcomb.models.acl._
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.{Pagination, PaginationData, OwnerKind, User}
 import io.fcomb.persist.EnumsMapping._
-import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo, UsersRepo}
+import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo, OrganizationGroupsRepo, UsersRepo}
+import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.acl._
 import io.fcomb.rpc.helpers.time.Implicits._
 import io.fcomb.validations.{ValidationResult, ValidationResultUnit}
@@ -370,5 +371,18 @@ object PermissionsRepo
       q.sourceId === imageId &&
       q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
     }.delete
+  }
+
+  def destroyByOrganizationIdDBIO(organizationId: Int)(implicit ec: ExecutionContext) = {
+    for {
+      _ <- table.filter { q =>
+            q.sourceId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)) &&
+            q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
+          }.delete
+      _ <- table.filter { q =>
+            q.memberId.in(OrganizationGroupsRepo.findIdsByOrganizationIdDBIO(organizationId)) &&
+            q.memberKind === (MemberKind.Group: MemberKind)
+          }.delete
+    } yield ()
   }
 }

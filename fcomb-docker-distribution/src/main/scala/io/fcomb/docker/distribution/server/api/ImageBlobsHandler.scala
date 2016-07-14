@@ -46,7 +46,7 @@ object ImageBlobsHandler {
   def showBlob(imageName: String, digest: String) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user, Action.Read) { image =>
+        imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>
@@ -76,7 +76,7 @@ object ImageBlobsHandler {
   ) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user, Action.Read) { image =>
+        imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>
@@ -134,7 +134,7 @@ object ImageBlobsHandler {
   def destroyBlob(imageName: String, digest: String) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user, Action.Manage) { image =>
+        imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>

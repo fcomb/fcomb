@@ -23,13 +23,15 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.util.FastFuture
 import cats.data.Validated
 import io.fcomb.json.rpc.Formats._
+import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationsRepo
-import io.fcomb.rpc.OrganizationCreateRequest
+import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest}
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.SlugPath
 import scala.collection.immutable
 
@@ -79,9 +81,35 @@ object OrganizationsHandler {
     }
   }
 
-  def update(slug: Slug) = ???
+  def update(slug: Slug) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+          entity(as[OrganizationUpdateRequest]) { req =>
+            onSuccess(OrganizationsRepo.update(org.getId(), req)) {
+              case Validated.Valid(org) =>
+                val res = OrganizationHelpers.responseFrom(org, isPublic = false)
+                complete((StatusCodes.Accepted, res))
+              case Validated.Invalid(e) =>
+                ??? // TODO
+            }
+          }
+        }
+      }
+    }
+  }
 
-  def destroy(slug: Slug) = ???
+  def destroy(slug: Slug) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+          onSuccess(OrganizationsRepo.destroy(org.getId())) { _ =>
+            completeAccepted()
+          }
+        }
+      }
+    }
+  }
 
   val routes: Route = {
     // format: OFF

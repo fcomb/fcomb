@@ -19,9 +19,10 @@ package io.fcomb.persist.docker.distribution
 import cats.data.Xor
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
-import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob, BlobFileState}
+import io.fcomb.models.OwnerKind
 import io.fcomb.models.docker.distribution.ImageManifest.{emptyTarSha256Digest, emptyTar}
-import io.fcomb.persist.EnumsMapping.distributionImageBlobStateColumnType
+import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob, BlobFileState}
+import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.{PersistTableWithUuidPk, PersistModelWithUuidPk}
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -202,14 +203,60 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       .map(_._1.digest)
   }
 
-  private lazy val destroyByImageIdCompiled = { imageId: Rep[Int] =>
-    table.filter(_.imageId === imageId).delete
+  def duplicateDigestsByOrganizationIdDBIO(organizationId: Int) = {
+    table
+      .join(ImageBlobsRepo.table)
+      .on(_.digest === _.digest)
+      .join(ImagesRepo.table)
+      .on(_._1.imageId === _.id)
+      .join(ImagesRepo.table)
+      .on(_._1._2.imageId === _.id)
+      .filter {
+        case (((t, ibt), it), it2) =>
+          t.digest.nonEmpty &&
+            t.imageId =!= ibt.imageId &&
+            it.ownerId === organizationId &&
+            it.ownerKind === (OwnerKind.Organization: OwnerKind) &&
+            !(it2.ownerId === organizationId &&
+                  it2.ownerKind === (OwnerKind.Organization: OwnerKind))
+      }
+      .map(_._1._1._1.digest)
+      .distinct
+      .subquery
+  }
+
+  def uniqueDigestsByOrganizationIdDBIO(organizationId: Int) = {
+    table
+      .join(ImagesRepo.table)
+      .on(_.imageId === _.id)
+      .filter {
+        case (t, it) =>
+          t.digest.nonEmpty &&
+            it.ownerId === organizationId &&
+            it.ownerKind === (OwnerKind.Organization: OwnerKind) &&
+            !t.digest.in(duplicateDigestsByOrganizationIdDBIO(organizationId))
+      }
+      .map(_._1.digest)
+      .subquery
+  }
+
+  def findIdsWithEmptyDigestsByOrganizationIdDBIO(organizationId: Int) = {
+    table
+      .join(ImagesRepo.table)
+      .on(_.imageId === _.id)
+      .filter {
+        case (t, it) =>
+          it.ownerId === organizationId &&
+            it.ownerKind === (OwnerKind.Organization: OwnerKind) &&
+            t.digest.isEmpty
+      }
+      .map(_._1.pk)
   }
 
   def destroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) = {
     for {
       _   <- BlobFilesRepo.markOrDestroyByImageIdDBIO(imageId)
-      res <- destroyByImageIdCompiled(imageId)
+      res <- table.filter(_.imageId === imageId).delete
     } yield res
   }
 
@@ -226,6 +273,15 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         res <- destroyOutdatedUploadsDBIO(until).delete
       } yield res
     }
+  }
+
+  def destroyByOrganizationIdDBIO(organizationId: Int)(implicit ec: ExecutionContext) = {
+    for {
+      _ <- BlobFilesRepo.markOrDestroyByOrganizationIdDBIO(organizationId)
+      res <- table
+              .filter(_.imageId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)))
+              .delete
+    } yield res
   }
 
   def findByIds(ids: List[UUID]) =
