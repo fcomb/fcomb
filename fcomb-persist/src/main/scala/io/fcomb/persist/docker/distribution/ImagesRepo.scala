@@ -19,7 +19,7 @@ package io.fcomb.persist.docker.distribution
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
-import io.fcomb.models.acl.{Action, SourceKind, MemberKind, Role}
+import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.models.{OwnerKind, Owner, User, Pagination, PaginationData}
@@ -109,18 +109,11 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
             if (image.owner.id == userId) DBIO.successful(imageOpt)
             else
               PermissionsRepo
-                .isAllowedActionBySourceAsUserDBIO(image.getId(),
-                                                   SourceKind.DockerDistributionImage,
-                                                   userId,
-                                                   action)
+                .isAllowedActionByImageAsUserDBIO(image.getId(), userId, action)
                 .map(isAllowed => if (isAllowed) imageOpt else None)
           case OwnerKind.Organization =>
             PermissionsRepo
-              .isAllowedActionBySourceAsGroupUserDBIO(image.getId(),
-                                                      SourceKind.DockerDistributionImage,
-                                                      image.owner.id,
-                                                      userId,
-                                                      action)
+              .isAllowedActionByImageAsGroupUserDBIO(image.getId(), image.owner.id, userId, action)
               .map(isAllowed => if (isAllowed) imageOpt else None)
         }
       case res => DBIO.successful(res)
@@ -143,11 +136,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   private def availableByUserPermissionsScopeDBIO(userId: Rep[Int]) = {
     table
       .join(PermissionsRepo.table)
-      .on {
-        case (t, pt) =>
-          pt.sourceId === t.pk &&
-            pt.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
-      }
+      .on { case (t, pt) => pt.imageId === t.pk }
       .filter {
         case (_, pt) =>
           pt.memberId === userId && pt.memberKind === (MemberKind.User: MemberKind)
@@ -158,11 +147,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   private def availableByUserGroupsScopeDBIO(userId: Rep[Int]) = {
     table
       .join(PermissionsRepo.table)
-      .on {
-        case (t, pt) =>
-          pt.sourceId === t.pk &&
-            pt.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
-      }
+      .on { case (t, pt) => pt.imageId === t.pk }
       .join(OrganizationGroupUsersRepo.table)
       .on { case (_, gut) => gut.userId === userId }
       .filter {
@@ -256,10 +241,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       res <- super.createDBIO(item)
       _ <- item.owner.kind match {
             case OwnerKind.User =>
-              PermissionsRepo.createUserOwnerDBIO(res.getId(),
-                                                  SourceKind.DockerDistributionImage,
-                                                  item.owner.id,
-                                                  Action.Manage)
+              PermissionsRepo.createUserOwnerDBIO(res.getId(), item.owner.id, Action.Manage)
             case _ => DBIO.successful(())
           }
     } yield res
@@ -314,8 +296,6 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
     for {
-      _   <- PermissionsRepo.destroyByImageIdDBIO(id)
-      _   <- ImageManifestsRepo.destroyByImageIdDBIO(id)
       _   <- ImageBlobsRepo.destroyByImageIdDBIO(id)
       res <- super.destroyDBIO(id)
     } yield res

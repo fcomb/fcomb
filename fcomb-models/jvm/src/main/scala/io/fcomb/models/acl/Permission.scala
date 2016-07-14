@@ -17,21 +17,11 @@
 package io.fcomb.models.acl
 
 import io.fcomb.models.ModelWithAutoIntPk
-import io.fcomb.models.common.{Enum, EnumItem}
 import java.time.ZonedDateTime
-
-sealed trait SourceKind extends EnumItem
-
-object SourceKind extends Enum[SourceKind] {
-  final case object DockerDistributionImage extends SourceKind
-
-  val values = findValues
-}
 
 final case class Permission(
     id: Option[Int],
-    sourceId: Int,
-    sourceKind: SourceKind,
+    imageId: Int,
     memberId: Int,
     memberKind: MemberKind,
     action: Action,

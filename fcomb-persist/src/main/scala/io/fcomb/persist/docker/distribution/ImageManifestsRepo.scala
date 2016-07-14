@@ -328,12 +328,4 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
         q.imageId === imageId && q.digest === digest
       }.delete.map(_ != 0)
     }
-
-  def destroyByImageIdDBIO(imageId: Int) = {
-    table.filter(_.imageId === imageId).delete
-  }
-
-  def destroyByOrganizationIdDBIO(organizationId: Int) = {
-    table.filter(_.imageId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId))).delete
-  }
 }

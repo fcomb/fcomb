@@ -23,7 +23,7 @@ import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
-import io.fcomb.persist.docker.distribution.{ImageBlobsRepo, ImageManifestsRepo}
+import io.fcomb.persist.docker.distribution.ImageBlobsRepo
 import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
@@ -135,7 +135,6 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     for {
       _   <- PermissionsRepo.destroyByOrganizationIdDBIO(id)
       _   <- OrganizationGroupsRepo.destroyByOrganizationIdDBIO(id)
-      _   <- ImageManifestsRepo.destroyByOrganizationIdDBIO(id)
       _   <- ImageBlobsRepo.destroyByOrganizationIdDBIO(id)
       res <- super.destroyDBIO(id)
     } yield res

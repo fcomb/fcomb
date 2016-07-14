@@ -19,7 +19,7 @@ package io.fcomb.persist
 import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName
 import com.github.tminglei.slickpg.utils.SimpleArrayUtils
 import io.fcomb.FcombPostgresProfile._
-import io.fcomb.models.acl.{Action, Role, SourceKind, MemberKind}
+import io.fcomb.models.acl.{Action, Role, MemberKind}
 import io.fcomb.models.docker.distribution.{ImageBlobState, ImageVisibilityKind, BlobFileState}
 import io.fcomb.models.{ApplicationState, OwnerKind}
 import io.fcomb.models.common.{Enum, EnumItem}
@@ -38,8 +38,6 @@ object EnumsMapping {
   implicit val aclActionColumnType = createEnumJdbcMapping("acl_action", Action)
 
   implicit val aclRoleColumnType = createEnumJdbcMapping("acl_role", Role)
-
-  implicit val aclSourceKindColumnType = createEnumJdbcMapping("acl_source_kind", SourceKind)
 
   implicit val aclMemberKindColumnType = createEnumJdbcMapping("acl_member_kind", MemberKind)
 

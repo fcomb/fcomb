@@ -1,4 +1,4 @@
-ALTER TABLE organization_group_users 
+ALTER TABLE organization_group_users
   DROP CONSTRAINT organization_group_users_group_id_fkey;
 
 ALTER TABLE organization_group_users 
