@@ -374,15 +374,11 @@ object PermissionsRepo
   }
 
   def destroyByOrganizationIdDBIO(organizationId: Int)(implicit ec: ExecutionContext) = {
-    for {
-      _ <- table.filter { q =>
-            q.sourceId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)) &&
-            q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)
-          }.delete
-      _ <- table.filter { q =>
-            q.memberId.in(OrganizationGroupsRepo.findIdsByOrganizationIdDBIO(organizationId)) &&
-            q.memberKind === (MemberKind.Group: MemberKind)
-          }.delete
-    } yield ()
+    table.filter { q =>
+      (q.sourceId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)) &&
+          q.sourceKind === (SourceKind.DockerDistributionImage: SourceKind)) ||
+      (q.memberId.in(OrganizationGroupsRepo.findIdsByOrganizationIdDBIO(organizationId)) &&
+          q.memberKind === (MemberKind.Group: MemberKind))
+    }.delete
   }
 }
