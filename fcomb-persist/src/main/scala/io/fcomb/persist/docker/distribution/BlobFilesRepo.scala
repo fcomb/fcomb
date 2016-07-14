@@ -128,16 +128,10 @@ object BlobFilesRepo {
   }
 
   def markOrDestroyByOrganizationIdDBIO(orgId: Int)(implicit ec: ExecutionContext) = {
-    for {
-      _ <- table
-            .filter(_.uuid.in(ImageBlobsRepo.findIdsWithEmptyDigestsByOrganizationIdDBIO(orgId)))
-            .map(_.state)
-            .update(BlobFileState.Deleting)
-      _ <- table
-            .filter(_.digest.in(ImageBlobsRepo.uniqueDigestsByOrganizationIdDBIO(orgId)))
-            .map(_.state)
-            .update(BlobFileState.Deleting)
-    } yield ()
+    table.filter { q =>
+      q.uuid.in(ImageBlobsRepo.findIdsWithEmptyDigestsByOrganizationIdDBIO(orgId)) ||
+      q.digest.in(ImageBlobsRepo.uniqueDigestsByOrganizationIdDBIO(orgId))
+    }.map(_.state).update(BlobFileState.Deleting)
   }
 
   def destroyOutdatedUploadsDBIO(until: Rep[ZonedDateTime]) = {
