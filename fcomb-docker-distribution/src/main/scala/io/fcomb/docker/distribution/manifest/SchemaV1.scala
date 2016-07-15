@@ -20,14 +20,18 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.{Validated, Xor}
 import cats.syntax.cartesian._
 import cats.syntax.show._
-import io.circe._, io.circe.parser._, io.circe.syntax._
+import io.circe._
+import io.circe.parser._
+import io.circe.syntax._
 import io.fcomb.crypto.Jws
+import io.fcomb.docker.distribution.services.EventService
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
+import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest => ManifestV1, _}
 import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest => ManifestV2}
-import io.fcomb.models.docker.distribution.{Reference, ImageManifest => ImageManifest, Image => Image},
-ImageManifest.sha256Prefix
-import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
+import io.fcomb.models.docker.distribution.{Image, ImageManifest, Reference}
+import io.fcomb.models.errors.docker.distribution.DistributionError
+import io.fcomb.models.errors.docker.distribution.DistributionError._
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
 import io.fcomb.utils.StringUtils
 import java.time.ZonedDateTime
@@ -45,8 +49,10 @@ object SchemaV1 {
     verify(manifest, rawManifest) match {
       case Xor.Right((schemaV1JsonBlob, digest)) =>
         ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).fast.map {
-          case Validated.Valid(_)   => Xor.Right(digest)
-          case Validated.Invalid(e) => Xor.Left(Unknown(e.map(_.message).mkString(";")))
+          case Validated.Valid(imageManifest) =>
+            EventService.createUpsertEvent(imageManifest.getId())
+            Xor.Right(digest)
+          case Validated.Invalid(e) => Xor.left(Unknown(e.map(_.message).mkString(";")))
         }
       case Xor.Left(e) => FastFuture.successful(Xor.Left(Unknown(e.message)))
     }

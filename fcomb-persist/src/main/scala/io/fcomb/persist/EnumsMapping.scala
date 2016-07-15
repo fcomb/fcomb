@@ -19,11 +19,12 @@ package io.fcomb.persist
 import com.github.tminglei.slickpg.PgEnumSupportUtils.sqlName
 import com.github.tminglei.slickpg.utils.SimpleArrayUtils
 import io.fcomb.FcombPostgresProfile._
-import io.fcomb.models.acl.{Action, Role, MemberKind}
-import io.fcomb.models.docker.distribution.{ImageBlobState, ImageVisibilityKind, BlobFileState}
+import io.fcomb.models.acl.{Action, MemberKind, Role}
+import io.fcomb.models.docker.distribution.{BlobFileState, ImageBlobState, ImageEventKind, ImageVisibilityKind}
 import io.fcomb.models.{ApplicationState, OwnerKind}
 import io.fcomb.models.common.{Enum, EnumItem}
 import java.sql.{PreparedStatement, ResultSet}
+
 import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
 import slick.jdbc.JdbcType
@@ -43,6 +44,9 @@ object EnumsMapping {
 
   implicit val distributionImageBlobStateColumnType =
     createEnumJdbcMapping("dd_image_blob_state", ImageBlobState)
+
+  implicit val distributionImageEventKindColumnType =
+    createEnumJdbcMapping("dd_image_event_kind", ImageEventKind)
 
   implicit val distributionImageVisibilityKindColumnType =
     createEnumJdbcMapping("dd_image_visibility_kind", ImageVisibilityKind)
