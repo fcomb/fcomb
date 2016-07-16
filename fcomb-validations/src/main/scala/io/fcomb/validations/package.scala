@@ -21,7 +21,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.matching.Regex
 import cats.data.{XorT, Validated}, cats.std.all._
 import cats.syntax.cartesian._
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 import slick.lifted.AppliedCompiledFunction
 
 package object validations {
