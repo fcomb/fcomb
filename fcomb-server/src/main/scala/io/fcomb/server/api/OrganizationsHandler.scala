@@ -38,7 +38,7 @@ import scala.collection.immutable
 object OrganizationsHandler {
   val servicePath = "organizations"
 
-  lazy val fullPrefix = s"/$apiVersion/$servicePath/"
+  lazy val resourcePrefix = s"/$apiVersion/$servicePath/"
 
   def create = {
     extractExecutionContext { implicit ec =>
@@ -46,7 +46,7 @@ object OrganizationsHandler {
         entity(as[OrganizationCreateRequest]) { req =>
           onSuccess(OrganizationsRepo.create(req, user.getId())) {
             case Validated.Valid(org) =>
-              val uri     = fullPrefix + org.getId().toString
+              val uri     = resourcePrefix + org.getId().toString
               val headers = immutable.Seq(Location(uri))
               val res     = OrganizationHelpers.responseFrom(org, isPublic = false)
               respondWithHeaders(headers) {
@@ -87,8 +87,8 @@ object OrganizationsHandler {
         organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
           entity(as[OrganizationUpdateRequest]) { req =>
             onSuccess(OrganizationsRepo.update(org.getId(), req)) {
-              case Validated.Valid(org) =>
-                val res = OrganizationHelpers.responseFrom(org, isPublic = false)
+              case Validated.Valid(updated) =>
+                val res = OrganizationHelpers.responseFrom(updated, isPublic = false)
                 complete((StatusCodes.Accepted, res))
               case Validated.Invalid(e) =>
                 ??? // TODO

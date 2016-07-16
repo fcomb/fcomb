@@ -34,7 +34,7 @@ import scala.collection.immutable
 object RepositoriesHandler {
   val servicePath = "repositories"
 
-  lazy val fullPrefix = s"/$apiVersion/${UserHandler.servicePath}/$servicePath/"
+  lazy val resourcePrefix = s"/$apiVersion/${RepositoriesHandler.servicePath}/"
 
   def index = {
     extractExecutionContext { implicit ec =>
@@ -54,7 +54,7 @@ object RepositoriesHandler {
         entity(as[ImageCreateRequest]) { req =>
           onSuccess(ImagesRepo.create(req, user)) {
             case Validated.Valid(image) =>
-              val uri     = fullPrefix + image.getId.toString
+              val uri     = resourcePrefix + image.getId.toString
               val headers = immutable.Seq(Location(uri))
               val res     = ImageHelpers.responseFrom(image)
               respondWithHeaders(headers) {

@@ -53,8 +53,8 @@ object RepositoriesHandler {
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
           entity(as[ImageUpdateRequest]) { req =>
             onSuccess(ImagesRepo.update(image.getId(), req)) {
-              case Validated.Valid(image) =>
-                val res = ImageHelpers.responseFrom(image)
+              case Validated.Valid(updated) =>
+                val res = ImageHelpers.responseFrom(updated)
                 complete((StatusCodes.Accepted, res))
               case Validated.Invalid(e) =>
                 ??? // TODO

@@ -348,4 +348,10 @@ object PermissionsRepo
           q.memberKind === (MemberKind.Group: MemberKind))
     }.delete
   }
+
+  def destroyByOrganizationGroupIdDBIO(groupId: Int)(implicit ec: ExecutionContext) = {
+    table.filter { q =>
+      q.memberId === groupId && q.memberKind === (MemberKind.Group: MemberKind)
+    }.delete
+  }
 }

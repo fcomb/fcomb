@@ -46,7 +46,7 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
   def ownerKind = column[OwnerKind]("owner_kind")
 
   def * =
-    (id, name, slug, (ownerId, ownerKind), visibilityKind, description, createdAt, updatedAt).shaped <>
+    (id, name, slug, (ownerId, ownerKind), visibilityKind, description, createdAt, updatedAt) <>
       ({
         case (id,
               name,

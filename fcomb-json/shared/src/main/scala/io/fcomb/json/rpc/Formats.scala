@@ -18,6 +18,7 @@ package io.fcomb.json.rpc
 
 import io.circe.generic.semiauto._
 import io.circe.{Encoder, Decoder}
+import io.fcomb.json.models.acl.Formats._
 import io.fcomb.rpc._
 
 object Formats {
@@ -30,6 +31,12 @@ object Formats {
   implicit final val encodeOrganizationUpdateRequest: Encoder[OrganizationUpdateRequest] =
     deriveEncoder
   implicit final val encodeOrganizationResponse: Encoder[OrganizationResponse] = deriveEncoder
+  implicit final val encodeOrganizationGroupCreateRequest: Encoder[OrganizationGroupCreateRequest] =
+    deriveEncoder
+  implicit final val encodeOrganizationGroupUpdateRequest: Encoder[OrganizationGroupUpdateRequest] =
+    deriveEncoder
+  implicit final val encodeOrganizationGroupResponse: Encoder[OrganizationGroupResponse] =
+    deriveEncoder
 
   implicit final val decodeSessionCreateRequest: Decoder[SessionCreateRequest] = deriveDecoder
   implicit final val decodeUserProfileResponse: Decoder[UserProfileResponse]   = deriveDecoder
@@ -40,4 +47,10 @@ object Formats {
   implicit final val decodeOrganizationOrganizationUpdateRequest: Decoder[
     OrganizationUpdateRequest]                                                 = deriveDecoder
   implicit final val decodeOrganizationResponse: Decoder[OrganizationResponse] = deriveDecoder
+  implicit final val decodeOrganizationGroupCreateRequest: Decoder[OrganizationGroupCreateRequest] =
+    deriveDecoder
+  implicit final val decodeOrganizationOrganizationGroupUpdateRequest: Decoder[
+    OrganizationGroupUpdateRequest] = deriveDecoder
+  implicit final val decodeOrganizationGroupResponse: Decoder[OrganizationGroupResponse] =
+    deriveDecoder
 }

@@ -19,7 +19,7 @@ package io.fcomb
 import com.github.tminglei.slickpg._
 
 trait FcombPostgresProfile
-    extends ExPostgresDriver
+    extends ExPostgresProfile
     with PgArraySupport
     with PgDateSupport
     with PgCirceJsonSupport

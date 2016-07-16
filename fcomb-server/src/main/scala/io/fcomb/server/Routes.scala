@@ -38,6 +38,7 @@ object Routes {
         pathPrefix(apiVersion) {
           RepositoriesHandler.routes ~
           OrganizationsHandler.routes ~
+          OrganizationGroupsHandler.routes ~
           UserHandler.routes ~
           UsersHandler.routes ~
           SessionsHandler.routes ~
