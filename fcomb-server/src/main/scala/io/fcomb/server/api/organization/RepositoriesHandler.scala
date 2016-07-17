@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-package io.fcomb.server.api.user
+package io.fcomb.server.api.organization
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
-import io.fcomb.server.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.models.acl.Role
+import io.fcomb.models.common.Slug
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CirceSupport._
+import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.PaginationDirectives._
-import io.fcomb.server.api.apiVersion
+import io.fcomb.server.api.{apiVersion, UserHandler}
 import scala.collection.immutable
 
 object RepositoriesHandler {
@@ -36,11 +39,11 @@ object RepositoriesHandler {
 
   lazy val resourcePrefix = s"/$apiVersion/${RepositoriesHandler.servicePath}/"
 
-  def index = {
+  def index(slug: Slug) = {
     extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
+      tryAuthenticateUser { userOpt =>
         extractPagination { pg =>
-          onSuccess(ImagesRepo.findByUserWithPagination(user.id, pg)) { p =>
+          onSuccess(ImagesRepo.findByOrganizationWithPagination(userOpt.flatMap(_.id), pg)) { p =>
             completePagination(ImagesRepo.label, p)
           }
         }
@@ -48,31 +51,33 @@ object RepositoriesHandler {
     }
   }
 
-  def create = {
+  def create(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        entity(as[ImageCreateRequest]) { req =>
-          onSuccess(ImagesRepo.create(req, user)) {
-            case Validated.Valid(image) =>
-              val uri     = resourcePrefix + image.getId().toString
-              val headers = immutable.Seq(Location(uri))
-              val res     = ImageHelpers.responseFrom(image)
-              respondWithHeaders(headers) {
-                complete((StatusCodes.Created, res))
-              }
-            case Validated.Invalid(e) =>
-              ??? // TODO
+        organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+          entity(as[ImageCreateRequest]) { req =>
+            onSuccess(ImagesRepo.create(req, org)) {
+              case Validated.Valid(image) =>
+                val uri     = resourcePrefix + image.getId().toString
+                val headers = immutable.Seq(Location(uri))
+                val res     = ImageHelpers.responseFrom(image)
+                respondWithHeaders(headers) {
+                  complete((StatusCodes.Created, res))
+                }
+              case Validated.Invalid(e) =>
+                ??? // TODO
+            }
           }
         }
       }
     }
   }
 
-  val routes: Route = {
+  def routes(slug: Slug): Route = {
     // format: OFF
     path(servicePath) {
-      get(index) ~
-      post(create)
+      get(index(slug)) ~
+      post(create(slug))
     }
     // format: ON
   }

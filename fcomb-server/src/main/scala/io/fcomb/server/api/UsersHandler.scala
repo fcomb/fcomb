@@ -22,6 +22,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
 import io.fcomb.server.CirceSupport._
+import io.fcomb.server.SlugPath
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.errors.{FailureResponse, RegistrationIsDisabled}
@@ -53,6 +54,9 @@ object UsersHandler {
     pathPrefix(servicePath) {
       path("sign_up") {
         post(signUp)
+      } ~
+      pathPrefix(SlugPath) { slug =>
+        users.RepositoriesHandler.routes(slug)
       }
     }
     // format: ON

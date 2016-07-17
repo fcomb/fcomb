@@ -55,7 +55,7 @@ object SessionsRepo {
   ): Future[Xor[FailureResponse, Session]] =
     UsersRepo.findByEmail(req.email).flatMap {
       case Some(user) if user.isValidPassword(req.password) =>
-        createToken(prefix, user.getId.toString)
+        createToken(prefix, user.getId().toString)
       case _ => invalidEmailOrPassword
     }
 

@@ -22,7 +22,7 @@ import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
-import io.fcomb.models.{OwnerKind, Owner, User, Pagination, PaginationData}
+import io.fcomb.models.{Organization, OwnerKind, Owner, User, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.{PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, OrganizationGroupUsersRepo}
@@ -236,6 +236,22 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       ))
   }
 
+  def create(req: ImageCreateRequest, org: Organization)(
+      implicit ec: ExecutionContext): Future[ValidationModel] = {
+    val owner = Owner(org.getId(), OwnerKind.Organization)
+    create(
+      Image(
+        id = None,
+        name = req.name,
+        slug = s"${org.name}/${req.name}",
+        owner = owner,
+        visibilityKind = req.visibilityKind,
+        description = req.description.getOrElse(""),
+        createdAt = ZonedDateTime.now,
+        updatedAt = None
+      ))
+  }
+
   override def createDBIO(item: Image)(implicit ec: ExecutionContext): ModelDBIO = {
     for {
       res <- super.createDBIO(item)
@@ -263,28 +279,36 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     update(id)(_.copy(description = req.description))
   }
 
-  private def findByUserOwnerScopeDBIO(userId: Rep[Int]) =
+  private def findByUserScopeDBIO(userId: Rep[Int]) =
     table.filter { q =>
       q.ownerId === userId && q.ownerKind === (OwnerKind.User: OwnerKind)
     }
 
-  private lazy val findByUserOwnerTotalCompiled = Compiled { userId: Rep[Int] =>
-    findByUserOwnerScopeDBIO(userId).length
+  private lazy val findByUserTotalCompiled = Compiled { userId: Rep[Int] =>
+    findByUserScopeDBIO(userId).length
   }
 
-  private lazy val findByUserOwnerWithPaginationCompiled = Compiled {
+  private lazy val findByUserWithPaginationCompiled = Compiled {
     (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      findByUserOwnerScopeDBIO(userId).drop(offset).take(limit)
+      findByUserScopeDBIO(userId).drop(offset).take(limit)
   }
 
-  def findByUserOwnerWithPagination(userId: Int, p: Pagination)(
+  def findByUserWithPagination(userIdOpt: Option[Int], p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
     db.run {
+      val userId = userIdOpt.get // TODO
       for {
-        images <- findByUserOwnerWithPaginationCompiled((userId, p.offset, p.limit)).result
-        total  <- findByUserOwnerTotalCompiled(userId).result
+        images <- findByUserWithPaginationCompiled((userId, p.offset, p.limit)).result
+        total  <- findByUserTotalCompiled(userId).result
         data = images.map(ImageHelpers.responseFrom)
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
+    }
+  }
+
+  def findByOrganizationWithPagination(userIdOpt: Option[Int], p: Pagination)(
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
+    db.run {
+      ???
     }
   }
 

@@ -118,9 +118,12 @@ object OrganizationsHandler {
         post(create)
       } ~
       pathPrefix(SlugPath) { slug =>
-        get(show(slug)) ~
-        put(update(slug)) ~
-        delete(destroy(slug))
+        pathEnd {
+          get(show(slug)) ~
+          put(update(slug)) ~
+          delete(destroy(slug))
+        } ~
+        organization.RepositoriesHandler.routes(slug)
       }
     }
     // format: ON
