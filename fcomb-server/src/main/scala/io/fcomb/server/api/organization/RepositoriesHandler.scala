@@ -31,7 +31,7 @@ import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.PaginationDirectives._
-import io.fcomb.server.api.{apiVersion, UserHandler}
+import io.fcomb.server.api.apiVersion
 import scala.collection.immutable
 
 object RepositoriesHandler {
@@ -41,10 +41,16 @@ object RepositoriesHandler {
 
   def index(slug: Slug) = {
     extractExecutionContext { implicit ec =>
-      tryAuthenticateUser { userOpt =>
-        extractPagination { pg =>
-          onSuccess(ImagesRepo.findByOrganizationWithPagination(userOpt.flatMap(_.id), pg)) { p =>
-            completePagination(ImagesRepo.label, p)
+      organizationBySlug(slug) { org =>
+        tryAuthenticateUser { currentUserOpt =>
+          extractPagination { pg =>
+            val res =
+              ImagesRepo.findByOrganizationOwnerWithPagination(org.getId(),
+                                                               currentUserOpt.flatMap(_.id),
+                                                               pg)
+            onSuccess(res) { p =>
+              completePagination(ImagesRepo.label, p)
+            }
           }
         }
       }

@@ -266,10 +266,14 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     }
   }
 
+  def findOutdatedUploadsIdDBIO(until: Rep[ZonedDateTime]) = {
+    destroyOutdatedUploadsDBIO(until).map(_.pk)
+  }
+
   def destroyOutdatedUploads(until: ZonedDateTime)(implicit ec: ExecutionContext) = {
     runInTransaction(TransactionIsolation.ReadCommitted) {
       for {
-        _   <- BlobFilesRepo.destroyOutdatedUploadsDBIO(until)
+        _   <- BlobFilesRepo.markOutdatedUploadsDBIO(until)
         res <- destroyOutdatedUploadsDBIO(until).delete
       } yield res
     }

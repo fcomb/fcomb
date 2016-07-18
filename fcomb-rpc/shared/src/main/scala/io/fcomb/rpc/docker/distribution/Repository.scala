@@ -17,6 +17,7 @@
 package io.fcomb.rpc.docker.distribution
 
 import io.fcomb.models.Owner
+import io.fcomb.models.acl.Role
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
 final case class RepositoryResponse(
@@ -26,6 +27,7 @@ final case class RepositoryResponse(
     owner: Owner,
     visibilityKind: ImageVisibilityKind,
     description: String,
+    // role: Role,
     createdAt: String,
     updatedAt: Option[String]
 )

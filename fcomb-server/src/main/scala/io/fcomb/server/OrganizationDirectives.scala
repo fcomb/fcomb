@@ -34,6 +34,12 @@ trait OrganizationDirectives {
     }
   }
 
+  final def organizationBySlug(slug: Slug): Directive1[Organization] = {
+    extractExecutionContext.flatMap { implicit ec =>
+      onSuccess(OrganizationsRepo.findBySlug(slug)).flatMap(provideOrganization)
+    }
+  }
+
   private final def provideOrganization(orgOpt: Option[Organization]): Directive1[Organization] = {
     orgOpt match {
       case Some(org) => provide(org)

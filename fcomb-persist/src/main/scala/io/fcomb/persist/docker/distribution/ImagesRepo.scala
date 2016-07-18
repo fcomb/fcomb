@@ -279,37 +279,113 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     update(id)(_.copy(description = req.description))
   }
 
-  private def findByUserScopeDBIO(userId: Rep[Int]) =
-    table.filter { q =>
-      q.ownerId === userId && q.ownerKind === (OwnerKind.User: OwnerKind)
-    }
-
-  private lazy val findByUserTotalCompiled = Compiled { userId: Rep[Int] =>
-    findByUserScopeDBIO(userId).length
+  private def findAvailableByUserIdScopeDBIO(userId: Rep[Int]) = {
+    table
+      .join(PermissionsRepo.table)
+      .on(_.id === _.imageId)
+      .filter {
+        case (t, pt) =>
+          // TODO: add organizations
+          pt.memberId === userId && pt.memberKind === (MemberKind.User: MemberKind)
+      }
+      .map(_._1)
   }
 
-  private lazy val findByUserWithPaginationCompiled = Compiled {
+  private lazy val findAvailableByUserIdWithPaginationCompiled = Compiled {
     (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      findByUserScopeDBIO(userId).drop(offset).take(limit)
+      findAvailableByUserIdScopeDBIO(userId).drop(offset).take(limit)
   }
 
-  def findByUserWithPagination(userIdOpt: Option[Int], p: Pagination)(
+  private lazy val findAvailableByUserIdTotalCompiled = Compiled { ownerId: Rep[Int] =>
+    findAvailableByUserIdScopeDBIO(ownerId).length
+  }
+
+  def findAvailableByUserIdWithPagination(userId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
     db.run {
-      val userId = userIdOpt.get // TODO
       for {
-        images <- findByUserWithPaginationCompiled((userId, p.offset, p.limit)).result
-        total  <- findByUserTotalCompiled(userId).result
+        images <- findAvailableByUserIdWithPaginationCompiled((userId, p.offset, p.limit)).result
+        total  <- findAvailableByUserIdTotalCompiled(userId).result
         data = images.map(ImageHelpers.responseFrom)
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
   }
 
-  def findByOrganizationWithPagination(userIdOpt: Option[Int], p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
-    db.run {
-      ???
+  private def findByUserOwnerScopeDBIO(ownerId: Rep[Int], currentUserId: Rep[Int]) = {
+    table
+      .joinLeft(PermissionsRepo.table)
+      .on(_.id === _.imageId)
+      .filter {
+        case (t, pt) =>
+          t.ownerId === ownerId && t.ownerKind === (OwnerKind.User: OwnerKind) &&
+            (t.ownerId === currentUserId ||
+                  t.visibilityKind === (ImageVisibilityKind.Public: ImageVisibilityKind) ||
+                  (pt.map(_.memberId) === currentUserId) &&
+                    pt.map(_.memberKind) === (MemberKind.User: MemberKind))
+      }
+      .map(_._1)
+  }
+
+  private lazy val findByUserOwnerWithPaginationCompiled = Compiled {
+    (ownerId: Rep[Int], currentUserId: Rep[Int], offset: ConstColumn[Long],
+     limit: ConstColumn[Long]) =>
+      findByUserOwnerScopeDBIO(ownerId, currentUserId).drop(offset).take(limit)
+  }
+
+  private lazy val findByUserOwnerTotalCompiled = Compiled {
+    (ownerId: Rep[Int], currentUserId: Rep[Int]) =>
+      findByUserOwnerScopeDBIO(ownerId, currentUserId).length
+  }
+
+  private def findPublicByOwnerScopeDBIO(ownerId: Rep[Int], ownerKind: Rep[OwnerKind]) = {
+    table.filter { q =>
+      q.ownerId === ownerId && q.ownerKind === ownerKind &&
+      q.visibilityKind === (ImageVisibilityKind.Public: ImageVisibilityKind)
     }
+  }
+
+  private lazy val findPublicByOwnerWithPaginationCompiled = Compiled {
+    (ownerId: Rep[Int], ownerKind: Rep[OwnerKind], offset: ConstColumn[Long],
+     limit: ConstColumn[Long]) =>
+      findPublicByOwnerScopeDBIO(ownerId, ownerKind).drop(offset).take(limit)
+  }
+
+  private lazy val findPublicByOwnerTotalCompiled = Compiled {
+    (ownerId: Rep[Int], ownerKind: Rep[OwnerKind]) =>
+      findPublicByOwnerScopeDBIO(ownerId, ownerKind).length
+  }
+
+  private def findPublicByOwnerWithPaginationDBIO(ownerId: Int,
+                                                  ownerKind: OwnerKind,
+                                                  p: Pagination)(implicit ec: ExecutionContext) = {
+    for {
+      images <- findPublicByOwnerWithPaginationCompiled((ownerId, ownerKind, p.offset, p.limit)).result
+      total  <- findPublicByOwnerTotalCompiled((ownerId, ownerKind)).result
+    } yield (images, total)
+  }
+
+  def findByUserOwnerWithPagination(userId: Int, currentUserIdOpt: Option[Int], p: Pagination)(
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
+    val q = currentUserIdOpt match {
+      case Some(id) =>
+        for {
+          images <- findByUserOwnerWithPaginationCompiled((userId, id, p.offset, p.limit)).result
+          total  <- findByUserOwnerTotalCompiled((userId, id)).result
+        } yield (images, total)
+      case _ => findPublicByOwnerWithPaginationDBIO(userId, OwnerKind.User, p)
+    }
+    db.run(q.map {
+      case (images, total) =>
+        val data = images.map(ImageHelpers.responseFrom)
+        PaginationData(data, total = total, offset = p.offset, limit = p.limit)
+    })
+  }
+
+  def findByOrganizationOwnerWithPagination(
+      orgId: Int,
+      currentUserIdOpt: Option[Int],
+      p: Pagination)(implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
+    ??? // TODO
   }
 
   def updateVisibility(id: Int, visibilityKind: ImageVisibilityKind): Future[_] = {

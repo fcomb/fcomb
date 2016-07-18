@@ -134,12 +134,10 @@ object BlobFilesRepo {
     }.map(_.state).update(BlobFileState.Deleting)
   }
 
-  def destroyOutdatedUploadsDBIO(until: Rep[ZonedDateTime]) = {
-    ImageBlobsRepo
-      .destroyOutdatedUploadsDBIO(until)
-      .join(table)
-      .on(_.id === _.uuid)
-      .map(_._2.state)
+  def markOutdatedUploadsDBIO(until: Rep[ZonedDateTime]) = {
+    table
+      .filter(_.uuid.in(ImageBlobsRepo.findOutdatedUploadsIdDBIO(until)))
+      .map(_.state)
       .update(BlobFileState.Deleting)
   }
 

@@ -16,16 +16,17 @@
 
 package io.fcomb.persist
 
+import akka.http.scaladsl.util.FastFuture, FastFuture._
+import cats.data.Validated
 import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.User
+import io.fcomb.models.common.Slug
 import io.fcomb.rpc.{UserSignUpRequest, UserUpdateRequest}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{ExecutionContext, Future}
-import cats.data.Validated
-import akka.http.scaladsl.util.FastFuture, FastFuture._
 
 class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWithAutoIntPk {
   def email        = column[String]("email")
@@ -129,8 +130,20 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     table.filter(_.username === username.asColumnOfType[String]("citext")).take(1)
   }
 
-  def findByUsernameDBIO(username: String) =
+  def findByUsernameDBIO(username: String) = {
     findByUsernameCompiled(username).result.headOption
+  }
+
+  def findBySlugDBIO(slug: Slug): DBIOAction[Option[User], NoStream, Effect.Read] = {
+    slug match {
+      case Slug.Id(id)     => findByIdDBIO(id)
+      case Slug.Name(name) => findByUsernameDBIO(name)
+    }
+  }
+
+  def findBySlug(slug: Slug) = {
+    db.run(findBySlugDBIO(slug))
+  }
 
   def matchByUsernameAndPassword(username: String, password: String)(
       implicit ec: ExecutionContext

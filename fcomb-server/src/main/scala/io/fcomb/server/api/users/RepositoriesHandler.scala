@@ -20,8 +20,10 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.common.Slug
+import io.fcomb.persist.UsersRepo
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.PaginationDirectives._
 
 object RepositoriesHandler {
@@ -29,11 +31,18 @@ object RepositoriesHandler {
 
   def index(slug: Slug) = {
     extractExecutionContext { implicit ec =>
-      tryAuthenticateUser { userOpt =>
-        extractPagination { pg =>
-          onSuccess(ImagesRepo.findByUserWithPagination(userOpt.flatMap(_.id), pg)) { p =>
-            completePagination(ImagesRepo.label, p)
-          }
+      tryAuthenticateUser { currentUserOpt =>
+        onSuccess(UsersRepo.findBySlug(slug)) {
+          case Some(user) =>
+            extractPagination { pg =>
+              val res = ImagesRepo.findByUserOwnerWithPagination(user.getId(),
+                                                                 currentUserOpt.flatMap(_.id),
+                                                                 pg)
+              onSuccess(res) { p =>
+                completePagination(ImagesRepo.label, p)
+              }
+            }
+          case None => completeNotFound()
         }
       }
     }
