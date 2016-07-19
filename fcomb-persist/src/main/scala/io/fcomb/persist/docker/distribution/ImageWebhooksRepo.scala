@@ -52,6 +52,6 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
   }
 
   def findByImageId(imageId: Int) =
-    db.run(findByImageIdCompiled(imageId).result)
+    db.run(findByImageIdCompiled(imageId).result.headOption)
 
 }

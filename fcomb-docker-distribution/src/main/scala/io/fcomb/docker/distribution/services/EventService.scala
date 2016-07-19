@@ -30,10 +30,12 @@ import io.fcomb.persist.docker.distribution.{ImageEventsRepo, ImageManifestsRepo
 import org.jose4j.base64url.Base64
 import org.slf4j.LoggerFactory
 
+import scala.concurrent.Future
+
 object EventService {
   import EventServiceMessages._
 
-  private val actorName = "event-service"
+  val actorName = "event-service"
 
   private var actorRef: ActorRef = _
   private lazy val logger = LoggerFactory.getLogger(getClass)
@@ -63,14 +65,14 @@ private[this] class EventServiceActor(implicit mat: Materializer) extends Actor 
   import context.system
   import EventServiceMessages._
 
-  override def receive: Receive = {
+  def receive: Receive = {
     case ImageUpserted(manifestId) => createUpsertEvent(manifestId)
   }
 
-  def createUpsertEvent(manifestId: Int) = {
-    ImageManifestsRepo.findById(manifestId).map {
+  def createUpsertEvent(manifestId: Int): Future[Option[ImageEvent]] = {
+    ImageManifestsRepo.findById(manifestId).flatMap {
       case Some(manifest) =>
-        ImagesRepo.findById(manifest.imageId).map {
+        ImagesRepo.findById(manifest.imageId).flatMap {
           case Some(image) =>
             val detailsJson = ImageEventDetails
               .Upserted(
@@ -86,24 +88,24 @@ private[this] class EventServiceActor(implicit mat: Materializer) extends Actor 
               .create(manifest.getId(),
                       ImageEventKind.Upserted,
                       Base64.encode(detailsJson.noSpaces.getBytes("utf-8")))
-              .map {
-                case Validated.Valid(imageEvent) =>
-                  Marshal(detailsJson)
-                    .to[RequestEntity]
-                    .map(entity =>
-                        ImageWebhooksRepo
-                          .findByImageId(manifest.imageId)
-                          .map(_.foreach(webhook =>
-                                Http().singleRequest(HttpRequest(method = HttpMethods.POST,
-                                                                 uri = webhook.url,
-                                                                 entity = entity)))))
-
-                  Some(imageEvent)
-                case Validated.Invalid(e) => None
+              .flatMap {
+                case Validated.Valid(event) =>
+                  for {
+                    entity     <- Marshal(detailsJson).to[RequestEntity]
+                    webhookOpt <- ImageWebhooksRepo.findByImageId(manifest.imageId)
+                    _ <- webhookOpt match {
+                          case Some(webhook) =>
+                            Http().singleRequest(HttpRequest(method = HttpMethods.POST,
+                                                             uri = webhook.url,
+                                                             entity = entity))
+                          case _ => Future.successful(())
+                        }
+                  } yield Some(event)
+                case _ => Future.successful(None)
               }
-          case None => None
+          case _ => Future.successful(None)
         }
-      case _ => None
+      case _ => Future.successful(None)
     }
   }
 }
