@@ -20,12 +20,12 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.server.CirceSupport._
-import io.circe.generic.auto._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
+import io.fcomb.json.models.errors.docker.distribution.Formats._
 
 trait ImageDirectives {
   final def imageByNameWithAcl(slug: String, userId: Int, action: Action): Directive1[Image] = {

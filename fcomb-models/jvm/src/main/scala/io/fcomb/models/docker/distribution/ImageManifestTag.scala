@@ -24,8 +24,3 @@ final case class ImageManifestTag(
     tag: String,
     updatedAt: ZonedDateTime
 )
-
-final case class ImageTagsResponse(
-    name: String,
-    tags: Seq[String]
-)

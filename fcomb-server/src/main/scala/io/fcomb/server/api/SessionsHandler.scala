@@ -23,11 +23,11 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Xor
 import io.fcomb.server.CirceSupport._
-import io.circe.generic.auto._
 import io.fcomb.persist.SessionsRepo
 import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats._
+import io.fcomb.json.models.errors.Formats._
 import io.fcomb.server.CommonDirectives._
 
 object SessionsHandler {

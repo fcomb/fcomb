@@ -26,13 +26,12 @@ import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.Xor
 import io.fcomb.server.CirceSupport._
-import io.circe.generic.auto._
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
-import io.fcomb.json.models.docker.distribution.CompatibleFormats._
+import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}

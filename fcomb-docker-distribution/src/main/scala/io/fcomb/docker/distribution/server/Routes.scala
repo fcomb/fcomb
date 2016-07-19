@@ -21,10 +21,9 @@ import akka.http.scaladsl.model.headers.{HttpChallenges, `WWW-Authenticate`}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.server.CirceSupport._
-import io.circe.generic.auto._
 import io.fcomb.docker.distribution.server.api._
 import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.json.models.docker.distribution.CompatibleFormats._
+import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.{Reference, ImageManifest}
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.server.headers._

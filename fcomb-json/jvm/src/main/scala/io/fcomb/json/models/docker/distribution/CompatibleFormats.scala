@@ -33,9 +33,6 @@ object CompatibleFormats {
     indent = ""
   )
 
-  implicit final val encodeDistributionError: Encoder[DistributionError] =
-    Encoder.forProduct2("code", "message")(e => (e.code.entryName, e.message))
-
   implicit final val encodeSchemaV1ContainerConfig: Encoder[SchemaV1.ContainerConfig] =
     Encoder.forProduct22("Hostname",
                          "Domainname",
@@ -137,35 +134,6 @@ object CompatibleFormats {
     }
   }
 
-  implicit final val decodeDistributionError: Decoder[DistributionError] = {
-    Decoder.instance { c =>
-      for {
-        code    <- c.get[DistributionErrorCode]("code")
-        message <- c.get[String]("message")
-        // detail  <- c.get[Option[DistributionErrorDetail]]("detail")
-      } yield {
-        code match {
-          case DistributionErrorCode.DigestInvalid =>
-            DistributionError.DigestInvalid(message)
-          case DistributionErrorCode.Unknown =>
-            DistributionError.Unknown(message)
-          case DistributionErrorCode.NameInvalid =>
-            DistributionError.NameInvalid(message)
-          case DistributionErrorCode.ManifestInvalid =>
-            DistributionError.ManifestInvalid(message)
-          case DistributionErrorCode.ManifestUnknown =>
-            DistributionError.ManifestUnknown(message)
-          case DistributionErrorCode.BlobUploadInvalid =>
-            DistributionError.BlobUploadInvalid(message)
-          case DistributionErrorCode.NameUnknown =>
-            DistributionError.NameUnknown(message)
-          case DistributionErrorCode.Unauthorized =>
-            DistributionError.Unauthorized(message)
-        }
-      }
-    }
-  }
-
   implicit final val decodeSchemaV1LayerContainerConfig: Decoder[SchemaV1.LayerContainerConfig] =
     Decoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.apply)
 
@@ -257,11 +225,11 @@ object CompatibleFormats {
 
   implicit final val decodeSchemaV1FsLayer: Decoder[SchemaV1.FsLayer] = deriveDecoder
 
-  final val decodeSchemaV1Manifest: Decoder[SchemaV1.Manifest] = deriveDecoder
+  implicit final val decodeSchemaV1Manifest: Decoder[SchemaV1.Manifest] = deriveDecoder
 
   implicit final val decodeSchemaV2Descriptor: Decoder[SchemaV2.Descriptor] = deriveDecoder
 
-  final val decodeSchemaV2Manifest: Decoder[SchemaV2.Manifest] = deriveDecoder
+  implicit final val decodeSchemaV2Manifest: Decoder[SchemaV2.Manifest] = deriveDecoder
 
   implicit final val decodeSchemaManifest: Decoder[SchemaManifest] = Decoder.instance { c =>
     c.get[Int]("schemaVersion").flatMap {

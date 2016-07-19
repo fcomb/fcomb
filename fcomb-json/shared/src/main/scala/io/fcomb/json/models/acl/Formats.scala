@@ -28,5 +28,4 @@ object Formats {
   implicit final val decodeAction: Decoder[Action]         = Circe.decoder(Action)
   implicit final val decodeRole: Decoder[Role]             = Circe.decoder(Role)
   implicit final val decodeMemberKind: Decoder[MemberKind] = Circe.decoder(MemberKind)
-  MemberKind
 }

@@ -16,22 +16,6 @@
 
 package io.fcomb.models.docker.distribution
 
-import io.fcomb.models.{ModelWithAutoIntPk, Owner}
-import java.time.ZonedDateTime
-
-final case class Image(
-    id: Option[Int],
-    name: String,
-    slug: String,
-    owner: Owner,
-    visibilityKind: ImageVisibilityKind,
-    description: String,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
-}
-
-object Image {
-  val nameRegEx = """[A-Za-z][\w\-\.]*""".r
-}
+final case class DistributionImageCatalog(
+    repositories: Seq[String]
+)

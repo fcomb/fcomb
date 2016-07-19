@@ -17,7 +17,6 @@
 package io.fcomb.services.user
 
 import io.fcomb.Db.redis
-import io.fcomb.services.Mandrill
 import io.fcomb.persist.UsersRepo
 import io.fcomb.templates
 import io.fcomb.validations.ValidationResultUnit
@@ -49,13 +48,7 @@ object ResetPassword {
             s"date: $date",
             token
           )
-          Mandrill
-            .sendTemplate(
-              template.mandrillTemplateName,
-              List(user.email),
-              template.toHtml
-            )
-            .map(_ => Validated.Valid(()))
+          ???
         }
       case None =>
         UsersRepo.validationErrorAsFuture("email", "not found")

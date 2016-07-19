@@ -25,12 +25,13 @@ import akka.util.ByteString
 import cats.data.Xor
 import cats.scalatest.XorMatchers._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
-import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
 import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
+import io.fcomb.json.models.docker.distribution.Formats._
+import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionErrorResponse, DistributionError}
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo

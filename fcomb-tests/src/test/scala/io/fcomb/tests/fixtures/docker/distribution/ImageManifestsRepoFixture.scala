@@ -25,7 +25,6 @@ import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import io.circe.parser._
-import io.circe.generic.auto._
 import org.apache.commons.codec.digest.DigestUtils
 
 object ImageManifestsRepoFixture {
