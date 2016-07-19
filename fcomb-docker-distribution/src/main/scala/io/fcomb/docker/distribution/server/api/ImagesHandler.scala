@@ -47,18 +47,20 @@ object ImagesHandler {
             import mat.executionContext
             onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId(), reference)) {
               case Some(im) =>
-                val (ct: ContentType, manifest: String) = if (im.schemaVersion == 1) {
-                  val jb = SchemaV1Manifest.addSignature(im.schemaV1JsonBlob)
-                  (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
-                } else
-                  reference match {
-                    case Reference.Tag(tag) if !acceptOpt.exists(acceptIsAManifestV2) =>
-                      val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
-                      (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
-                    case _ =>
-                      (`application/vnd.docker.distribution.manifest.v2+json`,
-                       im.getSchemaV2JsonBlob)
-                  }
+                val (ct, manifest) = im.schemaVersion match {
+                  case 1 =>
+                    val jb = SchemaV1Manifest.addSignature(im.schemaV1JsonBlob)
+                    (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
+                  case _ =>
+                    reference match {
+                      case Reference.Tag(tag) if !acceptOpt.exists(acceptIsAManifestV2) =>
+                        val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
+                        (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
+                      case _ =>
+                        (`application/vnd.docker.distribution.manifest.v2+json`,
+                         im.getSchemaV2JsonBlob)
+                    }
+                }
                 val headers = immutable.Seq(
                   ETag(s"${ImageManifest.sha256Prefix}${im.digest}"),
                   `Docker-Content-Digest`("sha256", im.digest)
@@ -80,7 +82,8 @@ object ImagesHandler {
 
   private def acceptIsAManifestV2(header: Accept) = {
     header.mediaRanges.exists { r =>
-      r.matches(MediaTypes.`application/vnd.docker.distribution.manifest.v2+json`)
+      r.matches(MediaTypes.`application/vnd.docker.distribution.manifest.v2+json`) &&
+      r != MediaRanges.`*/*`
     }
   }
 

@@ -149,7 +149,7 @@ object SchemaV1 {
           }
 
           val manifestV1 = ManifestV1(
-            name = image.name,
+            name = image.slug,
             tag = "",
             fsLayers = configFsLayer :: fsLayers,
             architecture = imgConfig.architecture,

@@ -266,7 +266,7 @@ class ImagesHandlerSpec
     }
 
     "return a manifest v1 for GET request to manifest path by tag and digest" in {
-      val (im, imageSlug) = Fixtures.await(for {
+      val (im, image, imageSlug) = Fixtures.await(for {
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsRepoFixture.createAs(user.getId(),
@@ -275,7 +275,7 @@ class ImagesHandlerSpec
                                                 ImageBlobState.Uploaded)
         imageSlug = image.slug
         im <- ImageManifestsRepoFixture.createV1(user.getId(), imageSlug, blob1, "1.0")
-      } yield (im, imageSlug))
+      } yield (im, image, imageSlug))
 
       def checkResponse(): Unit = {
         status shouldEqual StatusCodes.OK
@@ -287,6 +287,7 @@ class ImagesHandlerSpec
         val rawManifest         = responseAs[ByteString].utf8String
         val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
         manifest.tag shouldEqual "1.0"
+        manifest.name shouldEqual image.slug
         SchemaV1Manifest.verify(manifest, rawManifest) shouldBe (Xor.right(
               (rawManifest, im.digest)))
       }
@@ -301,7 +302,7 @@ class ImagesHandlerSpec
     }
 
     "return a manifest v2 for GET request to manifest path by tag and digest" in {
-      val (im, imageSlug) = Fixtures.await(for {
+      val (im, image, imageSlug) = Fixtures.await(for {
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsRepoFixture.createAs(user.getId(),
@@ -310,7 +311,7 @@ class ImagesHandlerSpec
                                                 ImageBlobState.Uploaded)
         imageSlug = image.slug
         im <- ImageManifestsRepoFixture.createV2(user.getId(), imageSlug, blob1, List("1.0"))
-      } yield (im, imageSlug))
+      } yield (im, image, imageSlug))
 
       Get(s"/v2/$imageSlug/manifests/1.0") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
@@ -322,6 +323,7 @@ class ImagesHandlerSpec
         val rawManifest         = responseAs[ByteString].utf8String
         val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
         manifest.tag shouldEqual "1.0"
+        manifest.name shouldEqual image.slug
         SchemaV1Manifest.verify(manifest, rawManifest) should be(right)
       }
 

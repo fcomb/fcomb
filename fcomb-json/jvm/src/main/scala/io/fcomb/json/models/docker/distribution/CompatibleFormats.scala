@@ -18,7 +18,7 @@ package io.fcomb.json.models.docker.distribution
 
 import cats.data.Xor
 import enumeratum.Circe
-import io.circe.generic.auto._
+import io.circe.generic.semiauto._
 import io.circe.java8.time._
 import io.circe.parser._
 import io.circe.{Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printer, HCursor, KeyDecoder}
@@ -36,6 +36,30 @@ object CompatibleFormats {
   implicit final val encodeDistributionError: Encoder[DistributionError] =
     Encoder.forProduct2("code", "message")(e => (e.code.entryName, e.message))
 
+  implicit final val encodeSchemaV1ContainerConfig: Encoder[SchemaV1.ContainerConfig] =
+    Encoder.forProduct22("Hostname",
+                         "Domainname",
+                         "User",
+                         "AttachStdin",
+                         "AttachStdout",
+                         "AttachStderr",
+                         "ExposedPorts",
+                         "Tty",
+                         "OpenStdin",
+                         "StdinOnce",
+                         "Env",
+                         "Cmd",
+                         "ArgsEscaped",
+                         "Image",
+                         "Volumes",
+                         "WorkingDir",
+                         "Entrypoint",
+                         "NetworkDisabled",
+                         "MacAddress",
+                         "OnBuild",
+                         "Labels",
+                         "StopSignal")(SchemaV1.ContainerConfig.unapply(_).get)
+
   final val encodeSchemaV1Config: Encoder[SchemaV1.Config] =
     Encoder.forProduct13("id",
                          "parent",
@@ -50,6 +74,9 @@ object CompatibleFormats {
                          "os",
                          "Size",
                          "throwaway")(SchemaV1.Config.unapply(_).get)
+
+  implicit final val encodeSchemaV1LayerContainerConfig: Encoder[SchemaV1.LayerContainerConfig] =
+    Encoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.unapply(_).get)
 
   final val encodeSchemaV1Layer: Encoder[SchemaV1.Layer] = Encoder
     .forProduct7("id", "parent", "comment", "created", "container_config", "author", "throwaway")(
@@ -69,6 +96,8 @@ object CompatibleFormats {
       )
     }
   }
+
+  implicit final val encodeSignatureHeader: Encoder[SchemaV1.SignatureHeader] = deriveEncoder
 
   implicit final val encodeSchemaV1Signature: Encoder[SchemaV1.Signature] =
     Encoder.forProduct3("header", "signature", "protected")(SchemaV1.Signature.unapply(_).get)
@@ -108,24 +137,32 @@ object CompatibleFormats {
     }
   }
 
-  implicit final val decodeDistributionError: Decoder[DistributionError] = Decoder.instance { c =>
-    c.get[DistributionErrorCode]("code").flatMap {
-      case DistributionErrorCode.DigestInvalid =>
-        Decoder[DistributionError.DigestInvalid].apply(c)
-      case DistributionErrorCode.Unknown =>
-        Decoder[DistributionError.Unknown].apply(c)
-      case DistributionErrorCode.NameInvalid =>
-        Decoder[DistributionError.NameInvalid].apply(c)
-      case DistributionErrorCode.ManifestInvalid =>
-        Decoder[DistributionError.ManifestInvalid].apply(c)
-      case DistributionErrorCode.ManifestUnknown =>
-        Decoder[DistributionError.ManifestUnknown].apply(c)
-      case DistributionErrorCode.BlobUploadInvalid =>
-        Decoder[DistributionError.BlobUploadInvalid].apply(c)
-      case DistributionErrorCode.NameUnknown =>
-        Decoder[DistributionError.NameUnknown].apply(c)
-      case DistributionErrorCode.Unauthorized =>
-        Decoder[DistributionError.Unauthorized].apply(c)
+  implicit final val decodeDistributionError: Decoder[DistributionError] = {
+    Decoder.instance { c =>
+      for {
+        code    <- c.get[DistributionErrorCode]("code")
+        message <- c.get[String]("message")
+        // detail  <- c.get[Option[DistributionErrorDetail]]("detail")
+      } yield {
+        code match {
+          case DistributionErrorCode.DigestInvalid =>
+            DistributionError.DigestInvalid(message)
+          case DistributionErrorCode.Unknown =>
+            DistributionError.Unknown(message)
+          case DistributionErrorCode.NameInvalid =>
+            DistributionError.NameInvalid(message)
+          case DistributionErrorCode.ManifestInvalid =>
+            DistributionError.ManifestInvalid(message)
+          case DistributionErrorCode.ManifestUnknown =>
+            DistributionError.ManifestUnknown(message)
+          case DistributionErrorCode.BlobUploadInvalid =>
+            DistributionError.BlobUploadInvalid(message)
+          case DistributionErrorCode.NameUnknown =>
+            DistributionError.NameUnknown(message)
+          case DistributionErrorCode.Unauthorized =>
+            DistributionError.Unauthorized(message)
+        }
+      }
     }
   }
 
@@ -213,10 +250,23 @@ object CompatibleFormats {
       }
     }
 
+  implicit final val decodeSchemaV1SignatureHeader: Decoder[SchemaV1.SignatureHeader] =
+    deriveDecoder
+
+  implicit final val decodeSchemaV1Signature: Decoder[SchemaV1.Signature] = deriveDecoder
+
+  implicit final val decodeSchemaV1FsLayer: Decoder[SchemaV1.FsLayer] = deriveDecoder
+
+  final val decodeSchemaV1Manifest: Decoder[SchemaV1.Manifest] = deriveDecoder
+
+  implicit final val decodeSchemaV2Descriptor: Decoder[SchemaV2.Descriptor] = deriveDecoder
+
+  final val decodeSchemaV2Manifest: Decoder[SchemaV2.Manifest] = deriveDecoder
+
   implicit final val decodeSchemaManifest: Decoder[SchemaManifest] = Decoder.instance { c =>
     c.get[Int]("schemaVersion").flatMap {
-      case 1 => Decoder[SchemaV1.Manifest].apply(c)
-      case 2 => Decoder[SchemaV2.Manifest].apply(c)
+      case 1 => decodeSchemaV1Manifest.apply(c)
+      case 2 => decodeSchemaV2Manifest.apply(c)
       case _ => Xor.left(DecodingFailure("Unsupported schemaVersion", c.history))
     }
   }
