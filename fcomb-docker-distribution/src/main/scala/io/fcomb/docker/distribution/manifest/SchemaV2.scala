@@ -40,7 +40,7 @@ object SchemaV2 {
     val digest = DigestUtils.sha256Hex(rawManifest)
     ImageManifestsRepo.findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
-        ImageManifestsRepo.updateTagsByReference(im, reference).fast.map(_ => Xor.right(im.digest))
+        ImageManifestsRepo.updateTagsByReference(im, reference).fast.map(_ => Xor.Right(im.digest))
       case None =>
         val configDigest = manifest.config.getDigest
         ImageBlobsRepo.findByImageIdAndDigest(image.getId(), configDigest).flatMap {
@@ -62,7 +62,7 @@ object SchemaV2 {
                                       digest)
                       .fast
                       .map {
-                        case Validated.Valid(_)   => Xor.right(digest)
+                        case Validated.Valid(_)   => Xor.Right(digest)
                         case Validated.Invalid(e) => unknowError(e.map(_.message).mkString(";"))
                       }
                   case Xor.Left(e) => FastFuture.successful(unknowError(e))

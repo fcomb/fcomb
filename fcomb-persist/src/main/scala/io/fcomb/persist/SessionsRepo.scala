@@ -38,11 +38,11 @@ object SessionsRepo {
       implicit ec: ExecutionContext
   ): Future[Xor[FailureResponse, Session]] = {
     val sessionId = s"$prefix${random.alphanumeric.take(sessionIdLength).mkString}"
-    redis.set(getKey(sessionId), id, ttl).fast.map(_ => Xor.right(Session(sessionId)))
+    redis.set(getKey(sessionId), id, ttl).fast.map(_ => Xor.Right(Session(sessionId)))
   }
 
   private val invalidEmailOrPassword = FastFuture.successful(
-    Xor.left(
+    Xor.Left(
       FailureResponse.fromExceptions(
         Seq(
           ValidationException("email", "invalid"),

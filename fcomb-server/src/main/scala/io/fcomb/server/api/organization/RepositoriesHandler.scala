@@ -22,7 +22,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.acl.Role
+import io.fcomb.models.acl.{Action, Role}
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
@@ -64,7 +64,7 @@ object RepositoriesHandler {
               case Validated.Valid(image) =>
                 val uri     = resourcePrefix + image.getId().toString
                 val headers = immutable.Seq(Location(uri))
-                val res     = ImageHelpers.responseFrom(image)
+                val res     = ImageHelpers.responseFrom(image, Action.Manage)
                 respondWithHeaders(headers) {
                   complete((StatusCodes.Created, res))
                 }

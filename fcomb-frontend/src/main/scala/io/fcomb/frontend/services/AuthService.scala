@@ -36,7 +36,7 @@ object AuthService {
       password = password.trim()
     )
     Rpc.callWith[SessionCreateRequest, Session](RpcMethod.POST, Resource.sessions, req).map {
-      case Xor.Right(session) => Xor.right(AppCircuit.dispatch(Authenticated(session.token)))
+      case Xor.Right(session) => Xor.Right(AppCircuit.dispatch(Authenticated(session.token)))
       case res @ Xor.Left(e)  => res
     }
   }

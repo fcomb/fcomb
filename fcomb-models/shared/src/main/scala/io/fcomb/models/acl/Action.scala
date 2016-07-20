@@ -16,9 +16,18 @@
 
 package io.fcomb.models.acl
 
+import cats.syntax.eq._
 import io.fcomb.models.common.{Enum, EnumItem}
 
-sealed trait Action extends EnumItem
+sealed trait Action extends EnumItem {
+  def can(action: Action): Boolean = {
+    action match {
+      case Action.Read   => true
+      case Action.Write  => this === Action.Write || this === Action.Manage
+      case Action.Manage => this === Action.Manage
+    }
+  }
+}
 
 object Action extends Enum[Action] {
   final case object Manage extends Action

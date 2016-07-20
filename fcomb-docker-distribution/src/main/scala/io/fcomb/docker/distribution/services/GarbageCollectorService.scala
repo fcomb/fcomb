@@ -108,7 +108,7 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
           case Some(digest) => BlobFileUtils.destroyBlob(digest)
           case _            => BlobFileUtils.destroyUploadBlob(bf.uuid)
         }
-        fut.map(_ => Xor.right(bf.uuid)).recover { case _ => Xor.left(bf.uuid) }
+        fut.map(_ => Xor.Right(bf.uuid)).recover { case _ => Xor.Left(bf.uuid) }
       }
       .grouped(256)
       .mapAsyncUnordered(1) { items =>

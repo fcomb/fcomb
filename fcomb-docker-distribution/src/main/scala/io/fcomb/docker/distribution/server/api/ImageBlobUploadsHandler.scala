@@ -35,7 +35,7 @@ import io.fcomb.models.errors.docker.distribution.{DistributionError, Distributi
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
-import io.fcomb.server.ImageDirectives._
+import io.fcomb.docker.distribution.server.ImageDirectives._
 import java.util.UUID
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._

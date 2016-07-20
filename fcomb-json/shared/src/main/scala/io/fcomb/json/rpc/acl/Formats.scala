@@ -50,7 +50,7 @@ object Formats {
         Decoder[Int].apply(id.any).map(PermissionUserIdRequest)
       } else if (!id.succeeded && username.succeeded) {
         Decoder[String].apply(username.any).map(PermissionUsernameRequest)
-      } else Xor.left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
+      } else Xor.Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
     }
   implicit final val decodePermissionPermissionUserCreateRequest: Decoder[
     PermissionUserCreateRequest] = deriveDecoder

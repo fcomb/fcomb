@@ -39,9 +39,10 @@ object RepositoriesHandler {
   def show(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageBySlugWithAcl(slug, user.getId(), Action.Read) { image =>
-          val res = ImageHelpers.responseFrom(image)
-          complete((StatusCodes.OK, res))
+        imageWithActionBySlugWithAcl(slug, user.getId(), Action.Read) {
+          case (image, action) =>
+            val res = ImageHelpers.responseFrom(image, action)
+            complete((StatusCodes.OK, res))
         }
       }
     }
@@ -50,16 +51,17 @@ object RepositoriesHandler {
   def update(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
-          entity(as[ImageUpdateRequest]) { req =>
-            onSuccess(ImagesRepo.update(image.getId(), req)) {
-              case Validated.Valid(updated) =>
-                val res = ImageHelpers.responseFrom(updated)
-                complete((StatusCodes.Accepted, res))
-              case Validated.Invalid(e) =>
-                ??? // TODO
+        imageWithActionBySlugWithAcl(slug, user.getId(), Action.Manage) {
+          case (image, action) =>
+            entity(as[ImageUpdateRequest]) { req =>
+              onSuccess(ImagesRepo.update(image.getId(), req)) {
+                case Validated.Valid(updated) =>
+                  val res = ImageHelpers.responseFrom(updated, action)
+                  complete((StatusCodes.Accepted, res))
+                case Validated.Invalid(e) =>
+                  ??? // TODO
+              }
             }
-          }
         }
       }
     }

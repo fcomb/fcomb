@@ -118,7 +118,7 @@ object CompatibleFormats {
       cbf: CanBuildFrom[Nothing, A, C[A]]
   ): Decoder[C[A]] = new Decoder[C[A]] {
     final def apply(c: HCursor): Decoder.Result[C[A]] = {
-      if (c.focus.isNull) Xor.right(cbf.apply.result)
+      if (c.focus.isNull) Xor.Right(cbf.apply.result)
       else Decoder.decodeCanBuildFrom(d, cbf).apply(c)
     }
   }
@@ -129,7 +129,7 @@ object CompatibleFormats {
       cbf: CanBuildFrom[Nothing, (K, V), M[K, V]]
   ): Decoder[M[K, V]] = new Decoder[M[K, V]] {
     final def apply(c: HCursor): Decoder.Result[M[K, V]] = {
-      if (c.focus.isNull) Xor.right(cbf.apply.result)
+      if (c.focus.isNull) Xor.Right(cbf.apply.result)
       else Decoder.decodeMapLike(dk, dv, cbf).apply(c)
     }
   }
@@ -146,7 +146,7 @@ object CompatibleFormats {
       c.get[String]("v1Compatibility").flatMap { cs =>
         parse(cs).map(_.hcursor) match {
           case Xor.Right(hc)                    => decodeSchemaV1Layer(hc)
-          case Xor.Left(ParsingFailure(msg, _)) => Xor.left(DecodingFailure(msg, Nil))
+          case Xor.Left(ParsingFailure(msg, _)) => Xor.Left(DecodingFailure(msg, Nil))
         }
       }
     }
@@ -195,7 +195,7 @@ object CompatibleFormats {
       c.get[String]("v1Compatibility").flatMap { cs =>
         parse(cs).map(_.hcursor) match {
           case Xor.Right(hc)                    => decodeSchemaV1Config(hc)
-          case Xor.Left(ParsingFailure(msg, _)) => Xor.left(DecodingFailure(msg, Nil))
+          case Xor.Left(ParsingFailure(msg, _)) => Xor.Left(DecodingFailure(msg, Nil))
         }
       }
     }
@@ -214,7 +214,7 @@ object CompatibleFormats {
                    } yield layer :: acc
                  }
           } yield config :: xs
-        case _ => Xor.left(DecodingFailure("history", c.history))
+        case _ => Xor.Left(DecodingFailure("history", c.history))
       }
     }
 
@@ -235,7 +235,7 @@ object CompatibleFormats {
     c.get[Int]("schemaVersion").flatMap {
       case 1 => decodeSchemaV1Manifest.apply(c)
       case 2 => decodeSchemaV2Manifest.apply(c)
-      case _ => Xor.left(DecodingFailure("Unsupported schemaVersion", c.history))
+      case _ => Xor.Left(DecodingFailure("Unsupported schemaVersion", c.history))
     }
   }
 

@@ -27,7 +27,7 @@ import io.fcomb.server.CirceSupport._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest, SchemaV2 => SchemaV2Manifest}
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
-import io.fcomb.server.ImageDirectives._
+import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.MediaTypes
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._

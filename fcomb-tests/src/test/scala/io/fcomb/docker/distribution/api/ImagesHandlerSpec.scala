@@ -289,7 +289,7 @@ class ImagesHandlerSpec
         val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
         manifest.tag shouldEqual "1.0"
         manifest.name shouldEqual image.slug
-        SchemaV1Manifest.verify(manifest, rawManifest) shouldBe (Xor.right(
+        SchemaV1Manifest.verify(manifest, rawManifest) shouldBe (Xor.Right(
               (rawManifest, im.digest)))
       }
 

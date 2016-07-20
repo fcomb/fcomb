@@ -16,13 +16,14 @@
 
 package io.fcomb.rpc.helpers.docker.distribution
 
+import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import io.fcomb.rpc.helpers.time.Implicits._
 
 // TODO: direct mapping within repo instead of excess conversion
 object ImageHelpers {
-  def responseFrom(image: Image): RepositoryResponse =
+  def responseFrom(image: Image, action: Action): RepositoryResponse =
     RepositoryResponse(
       id = image.getId(),
       name = image.name,

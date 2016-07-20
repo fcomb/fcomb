@@ -24,7 +24,7 @@ import io.fcomb.models.acl._
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.{Pagination, PaginationData, OwnerKind, User}
 import io.fcomb.persist.EnumsMapping._
-import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationsRepo, OrganizationGroupsRepo, UsersRepo}
+import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, UsersRepo}
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.acl._
 import io.fcomb.rpc.helpers.time.Implicits._
@@ -54,114 +54,64 @@ object PermissionsRepo
   val table = TableQuery[PermissionTable]
   val label = "permissions"
 
-  private def byImageAndMemberScopeDBIO(imageId: Rep[Int],
-                                        memberId: Rep[Int],
-                                        memberKind: Rep[MemberKind]) = {
+  private def findIdByImageAndUserScope(imageId: Rep[Int], userId: Rep[Int]) = {
     table.filter { q =>
-      q.imageId === imageId && q.memberId === memberId && q.memberKind === memberKind
-    }
+      q.imageId === imageId &&
+      q.memberId === userId &&
+      q.memberKind === (MemberKind.User: MemberKind)
+    }.take(1)
   }
 
-  private lazy val canReadByImageAndMemberCompiled = Compiled {
-    (imageId: Rep[Int], memberId: Rep[Int], memberKind: Rep[MemberKind]) =>
-      byImageAndMemberScopeDBIO(imageId, memberId, memberKind).exists
+  private lazy val findIdByImageAndUserCompiled = Compiled {
+    (imageId: Rep[Int], userId: Rep[Int]) =>
+      findIdByImageAndUserScope(imageId, userId)
   }
 
-  private lazy val canWriteByImageAndMemberCompiled = Compiled {
-    (imageId: Rep[Int], memberId: Rep[Int], memberKind: Rep[MemberKind]) =>
-      byImageAndMemberScopeDBIO(imageId, memberId, memberKind).filter { q =>
-        q.action === (Action.Write: Action) || q.action === (Action.Manage: Action)
-      }.exists
+  private def findIdByImageAndUserDBIO(imageId: Rep[Int], userId: Rep[Int]) = {
+    findIdByImageAndUserScope(imageId, userId).map(_.action).subquery
   }
 
-  private lazy val canManageByImageAndMemberCompiled = Compiled {
-    (imageId: Rep[Int], memberId: Rep[Int], memberKind: Rep[MemberKind]) =>
-      byImageAndMemberScopeDBIO(imageId, memberId, memberKind).filter { q =>
-        q.action === (Action.Manage: Action)
-      }.exists
+  private lazy val findActionByImageAndUserCompiled = Compiled {
+    (imageId: Rep[Int], userId: Rep[Int]) =>
+      findIdByImageAndUserDBIO(imageId, userId)
   }
 
-  private def isAllowedActionByImageAndMemberDBIO(
+  def findActionByImageAndUserDBIO(
       imageId: Int,
-      memberId: Int,
-      memberKind: MemberKind,
-      action: Action): DBIOAction[Boolean, NoStream, Effect.Read] = {
-    val args = (imageId, memberId, memberKind)
-    val q = action match {
-      case Action.Read   => canReadByImageAndMemberCompiled(args)
-      case Action.Write  => canWriteByImageAndMemberCompiled(args)
-      case Action.Manage => canManageByImageAndMemberCompiled(args)
-    }
-    q.result
+      userId: Int): DBIOAction[Option[Action], NoStream, Effect.Read] = {
+    findActionByImageAndUserCompiled((imageId, userId)).result.headOption
   }
 
-  def isAllowedActionByImageAsUserDBIO(
-      imageId: Int,
-      userId: Int,
-      action: Action): DBIOAction[Boolean, NoStream, Effect.Read] = {
-    isAllowedActionByImageAndMemberDBIO(imageId, userId, MemberKind.User, action)
+  private def findActionByUserOrganizationsDBIO(imageId: Rep[Int],
+                                                organizationId: Rep[Int],
+                                                userId: Rep[Int]) = {
+    ImagesRepo.organizationAdminsScope.filter {
+      case ((t, _), ogut) =>
+        t.id === imageId && t.ownerId === organizationId &&
+          ogut.userId === userId
+    }.take(1).map(_ => Action.Manage: Rep[Action]).subquery
   }
 
-  private def byImageAndGroupMemberScopeDBIO(
-      imageId: Rep[Int],
-      organizationId: Rep[Int],
-      userId: Rep[Int]
-  ) =
-    OrganizationsRepo.groupUsersScope.join(table).on {
-      case (((_, gt), gut), pt) =>
-        gt.organizationId === organizationId && gut.userId === userId && gt.id === pt.memberId &&
-          pt.memberKind === (MemberKind.Group: MemberKind) && pt.imageId === imageId
-    }
+  private def findActionByUserGroupsDBIO(imageId: Rep[Int],
+                                         organizationId: Rep[Int],
+                                         userId: Rep[Int]) = {
+    ImagesRepo.groupsScope.filter {
+      case ((t, _), gut) =>
+        t.id === imageId && t.ownerId === organizationId &&
+          gut.userId === userId
+    }.take(1).map(_._1._2.action).subquery
+  }
 
-  private lazy val canReadByImageAndGroupMemberCompiled = Compiled {
+  private lazy val findActionByImageAsGroupUserCompiled = Compiled {
     (imageId: Rep[Int], organizationId: Rep[Int], userId: Rep[Int]) =>
-      byImageAndGroupMemberScopeDBIO(imageId, organizationId, userId).exists
+      findIdByImageAndUserDBIO(imageId, userId)
+        .union(findActionByUserOrganizationsDBIO(imageId, organizationId, userId))
+        .union(findActionByUserGroupsDBIO(imageId, organizationId, userId))
   }
 
-  private lazy val canWriteByImageAndGroupMemberCompiled = Compiled {
-    (imageId: Rep[Int], organizationId: Rep[Int], userId: Rep[Int]) =>
-      byImageAndGroupMemberScopeDBIO(imageId, organizationId, userId).filter {
-        case (((_, _), _), pt) =>
-          pt.action === (Action.Write: Action) || pt.action === (Action.Manage: Action)
-      }.exists
-  }
-
-  private lazy val canManageByImageAndGroupMemberCompiled = Compiled {
-    (imageId: Rep[Int], organizationId: Rep[Int], userId: Rep[Int]) =>
-      byImageAndGroupMemberScopeDBIO(imageId, organizationId, userId).filter {
-        case (((_, _), _), pt) => pt.action === (Action.Manage: Action)
-      }.exists
-  }
-
-  private def isAllowedActionByImageAsGroupMemberDBIO(
-      imageId: Int,
-      organizationId: Int,
-      userId: Int,
-      action: Action): DBIOAction[Boolean, NoStream, Effect.Read] = {
-    val args = (imageId, organizationId, userId)
-    val q = action match {
-      case Action.Read   => canReadByImageAndGroupMemberCompiled(args)
-      case Action.Write  => canWriteByImageAndGroupMemberCompiled(args)
-      case Action.Manage => canManageByImageAndGroupMemberCompiled(args)
-    }
-    q.result
-  }
-
-  def isAllowedActionByImageAsGroupUserDBIO(imageId: Int,
-                                            organizationId: Int,
-                                            userId: Int,
-                                            action: Action)(
-      implicit ec: ExecutionContext): DBIOAction[Boolean, NoStream, Effect.Read] = {
-    isAllowedActionByImageAsUserDBIO(imageId, userId, action).flatMap { isAllowed =>
-      if (isAllowed) DBIO.successful(true)
-      else {
-        OrganizationsRepo.isAdminDBIO(organizationId, userId).flatMap { isAdmin =>
-          if (isAdmin) DBIO.successful(true)
-          else
-            isAllowedActionByImageAsGroupMemberDBIO(imageId, organizationId, userId, action)
-        }
-      }
-    }
+  def findActionByImageAsGroupUserDBIO(imageId: Int, organizationId: Int, userId: Int)(
+      implicit ec: ExecutionContext): DBIOAction[Option[Action], NoStream, Effect.Read] = {
+    findActionByImageAsGroupUserCompiled((imageId, organizationId, userId)).result.headOption
   }
 
   def createUserOwnerDBIO(imageId: Int, userId: Int, action: Action) = {
@@ -258,15 +208,6 @@ object PermissionsRepo
     }
   }
 
-  private lazy val findIdByImageAndSourceCompiled = Compiled {
-    (imageId: Rep[Int], memberId: Rep[Int]) =>
-      table.filter { q =>
-        q.imageId === imageId &&
-        q.memberId === memberId &&
-        q.memberKind === (MemberKind.User: MemberKind)
-      }.take(1)
-  }
-
   private lazy val cannotSetPermissionForOwner =
     validationError("owner", "Cannot set a permission for owner")
 
@@ -279,7 +220,7 @@ object PermissionsRepo
           if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
             DBIO.successful(cannotSetPermissionForOwner)
           else {
-            findIdByImageAndSourceCompiled((image.getId(), memberId)).result.headOption.flatMap {
+            findIdByImageAndUserCompiled((image.getId(), memberId)).result.headOption.flatMap {
               case Some(p) =>
                 val up = p.copy(
                   action = req.action,
@@ -325,7 +266,7 @@ object PermissionsRepo
           if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
             DBIO.successful(cannotSetPermissionForOwner)
           else {
-            findIdByImageAndSourceCompiled((image.getId(), memberId)).result.headOption.flatMap {
+            findIdByImageAndUserCompiled((image.getId(), memberId)).result.headOption.flatMap {
               case Some(p) =>
                 findByIdQuery(p.getId()).delete.map { res =>
                   if (res == 0) notFound

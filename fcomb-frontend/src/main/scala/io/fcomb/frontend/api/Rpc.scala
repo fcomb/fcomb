@@ -54,7 +54,7 @@ object Rpc {
       .map { res =>
         if (res.status == 401) {
           AppCircuit.dispatch(LogOut)
-          Xor.left("Unauthorized")
+          Xor.Left("Unauthorized")
         } else {
           val json =
             if (res.responseText.nonEmpty) res.responseText
@@ -82,7 +82,7 @@ object Rpc {
   private def handleThrowable[E](e: Throwable): Xor[String, E] = {
     val msg = s"${e.toString}: ${e.getMessage}"
     window.console.error(msg)
-    Xor.left(msg)
+    Xor.Left(msg)
   }
 
   private val contentTypeHeader = Map("Content-Type" -> "application/json")

@@ -28,7 +28,7 @@ import cats.data.Xor
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
-import io.fcomb.server.ImageDirectives._
+import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.json.models.errors.docker.distribution.Formats._

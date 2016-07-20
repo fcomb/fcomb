@@ -45,10 +45,10 @@ object SchemaV1 {
     verify(manifest, rawManifest) match {
       case Xor.Right((schemaV1JsonBlob, digest)) =>
         ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).fast.map {
-          case Validated.Valid(_)   => Xor.right(digest)
-          case Validated.Invalid(e) => Xor.left(Unknown(e.map(_.message).mkString(";")))
+          case Validated.Valid(_)   => Xor.Right(digest)
+          case Validated.Invalid(e) => Xor.Left(Unknown(e.map(_.message).mkString(";")))
         }
-      case Xor.Left(e) => FastFuture.successful(Xor.left(Unknown(e.message)))
+      case Xor.Left(e) => FastFuture.successful(Xor.Left(Unknown(e.message)))
     }
   }
 
@@ -57,7 +57,7 @@ object SchemaV1 {
       case Xor.Right(Some(json)) =>
         val manifestJson = json.remove("signatures").asJson
         val original     = indentPrint(rawManifest, manifestJson)
-        if (manifest.signatures.isEmpty) Xor.left(Unknown("signatures cannot be empty"))
+        if (manifest.signatures.isEmpty) Xor.Left(Unknown("signatures cannot be empty"))
         else {
           val rightAcc = Xor.right[DistributionError, (String, String)](("", ""))
           manifest.signatures.foldLeft(rightAcc) {
@@ -73,17 +73,17 @@ object SchemaV1 {
                         val signatureBytes = base64Decode(signature.signature)
                         val (alg, jwk)     = (signature.header.alg, signature.header.jwk)
                         if (Jws.verify(alg, jwk, payload, signatureBytes))
-                          Xor.right((rawManifest, DigestUtils.sha256Hex(formatted)))
-                        else Xor.left(ManifestUnverified())
+                          Xor.Right((rawManifest, DigestUtils.sha256Hex(formatted)))
+                        else Xor.Left(ManifestUnverified())
                       } else
-                        Xor.left(
+                        Xor.Left(
                           ManifestInvalid("formatted length does not match with fortmatLength"))
-                    case Xor.Left(e) => Xor.left(Unknown(e.show))
+                    case Xor.Left(e) => Xor.Left(Unknown(e.show))
                   })
           }
         }
-      case Xor.Right(None) => Xor.left(ManifestInvalid())
-      case Xor.Left(e)     => Xor.left(Unknown(e.show))
+      case Xor.Right(None) => Xor.Left(ManifestInvalid())
+      case Xor.Left(e)     => Xor.Left(Unknown(e.show))
     }
   }
 
@@ -97,8 +97,8 @@ object SchemaV1 {
       config    <- decode[Config](imageConfig)(decodeSchemaV1Config)
     } yield (imgConfig, config)) match {
       case Xor.Right((imgConfig, config)) =>
-        if (imgConfig.history.isEmpty) Xor.left("Image config history is empty")
-        else if (imgConfig.rootFs.diffIds.isEmpty) Xor.left("Image config root fs is empty")
+        if (imgConfig.history.isEmpty) Xor.Left("Image config history is empty")
+        else if (imgConfig.rootFs.diffIds.isEmpty) Xor.Left("Image config root fs is empty")
         else {
           val baseLayerId = imgConfig.rootFs.baseLayer.map(DigestUtils.sha384Hex(_).take(32))
           val (lastParentId, remainLayers, history, fsLayers) = imgConfig.history.init
@@ -157,11 +157,11 @@ object SchemaV1 {
             signatures = Nil
           )
           manifestV1.asJson.asObject match {
-            case Some(obj) => Xor.right(prettyPrint(obj.remove("signatures").asJson))
-            case None      => Xor.left("manifestV1 not an JSON object")
+            case Some(obj) => Xor.Right(prettyPrint(obj.remove("signatures").asJson))
+            case None      => Xor.Left("manifestV1 not an JSON object")
           }
         }
-      case Xor.Left(e) => Xor.left(e.show)
+      case Xor.Left(e) => Xor.Left(e.show)
     }
   }
 
