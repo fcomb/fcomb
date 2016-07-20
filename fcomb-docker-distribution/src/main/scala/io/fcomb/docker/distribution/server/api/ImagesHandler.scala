@@ -22,7 +22,7 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.ByteString
-import cats.data.Xor
+import cats.data.{Validated, Xor}
 import io.fcomb.server.CirceSupport._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest, SchemaV2 => SchemaV2Manifest}
 import io.fcomb.server.AuthenticationDirectives._
@@ -36,10 +36,52 @@ import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
-import io.fcomb.persist.docker.distribution.{ImagesRepo, ImageManifestsRepo}
+import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImageWebhooksRepo, ImagesRepo}
+
 import scala.collection.immutable
 
 object ImagesHandler {
+  def getWebhooks(imageName: String) =
+    authenticateUserBasic { user =>
+      extractMaterializer { implicit mat =>
+        optionalHeaderValueByType[Accept]() { acceptOpt =>
+          imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
+            onSuccess(ImageWebhooksRepo.findByImageId(image.getId())) {
+              case Some(webhook) => complete(ImageWebhooksResponse(imageName, Seq(webhook.url)))
+              case _             => complete(ImageWebhooksResponse(imageName, Seq()))
+            }
+          }
+        }
+      }
+    }
+
+  def putWebhooks(imageName: String)(implicit req: HttpRequest) =
+    authenticateUserBasic { user =>
+      extractMaterializer { implicit mat =>
+        import mat.executionContext
+        imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
+          entity(as[ImageWebhooksPutRequest]) { putRequest =>
+            onSuccess(ImageWebhooksRepo.findByImageId(image.getId())) {
+              case Some(webhook) =>
+                onSuccess(ImageWebhooksRepo.update(webhook.copy(url = putRequest.url))) {
+                  case Validated.Valid(updated) =>
+                    complete(ImageWebhooksResponse(imageName, Seq(updated.url)))
+                  case _ =>
+                    complete(ImageWebhooksResponse(imageName, Seq()))
+                }
+              case _ =>
+                onSuccess(ImageWebhooksRepo.create(image.getId(), putRequest.url)) {
+                  case Validated.Valid(created) =>
+                    complete(ImageWebhooksResponse(imageName, Seq(created.url)))
+                  case _ =>
+                    complete(ImageWebhooksResponse(imageName, Seq()))
+                }
+            }
+          }
+        }
+      }
+    }
+
   def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>

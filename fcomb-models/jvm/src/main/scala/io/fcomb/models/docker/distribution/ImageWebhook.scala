@@ -18,7 +18,7 @@ package io.fcomb.models.docker.distribution
 
 import io.fcomb.models.ModelWithAutoIntPk
 
-case class ImageWebhook(
+final case class ImageWebhook(
     id: Option[Int] = None,
     imageId: Int,
     url: String
@@ -26,4 +26,11 @@ case class ImageWebhook(
   def withPk(id: Int) = this.copy(id = Some(id))
 }
 
-object ImageWebhook {}
+final case class ImageWebhooksResponse(
+    name: String,
+    webhooks: Seq[String]
+)
+
+final case class ImageWebhooksPutRequest(
+    url: String
+)
