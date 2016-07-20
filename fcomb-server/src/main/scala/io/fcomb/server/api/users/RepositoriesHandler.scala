@@ -35,9 +35,7 @@ object RepositoriesHandler {
         onSuccess(UsersRepo.findBySlug(slug)) {
           case Some(user) =>
             extractPagination { pg =>
-              val res = ImagesRepo.findByUserOwnerWithPagination(user.getId(),
-                                                                 currentUserOpt.flatMap(_.id),
-                                                                 pg)
+              val res = ImagesRepo.findByUserOwner(user.getId(), currentUserOpt.flatMap(_.id), pg)
               onSuccess(res) { p =>
                 completePagination(ImagesRepo.label, p)
               }

@@ -34,7 +34,7 @@ object TagsHandler {
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Read) { image =>
           extractPagination { pg =>
-            onSuccess(ImageManifestTagsRepo.findByImageIdWithPagination(image.getId(), pg)) { p =>
+            onSuccess(ImageManifestTagsRepo.findByImageId(image.getId(), pg)) { p =>
               completePagination(ImageManifestTagsRepo.label, p)
             }
           }

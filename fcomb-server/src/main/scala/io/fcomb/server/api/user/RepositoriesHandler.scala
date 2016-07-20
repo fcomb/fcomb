@@ -40,7 +40,7 @@ object RepositoriesHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         extractPagination { pg =>
-          val res = ImagesRepo.findAvailableByUserIdWithPagination(user.getId(), pg)
+          val res = ImagesRepo.findAvailableByUserId(user.getId(), pg)
           onSuccess(res) { p =>
             completePagination(ImagesRepo.label, p)
           }
