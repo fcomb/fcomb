@@ -81,8 +81,8 @@ object Routes {
               } ~
               pathPrefix("webhooks") {
                 pathEndOrSingleSlash {
-                  get(ImagesHandler.getWebhooks(name)) ~
-                  put(ImagesHandler.putWebhooks(name))
+                  get(WebhooksHandler.getWebhooks(name)) ~
+                  put(WebhooksHandler.putWebhooks(name))
                 }
               }
             }

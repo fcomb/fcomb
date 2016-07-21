@@ -54,4 +54,11 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
   def findByImageId(imageId: Int) =
     db.run(findByImageIdCompiled(imageId).result.headOption)
 
+  def upsert(imageId: Int, webhookUrl: String)(
+      implicit ec: ExecutionContext): Future[ValidationModel] = {
+    findByImageId(imageId).flatMap {
+      case Some(webhook) => update(webhook.copy(url = webhookUrl))
+      case _             => create(imageId, webhookUrl)
+    }
+  }
 }
