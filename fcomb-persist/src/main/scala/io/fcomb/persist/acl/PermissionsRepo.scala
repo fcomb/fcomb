@@ -171,7 +171,7 @@ object PermissionsRepo
     findByImageIdScopeDBIO(imageId).length
   }
 
-  def findByImageId(image: Image, p: Pagination)(
+  def paginateByImageId(image: Image, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[PermissionResponse]] = {
     val imageId = image.getId()
     val f       = applyResponse(image)(_)

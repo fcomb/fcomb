@@ -112,7 +112,7 @@ object ImageManifestTagsRepo
     findByImageIdScopeDBIO(imageId).length
   }
 
-  def findByImageId(imageId: Int, p: Pagination)(
+  def paginateByImageId(imageId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[RepositoryTagResponse]] = {
     db.run {
       for {

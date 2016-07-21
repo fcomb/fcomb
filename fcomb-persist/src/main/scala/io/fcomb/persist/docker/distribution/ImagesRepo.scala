@@ -313,7 +313,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     availableScopeDBIO(userId).length
   }
 
-  def findAvailableByUserId(userId: Int, p: Pagination)(
+  def paginateAvailableByUserId(userId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
     db.run {
       for {
@@ -376,7 +376,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     } yield (images, total)
   }
 
-  def findByUserOwner(userId: Int, currentUserIdOpt: Option[Int], p: Pagination)(
+  def paginateByUserOwner(userId: Int, currentUserIdOpt: Option[Int], p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
     val q = currentUserIdOpt match {
       case Some(id) =>
@@ -393,7 +393,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     })
   }
 
-  def findByOrganizationOwner(orgId: Int, currentUserIdOpt: Option[Int], p: Pagination)(
+  def paginateByOrganizationOwner(orgId: Int, currentUserIdOpt: Option[Int], p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
     ??? // TODO
   }

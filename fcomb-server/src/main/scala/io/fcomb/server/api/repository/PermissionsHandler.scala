@@ -41,7 +41,7 @@ object PermissionsHandler {
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
           extractPagination { pg =>
-            onSuccess(PermissionsRepo.findByImageId(image, pg)) { p =>
+            onSuccess(PermissionsRepo.paginateByImageId(image, pg)) { p =>
               completePagination(PermissionsRepo.label, p)
             }
           }

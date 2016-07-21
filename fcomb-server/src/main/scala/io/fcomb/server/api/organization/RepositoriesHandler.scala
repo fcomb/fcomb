@@ -45,7 +45,7 @@ object RepositoriesHandler {
         tryAuthenticateUser { currentUserOpt =>
           extractPagination { pg =>
             val res =
-              ImagesRepo.findByOrganizationOwner(org.getId(), currentUserOpt.flatMap(_.id), pg)
+              ImagesRepo.paginateByOrganizationOwner(org.getId(), currentUserOpt.flatMap(_.id), pg)
             onSuccess(res) { p =>
               completePagination(ImagesRepo.label, p)
             }
