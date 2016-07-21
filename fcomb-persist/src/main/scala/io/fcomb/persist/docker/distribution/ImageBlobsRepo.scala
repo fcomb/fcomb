@@ -121,7 +121,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   def findByImageIdAndDigest(imageId: Int, digest: String)(implicit ec: ExecutionContext) =
     db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
-  private def findByImageIdAndDigestsScopeDBIO(imageId: Int, digests: Set[String]) =
+  private def findByImageIdAndDigestsDBIO(imageId: Int, digests: Set[String]) =
     table.filter { q =>
       q.imageId === imageId && q.digest.inSetBind(digests)
     }
@@ -130,13 +130,11 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       implicit ec: ExecutionContext
   ): Future[Seq[(UUID, Option[String], Long)]] =
     db.run {
-      findByImageIdAndDigestsScopeDBIO(imageId, digests)
-        .map(t => (t.pk, t.digest, t.length))
-        .result
+      findByImageIdAndDigestsDBIO(imageId, digests).map(t => (t.pk, t.digest, t.length)).result
     }
 
   def findByImageIdAndDigests(imageId: Int, digests: Set[String])(implicit ec: ExecutionContext) =
-    db.run(findByImageIdAndDigestsScopeDBIO(imageId, digests).result)
+    db.run(findByImageIdAndDigestsDBIO(imageId, digests).result)
 
   private lazy val existUploadedByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Int], digest: Rep[String], exceptId: Rep[UUID]) =>

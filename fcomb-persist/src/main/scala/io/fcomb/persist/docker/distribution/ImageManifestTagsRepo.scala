@@ -87,7 +87,7 @@ object ImageManifestTagsRepo
     } yield ()
   }
 
-  private def findByImageIdScopeDBIO(imageId: Rep[Int]) =
+  private def findByImageIdDBIO(imageId: Rep[Int]) =
     table
       .join(ImageManifestsRepo.table)
       .on(_.imageManifestId === _.id)
@@ -102,14 +102,14 @@ object ImageManifestTagsRepo
   }
 
   private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {
-    val q = findByImageIdScopeDBIO(imageId).map {
+    val q = findByImageIdDBIO(imageId).map {
       case (t, imt) => (t.tag, imt.digest, imt.length, t.updatedAt)
     }.drop(p.offset).take(p.limit)
     sortByQuery(q, p)(sortByPF, _._4.desc)
   }
 
   private lazy val findByImageIdTotalCompiled = Compiled { imageId: Rep[Int] =>
-    findByImageIdScopeDBIO(imageId).length
+    findByImageIdDBIO(imageId).length
   }
 
   def paginateByImageId(imageId: Int, p: Pagination)(

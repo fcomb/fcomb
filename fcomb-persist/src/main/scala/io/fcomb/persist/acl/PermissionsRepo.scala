@@ -136,7 +136,7 @@ object PermissionsRepo
                                              Rep[Option[ZonedDateTime]],
                                              (Rep[String], Rep[Option[String]]))
 
-  private def findByImageIdScopeDBIO(imageId: Rep[Int]) =
+  private def findByImageIdScopeDBIO(imageId: Rep[Int]) = {
     table
       .join(UsersRepo.table)
       .on {
@@ -152,6 +152,7 @@ object PermissionsRepo
            t.updatedAt,
            (ut.username, ut.fullName))
       }
+  }
 
   private def sortByPF(q: PermissionResponseTupleRep): PartialFunction[String, Rep[_]] = {
     case "member.id"       => q._1
