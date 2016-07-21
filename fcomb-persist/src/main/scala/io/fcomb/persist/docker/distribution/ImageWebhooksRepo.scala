@@ -16,9 +16,11 @@
 
 package io.fcomb.persist.docker.distribution
 
+import cats.data.Validated
 import io.fcomb.Db._
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.docker.distribution.ImageWebhook
+import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist.{PersistModelWithAutoIntPk, PersistTableWithAutoIntPk}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,29 +38,44 @@ class ImageWebhookTable(tag: Tag)
 
 object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWebhookTable] {
   val table = TableQuery[ImageWebhookTable]
+  val label = "webhooks"
 
-  def create(imageId: Int, url: String)(implicit ec: ExecutionContext): Future[ValidationModel] = {
-    super.create(
-      ImageWebhook(
-        id = None,
-        imageId = imageId,
-        url = url
-      )
-    )
+  def findByImageId(imageId: Int, p: Pagination): Future[PaginationData[ImageWebhook]] = {
+    ??? // TODO
   }
 
   private lazy val findByImageIdCompiled = Compiled { imageId: Rep[Int] =>
     table.filter(_.imageId === imageId)
   }
 
-  def findByImageId(imageId: Int) =
-    db.run(findByImageIdCompiled(imageId).result.headOption)
+  def findByImageIdAsStream(imageId): Source = {
+    db.stream {
+      findByImageIdCompiled(imageId).result
+    }
+  }
 
-  def upsert(imageId: Int, webhookUrl: String)(
-      implicit ec: ExecutionContext): Future[ValidationModel] = {
-    findByImageId(imageId).flatMap {
-      case Some(webhook) => update(webhook.copy(url = webhookUrl))
-      case _             => create(imageId, webhookUrl)
+  private lazy val findByImageIdAndUrlCompiled = Compiled {
+    (imageId: Rep[Int], url: Rep[String]) =>
+      table.filter { t =>
+        t.imageId === imageId && t.url === t.url
+      }.take(1)
+  }
+
+  def upsert(imageId: Int, url: String)(implicit ec: ExecutionContext): Future[ValidationModel] = {
+    val cleanUrl = url.trim
+    db.run {
+      findByImageIdAndUrlCompiled((imageId, cleanUrl)).result.headOption.flatMap {
+        case Some(webhook) =>
+          val updated = webhook.copy(url = cleanUrl)
+          updateDBIO(updated).map(_ => updated)
+        case _ =>
+          createDBIO(
+            ImageWebhook(
+              id = None,
+              imageId = imageId,
+              url = url
+            ))
+      }.map(Validated.Valid(_)) // TODO: add url validation
     }
   }
 }

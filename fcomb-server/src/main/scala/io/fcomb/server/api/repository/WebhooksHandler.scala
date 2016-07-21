@@ -14,49 +14,60 @@
  * limitations under the License.
  */
 
-package io.fcomb.docker.distribution.server.api
+package io.fcomb.server.api.repository
 
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.headers.Accept
 import akka.http.scaladsl.server.Directives._
 import cats.data.Validated
+import io.circe.generic.auto._
+import io.fcomb.models.acl.Action
+import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.{ImageWebhooksPutRequest, ImageWebhooksResponse}
 import io.fcomb.persist.docker.distribution.ImageWebhooksRepo
-import io.fcomb.server.CirceSupport._
-import io.circe.generic.auto._
 import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CirceSupport._
 import io.fcomb.server.ImageDirectives._
-import io.fcomb.models.acl.Action
+import io.fcomb.server.PaginationDirectives._
 
 object WebhooksHandler {
-  def getWebhooks(imageName: String) =
+  val servicePath = "webhooks"
+
+  def index(slug: Slug) = {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        optionalHeaderValueByType[Accept]() { acceptOpt =>
-          imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
-            onSuccess(ImageWebhooksRepo.findByImageId(image.getId())) {
-              case Some(webhook) => complete(ImageWebhooksResponse(imageName, Seq(webhook.url)))
-              case _             => complete(ImageWebhooksResponse(imageName, Seq()))
+        imageBySlugWithAcl(slug, user.getId(), Action.Read) { image =>
+          extractPagination { pg =>
+            onSuccess(ImageWebhooksRepo.findByImageId(image.getId(), pg)) { p =>
+              completePagination(ImageWebhooksRepo.label, p)
             }
           }
         }
       }
     }
+  }
 
-  def putWebhooks(imageName: String)(implicit req: HttpRequest) =
+  def upsert(slug: Slug) = {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
-        imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
+        imageBySlugWithAcl(slug, user.getId(), Action.Write) { image =>
           entity(as[ImageWebhooksPutRequest]) { putRequest =>
             onSuccess(ImageWebhooksRepo.upsert(image.getId(), putRequest.url)) {
               case Validated.Valid(upserted) =>
-                complete(ImageWebhooksResponse(imageName, Seq(upserted.url)))
-              case _ => complete(ImageWebhooksResponse(imageName, Seq()))
+                complete(ImageWebhooksResponse(image.name, Seq(upserted.url)))
+              case _ => complete(ImageWebhooksResponse(image.name, Seq()))
             }
           }
         }
       }
     }
+  }
 
+  def routes(slug: Slug) = {
+    // format: OFF
+    path(servicePath) {
+      get(index(slug)) ~
+      put(upsert(slug))
+    }
+    // format: ON
+  }
 }

@@ -20,6 +20,7 @@ import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
@@ -29,7 +30,6 @@ import io.fcomb.models.docker.distribution._
 import io.fcomb.persist.docker.distribution.{ImageEventsRepo, ImageManifestsRepo, ImageWebhooksRepo, ImagesRepo}
 import org.jose4j.base64url.Base64
 import org.slf4j.LoggerFactory
-
 import scala.concurrent.Future
 
 object EventService {
@@ -92,20 +92,20 @@ private[this] class EventServiceActor(implicit mat: Materializer) extends Actor 
                 case Validated.Valid(event) =>
                   for {
                     entity     <- Marshal(detailsJson).to[RequestEntity]
-                    webhookOpt <- ImageWebhooksRepo.findByImageId(manifest.imageId)
+                    webhooks <- ImageWebhooksRepo.findByImageIdAsStream(manifest.imageId)
                     _ <- webhookOpt match {
                           case Some(webhook) =>
                             Http().singleRequest(HttpRequest(method = HttpMethods.POST,
                                                              uri = webhook.url,
                                                              entity = entity))
-                          case _ => Future.successful(())
+                          case _ => FastFuture.successful(())
                         }
                   } yield Some(event)
-                case _ => Future.successful(None)
+                case _ => FastFuture.successful(None)
               }
-          case _ => Future.successful(None)
+          case _ => FastFuture.successful(None)
         }
-      case _ => Future.successful(None)
+      case _ => FastFuture.successful(None)
     }
   }
 }

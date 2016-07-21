@@ -78,12 +78,6 @@ object Routes {
               } ~
               path("tags" / "list") {
                 get(ImagesHandler.tags(name))
-              } ~
-              pathPrefix("webhooks") {
-                pathEndOrSingleSlash {
-                  get(WebhooksHandler.getWebhooks(name)) ~
-                  put(WebhooksHandler.putWebhooks(name))
-                }
               }
             }
           }
