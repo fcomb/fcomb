@@ -20,7 +20,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.util.FastFuture
+import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
@@ -48,7 +48,7 @@ object OrganizationsHandler {
             case Validated.Valid(org) =>
               val uri     = resourcePrefix + org.getId().toString
               val headers = immutable.Seq(Location(uri))
-              val res     = OrganizationHelpers.responseFrom(org, isPublic = false)
+              val res     = OrganizationHelpers.responseFrom(org, Role.Admin)
               respondWithHeaders(headers) {
                 complete((StatusCodes.Created, res))
               }
@@ -63,17 +63,13 @@ object OrganizationsHandler {
   def show(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { userOpt =>
-        val fut = for {
-          orgOpt <- OrganizationsRepo.findBySlug(slug)
-          isAdmin <- (userOpt, orgOpt) match {
-                      case (Some(user), Some(org)) =>
-                        OrganizationsRepo.isAdmin(org.getId(), user.getId())
-                      case _ => FastFuture.successful(false)
-                    }
-        } yield (orgOpt, isAdmin)
-        onSuccess(fut) {
-          case (Some(org), isAdmin) =>
-            val res = OrganizationHelpers.responseFrom(org, isPublic = !isAdmin)
+        val futRes = userOpt match {
+          case Some(user) => OrganizationsRepo.findWithRoleBySlug(slug, user.getId())
+          case _          => OrganizationsRepo.findBySlug(slug).fast.map(_.map(org => (org, None)))
+        }
+        onSuccess(futRes) {
+          case Some((org, role)) =>
+            val res = OrganizationHelpers.responseFrom(org, role)
             complete((StatusCodes.OK, res))
           case _ => completeNotFound()
         }
@@ -88,7 +84,7 @@ object OrganizationsHandler {
           entity(as[OrganizationUpdateRequest]) { req =>
             onSuccess(OrganizationsRepo.update(org.getId(), req)) {
               case Validated.Valid(updated) =>
-                val res = OrganizationHelpers.responseFrom(updated, isPublic = false)
+                val res = OrganizationHelpers.responseFrom(updated, Role.Admin)
                 complete((StatusCodes.Accepted, res))
               case Validated.Invalid(e) =>
                 ??? // TODO

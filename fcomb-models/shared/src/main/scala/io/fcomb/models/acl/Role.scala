@@ -16,9 +16,18 @@
 
 package io.fcomb.models.acl
 
+import cats.syntax.eq._
 import io.fcomb.models.common.{Enum, EnumItem}
 
-sealed trait Role extends EnumItem
+sealed trait Role extends EnumItem {
+  def has(action: Role): Boolean = {
+    action match {
+      case Role.Member  => true
+      case Role.Creator => this === Role.Creator || this === Role.Admin
+      case Role.Admin   => this === Role.Admin
+    }
+  }
+}
 
 object Role extends Enum[Role] {
   final case object Admin   extends Role

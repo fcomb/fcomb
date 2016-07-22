@@ -18,13 +18,14 @@ package io.fcomb.persist
 
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
-import io.fcomb.models.Organization
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
+import io.fcomb.models.{Organization, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
-import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest}
+import io.fcomb.rpc.helpers.OrganizationHelpers
+import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest, OrganizationResponse}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{Future, ExecutionContext}
@@ -45,6 +46,7 @@ class OrganizationTable(tag: Tag)
 
 object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, OrganizationTable] {
   val table = TableQuery[OrganizationTable]
+  val label = "organizations"
 
   lazy val findByNameCompiled = Compiled { name: Rep[String] =>
     table.filter(_.name === name.asColumnOfType[String]("citext")).take(1)
@@ -61,8 +63,83 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     db.run(findBySlugDBIO(slug).result.headOption)
   }
 
+  def groupsScope =
+    table
+      .join(OrganizationGroupsRepo.table)
+      .on(_.id === _.organizationId)
+      .join(OrganizationGroupUsersRepo.table)
+      .on(_._2.id === _.groupId)
+      .sortBy {
+        case ((_, ogt), _) =>
+          Case
+            .If(ogt.role === (Role.Admin: Role))
+            .Then(1)
+            .If(ogt.role === (Role.Creator: Role))
+            .Then(2)
+            .Else(3)
+      }
+
+  private def availableByUserOwnerDBIO(userId: Rep[Int]) = {
+    table.filter(_.ownerUserId === userId).map(t => (t, Role.Admin: Rep[Role]))
+  }
+
+  private def availableByUserGroupsDBIO(userId: Rep[Int]) = {
+    groupsScope.filter {
+      case (_, ogut)           => ogut.userId === userId
+    }.map { case ((t, ogt), _) => (t, ogt.role) }.subquery
+  }
+
+  private def availableByUserIdDBIO(userId: Rep[Int]) = {
+    availableByUserOwnerDBIO(userId).union(availableByUserGroupsDBIO(userId)).subquery
+  }
+
+  private lazy val findAvailableByUserIdCompiled = Compiled {
+    (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
+      availableByUserIdDBIO(userId).sortBy(_._1.name).drop(offset).take(limit)
+  }
+
+  private lazy val findAvailableByUserIdTotalCompiled = Compiled { userId: Rep[Int] =>
+    availableByUserIdDBIO(userId).length
+  }
+
+  def paginateAvailableByUserId(userId: Int, p: Pagination)(
+      implicit ec: ExecutionContext): Future[PaginationData[OrganizationResponse]] = {
+    db.run {
+      for {
+        orgs  <- findAvailableByUserIdCompiled((userId, p.offset, p.limit)).result
+        total <- findAvailableByUserIdTotalCompiled(userId).result
+        data = orgs.map { case (org, role) => OrganizationHelpers.responseFrom(org, role) }
+      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
+    }
+  }
+
+  private lazy val findRoleByIdAndUserIdCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
+    groupsScope.filter {
+      case ((t, _), ogut) => t.id === id && ogut.userId === userId
+    }.map(_._1._2.role).take(1)
+  }
+
+  def findWithRoleBySlugDBIO(slug: Slug, userId: Int)(implicit ec: ExecutionContext) = {
+    for {
+      orgOpt <- findBySlugDBIO(slug).result.headOption
+      res <- orgOpt match {
+              case Some(org) =>
+                findRoleByIdAndUserIdCompiled((org.getId(), userId)).result.headOption.map(r =>
+                    Some((org, r)))
+              case _ => DBIO.successful(None)
+            }
+    } yield res
+  }
+
+  def findWithRoleBySlug(slug: Slug, userId: Int)(implicit ec: ExecutionContext) = {
+    db.run(findWithRoleBySlugDBIO(slug, userId))
+  }
+
   def findBySlugWithAclDBIO(slug: Slug, userId: Int, role: Role)(implicit ec: ExecutionContext) = {
-    findBySlugDBIO(slug).result.headOption.flatMap(mapWithAclDBIO(_, userId, role))
+    findWithRoleBySlugDBIO(slug, userId).map {
+      case Some((org, Some(userRole))) if userRole.has(role) => Some(org)
+      case _                                                 => None
+    }
   }
 
   def findBySlugWithAcl(slug: Slug, userId: Int, role: Role)(
@@ -70,41 +147,15 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     db.run(findBySlugWithAclDBIO(slug, userId, role))
   }
 
-  def groupUsersScope =
-    table
-      .join(OrganizationGroupsRepo.table)
-      .on(_.id === _.organizationId)
-      .join(OrganizationGroupUsersRepo.table)
-      .on(_._2.id === _.groupId)
-
-  private def userGroupScope(id: Rep[Int], userId: Rep[Int]) = {
-    groupUsersScope.filter {
-      case ((t, _), ogut) =>
-        t.id === id && ogut.userId === userId
-    }
-  }
-
-  lazy val hasRoleCompiled = Compiled { (id: Rep[Int], userId: Rep[Int], role: Rep[Role]) =>
-    userGroupScope(id, userId).filter { case ((_, ogt), _) => ogt.role === role }.exists
-  }
-
-  def mapWithAclDBIO(orgOpt: Option[Organization], userId: Int, role: Role)(
-      implicit ec: ExecutionContext): DBIOAction[Option[Organization], NoStream, Effect.Read] = {
-    orgOpt match {
-      case Some(org) =>
-        hasRoleCompiled((org.getId(), userId, role)).result.map { hasRole =>
-          if (hasRole) orgOpt else None
-        }
-      case _ => DBIO.successful(None)
-    }
+  private lazy val isAdminCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
+    groupsScope.filter {
+      case ((t, ogt), ogut) =>
+        t.id === id && ogut.userId === userId && ogt.role === (Role.Admin: Role)
+    }.exists
   }
 
   def isAdminDBIO(id: Int, userId: Int) = {
-    hasRoleCompiled((id, userId, Role.Admin)).result
-  }
-
-  def isAdmin(id: Int, userId: Int): Future[Boolean] = {
-    db.run(isAdminDBIO(id, userId))
+    isAdminCompiled((id, userId)).result
   }
 
   def create(req: OrganizationCreateRequest, userId: Int)(

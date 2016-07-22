@@ -17,15 +17,31 @@
 package io.fcomb.rpc.helpers
 
 import io.fcomb.models.Organization
+import io.fcomb.models.acl.Role
 import io.fcomb.rpc.OrganizationResponse
 import io.fcomb.rpc.helpers.time.Implicits._
 
 object OrganizationHelpers {
-  def responseFrom(org: Organization, isPublic: Boolean): OrganizationResponse = {
+  def responseFrom(org: Organization, role: Role): OrganizationResponse = {
     OrganizationResponse(
       id = org.getId(),
       name = org.name,
-      ownerUserId = if (isPublic) None else Some(org.ownerUserId),
+      ownerUserId = Some(org.ownerUserId),
+      role = Some(role),
+      createdAt = org.createdAt.toIso8601,
+      updatedAt = org.updatedAt.map(_.toIso8601)
+    )
+  }
+
+  def responseFrom(org: Organization, role: Option[Role]): OrganizationResponse = {
+    val ownerUserId =
+      if (role.isEmpty) None
+      else Some(org.ownerUserId)
+    OrganizationResponse(
+      id = org.getId(),
+      name = org.name,
+      ownerUserId = ownerUserId,
+      role = role,
       createdAt = org.createdAt.toIso8601,
       updatedAt = org.updatedAt.map(_.toIso8601)
     )

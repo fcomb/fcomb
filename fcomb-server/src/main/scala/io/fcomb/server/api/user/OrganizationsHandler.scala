@@ -16,10 +16,10 @@
 
 package io.fcomb.server.api.user
 
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import io.fcomb.server.CirceSupport._
+import io.fcomb.json.rpc.Formats._
+import io.fcomb.persist.OrganizationsRepo
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.PaginationDirectives._
 
@@ -30,10 +30,9 @@ object OrganizationsHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         extractPagination { pg =>
-          // onSuccess(???) { p =>
-          //   completePagination(???, p)
-          // }
-          ???
+          onSuccess(OrganizationsRepo.paginateAvailableByUserId(user.getId(), pg)) { p =>
+            completePagination(OrganizationsRepo.label, p)
+          }
         }
       }
     }
