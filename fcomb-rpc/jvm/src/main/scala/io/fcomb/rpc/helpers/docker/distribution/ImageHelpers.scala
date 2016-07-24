@@ -21,7 +21,6 @@ import io.fcomb.models.docker.distribution.Image
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import io.fcomb.rpc.helpers.time.Implicits._
 
-// TODO: direct mapping within repo instead of excess conversion
 object ImageHelpers {
   def responseFrom(image: Image, action: Action): RepositoryResponse =
     RepositoryResponse(
@@ -29,6 +28,7 @@ object ImageHelpers {
       name = image.name,
       slug = image.slug,
       owner = image.owner,
+      action = action,
       visibilityKind = image.visibilityKind,
       description = image.description,
       createdAt = image.createdAt.toIso8601,

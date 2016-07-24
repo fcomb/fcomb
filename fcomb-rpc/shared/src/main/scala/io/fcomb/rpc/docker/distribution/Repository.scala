@@ -27,7 +27,7 @@ final case class RepositoryResponse(
     owner: Owner,
     visibilityKind: ImageVisibilityKind,
     description: String,
-    // action: Action,
+    action: Action,
     createdAt: String,
     updatedAt: Option[String]
 )

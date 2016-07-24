@@ -20,6 +20,7 @@ import io.circe.generic.semiauto._
 import io.circe.{Encoder, Decoder}
 import io.fcomb.rpc.docker.distribution._
 import io.fcomb.json.models.Formats._
+import io.fcomb.json.models.acl.Formats._
 import io.fcomb.json.models.docker.distribution.Formats._
 
 object Formats {
