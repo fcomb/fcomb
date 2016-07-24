@@ -22,14 +22,16 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
+import akka.stream.scaladsl.Sink
 import cats.data.Validated
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.fcomb.models.docker.distribution._
-import io.fcomb.persist.docker.distribution.{ImageEventsRepo, ImageManifestsRepo, ImageWebhooksRepo, ImagesRepo}
+import io.fcomb.persist.docker.distribution.{ImageEventsRepo, ImageWebhooksRepo, ImagesRepo}
 import org.jose4j.base64url.Base64
 import org.slf4j.LoggerFactory
+
 import scala.concurrent.Future
 
 object EventService {
@@ -70,41 +72,39 @@ private[this] class EventServiceActor(implicit mat: Materializer) extends Actor 
   }
 
   def createUpsertEvent(manifestId: Int): Future[Option[ImageEvent]] = {
-    ImageManifestsRepo.findById(manifestId).flatMap {
-      case Some(manifest) =>
-        ImagesRepo.findById(manifest.imageId).flatMap {
-          case Some(image) =>
-            val detailsJson = ImageEventDetails
-              .Upserted(
-                name = image.name,
-                slug = image.slug,
-                visibilityKind = image.visibilityKind,
-                tags = manifest.tags,
-                length = manifest.length
-              )
-              .asJson
+    ImagesRepo.makeUpsertEventDetailsForManifestId(manifestId).flatMap {
+      case Some(
+          (imageId, imageName, imageSlug, imageVisibilityKind, manifestTags, manifestLength)) =>
+        val detailsJson = ImageEventDetails
+          .Upserted(
+            name = imageName,
+            slug = imageSlug,
+            visibilityKind = imageVisibilityKind,
+            tags = manifestTags,
+            length = manifestLength
+          )
+          .asJson
 
-            ImageEventsRepo
-              .create(manifest.getId(),
-                      ImageEventKind.Upserted,
-                      Base64.encode(detailsJson.noSpaces.getBytes("utf-8")))
-              .flatMap {
-                case Validated.Valid(event) =>
-                  for {
-                    entity     <- Marshal(detailsJson).to[RequestEntity]
-                    webhooks <- ImageWebhooksRepo.findByImageIdAsStream(manifest.imageId)
-                    _ <- webhookOpt match {
-                          case Some(webhook) =>
-                            Http().singleRequest(HttpRequest(method = HttpMethods.POST,
-                                                             uri = webhook.url,
-                                                             entity = entity))
-                          case _ => FastFuture.successful(())
-                        }
-                  } yield Some(event)
-                case _ => FastFuture.successful(None)
-              }
-          case _ => FastFuture.successful(None)
-        }
+        ImageEventsRepo
+          .create(manifestId,
+                  ImageEventKind.Upserted,
+                  Base64.encode(detailsJson.noSpaces.getBytes("utf-8")))
+          .flatMap {
+            case Validated.Valid(event) =>
+              Marshal(detailsJson)
+                .to[RequestEntity]
+                .flatMap(
+                  entity =>
+                    ImageWebhooksRepo
+                      .findByImageIdAsStream(imageId)
+                      .mapAsyncUnordered(1)(webhook =>
+                          Http().singleRequest(HttpRequest(method = HttpMethods.POST,
+                                                           uri = webhook.url,
+                                                           entity = entity)))
+                      .runWith(Sink.ignore))
+              FastFuture.successful(Some(event))
+            case _ => FastFuture.successful(None)
+          }
       case _ => FastFuture.successful(None)
     }
   }

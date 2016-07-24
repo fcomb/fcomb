@@ -16,21 +16,23 @@
 
 package io.fcomb.persist.docker.distribution
 
-import akka.http.scaladsl.util.FastFuture, FastFuture._
+import akka.http.scaladsl.util.FastFuture
+import FastFuture._
 import cats.data.Xor
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
-import io.fcomb.models.{Organization, OwnerKind, Owner, User, Pagination, PaginationData}
+import io.fcomb.models.{Organization, Owner, OwnerKind, Pagination, PaginationData, User}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
-import io.fcomb.persist.{PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, OrganizationGroupUsersRepo}
-import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest, ImageUpdateRequest}
+import io.fcomb.persist.{OrganizationGroupUsersRepo, OrganizationGroupsRepo, PersistModelWithAutoIntPk, PersistTableWithAutoIntPk}
+import io.fcomb.rpc.docker.distribution.{ImageCreateRequest, ImageUpdateRequest, RepositoryResponse}
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.validations._
 import java.time.ZonedDateTime
+
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
@@ -485,5 +487,29 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       "name" -> List(unique(uniqueNameCompiled((i.id, i.name))))
     )
     validate((plainValidations, dbioValidations))
+  }
+
+  def makeUpsertEventDetailsForManifestId(manifestId: Int) = db.run {
+    makeUpsertEventDetailsForManifestIdCompiled(manifestId).result.headOption
+  }
+
+  private lazy val makeUpsertEventDetailsForManifestIdCompiled = Compiled { manifestId: Rep[Int] =>
+    makeUpsertEventDetailsForManifestIdDBIO(manifestId)
+  }
+
+  private def makeUpsertEventDetailsForManifestIdDBIO(manifestId: Rep[Int]) = {
+    table
+      .join(ImageManifestsRepo.table)
+      .on(_.id === _.imageId)
+      .filter(_._2.id === manifestId)
+      .map {
+        case (t, mt) =>
+          (t.id.get, // TODO - is it safe to get?
+           t.name,
+           t.slug,
+           t.visibilityKind,
+           mt.tags,
+           mt.length)
+      }
   }
 }

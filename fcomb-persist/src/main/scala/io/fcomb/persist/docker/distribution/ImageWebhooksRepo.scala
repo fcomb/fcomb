@@ -16,6 +16,7 @@
 
 package io.fcomb.persist.docker.distribution
 
+import akka.stream.scaladsl.Source
 import cats.data.Validated
 import io.fcomb.Db._
 import io.fcomb.FcombPostgresProfile.api._
@@ -40,18 +41,36 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
   val table = TableQuery[ImageWebhookTable]
   val label = "webhooks"
 
-  def findByImageId(imageId: Int, p: Pagination): Future[PaginationData[ImageWebhook]] = {
-    ??? // TODO
+  def findByImageId(imageId: Int, p: Pagination)(implicit ec: ExecutionContext) = {
+    db.run {
+      for {
+        webhooks <- findByImageIdPageCompiled((imageId, p.offset, p.limit)).result
+        total    <- findByImageIdTotalCompiled(imageId).result
+      } yield PaginationData(webhooks, total = total, offset = p.offset, limit = p.limit)
+    }
   }
 
-  private lazy val findByImageIdCompiled = Compiled { imageId: Rep[Int] =>
+  private def findByImageIdDBIO(imageId: Rep[Int]) = {
     table.filter(_.imageId === imageId)
   }
 
-  def findByImageIdAsStream(imageId): Source = {
-    db.stream {
+  private lazy val findByImageIdCompiled = Compiled { imageId: Rep[Int] =>
+    findByImageIdDBIO(imageId)
+  }
+
+  private lazy val findByImageIdPageCompiled = Compiled {
+    (imageId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
+      findByImageIdDBIO(imageId).drop(offset).take(limit)
+  }
+
+  private lazy val findByImageIdTotalCompiled = Compiled { imageId: Rep[Int] =>
+    findByImageIdDBIO(imageId).length
+  }
+
+  def findByImageIdAsStream(imageId: Int) = {
+    Source.fromPublisher(db.stream {
       findByImageIdCompiled(imageId).result
-    }
+    })
   }
 
   private lazy val findByImageIdAndUrlCompiled = Compiled {
@@ -61,7 +80,7 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
       }.take(1)
   }
 
-  def upsert(imageId: Int, url: String)(implicit ec: ExecutionContext): Future[ValidationModel] = {
+  def upsert(imageId: Int, url: String)(implicit ec: ExecutionContext) = {
     val cleanUrl = url.trim
     db.run {
       findByImageIdAndUrlCompiled((imageId, cleanUrl)).result.headOption.flatMap {

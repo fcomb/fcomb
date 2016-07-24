@@ -34,6 +34,7 @@ object WebhooksHandler {
   def index(slug: Slug) = {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
+        import mat.executionContext
         imageBySlugWithAcl(slug, user.getId(), Action.Read) { image =>
           extractPagination { pg =>
             onSuccess(ImageWebhooksRepo.findByImageId(image.getId(), pg)) { p =>
