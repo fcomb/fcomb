@@ -20,7 +20,9 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.{Validated, Xor}
 import cats.syntax.cartesian._
 import cats.syntax.show._
-import io.circe._, io.circe.parser._, io.circe.syntax._
+import io.circe._
+import io.circe.parser._
+import io.circe.syntax._
 import io.fcomb.crypto.Jws
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest => ManifestV1, _}
