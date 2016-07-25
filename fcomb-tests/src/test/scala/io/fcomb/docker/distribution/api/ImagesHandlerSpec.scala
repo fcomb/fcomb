@@ -25,9 +25,11 @@ import akka.util.ByteString
 import cats.data.Xor
 import cats.scalatest.XorMatchers._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
-import io.circe.parser.decode
+import io.circe.parser._
+import io.circe.syntax._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
 import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
+import io.fcomb.docker.distribution.server.Routes
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.json.models.docker.distribution.Formats._
@@ -41,7 +43,6 @@ import io.fcomb.tests.fixtures.docker.distribution._
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
-import io.fcomb.docker.distribution.server.Routes
 
 class ImagesHandlerSpec
     extends WordSpec
@@ -137,7 +138,7 @@ class ImagesHandlerSpec
       val manifestV1 = ByteString(getFixture("docker/distribution/manifestV1.json"))
       val digest     = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
-      val imageSlug = Fixtures.await(for {
+      val image = Fixtures.await(for {
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsRepoFixture.createAs(
@@ -147,17 +148,17 @@ class ImagesHandlerSpec
                   ImageBlobState.Uploaded,
                   digestOpt =
                     Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
-      } yield image.slug)
+      } yield image)
 
       Put(
-        s"/v2/$imageSlug/manifests/sha256:$digest",
+        s"/v2/${image.slug}/manifests/sha256:$digest",
         HttpEntity(`application/json`, manifestV1)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Created
         responseEntity shouldEqual HttpEntity.Empty
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", digest))
-        header[Location] should contain(Location(s"/v2/$imageSlug/manifests/sha256:$digest"))
+        header[Location] should contain(Location(s"/v2/${image.slug}/manifests/sha256:$digest"))
       }
     }
 
@@ -289,8 +290,11 @@ class ImagesHandlerSpec
         val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
         manifest.tag shouldEqual "1.0"
         manifest.name shouldEqual image.slug
-        SchemaV1Manifest.verify(manifest, rawManifest) shouldBe (Xor.Right(
-              (rawManifest, im.digest)))
+        val json         = parse(rawManifest).toOption.flatMap(_.asObject).get
+        val manifestJson = json.remove("signatures").asJson
+        val original     = SchemaV1Manifest.indentPrint(rawManifest, manifestJson)
+        val res          = Xor.Right((original, im.digest))
+        SchemaV1Manifest.verify(manifest, rawManifest) shouldBe res
       }
 
       Get(s"/v2/$imageSlug/manifests/sha256:${im.digest}") ~> addCredentials(credentials) ~> route ~> check {

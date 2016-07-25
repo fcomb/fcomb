@@ -52,6 +52,7 @@ object SchemaV1 {
     }
   }
 
+  /** Returns formatted manifest (without signatures) and its digest within [[cats.data.Xor]] */
   def verify(manifest: ManifestV1, rawManifest: String): Xor[DistributionError, (String, String)] = {
     parse(rawManifest).map(_.asObject) match {
       case Xor.Right(Some(json)) =>
@@ -73,7 +74,7 @@ object SchemaV1 {
                         val signatureBytes = base64Decode(signature.signature)
                         val (alg, jwk)     = (signature.header.alg, signature.header.jwk)
                         if (Jws.verify(alg, jwk, payload, signatureBytes))
-                          Xor.Right((rawManifest, DigestUtils.sha256Hex(formatted)))
+                          Xor.Right((original, DigestUtils.sha256Hex(formatted)))
                         else Xor.Left(ManifestUnverified())
                       } else
                         Xor.Left(

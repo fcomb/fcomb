@@ -92,7 +92,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     db.run(findBySlugDBIO(slug))
   }
 
-  /** Return [[cats.data.Xor.Left]] if forbidden and [[cats.data.Xor.Right]] if image found or not */
+  /** Returns [[cats.data.Xor.Left]] if forbidden and [[cats.data.Xor.Right]] if image found or not */
   type ImageAclResult = Xor[Unit, Option[(Image, Action)]]
 
   def findBySlugWithAcl(slug: Slug, userId: Int, action: Action)(
@@ -156,7 +156,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       .map { case (t, pt) => (t, pt.action) }
   }
 
-  /** Return organization images scope and members with admin role */
+  /** Returns organization images scope and members with admin role */
   def organizationAdminsScope = {
     table
       .join(OrganizationGroupsRepo.table)
@@ -177,7 +177,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     }
   }
 
-  /** Return group images scope with sorted by role members */
+  /** Returns group images scope with sorted by role members */
   def groupsScope = {
     table
       .join(PermissionsRepo.table)
