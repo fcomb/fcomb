@@ -24,15 +24,13 @@ import io.fcomb.models.docker.distribution._
 object Formats {
   implicit final val encodeImageVisibilityKind: Encoder[ImageVisibilityKind] =
     Circe.encoder(ImageVisibilityKind)
-  implicit final val encodeImageEventKind: Encoder[ImageEventKind] = Circe.encoder(ImageEventKind)
-  implicit final val decodeImageVisibilityKind: Decoder[ImageVisibilityKind] =
-    Circe.decoder(ImageVisibilityKind)
 
   implicit final val encodeDistributionImageCatalog: Encoder[DistributionImageCatalog] =
     deriveEncoder
   implicit final val encodeImageTagsResponse: Encoder[ImageTagsResponse] = deriveEncoder
 
-  implicit final val decodeImageEventKind: Decoder[ImageEventKind] = Circe.decoder(ImageEventKind)
+  implicit final val decodeImageVisibilityKind: Decoder[ImageVisibilityKind] =
+    Circe.decoder(ImageVisibilityKind)
 
   implicit final val decodeDistributionImageCatalog: Decoder[DistributionImageCatalog] =
     deriveDecoder

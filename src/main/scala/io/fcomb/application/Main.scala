@@ -5,11 +5,11 @@ import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.Db
 import io.fcomb.server.{Routes => ApiRoutes}
+import io.fcomb.services.EventService
 import io.fcomb.docker.distribution.server.{Routes => DockerDistributionRoutes}
-import io.fcomb.docker.distribution.services.{EventService, GarbageCollectorService, ImageBlobPushProcessor}
+import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
 import io.fcomb.utils.{Config, Implicits}
 import org.slf4j.LoggerFactory
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}

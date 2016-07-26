@@ -25,7 +25,7 @@ import io.fcomb.models.docker.distribution.{Image, Reference}
 import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError
 import DistributionError._
-import io.fcomb.docker.distribution.services.EventService
+import io.fcomb.services.EventService
 import io.fcomb.persist.docker.distribution.{ImageBlobsRepo, ImageManifestsRepo}
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.utils.Units._
@@ -37,7 +37,8 @@ object SchemaV2 {
       image: Image,
       reference: Reference,
       manifest: ManifestV2,
-      rawManifest: String
+      rawManifest: String,
+      createdBy: Int
   )(implicit ec: ExecutionContext, mat: Materializer): Future[Xor[DistributionError, String]] = {
     val digest = DigestUtils.sha256Hex(rawManifest)
     ImageManifestsRepo.findByImageIdAndDigest(image.getId(), digest).flatMap {
@@ -65,7 +66,10 @@ object SchemaV2 {
                       .fast
                       .map {
                         case Validated.Valid(imageManifest) =>
-                          EventService.createUpsertEvent(imageManifest.getId())
+                          EventService.pushRepoEvent(image,
+                                                     imageManifest.getId(),
+                                                     reference.value,
+                                                     createdBy)
                           Xor.Right(digest)
                         case Validated.Invalid(e) => unknowError(e.map(_.message).mkString(";"))
                       }

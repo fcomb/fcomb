@@ -24,7 +24,7 @@ import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
 import io.fcomb.crypto.Jws
-import io.fcomb.docker.distribution.services.EventService
+import io.fcomb.services.EventService
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest => ManifestV1, _}
@@ -44,13 +44,14 @@ object SchemaV1 {
       image: Image,
       reference: Reference,
       manifest: ManifestV1,
-      rawManifest: String
+      rawManifest: String,
+      createdBy: Int
   )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] = {
     verify(manifest, rawManifest) match {
       case Xor.Right((schemaV1JsonBlob, digest)) =>
         ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).fast.map {
           case Validated.Valid(imageManifest) =>
-            EventService.createUpsertEvent(imageManifest.getId())
+            EventService.pushRepoEvent(image, imageManifest.getId(), reference.value, createdBy)
             Xor.Right(digest)
           case Validated.Invalid(e) => Xor.left(Unknown(e.map(_.message).mkString(";")))
         }

@@ -92,7 +92,8 @@ object ImagesHandler {
   def uploadManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
+        val userId = user.getId()
+        imageByNameWithAcl(imageName, userId, Action.Write) { image =>
           import mat.executionContext
           entity(as[ByteString]) { rawManifestBs =>
             respondWithContentType(`application/json`) {
@@ -100,9 +101,17 @@ object ImagesHandler {
                 val rawManifest = rawManifestBs.utf8String
                 val res = manifest match {
                   case m: SchemaV1.Manifest =>
-                    SchemaV1Manifest.upsertAsImageManifest(image, reference, m, rawManifest)
+                    SchemaV1Manifest.upsertAsImageManifest(image,
+                                                           reference,
+                                                           m,
+                                                           rawManifest,
+                                                           userId)
                   case m: SchemaV2.Manifest =>
-                    SchemaV2Manifest.upsertAsImageManifest(image, reference, m, rawManifest)
+                    SchemaV2Manifest.upsertAsImageManifest(image,
+                                                           reference,
+                                                           m,
+                                                           rawManifest,
+                                                           userId)
                 }
                 onSuccess(res) {
                   case Xor.Right(digest) =>

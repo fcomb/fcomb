@@ -26,6 +26,7 @@ final case class Image(
     owner: Owner,
     visibilityKind: ImageVisibilityKind,
     description: String,
+    createdBy: Int,
     createdAt: ZonedDateTime,
     updatedAt: Option[ZonedDateTime]
 ) extends ModelWithAutoIntPk {

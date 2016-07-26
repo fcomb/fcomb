@@ -19,10 +19,12 @@ package io.fcomb.json.models
 import enumeratum.Circe
 import io.circe.generic.semiauto._
 import io.circe.{Encoder, Decoder}
-import io.fcomb.models._
+import io.fcomb.json.Java8TimeFormats._
+import io.fcomb.models._, EventDetails._
 
 object Formats {
   implicit final val encodeOwnerKind: Encoder[OwnerKind] = Circe.encoder(OwnerKind)
+  implicit final val encodeEventKind: Encoder[EventKind] = Circe.encoder(EventKind)
 
   implicit final val encodeOwner: Encoder[Owner]     = deriveEncoder
   implicit final val encodeSession: Encoder[Session] = deriveEncoder
@@ -30,11 +32,32 @@ object Formats {
       implicit encoder: Encoder[T]): Encoder[PaginationData[T]] =
     deriveEncoder
 
+  implicit final val encodeEventDetails = new Encoder[EventDetails] {
+    import io.circe.generic.auto._
+    def apply(details: EventDetails) = details match {
+      case evt: CreateRepo => Encoder[CreateRepo].apply(evt)
+      case evt: PushRepo   => Encoder[PushRepo].apply(evt)
+    }
+  }
+
+  implicit final val encodeEvent: Encoder[Event] = deriveEncoder
+
   implicit final val decodeOwnerKind: Decoder[OwnerKind] = Circe.decoder(OwnerKind)
+  implicit final val decodeEventKind: Decoder[EventKind] = Circe.decoder(EventKind)
 
   implicit final val decodeOwner: Decoder[Owner]     = deriveDecoder
   implicit final val decodeSession: Decoder[Session] = deriveDecoder
   implicit final def decodePaginationData[T](
       implicit decoder: Decoder[T]): Decoder[PaginationData[T]] =
     deriveDecoder
+
+  implicit final val decodeEventDetails: Decoder[EventDetails] = Decoder.instance { c =>
+    import io.circe.generic.auto._
+    c.get[EventKind]("kind").flatMap {
+      case EventKind.CreateRepo => Decoder[CreateRepo].apply(c)
+      case EventKind.PushRepo   => Decoder[PushRepo].apply(c)
+    }
+  }
+
+  implicit final val decodeEvent: Decoder[Event] = deriveDecoder
 }

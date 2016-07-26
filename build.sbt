@@ -24,6 +24,7 @@ lazy val circeVersion = "0.5.0-M2"
 lazy val commonsVersion = "1.10"
 lazy val enumeratumVersion = "1.4.4"
 lazy val guavaVersion = "19.0"
+lazy val scalaJavaTimeVersion = "2.0.0-M2"
 lazy val slickPgVersion = "0.15.0-M1"
 lazy val slickVersion = "3.2.0-M1"
 
@@ -110,10 +111,12 @@ lazy val models = crossProject.in(file("fcomb-models"))
   .settings(moduleName := "models")
   .settings(allSettings:_*)
   .settings(libraryDependencies ++= Seq(
-    "com.beachape" %%% "enumeratum" % enumeratumVersion
+    "com.beachape"  %%% "enumeratum"      % enumeratumVersion,
+    "io.github.soc" %%% "scala-java-time" % scalaJavaTimeVersion
   ))
   .jvmSettings(libraryDependencies ++= Seq(
-    "com.github.t3hnar" %% "scala-bcrypt" % "2.4"
+    "com.github.t3hnar" %% "scala-bcrypt"    % "2.4",
+    "io.github.soc"     %% "scala-java-time" % scalaJavaTimeVersion
   ))
   .enablePlugins(AutomateHeaderPlugin)
 
@@ -155,7 +158,7 @@ lazy val persist = project.in(file("fcomb-persist"))
     "com.etaty.rediscala" %% "rediscala"           % "1.5.0" // TODO: replace it by akka persistence
   ))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(modelsJVM, rpcJVM, utils, validations)
+  .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validations)
 
 lazy val json = crossProject.in(file("fcomb-json"))
   .settings(moduleName := "json")

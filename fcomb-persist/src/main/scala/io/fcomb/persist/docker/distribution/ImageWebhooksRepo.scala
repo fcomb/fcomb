@@ -23,8 +23,7 @@ import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.docker.distribution.ImageWebhook
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist.{PersistModelWithAutoIntPk, PersistTableWithAutoIntPk}
-
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 class ImageWebhookTable(tag: Tag)
     extends Table[ImageWebhook](tag, "dd_image_webhooks")
