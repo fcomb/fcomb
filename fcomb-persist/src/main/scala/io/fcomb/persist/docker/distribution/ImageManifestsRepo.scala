@@ -274,7 +274,10 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       table
         .join(ImageManifestTagsRepo.table)
         .on(_.id === _.imageManifestId)
-        .filter(_._2.tag === tag)
+        .filter {
+          case (t, imt) =>
+            t.imageId === imageId && imt.tag === tag
+        }
         .map(_._1)
   }
 
