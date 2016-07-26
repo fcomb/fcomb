@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.docker.distribution
+package io.fcomb.rpc.docker.distribution
 
-import io.fcomb.models.ModelWithAutoIntPk
-
-final case class ImageWebhook(
-    id: Option[Int] = None,
-    imageId: Int,
+final case class ImageWebhookRequest(
     url: String
-) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
-}
+)
+
+final case class ImageWebhookResponse(
+    id: Int,
+    url: String
+)

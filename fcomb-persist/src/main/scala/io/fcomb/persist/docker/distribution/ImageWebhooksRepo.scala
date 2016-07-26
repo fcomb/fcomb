@@ -23,7 +23,8 @@ import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.docker.distribution.ImageWebhook
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist.{PersistModelWithAutoIntPk, PersistTableWithAutoIntPk}
-import scala.concurrent.ExecutionContext
+import io.fcomb.rpc.helpers.docker.distribution.ImageWebhookHelpers
+import scala.concurrent.{ExecutionContext, Future}
 
 class ImageWebhookTable(tag: Tag)
     extends Table[ImageWebhook](tag, "dd_image_webhooks")
@@ -40,17 +41,18 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
   val table = TableQuery[ImageWebhookTable]
   val label = "webhooks"
 
-  def findByImageId(imageId: Int, p: Pagination)(implicit ec: ExecutionContext) = {
+  def paginateByImageId(imageId: Int, p: Pagination)(implicit ec: ExecutionContext) = {
     db.run {
       for {
         webhooks <- findByImageIdPageCompiled((imageId, p.offset, p.limit)).result
         total    <- findByImageIdTotalCompiled(imageId).result
-      } yield PaginationData(webhooks, total = total, offset = p.offset, limit = p.limit)
+        data = webhooks.map(ImageWebhookHelpers.responseFrom)
+      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
   }
 
   private def findByImageIdDBIO(imageId: Rep[Int]) = {
-    table.filter(_.imageId === imageId)
+    table.filter(_.imageId === imageId).sortBy(_.id)
   }
 
   private lazy val findByImageIdCompiled = Compiled { imageId: Rep[Int] =>
@@ -79,7 +81,7 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
       }.take(1)
   }
 
-  def upsert(imageId: Int, url: String)(implicit ec: ExecutionContext) = {
+  def upsert(imageId: Int, url: String)(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val cleanUrl = url.trim
     db.run {
       findByImageIdAndUrlCompiled((imageId, cleanUrl)).result.headOption.flatMap {

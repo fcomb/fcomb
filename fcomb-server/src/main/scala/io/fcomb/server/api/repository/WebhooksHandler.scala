@@ -16,13 +16,15 @@
 
 package io.fcomb.server.api.repository
 
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import cats.data.Validated
-import io.circe.generic.auto._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
-import io.fcomb.models.docker.distribution.{ImageWebhooksPutRequest, ImageWebhooksResponse}
+import io.fcomb.rpc.docker.distribution.ImageWebhookRequest
+import io.fcomb.rpc.helpers.docker.distribution.ImageWebhookHelpers
 import io.fcomb.persist.docker.distribution.ImageWebhooksRepo
+import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.ImageDirectives._
@@ -37,7 +39,7 @@ object WebhooksHandler {
         import mat.executionContext
         imageBySlugWithAcl(slug, user.getId(), Action.Read) { image =>
           extractPagination { pg =>
-            onSuccess(ImageWebhooksRepo.findByImageId(image.getId(), pg)) { p =>
+            onSuccess(ImageWebhooksRepo.paginateByImageId(image.getId(), pg)) { p =>
               completePagination(ImageWebhooksRepo.label, p)
             }
           }
@@ -51,11 +53,13 @@ object WebhooksHandler {
       extractMaterializer { implicit mat =>
         import mat.executionContext
         imageBySlugWithAcl(slug, user.getId(), Action.Write) { image =>
-          entity(as[ImageWebhooksPutRequest]) { putRequest =>
-            onSuccess(ImageWebhooksRepo.upsert(image.getId(), putRequest.url)) {
-              case Validated.Valid(upserted) =>
-                complete(ImageWebhooksResponse(image.name, Seq(upserted.url)))
-              case _ => complete(ImageWebhooksResponse(image.name, Seq()))
+          entity(as[ImageWebhookRequest]) { req =>
+            onSuccess(ImageWebhooksRepo.upsert(image.getId(), req.url)) {
+              case Validated.Valid(webhook) =>
+                val res = ImageWebhookHelpers.responseFrom(webhook)
+                complete((StatusCodes.OK, res))
+              case Validated.Invalid(e) =>
+                ??? // TODO
             }
           }
         }
