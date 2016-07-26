@@ -26,7 +26,7 @@ import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationsRepo
-import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest}
+import io.fcomb.rpc.OrganizationCreateRequest
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
@@ -77,23 +77,23 @@ object OrganizationsHandler {
     }
   }
 
-  def update(slug: Slug) = {
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
-          entity(as[OrganizationUpdateRequest]) { req =>
-            onSuccess(OrganizationsRepo.update(org.getId(), req)) {
-              case Validated.Valid(updated) =>
-                val res = OrganizationHelpers.responseFrom(updated, Role.Admin)
-                complete((StatusCodes.Accepted, res))
-              case Validated.Invalid(e) =>
-                ??? // TODO
-            }
-          }
-        }
-      }
-    }
-  }
+  // def update(slug: Slug) = {
+  //   extractExecutionContext { implicit ec =>
+  //     authenticateUser { user =>
+  //       organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+  //         entity(as[OrganizationUpdateRequest]) { req =>
+  //           onSuccess(OrganizationsRepo.update(org.getId(), req)) {
+  //             case Validated.Valid(updated) =>
+  //               val res = OrganizationHelpers.responseFrom(updated, Role.Admin)
+  //               complete((StatusCodes.Accepted, res))
+  //             case Validated.Invalid(e) =>
+  //               ??? // TODO
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   def destroy(slug: Slug) = {
     extractExecutionContext { implicit ec =>
@@ -116,7 +116,7 @@ object OrganizationsHandler {
       pathPrefix(SlugPath) { slug =>
         pathEnd {
           get(show(slug)) ~
-          put(update(slug)) ~
+          // put(update(slug)) ~
           delete(destroy(slug))
         } ~
         organization.RepositoriesHandler.routes(slug)

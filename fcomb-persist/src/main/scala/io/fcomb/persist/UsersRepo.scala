@@ -84,7 +84,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     update(id)(
       _.copy(
         email = req.email,
-        username = req.username,
+        // username = req.username,
         fullName = req.fullName,
         updatedAt = Some(ZonedDateTime.now())
       ))

@@ -25,7 +25,7 @@ final case class UserSignUpRequest(
 
 final case class UserUpdateRequest(
     email: String,
-    username: String,
+    // username: String,
     fullName: Option[String]
 )
 

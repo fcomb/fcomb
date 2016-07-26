@@ -20,7 +20,7 @@ import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.rpc.Formats._
-import io.fcomb.rpc.{OrganizationResponse, OrganizationUpdateRequest}
+import io.fcomb.rpc.OrganizationResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -34,8 +34,6 @@ object OrganizationComponent {
   final case class State(organization: Option[OrganizationResponse], form: Option[FormState])
 
   final case class Backend($ : BackendScope[Props, State]) {
-    val textarea = Ref[HTMLInputElement]("name")
-
     def getOrg(name: String): Callback = {
       Callback.empty
     }

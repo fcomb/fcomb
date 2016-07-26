@@ -25,7 +25,7 @@ import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
 import io.fcomb.rpc.helpers.OrganizationHelpers
-import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationUpdateRequest, OrganizationResponse}
+import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationResponse}
 import io.fcomb.validations._
 import java.time.ZonedDateTime
 import scala.concurrent.{Future, ExecutionContext}
@@ -177,10 +177,10 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     } yield res
   }
 
-  def update(id: Int, req: OrganizationUpdateRequest)(
-      implicit ec: ExecutionContext): Future[ValidationModel] = {
-    update(id)(_.copy(name = req.name))
-  }
+  // def update(id: Int, req: OrganizationUpdateRequest)(
+  //     implicit ec: ExecutionContext): Future[ValidationModel] = {
+  //   update(id)(_.copy(name = req.name))
+  // }
 
   def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
     for {

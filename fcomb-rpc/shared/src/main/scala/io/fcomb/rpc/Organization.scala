@@ -22,9 +22,9 @@ final case class OrganizationCreateRequest(
     name: String
 )
 
-final case class OrganizationUpdateRequest(
-    name: String
-)
+// final case class OrganizationUpdateRequest(
+//     name: String
+// )
 
 final case class OrganizationResponse(
     id: Int,
