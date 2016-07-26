@@ -85,7 +85,7 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
            (img.owner.id, img.owner.kind),
            img.visibilityKind,
            img.description,
-           img.createdBy,
+           img.createdByUserId,
            img.createdAt,
            img.updatedAt))
       })
@@ -283,13 +283,13 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
         owner = owner,
         visibilityKind = req.visibilityKind,
         description = req.description.getOrElse(""),
-        createdBy = userId,
+        createdByUserId = userId,
         createdAt = ZonedDateTime.now,
         updatedAt = None
       ))
   }
 
-  def create(req: ImageCreateRequest, org: Organization, createdBy: Int)(
+  def create(req: ImageCreateRequest, org: Organization, createdByUserId: Int)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     val owner = Owner(org.getId(), OwnerKind.Organization)
     create(
@@ -300,7 +300,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
         owner = owner,
         visibilityKind = req.visibilityKind,
         description = req.description.getOrElse(""),
-        createdBy = createdBy,
+        createdByUserId = createdByUserId,
         createdAt = ZonedDateTime.now,
         updatedAt = None
       ))
@@ -319,7 +319,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
             repoId = imageId,
             name = img.name,
             slug = img.slug,
-            createdBy = img.createdBy
+            createdByUserId = img.createdByUserId
           )
     } yield img
   }

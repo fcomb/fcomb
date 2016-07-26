@@ -46,7 +46,7 @@ object EventService {
     actorRef
   }
 
-  def pushRepoEvent(img: Image, manifestId: Int, reference: String, createdBy: Int) = {
+  def pushRepoEvent(img: Image, manifestId: Int, reference: String, createdByUserId: Int) = {
     val details = EventDetails.PushRepo(
       repoId = img.getId(),
       name = img.name,
@@ -54,7 +54,7 @@ object EventService {
       manifestId = manifestId,
       reference = reference
     )
-    actorRef ! PushRepoEvent(details, createdBy)
+    actorRef ! PushRepoEvent(details, createdByUserId)
   }
 
   def props()(implicit mat: Materializer) =
@@ -64,7 +64,7 @@ object EventService {
 private[this] sealed trait EventServiceMessage
 
 private[this] object EventServiceMessages {
-  final case class PushRepoEvent(details: EventDetails.PushRepo, createdBy: Int)
+  final case class PushRepoEvent(details: EventDetails.PushRepo, createdByUserId: Int)
       extends EventServiceMessage
 }
 
@@ -76,13 +76,14 @@ private[this] class EventServiceActor(implicit mat: Materializer) extends Actor 
   def receive: Receive = {
     case msg: EventServiceMessage =>
       msg match {
-        case PushRepoEvent(details, createdBy) => pushRepoEvent(details, createdBy)
-        case _                                 =>
+        case PushRepoEvent(details, createdByUserId) =>
+          pushRepoEvent(details, createdByUserId)
+        case _ =>
       }
   }
 
-  def pushRepoEvent(details: EventDetails.PushRepo, createdBy: Int) = {
-    EventsRepo.create(details, createdBy).flatMap { event =>
+  def pushRepoEvent(details: EventDetails.PushRepo, createdByUserId: Int) = {
+    EventsRepo.create(details, createdByUserId).flatMap { event =>
       val body   = Encoder[EventDetails].apply(details).noSpaces
       val entity = HttpEntity(`application/json`, body)
       ImageWebhooksRepo

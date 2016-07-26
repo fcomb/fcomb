@@ -45,13 +45,14 @@ object SchemaV1 {
       reference: Reference,
       manifest: ManifestV1,
       rawManifest: String,
-      createdBy: Int
+      createdByUserId: Int
   )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] = {
     verify(manifest, rawManifest) match {
       case Xor.Right((schemaV1JsonBlob, digest)) =>
         ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).fast.map {
           case Validated.Valid(imageManifest) =>
-            EventService.pushRepoEvent(image, imageManifest.getId(), reference.value, createdBy)
+            EventService
+              .pushRepoEvent(image, imageManifest.getId(), reference.value, createdByUserId)
             Xor.Right(digest)
           case Validated.Invalid(e) => Xor.left(Unknown(e.map(_.message).mkString(";")))
         }

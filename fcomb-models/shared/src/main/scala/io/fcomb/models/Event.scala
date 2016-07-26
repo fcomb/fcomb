@@ -54,7 +54,7 @@ final case class Event(
     id: Option[Int] = None,
     kind: EventKind,
     details: EventDetails,
-    createdBy: Int,
+    createdByUserId: Int,
     createdAt: ZonedDateTime
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))

@@ -34,47 +34,47 @@ import EventTableImplicits._
 class EventTable(tag: Tag) extends Table[Event](tag, "dd_events") with PersistTableWithAutoIntPk {
   def kind            = column[EventKind]("kind")
   def detailsJsonBlob = column[Json]("details_json_blob")
-  def createdBy       = column[Int]("created_by")
+  def createdByUserId = column[Int]("created_by")
   def createdAt       = column[ZonedDateTime]("created_at")
 
   def * =
-    (id, kind, detailsJsonBlob, createdBy, createdAt) <>
+    (id, kind, detailsJsonBlob, createdByUserId, createdAt) <>
       ({
-        case (id, kind, detailsJsonBlob, createdBy, createdAt) =>
+        case (id, kind, detailsJsonBlob, createdByUserId, createdAt) =>
           val details = detailsJsonBlob.as[EventDetails] match {
             case Xor.Right(evt) => evt
             case Xor.Left(e)    => throw e
           }
-          Event(id, kind, details, createdBy, createdAt)
+          Event(id, kind, details, createdByUserId, createdAt)
       }, { evt: Event =>
         val detailsJsonBlob = evt.details.asJson
-        Some((evt.id, evt.kind, detailsJsonBlob, evt.createdBy, evt.createdAt))
+        Some((evt.id, evt.kind, detailsJsonBlob, evt.createdByUserId, evt.createdAt))
       })
 }
 
 object EventsRepo extends PersistModelWithAutoIntPk[Event, EventTable] {
   val table = TableQuery[EventTable]
 
-  def createDBIO(details: EventDetails, createdBy: Int) = {
+  def createDBIO(details: EventDetails, createdByUserId: Int) = {
     tableWithPk += Event(
       id = None,
       kind = details.kind,
       details = details,
-      createdBy = createdBy,
+      createdByUserId = createdByUserId,
       createdAt = ZonedDateTime.now
     )
   }
 
-  def create(details: EventDetails, createdBy: Int) = {
-    db.run(createDBIO(details, createdBy))
+  def create(details: EventDetails, createdByUserId: Int) = {
+    db.run(createDBIO(details, createdByUserId))
   }
 
-  def createRepoEventDBIO(repoId: Int, name: String, slug: String, createdBy: Int) = {
+  def createRepoEventDBIO(repoId: Int, name: String, slug: String, createdByUserId: Int) = {
     val details = EventDetails.CreateRepo(
       repoId = repoId,
       name = name,
       slug = slug
     )
-    createDBIO(details, createdBy)
+    createDBIO(details, createdByUserId)
   }
 }

@@ -38,7 +38,7 @@ object SchemaV2 {
       reference: Reference,
       manifest: ManifestV2,
       rawManifest: String,
-      createdBy: Int
+      createdByUserId: Int
   )(implicit ec: ExecutionContext, mat: Materializer): Future[Xor[DistributionError, String]] = {
     val digest = DigestUtils.sha256Hex(rawManifest)
     ImageManifestsRepo.findByImageIdAndDigest(image.getId(), digest).flatMap {
@@ -69,7 +69,7 @@ object SchemaV2 {
                           EventService.pushRepoEvent(image,
                                                      imageManifest.getId(),
                                                      reference.value,
-                                                     createdBy)
+                                                     createdByUserId)
                           Xor.Right(digest)
                         case Validated.Invalid(e) => unknowError(e.map(_.message).mkString(";"))
                       }
