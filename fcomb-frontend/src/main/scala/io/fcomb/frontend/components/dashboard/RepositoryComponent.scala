@@ -34,7 +34,7 @@ object RepositoryComponent {
   final case class State(repository: Option[RepositoryResponse], form: Option[FormState])
 
   final case class Backend($ : BackendScope[Props, State]) {
-    val textarea = Ref[HTMLInputElement]("description")
+    val descriptionRef = Ref[HTMLInputElement]("description")
 
     def getRepository(name: String): Callback = {
       Callback.future {
@@ -55,7 +55,7 @@ object RepositoryComponent {
     def formDescription(description: String)(e: ReactEventH): Callback = {
       e.preventDefaultCB >>
         $.modState(_.copy(form = Some(FormState(description, false, false)))) >>
-        CallbackTo(textarea.apply($).map(_.setSelectionRange(0, 0))).delayMs(1).void
+        CallbackTo(descriptionRef.apply($).map(_.setSelectionRange(0, 0))).delayMs(1).void
     }
 
     def updateRepositoryDescription(): Callback = {
@@ -109,10 +109,10 @@ object RepositoryComponent {
       }
     }
 
-    def renderTextarea(fs: FormState) = {
+    def renderDescriptionTextArea(fs: FormState) = {
       if (fs.isPreview) EmptyTag
       else
-        <.textarea(^.ref := textarea,
+        <.textarea(^.ref := descriptionRef,
                    ^.id := "description",
                    ^.name := "description",
                    ^.autoFocus := true,
@@ -142,7 +142,7 @@ object RepositoryComponent {
                    "|",
                    <.a(^.onClick ==> switchToPreview(true), ^.href := "#", "Preview")
                  ),
-                 renderTextarea(fs),
+                 renderDescriptionTextArea(fs),
                  renderPreview(fs),
                  <.br,
                  <.button(^.`type` := "button", ^.tabIndex := 2, ^.onClick ==> cancel, "Cancel"),

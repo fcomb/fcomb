@@ -33,6 +33,9 @@ object DashboardComponent {
     val repositoryNameFormat = """[\w\-\.]+/[\w\-\.]+"""
     val repositoryNamePath = "repositories" / string(repositoryNameFormat)
 
+    val orgNameFormat = """[\w\-\.]+"""
+    val organizationNamePath = "organizations" / string(orgNameFormat)
+
     trimSlashes |
     staticRoute(root, DashboardRoute.Root) ~> redirectToPage(DashboardRoute.Repositories)(
       Redirect.Replace) |
@@ -42,7 +45,12 @@ object DashboardComponent {
       ctl => NewRepositoryComponent.apply(ctl)) |
     dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~> dynRenderR((r, ctl) => RepositoryComponent.apply(ctl, r.name)) |
     dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~> dynRenderR((r, ctl) => TagsComponent.apply(ctl, r.name)) |
-    dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~> dynRenderR((r, ctl) => SettingsComponent.apply(ctl, r.name))
+    dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~> dynRenderR((r, ctl) => SettingsComponent.apply(ctl, r.name)) |
+    staticRoute("organizations", DashboardRoute.Organizations) ~> renderR(
+      ctl => OrganizationsComponent.apply(ctl)) |
+    staticRoute("organizations" / "new", DashboardRoute.NewOrganization) ~> renderR(
+      ctl => NewOrganizationComponent.apply(ctl)) |
+    dynamicRouteCT(organizationNamePath.caseClass[DashboardRoute.Organization]) ~> dynRenderR((o, ctl) => OrganizationComponent.apply(ctl, o.name))
   }
 
   final case class State(ctl: RouterCtl[Route],
@@ -56,7 +64,9 @@ object DashboardComponent {
           <.h1("Dashboard"),
           <.ul(
             <.li(state.ctl.link(Route.Dashboard(DashboardRoute.Repositories))("Repositories")),
-            <.li(state.ctl.link(Route.Dashboard(DashboardRoute.NewRepository))("New repository"))),
+            <.li(state.ctl.link(Route.Dashboard(DashboardRoute.NewRepository))("New repository")),
+            <.li(state.ctl.link(Route.Dashboard(DashboardRoute.Organizations))("Organizations")),
+            <.li(state.ctl.link(Route.Dashboard(DashboardRoute.NewOrganization))("New organization"))),
             <.div(state.ctl.link(Route.SignOut)("Sign Out"))),
             <.hr(
               ^.style := js

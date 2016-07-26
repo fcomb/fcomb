@@ -38,7 +38,6 @@ object NewRepositoryComponent {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
-
           $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
             Callback.future {
               val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)

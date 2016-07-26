@@ -25,21 +25,25 @@ object Resource {
   val sessions = prefix + "/sessions"
 
   val repositories = prefix + "/repositories"
-  def repository(imageSlug: String) = s"$repositories/$imageSlug"
+  def repository(imageName: String) = s"$repositories/$imageName"
 
-  def repositoryTags(imageSlug: String)             = repository(imageSlug) + "/tags"
-  def repositoryTag(imageSlug: String, tag: String) = repositoryTags(imageSlug) + s"/$tag"
+  def repositoryTags(imageName: String)             = repository(imageName) + "/tags"
+  def repositoryTag(imageName: String, tag: String) = repositoryTags(imageName) + s"/$tag"
 
-  def repositoryPermissions(imageSlug: String) = repository(imageSlug) + "/permissions"
-  def repositoryPermission(imageSlug: String, kind: MemberKind, slug: String) =
-    repositoryPermissions(imageSlug) + s"/${kind.entryName}/$slug"
+  def repositoryPermissions(imageName: String) = repository(imageName) + "/permissions"
+  def repositoryPermission(imageName: String, kind: MemberKind, slug: String) =
+    repositoryPermissions(imageName) + s"/${kind.entryName}/$slug"
 
-  def repositoryVisibility(imageSlug: String, kind: ImageVisibilityKind) =
-    repository(imageSlug) + s"/visibility/${kind.entryName}"
+  def repositoryVisibility(imageName: String, kind: ImageVisibilityKind) =
+    repository(imageName) + s"/visibility/${kind.entryName}"
+
+  val organizations = prefix + "/organizations"
+  def organization(orgName: String) = s"$organizations/$orgName"
 
   val users  = prefix + "/users"
   val signUp = users + "/sign_up"
 
-  val user             = prefix + "/user"
-  val userRepositories = user + "/repositories"
+  val user              = prefix + "/user"
+  val userRepositories  = user + "/repositories"
+  val userOrganizations = user + "/organizations"
 }

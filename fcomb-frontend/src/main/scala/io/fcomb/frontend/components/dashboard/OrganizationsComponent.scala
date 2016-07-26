@@ -20,22 +20,22 @@ import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
-import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.PaginationData
-import io.fcomb.rpc.docker.distribution.RepositoryResponse
+import io.fcomb.rpc.OrganizationResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-object RepositoriesComponent {
-  final case class State(repositories: Seq[RepositoryResponse])
+object OrganizationsComponent {
+  final case class State(orgs: Seq[OrganizationResponse])
 
   final case class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
-    def getRepositories() = {
+    def getOrgs() = {
       Callback.future {
         Rpc
-          .call[PaginationData[RepositoryResponse]](RpcMethod.GET, Resource.userRepositories)
+          .call[PaginationData[OrganizationResponse]](RpcMethod.GET, Resource.userOrganizations)
           .map {
             case Xor.Right(pd) =>
               $.modState(_.copy(pd.data))
@@ -46,24 +46,15 @@ object RepositoriesComponent {
       }
     }
 
-    def renderRepository(ctl: RouterCtl[DashboardRoute], repository: RepositoryResponse) = {
-      <.li(ctl.link(DashboardRoute.Repository(repository.slug))(repository.slug))
-    }
-
-    def renderRepositories(ctl: RouterCtl[DashboardRoute], repositories: Seq[RepositoryResponse]) = {
-      if (repositories.isEmpty) <.span("No repositories. Create one!")
-      else <.ul(repositories.map(renderRepository(ctl, _)))
-    }
-
     def render(ctl: RouterCtl[DashboardRoute], state: State) = {
-      <.div(<.h2("Repositories"), renderRepositories(ctl, state.repositories))
+      <.div(<.h2("Organizations"))
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("RepositoriesComponent")
+  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("OrganizationsComponent")
     .initialState(State(Seq.empty))
     .renderBackend[Backend]
-    .componentWillMount(_.backend.getRepositories())
+    .componentWillMount(_.backend.getOrgs())
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute]) = component.apply(ctl)
