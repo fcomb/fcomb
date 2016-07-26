@@ -23,11 +23,11 @@ import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
-import io.fcomb.models.{Organization, OwnerKind, Owner, User, Pagination, PaginationData}
+import io.fcomb.models.{Organization, Owner, OwnerKind, Pagination, PaginationData, User}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
-import io.fcomb.persist.{PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, OrganizationGroupUsersRepo}
-import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest, ImageUpdateRequest}
+import io.fcomb.persist.{EventsRepo, OrganizationGroupUsersRepo, OrganizationGroupsRepo, PersistModelWithAutoIntPk, PersistTableWithAutoIntPk}
+import io.fcomb.rpc.docker.distribution.{ImageCreateRequest, ImageUpdateRequest, RepositoryResponse}
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.validations._
 import java.time.ZonedDateTime
@@ -39,6 +39,7 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
   def slug           = column[String]("slug")
   def visibilityKind = column[ImageVisibilityKind]("visibility_kind")
   def description    = column[String]("description")
+  def createdBy      = column[Int]("created_by")
   def createdAt      = column[ZonedDateTime]("created_at")
   def updatedAt      = column[Option[ZonedDateTime]]("updated_at")
 
@@ -47,7 +48,15 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
   def ownerKind = column[OwnerKind]("owner_kind")
 
   def * =
-    (id, name, slug, (ownerId, ownerKind), visibilityKind, description, createdAt, updatedAt) <>
+    (id,
+     name,
+     slug,
+     (ownerId, ownerKind),
+     visibilityKind,
+     description,
+     createdBy,
+     createdAt,
+     updatedAt) <>
       ({
         case (id,
               name,
@@ -55,10 +64,19 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
               (ownerId, ownerKind),
               visibilityKind,
               description,
+              createdBy,
               createdAt,
               updatedAt) =>
           val owner = Owner(ownerId, ownerKind)
-          Image(id, name, slug, owner, visibilityKind, description, createdAt, updatedAt)
+          Image(id,
+                name,
+                slug,
+                owner,
+                visibilityKind,
+                description,
+                createdBy,
+                createdAt,
+                updatedAt)
       }, { img: Image =>
         Some(
           (img.id,
@@ -67,6 +85,7 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
            (img.owner.id, img.owner.kind),
            img.visibilityKind,
            img.description,
+           img.createdBy,
            img.createdAt,
            img.updatedAt))
       })
@@ -254,7 +273,8 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   def create(req: ImageCreateRequest, user: User)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
-    val owner = Owner(user.getId(), OwnerKind.User)
+    val userId = user.getId()
+    val owner  = Owner(userId, OwnerKind.User)
     create(
       Image(
         id = None,
@@ -263,12 +283,13 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
         owner = owner,
         visibilityKind = req.visibilityKind,
         description = req.description.getOrElse(""),
+        createdBy = userId,
         createdAt = ZonedDateTime.now,
         updatedAt = None
       ))
   }
 
-  def create(req: ImageCreateRequest, org: Organization)(
+  def create(req: ImageCreateRequest, org: Organization, createdBy: Int)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     val owner = Owner(org.getId(), OwnerKind.Organization)
     create(
@@ -279,6 +300,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
         owner = owner,
         visibilityKind = req.visibilityKind,
         description = req.description.getOrElse(""),
+        createdBy = createdBy,
         createdAt = ZonedDateTime.now,
         updatedAt = None
       ))
@@ -286,13 +308,20 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   override def createDBIO(item: Image)(implicit ec: ExecutionContext): ModelDBIO = {
     for {
-      res <- super.createDBIO(item)
+      img <- super.createDBIO(item)
+      imageId = img.getId()
       _ <- item.owner.kind match {
             case OwnerKind.User =>
-              PermissionsRepo.createUserOwnerDBIO(res.getId(), item.owner.id, Action.Manage)
+              PermissionsRepo.createUserOwnerDBIO(imageId, img.owner.id, Action.Manage)
             case _ => DBIO.successful(())
           }
-    } yield res
+      _ <- EventsRepo.createRepoEventDBIO(
+            repoId = imageId,
+            name = img.name,
+            slug = img.slug,
+            createdBy = img.createdBy
+          )
+    } yield img
   }
 
   def update(id: Int, req: ImageUpdateRequest)(

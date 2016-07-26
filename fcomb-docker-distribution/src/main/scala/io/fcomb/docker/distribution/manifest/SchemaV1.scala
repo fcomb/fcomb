@@ -24,12 +24,14 @@ import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
 import io.fcomb.crypto.Jws
+import io.fcomb.services.EventService
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
+import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest => ManifestV1, _}
 import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest => ManifestV2}
-import io.fcomb.models.docker.distribution.{Reference, ImageManifest => ImageManifest, Image => Image},
-ImageManifest.sha256Prefix
-import io.fcomb.models.errors.docker.distribution.DistributionError, DistributionError._
+import io.fcomb.models.docker.distribution.{Image, ImageManifest, Reference}
+import io.fcomb.models.errors.docker.distribution.DistributionError
+import io.fcomb.models.errors.docker.distribution.DistributionError._
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
 import io.fcomb.utils.StringUtils
 import java.time.ZonedDateTime
@@ -42,13 +44,16 @@ object SchemaV1 {
       image: Image,
       reference: Reference,
       manifest: ManifestV1,
-      rawManifest: String
+      rawManifest: String,
+      createdBy: Int
   )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] = {
     verify(manifest, rawManifest) match {
       case Xor.Right((schemaV1JsonBlob, digest)) =>
         ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).fast.map {
-          case Validated.Valid(_)   => Xor.Right(digest)
-          case Validated.Invalid(e) => Xor.Left(Unknown(e.map(_.message).mkString(";")))
+          case Validated.Valid(imageManifest) =>
+            EventService.pushRepoEvent(image, imageManifest.getId(), reference.value, createdBy)
+            Xor.Right(digest)
+          case Validated.Invalid(e) => Xor.left(Unknown(e.map(_.message).mkString(";")))
         }
       case Xor.Left(e) => FastFuture.successful(Xor.Left(Unknown(e.message)))
     }

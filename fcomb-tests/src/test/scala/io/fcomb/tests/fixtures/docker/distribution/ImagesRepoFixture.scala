@@ -37,6 +37,7 @@ object ImagesRepoFixture {
       owner = owner,
       visibilityKind = visibilityKind,
       description = description,
+      createdBy = user.getId(),
       createdAt = ZonedDateTime.now,
       updatedAt = None
     )

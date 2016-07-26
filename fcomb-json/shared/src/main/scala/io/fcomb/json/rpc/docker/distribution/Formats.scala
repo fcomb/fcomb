@@ -28,9 +28,13 @@ object Formats {
   implicit final val encodeRepositoryTagResponse: Encoder[RepositoryTagResponse] = deriveEncoder
   implicit final val encodeImageCreateRequest: Encoder[ImageCreateRequest]       = deriveEncoder
   implicit final val encodeImageUpdateRequest: Encoder[ImageUpdateRequest]       = deriveEncoder
+  implicit final val encodeImageWebhookRequest: Encoder[ImageWebhookRequest]     = deriveEncoder
+  implicit final val encodeImageWebhookResponse: Encoder[ImageWebhookResponse]   = deriveEncoder
 
   implicit final val decodeRepositoryResponse: Decoder[RepositoryResponse]       = deriveDecoder
   implicit final val decodeRepositoryTagResponse: Decoder[RepositoryTagResponse] = deriveDecoder
   implicit final val decodeImageCreateRequest: Decoder[ImageCreateRequest]       = deriveDecoder
   implicit final val decodeImageUpdateRequest: Decoder[ImageUpdateRequest]       = deriveDecoder
+  implicit final val decodeImageWebhookRequest: Decoder[ImageWebhookRequest]     = deriveDecoder
+  implicit final val decodeImageWebhookResponse: Decoder[ImageWebhookResponse]   = deriveDecoder
 }

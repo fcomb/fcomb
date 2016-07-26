@@ -16,23 +16,12 @@
 
 package io.fcomb.models.docker.distribution
 
-import io.fcomb.models.{ModelWithAutoIntPk, Owner}
-import java.time.ZonedDateTime
+import io.fcomb.models.ModelWithAutoIntPk
 
-final case class Image(
-    id: Option[Int],
-    name: String,
-    slug: String,
-    owner: Owner,
-    visibilityKind: ImageVisibilityKind,
-    description: String,
-    createdBy: Int,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
+final case class ImageWebhook(
+    id: Option[Int] = None,
+    imageId: Int,
+    url: String
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))
-}
-
-object Image {
-  val nameRegEx = """[A-Za-z][\w\-\.]*""".r
 }

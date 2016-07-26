@@ -117,7 +117,8 @@ object RepositoriesHandler {
       path("private")(post(updateVisibility(slug, ImageVisibilityKind.Private)))
     } ~
     TagsHandler.routes(slug) ~
-    PermissionsHandler.routes(slug)
+    PermissionsHandler.routes(slug) ~
+    WebhooksHandler.routes(slug)
     // format: ON
   }
 }

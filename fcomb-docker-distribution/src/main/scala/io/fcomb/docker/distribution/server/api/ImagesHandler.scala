@@ -23,9 +23,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.ByteString
 import cats.data.Xor
-import io.fcomb.server.CirceSupport._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest, SchemaV2 => SchemaV2Manifest}
-import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.MediaTypes
@@ -36,7 +34,9 @@ import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
-import io.fcomb.persist.docker.distribution.{ImagesRepo, ImageManifestsRepo}
+import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImagesRepo}
+import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CirceSupport._
 import scala.collection.immutable
 
 object ImagesHandler {
@@ -91,7 +91,8 @@ object ImagesHandler {
   def uploadManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
+        val userId = user.getId()
+        imageByNameWithAcl(imageName, userId, Action.Write) { image =>
           import mat.executionContext
           entity(as[ByteString]) { rawManifestBs =>
             respondWithContentType(`application/json`) {
@@ -99,9 +100,17 @@ object ImagesHandler {
                 val rawManifest = rawManifestBs.utf8String
                 val res = manifest match {
                   case m: SchemaV1.Manifest =>
-                    SchemaV1Manifest.upsertAsImageManifest(image, reference, m, rawManifest)
+                    SchemaV1Manifest.upsertAsImageManifest(image,
+                                                           reference,
+                                                           m,
+                                                           rawManifest,
+                                                           userId)
                   case m: SchemaV2.Manifest =>
-                    SchemaV2Manifest.upsertAsImageManifest(image, reference, m, rawManifest)
+                    SchemaV2Manifest.upsertAsImageManifest(image,
+                                                           reference,
+                                                           m,
+                                                           rawManifest,
+                                                           userId)
                 }
                 onSuccess(res) {
                   case Xor.Right(digest) =>

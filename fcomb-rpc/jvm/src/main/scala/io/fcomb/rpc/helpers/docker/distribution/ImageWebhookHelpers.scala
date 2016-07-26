@@ -14,25 +14,15 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.docker.distribution
+package io.fcomb.rpc.helpers.docker.distribution
 
-import io.fcomb.models.{ModelWithAutoIntPk, Owner}
-import java.time.ZonedDateTime
+import io.fcomb.models.docker.distribution.ImageWebhook
+import io.fcomb.rpc.docker.distribution.ImageWebhookResponse
 
-final case class Image(
-    id: Option[Int],
-    name: String,
-    slug: String,
-    owner: Owner,
-    visibilityKind: ImageVisibilityKind,
-    description: String,
-    createdBy: Int,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
-) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
-}
-
-object Image {
-  val nameRegEx = """[A-Za-z][\w\-\.]*""".r
+object ImageWebhookHelpers {
+  def responseFrom(hook: ImageWebhook): ImageWebhookResponse =
+    ImageWebhookResponse(
+      id = hook.getId(),
+      url = hook.url
+    )
 }

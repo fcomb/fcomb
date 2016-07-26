@@ -59,9 +59,10 @@ object RepositoriesHandler {
   def create(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+        val userId = user.getId()
+        organizationBySlugWithAcl(slug, userId, Role.Admin) { org =>
           entity(as[ImageCreateRequest]) { req =>
-            onSuccess(ImagesRepo.create(req, org)) {
+            onSuccess(ImagesRepo.create(req, org, userId)) {
               case Validated.Valid(image) =>
                 val uri     = resourcePrefix + image.getId().toString
                 val headers = immutable.Seq(Location(uri))

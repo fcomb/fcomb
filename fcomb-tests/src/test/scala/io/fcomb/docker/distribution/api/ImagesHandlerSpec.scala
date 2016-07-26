@@ -16,6 +16,7 @@
 
 package io.fcomb.docker.distribution.server.api
 
+import akka.actor.PoisonPill
 import akka.http.scaladsl._, model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.StatusCodes
@@ -37,6 +38,7 @@ import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionErrorResponse, DistributionError}
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
+import io.fcomb.services.EventService
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests.fixtures.docker.distribution._
@@ -58,6 +60,12 @@ class ImagesHandlerSpec
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)
   val credentials      = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
+  val eventServiceRef  = EventService.start()
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    eventServiceRef ! PoisonPill
+  }
 
   "The image handler" should {
     "return list of repositories for GET request to the catalog path" in {
