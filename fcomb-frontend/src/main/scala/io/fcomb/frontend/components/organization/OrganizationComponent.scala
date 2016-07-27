@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.dashboard
+package io.fcomb.frontend.components.organization
 
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
@@ -24,22 +24,30 @@ import io.fcomb.rpc.OrganizationResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import org.scalajs.dom.raw.HTMLInputElement
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js
 
 object OrganizationComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], name: String)
   final case class FormState(name: String, isFormDisabled: Boolean)
-  final case class State(organization: Option[OrganizationResponse], form: Option[FormState])
+  final case class State(org: Option[OrganizationResponse], form: Option[FormState])
 
   final case class Backend($ : BackendScope[Props, State]) {
     def getOrg(name: String): Callback = {
-      Callback.empty
+      Callback.future {
+        Rpc.call[OrganizationResponse](RpcMethod.GET, Resource.organization(name)).map {
+          case Xor.Right(org) =>
+            $.modState(_.copy(org = Some(org)))
+          case Xor.Left(e) =>
+            println(e)
+            Callback.empty
+        }
+      }
     }
 
     def render(props: Props, state: State) = {
-      <.div()
+      <.div(
+        <.h2(s"Organization ${props.name}")
+      )
     }
   }
 

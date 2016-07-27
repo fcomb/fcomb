@@ -19,7 +19,6 @@ package io.fcomb.json.models
 import enumeratum.Circe
 import io.circe.generic.semiauto._
 import io.circe.{Encoder, Decoder}
-import io.fcomb.json.Java8TimeFormats._
 import io.fcomb.models._, EventDetails._
 
 object Formats {
@@ -40,7 +39,7 @@ object Formats {
     }
   }
 
-  implicit final val encodeEvent: Encoder[Event] = deriveEncoder
+  implicit final val encodeEventResponse: Encoder[EventResponse] = deriveEncoder
 
   implicit final val decodeOwnerKind: Decoder[OwnerKind] = Circe.decoder(OwnerKind)
   implicit final val decodeEventKind: Decoder[EventKind] = Circe.decoder(EventKind)
@@ -59,5 +58,5 @@ object Formats {
     }
   }
 
-  implicit final val decodeEvent: Decoder[Event] = deriveDecoder
+  implicit final val decodeEventResponse: Decoder[EventResponse] = deriveDecoder
 }

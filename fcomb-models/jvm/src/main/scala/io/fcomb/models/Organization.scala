@@ -16,14 +16,14 @@
 
 package io.fcomb.models
 
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 final case class Organization(
     id: Option[Int],
     name: String,
     ownerUserId: Int,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
+    createdAt: OffsetDateTime,
+    updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))
 }

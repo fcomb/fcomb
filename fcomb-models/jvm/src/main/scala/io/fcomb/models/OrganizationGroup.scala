@@ -17,15 +17,15 @@
 package io.fcomb.models
 
 import io.fcomb.models.acl.Role
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 final case class OrganizationGroup(
     id: Option[Int],
     organizationId: Int,
     name: String,
     role: Role,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
+    createdAt: OffsetDateTime,
+    updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))
 }

@@ -22,8 +22,7 @@ import io.fcomb.models.docker.distribution.ImageManifestTag
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist._
 import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
-import io.fcomb.rpc.helpers.time.Implicits._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import scala.concurrent.{Future, ExecutionContext}
 
 class ImageManifestTagTable(_tag: Tag)
@@ -31,7 +30,7 @@ class ImageManifestTagTable(_tag: Tag)
   def imageId         = column[Int]("image_id")
   def imageManifestId = column[Int]("image_manifest_id")
   def tag             = column[String]("tag")
-  def updatedAt       = column[ZonedDateTime]("updated_at")
+  def updatedAt       = column[OffsetDateTime]("updated_at")
 
   def * =
     (imageId, imageManifestId, tag, updatedAt) <>
@@ -47,7 +46,7 @@ object ImageManifestTagsRepo
   def upsertTagsDBIO(imageId: Int, imageManifestId: Int, tags: List[String])(
       implicit ec: ExecutionContext
   ) = {
-    val timeNow = ZonedDateTime.now()
+    val timeNow = OffsetDateTime.now()
     for {
       existingTags <- findAllExistingTagsDBIO(imageId, imageManifestId, tags)
       _            <- DBIO.seq(existingTags.map(updateTagDBIO(_, imageManifestId)): _*)
@@ -76,14 +75,14 @@ object ImageManifestTagsRepo
       _ <- sqlu"""
           UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
             SET tags = array_remove(tags, ${imt.tag}),
-                updated_at = ${ZonedDateTime.now()}
+                updated_at = ${OffsetDateTime.now()}
             WHERE id = ${imt.imageManifestId}
           """
       _ <- table.filter { q =>
             q.imageId === imt.imageId && q.imageManifestId === imt.imageManifestId &&
             q.tag === imt.tag
           }.map(t => (t.imageManifestId, t.updatedAt))
-            .update((imageManifestId, ZonedDateTime.now()))
+            .update((imageManifestId, OffsetDateTime.now()))
     } yield ()
   }
 
@@ -93,7 +92,7 @@ object ImageManifestTagsRepo
       .on(_.imageManifestId === _.id)
       .filter(_._1.imageId === imageId)
 
-  private def sortByPF(q: (Rep[String], Rep[String], Rep[Long], Rep[ZonedDateTime]))
+  private def sortByPF(q: (Rep[String], Rep[String], Rep[Long], Rep[OffsetDateTime]))
     : PartialFunction[String, Rep[_]] = {
     case "tag"               => q._1
     case "imageSha256Digest" => q._2
@@ -118,7 +117,7 @@ object ImageManifestTagsRepo
       for {
         tags  <- findByImageIdAsReponseDBIO(imageId, p).result
         total <- findByImageIdTotalCompiled(imageId).result
-        data = tags.map(t => RepositoryTagResponse.tupled(t.copy(_4 = t._4.toIso8601)))
+        data = tags.map(t => RepositoryTagResponse.tupled(t.copy(_4 = t._4.toString)))
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
   }

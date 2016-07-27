@@ -30,7 +30,7 @@ import io.fcomb.persist.{EventsRepo, OrganizationGroupUsersRepo, OrganizationGro
 import io.fcomb.rpc.docker.distribution.{ImageCreateRequest, ImageUpdateRequest, RepositoryResponse}
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.validations._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
@@ -40,8 +40,8 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
   def visibilityKind = column[ImageVisibilityKind]("visibility_kind")
   def description    = column[String]("description")
   def createdBy      = column[Int]("created_by")
-  def createdAt      = column[ZonedDateTime]("created_at")
-  def updatedAt      = column[Option[ZonedDateTime]]("updated_at")
+  def createdAt      = column[OffsetDateTime]("created_at")
+  def updatedAt      = column[Option[OffsetDateTime]]("updated_at")
 
   // owner
   def ownerId   = column[Int]("owner_id")
@@ -284,7 +284,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
         visibilityKind = req.visibilityKind,
         description = req.description.getOrElse(""),
         createdByUserId = userId,
-        createdAt = ZonedDateTime.now,
+        createdAt = OffsetDateTime.now,
         updatedAt = None
       ))
   }
@@ -301,7 +301,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
         visibilityKind = req.visibilityKind,
         description = req.description.getOrElse(""),
         createdByUserId = createdByUserId,
-        createdAt = ZonedDateTime.now,
+        createdAt = OffsetDateTime.now,
         updatedAt = None
       ))
   }

@@ -23,7 +23,7 @@ import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.docker.distribution.{BlobFile, BlobFileState}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.Implicits._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.ExecutionContext
 
@@ -32,9 +32,9 @@ class BlobFileTable(tag: Tag) extends Table[BlobFile](tag, "dd_blob_files") {
   def digest     = column[Option[String]]("digest")
   def state      = column[BlobFileState]("state")
   def retryCount = column[Int]("retry_count")
-  def createdAt  = column[ZonedDateTime]("created_at")
-  def updatedAt  = column[Option[ZonedDateTime]]("updated_at")
-  def retriedAt  = column[Option[ZonedDateTime]]("retried_at")
+  def createdAt  = column[OffsetDateTime]("created_at")
+  def updatedAt  = column[Option[OffsetDateTime]]("updated_at")
+  def retriedAt  = column[Option[OffsetDateTime]]("retried_at")
 
   def * =
     (uuid, digest, state, retryCount, createdAt, updatedAt, retriedAt) <>
@@ -50,7 +50,7 @@ object BlobFilesRepo {
       digest = None,
       state = BlobFileState.Available,
       retryCount = 0,
-      createdAt = ZonedDateTime.now,
+      createdAt = OffsetDateTime.now,
       updatedAt = None,
       retriedAt = None
     )
@@ -134,7 +134,7 @@ object BlobFilesRepo {
     }.map(_.state).update(BlobFileState.Deleting)
   }
 
-  def markOutdatedUploadsDBIO(until: Rep[ZonedDateTime]) = {
+  def markOutdatedUploadsDBIO(until: Rep[OffsetDateTime]) = {
     table
       .filter(_.uuid.in(ImageBlobsRepo.findOutdatedUploadsIdDBIO(until)))
       .map(_.state)
@@ -149,7 +149,7 @@ object BlobFilesRepo {
   def updateRetryCount(uuids: Seq[UUID]) = {
     if (uuids.isEmpty) FastFuture.successful(())
     else {
-      val retriedAt = Some(ZonedDateTime.now())
+      val retriedAt = Some(OffsetDateTime.now())
       db.run {
         val uuidCol       = table.baseTableRow.uuid.toString()
         val retryCountCol = table.baseTableRow.retryCount.toString()

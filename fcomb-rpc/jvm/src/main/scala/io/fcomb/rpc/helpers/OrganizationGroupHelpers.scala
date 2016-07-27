@@ -18,7 +18,6 @@ package io.fcomb.rpc.helpers
 
 import io.fcomb.models.OrganizationGroup
 import io.fcomb.rpc.OrganizationGroupResponse
-import io.fcomb.rpc.helpers.time.Implicits._
 
 object OrganizationGroupHelpers {
   def responseFrom(group: OrganizationGroup): OrganizationGroupResponse = {
@@ -27,8 +26,8 @@ object OrganizationGroupHelpers {
       name = group.name,
       organizationId = group.organizationId,
       role = group.role,
-      createdAt = group.createdAt.toIso8601,
-      updatedAt = group.updatedAt.map(_.toIso8601)
+      createdAt = group.createdAt.toString,
+      updatedAt = group.updatedAt.map(_.toString)
     )
   }
 }

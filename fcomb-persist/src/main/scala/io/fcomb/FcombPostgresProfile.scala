@@ -20,9 +20,6 @@ import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.utils.SimpleArrayUtils
 import io.fcomb.models.common.{Enum, EnumItem}
 import java.sql.{PreparedStatement, ResultSet}
-import org.threeten.bp._
-import org.threeten.bp.format.{DateTimeFormatter, DateTimeFormatterBuilder}
-import org.threeten.bp.temporal.ChronoField
 import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
 import slick.jdbc.JdbcType
@@ -30,7 +27,6 @@ import slick.jdbc.JdbcType
 trait FcombPostgresProfile
     extends ExPostgresProfile
     with PgArraySupport
-    with PgDateSupport
     with PgCirceJsonSupport
     with PgNetSupport
     with PgLTreeSupport
@@ -38,6 +34,7 @@ trait FcombPostgresProfile
     with PgHStoreSupport
     with PgEnumSupport
     with PgSearchSupport
+    with PgDateSupport
     with PgDate2Support {
 
   override val pgjson = "json"
@@ -46,9 +43,7 @@ trait FcombPostgresProfile
       sqlEnumTypeName: String,
       enum: Enum[T],
       quoteName: Boolean = false
-  )(
-      implicit tag: ClassTag[T]
-  ): JdbcType[T] = new DriverJdbcType[T] {
+  )(implicit tag: ClassTag[T]): JdbcType[T] = new DriverJdbcType[T] {
     override val classTag: ClassTag[T] = tag
 
     override def sqlType: Int = java.sql.Types.OTHER
@@ -88,27 +83,9 @@ trait FcombPostgresProfile
     ).to(_.toList)
   }
 
-  trait BpDateTimeFormatters {
-    val bpTzDateTimeFormatter = new DateTimeFormatterBuilder()
-      .append(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-      .optionalStart()
-      .appendFraction(ChronoField.NANO_OF_SECOND, 0, 6, true)
-      .optionalEnd()
-      .appendOffset("+HH:mm", "+00")
-      .toFormatter
-  }
-
-  trait BpDateTimePlainImplicits extends BpDateTimeFormatters {
-    implicit val bpTzTimestamp1TypeMapper: JdbcType[ZonedDateTime] =
-      new GenericJdbcType[ZonedDateTime]("timestamptz",
-                                         ZonedDateTime.parse(_, bpTzDateTimeFormatter),
-                                         _.format(bpTzDateTimeFormatter))
-  }
-
   override val api = new API with ArrayImplicits with DateTimeImplicits
-  with Date2DateTimePlainImplicits with BpDateTimePlainImplicits with JsonImplicits
-  with NetImplicits with LTreeImplicits with RangeImplicits with HStoreImplicits
-  with SearchImplicits with SearchAssistants {}
+  with Date2DateTimePlainImplicits with JsonImplicits with NetImplicits with LTreeImplicits
+  with RangeImplicits with HStoreImplicits with SearchImplicits with SearchAssistants
 }
 
 object FcombPostgresProfile extends FcombPostgresProfile

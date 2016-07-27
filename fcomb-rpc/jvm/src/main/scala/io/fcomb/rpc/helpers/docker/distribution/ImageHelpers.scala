@@ -19,7 +19,6 @@ package io.fcomb.rpc.helpers.docker.distribution
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
-import io.fcomb.rpc.helpers.time.Implicits._
 
 object ImageHelpers {
   def responseFrom(image: Image, action: Action): RepositoryResponse =
@@ -31,7 +30,7 @@ object ImageHelpers {
       action = action,
       visibilityKind = image.visibilityKind,
       description = image.description,
-      createdAt = image.createdAt.toIso8601,
-      updatedAt = image.updatedAt.map(_.toIso8601)
+      createdAt = image.createdAt.toString,
+      updatedAt = image.updatedAt.map(_.toString)
     )
 }

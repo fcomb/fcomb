@@ -17,7 +17,7 @@
 package io.fcomb.models
 
 import com.github.t3hnar.bcrypt._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 final case class User(
     id: Option[Int],
@@ -25,8 +25,8 @@ final case class User(
     username: String,
     fullName: Option[String],
     passwordHash: String,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
+    createdAt: OffsetDateTime,
+    updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))
 

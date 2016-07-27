@@ -16,11 +16,11 @@
 
 package io.fcomb.models.docker.distribution
 
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 final case class ImageManifestTag(
     imageId: Int,
     imageManifestId: Int,
     tag: String,
-    updatedAt: ZonedDateTime
+    updatedAt: OffsetDateTime
 )

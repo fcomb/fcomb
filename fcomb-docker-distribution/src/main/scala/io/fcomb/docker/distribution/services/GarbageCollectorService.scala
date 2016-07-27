@@ -23,7 +23,7 @@ import cats.data.Xor
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.persist.docker.distribution.{BlobFilesRepo, ImageBlobsRepo}
 import io.fcomb.utils.Config.docker.distribution.gc
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import java.util.UUID
 import org.slf4j.LoggerFactory
 import scala.collection.mutable
@@ -82,7 +82,7 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
       context.become(busy, false)
       val fut = e match {
         case CheckOutdated =>
-          val until = ZonedDateTime.now().minus(gc.outdatedPeriod)
+          val until = OffsetDateTime.now().minus(gc.outdatedPeriod)
           ImageBlobsRepo.destroyOutdatedUploads(until)
         case CheckDeleting => runDeleting()
       }

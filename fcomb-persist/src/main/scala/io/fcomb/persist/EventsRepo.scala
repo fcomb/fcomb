@@ -24,7 +24,7 @@ import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.FcombPostgresProfile.createJdbcMapping
 import io.fcomb.json.models.Formats._
 import io.fcomb.models.{Event, EventDetails, EventKind}
-import org.threeten.bp.ZonedDateTime
+import java.time.OffsetDateTime
 
 object EventTableImplicits {
   implicit val eventKindColumnType = createJdbcMapping("event_kind", EventKind)
@@ -35,7 +35,7 @@ class EventTable(tag: Tag) extends Table[Event](tag, "dd_events") with PersistTa
   def kind            = column[EventKind]("kind")
   def detailsJsonBlob = column[Json]("details_json_blob")
   def createdByUserId = column[Int]("created_by")
-  def createdAt       = column[ZonedDateTime]("created_at")
+  def createdAt       = column[OffsetDateTime]("created_at")
 
   def * =
     (id, kind, detailsJsonBlob, createdByUserId, createdAt) <>
@@ -61,7 +61,7 @@ object EventsRepo extends PersistModelWithAutoIntPk[Event, EventTable] {
       kind = details.kind,
       details = details,
       createdByUserId = createdByUserId,
-      createdAt = ZonedDateTime.now
+      createdAt = OffsetDateTime.now
     )
   }
 

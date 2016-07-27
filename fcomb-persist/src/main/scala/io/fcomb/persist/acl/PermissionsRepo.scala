@@ -27,9 +27,8 @@ import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, UsersRepo}
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.acl._
-import io.fcomb.rpc.helpers.time.Implicits._
 import io.fcomb.validations.{ValidationResult, ValidationResultUnit}
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import scala.concurrent.{Future, ExecutionContext}
 import slick.jdbc.TransactionIsolation
 
@@ -40,8 +39,8 @@ class PermissionTable(tag: Tag)
   def memberId   = column[Int]("member_id")
   def memberKind = column[MemberKind]("member_kind")
   def action     = column[Action]("action")
-  def createdAt  = column[ZonedDateTime]("created_at")
-  def updatedAt  = column[Option[ZonedDateTime]]("updated_at")
+  def createdAt  = column[OffsetDateTime]("created_at")
+  def updatedAt  = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
     (id, imageId, memberId, memberKind, action, createdAt, updatedAt) <>
@@ -121,19 +120,19 @@ object PermissionsRepo
       memberId = userId,
       memberKind = MemberKind.User,
       action = action,
-      createdAt = ZonedDateTime.now(),
+      createdAt = OffsetDateTime.now(),
       updatedAt = None
     )
   }
 
   private type PermissionResponseTuple =
-    (Int, MemberKind, Action, ZonedDateTime, Option[ZonedDateTime], (String, Option[String]))
+    (Int, MemberKind, Action, OffsetDateTime, Option[OffsetDateTime], (String, Option[String]))
 
   private type PermissionResponseTupleRep = (Rep[Int],
                                              Rep[MemberKind],
                                              Rep[Action],
-                                             Rep[ZonedDateTime],
-                                             Rep[Option[ZonedDateTime]],
+                                             Rep[OffsetDateTime],
+                                             Rep[Option[OffsetDateTime]],
                                              (Rep[String], Rep[Option[String]]))
 
   private def findByImageIdScopeDBIO(imageId: Rep[Int]) = {
@@ -196,8 +195,8 @@ object PermissionsRepo
         PermissionResponse(
           member = member,
           action = action,
-          createdAt = createdAt.toIso8601,
-          updatedAt = updatedAt.map(_.toIso8601)
+          createdAt = createdAt.toString,
+          updatedAt = updatedAt.map(_.toString)
         )
     }
 
@@ -225,7 +224,7 @@ object PermissionsRepo
               case Some(p) =>
                 val up = p.copy(
                   action = req.action,
-                  updatedAt = Some(ZonedDateTime.now)
+                  updatedAt = Some(OffsetDateTime.now)
                 )
                 findByIdQuery(p.getId()).update(up).map(_ => up)
               case _ =>
@@ -241,8 +240,8 @@ object PermissionsRepo
                 PermissionResponse(
                   member = member,
                   action = p.action,
-                  createdAt = p.createdAt.toIso8601,
-                  updatedAt = p.updatedAt.map(_.toIso8601)
+                  createdAt = p.createdAt.toString,
+                  updatedAt = p.updatedAt.map(_.toString)
                 ))
             }
           }

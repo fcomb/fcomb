@@ -17,7 +17,7 @@
 package io.fcomb.models.acl
 
 import io.fcomb.models.ModelWithAutoIntPk
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 final case class Permission(
     id: Option[Int],
@@ -25,8 +25,8 @@ final case class Permission(
     memberId: Int,
     memberKind: MemberKind,
     action: Action,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
+    createdAt: OffsetDateTime,
+    updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))
 }

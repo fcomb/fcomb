@@ -17,7 +17,7 @@
 package io.fcomb.models.docker.distribution
 
 import scala.collection.immutable
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 sealed trait SchemaManifest {
   val schemaVersion: Int
@@ -33,7 +33,7 @@ object SchemaV1 {
   final case class Protected(
       formatLength: Int,
       formatTail: String,
-      time: ZonedDateTime
+      time: OffsetDateTime
   )
 
   final case class SignatureHeader(
@@ -78,7 +78,7 @@ object SchemaV1 {
       id: Option[String],
       parent: Option[String],
       comment: Option[String],
-      created: Option[ZonedDateTime],
+      created: Option[OffsetDateTime],
       container: Option[String],
       containerConfig: Option[ContainerConfig],
       dockerVersion: Option[String],
@@ -98,7 +98,7 @@ object SchemaV1 {
       id: String,
       parent: Option[String],
       comment: Option[String],
-      created: Option[ZonedDateTime],
+      created: Option[OffsetDateTime],
       containerConfig: Option[LayerContainerConfig],
       author: Option[String],
       throwAway: Option[Boolean]
@@ -138,7 +138,7 @@ object SchemaV2 {
   )
 
   final case class ImageHistory(
-      created: ZonedDateTime,
+      created: OffsetDateTime,
       author: Option[String],
       createdBy: Option[String],
       comment: Option[String],

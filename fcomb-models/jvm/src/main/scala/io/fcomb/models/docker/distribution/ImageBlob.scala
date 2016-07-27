@@ -19,7 +19,7 @@ package io.fcomb.models.docker.distribution
 import io.fcomb.models.ModelWithUuidPk
 import io.fcomb.models.common.{Enum, EnumItem}
 import cats.syntax.eq._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import java.util.UUID
 
 sealed trait ImageBlobState extends EnumItem
@@ -39,8 +39,8 @@ case class ImageBlob(
     digest: Option[String],
     contentType: String,
     length: Long,
-    createdAt: ZonedDateTime,
-    uploadedAt: Option[ZonedDateTime]
+    createdAt: OffsetDateTime,
+    uploadedAt: Option[OffsetDateTime]
 ) extends ModelWithUuidPk {
   def withPk(id: UUID) = this.copy(id = Some(id))
 

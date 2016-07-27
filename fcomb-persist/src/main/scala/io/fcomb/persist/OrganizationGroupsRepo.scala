@@ -25,7 +25,7 @@ import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.{OrganizationGroupCreateRequest, OrganizationGroupUpdateRequest}
 import io.fcomb.validations._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
@@ -35,8 +35,8 @@ class OrganizationGroupTable(tag: Tag)
   def organizationId = column[Int]("organization_id")
   def name           = column[String]("name")
   def role           = column[Role]("role")
-  def createdAt      = column[ZonedDateTime]("created_at")
-  def updatedAt      = column[Option[ZonedDateTime]]("updated_at")
+  def createdAt      = column[OffsetDateTime]("created_at")
+  def updatedAt      = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
     (id, organizationId, name, role, createdAt, updatedAt) <>
@@ -84,7 +84,7 @@ object OrganizationGroupsRepo
       organizationId = organizationId,
       name = "Admins",
       role = Role.Admin,
-      createdAt = ZonedDateTime.now(),
+      createdAt = OffsetDateTime.now(),
       updatedAt = None
     )
     for {
@@ -100,7 +100,7 @@ object OrganizationGroupsRepo
       organizationId = organizationId,
       name = req.name,
       role = req.role,
-      createdAt = ZonedDateTime.now(),
+      createdAt = OffsetDateTime.now(),
       updatedAt = None
     )
     create(group)

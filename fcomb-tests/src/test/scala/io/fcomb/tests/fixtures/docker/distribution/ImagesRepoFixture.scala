@@ -22,7 +22,7 @@ import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 object ImagesRepoFixture {
   def create(user: User,
@@ -38,7 +38,7 @@ object ImagesRepoFixture {
       visibilityKind = visibilityKind,
       description = description,
       createdByUserId = user.getId(),
-      createdAt = ZonedDateTime.now,
+      createdAt = OffsetDateTime.now,
       updatedAt = None
     )
     for {

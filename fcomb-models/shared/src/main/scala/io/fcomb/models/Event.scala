@@ -17,7 +17,7 @@
 package io.fcomb.models
 
 import io.fcomb.models.common.{Enum, EnumItem}
-import org.threeten.bp.ZonedDateTime
+import java.time.OffsetDateTime
 
 sealed trait EventKind extends EnumItem
 
@@ -55,7 +55,15 @@ final case class Event(
     kind: EventKind,
     details: EventDetails,
     createdByUserId: Int,
-    createdAt: ZonedDateTime
+    createdAt: OffsetDateTime
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))
 }
+
+final case class EventResponse(
+    id: Int,
+    kind: EventKind,
+    details: EventDetails,
+    createdByUserId: Int,
+    createdAt: String
+)

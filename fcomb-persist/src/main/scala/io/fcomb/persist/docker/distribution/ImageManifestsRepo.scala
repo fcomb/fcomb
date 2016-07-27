@@ -22,7 +22,7 @@ import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.persist._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
@@ -37,8 +37,8 @@ class ImageManifestTable(tag: Tag)
   def schemaVersion    = column[Int]("schema_version")
   def schemaV1JsonBlob = column[String]("schema_v1_json_blob")
   def length           = column[Long]("length")
-  def createdAt        = column[ZonedDateTime]("created_at")
-  def updatedAt        = column[Option[ZonedDateTime]]("updated_at")
+  def createdAt        = column[OffsetDateTime]("created_at")
+  def updatedAt        = column[Option[OffsetDateTime]]("updated_at")
 
   // schema v2 details
   def v2ConfigBlobId = column[Option[UUID]]("v2_config_blob_id")
@@ -67,8 +67,8 @@ class ImageManifestTable(tag: Tag)
       schemaVersion: Int,
       schemaV1JsonBlob: String,
       length: Long,
-      createdAt: ZonedDateTime,
-      updatedAt: Option[ZonedDateTime],
+      createdAt: OffsetDateTime,
+      updatedAt: Option[OffsetDateTime],
       v2DetailsTuple: (Option[UUID], Option[String])
   ) = {
     val schemaV2Details = (schemaVersion, v2DetailsTuple) match {
@@ -166,7 +166,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
                   schemaV1JsonBlob = schemaV1JsonBlob,
                   schemaV2Details = None,
                   length = length,
-                  createdAt = ZonedDateTime.now,
+                  createdAt = OffsetDateTime.now,
                   updatedAt = None
                 ))
             }
@@ -218,7 +218,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
                 schemaV1JsonBlob = schemaV1JsonBlob,
                 schemaV2Details = Some(schemaV2Details),
                 length = length,
-                createdAt = ZonedDateTime.now,
+                createdAt = OffsetDateTime.now,
                 updatedAt = None
               ))
           }
@@ -239,7 +239,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
         _ <- sqlu"""
           UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
             SET tags = tags || ${reference.value},
-                updated_at = ${ZonedDateTime.now()}
+                updated_at = ${OffsetDateTime.now()}
             WHERE id = ${im.getId}
           """
       } yield ())

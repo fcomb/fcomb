@@ -25,7 +25,7 @@ import io.fcomb.models.User
 import io.fcomb.models.common.Slug
 import io.fcomb.rpc.{UserSignUpRequest, UserUpdateRequest}
 import io.fcomb.validations._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 
 class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWithAutoIntPk {
@@ -33,8 +33,8 @@ class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWit
   def username     = column[String]("username")
   def fullName     = column[Option[String]]("full_name")
   def passwordHash = column[String]("password_hash")
-  def createdAt    = column[ZonedDateTime]("created_at")
-  def updatedAt    = column[Option[ZonedDateTime]]("updated_at")
+  def createdAt    = column[OffsetDateTime]("created_at")
+  def updatedAt    = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
     (id, email, username, fullName, passwordHash, createdAt, updatedAt) <>
@@ -50,7 +50,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       fullName: Option[String],
       password: String
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
-    val timeAt = ZonedDateTime.now()
+    val timeAt = OffsetDateTime.now()
     val user = mapModel(
       User(
         id = None,
@@ -86,7 +86,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
         email = req.email,
         // username = req.username,
         fullName = req.fullName,
-        updatedAt = Some(ZonedDateTime.now())
+        updatedAt = Some(OffsetDateTime.now())
       ))
 
   private lazy val updatePasswordCompiled = Compiled { (userId: Rep[Int]) =>
@@ -102,7 +102,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     val salt         = generateSalt
     val passwordHash = password.bcrypt(salt)
     db.run {
-      updatePasswordCompiled(userId).update((passwordHash, Some(ZonedDateTime.now))).map(_ == 1)
+      updatePasswordCompiled(userId).update((passwordHash, Some(OffsetDateTime.now))).map(_ == 1)
     }
   }
 

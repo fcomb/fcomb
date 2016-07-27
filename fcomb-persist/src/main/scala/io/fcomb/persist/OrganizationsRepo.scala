@@ -27,7 +27,7 @@ import io.fcomb.persist.docker.distribution.ImageBlobsRepo
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationResponse}
 import io.fcomb.validations._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import scala.concurrent.{Future, ExecutionContext}
 import slick.jdbc.TransactionIsolation
 
@@ -36,8 +36,8 @@ class OrganizationTable(tag: Tag)
     with PersistTableWithAutoIntPk {
   def name        = column[String]("name")
   def ownerUserId = column[Int]("owner_user_id")
-  def createdAt   = column[ZonedDateTime]("created_at")
-  def updatedAt   = column[Option[ZonedDateTime]]("updated_at")
+  def createdAt   = column[OffsetDateTime]("created_at")
+  def updatedAt   = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
     (id, name, ownerUserId, createdAt, updatedAt) <>
@@ -165,7 +165,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
         id = None,
         name = req.name,
         ownerUserId = userId,
-        createdAt = ZonedDateTime.now,
+        createdAt = OffsetDateTime.now,
         updatedAt = None
       ))
   }

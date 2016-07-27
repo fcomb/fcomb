@@ -24,7 +24,7 @@ import io.fcomb.models.docker.distribution.ImageManifest.{emptyTarSha256Digest, 
 import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob, BlobFileState}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.{PersistTableWithUuidPk, PersistModelWithUuidPk}
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
@@ -37,8 +37,8 @@ class ImageBlobTable(tag: Tag)
   def digest      = column[Option[String]]("digest")
   def contentType = column[String]("content_type")
   def length      = column[Long]("length")
-  def createdAt   = column[ZonedDateTime]("created_at")
-  def uploadedAt  = column[Option[ZonedDateTime]]("uploaded_at")
+  def createdAt   = column[OffsetDateTime]("created_at")
+  def uploadedAt  = column[Option[OffsetDateTime]]("uploaded_at")
 
   def * =
     (id, imageId, state, digest, contentType, length, createdAt, uploadedAt) <>
@@ -64,7 +64,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
           findByImageIdAndDigestCompiled((toImageId, digest)).result.headOption.flatMap {
             case Some(b) => DBIO.successful(Some(b))
             case None =>
-              val timeNow = ZonedDateTime.now()
+              val timeNow = OffsetDateTime.now()
               createDBIO(
                 ImageBlob(
                   id = Some(UUID.randomUUID()),
@@ -90,7 +90,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         digest = None,
         contentType = mapContentType(contentType),
         length = 0L,
-        createdAt = ZonedDateTime.now(),
+        createdAt = OffsetDateTime.now(),
         uploadedAt = None
       ))
 
@@ -163,7 +163,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
                       ImageBlobState.Uploaded,
                       length,
                       Some(digest),
-                      Some(ZonedDateTime.now())
+                      Some(OffsetDateTime.now())
                     ))
             res <- BlobFilesRepo.markDBIO(id, digest)
           } yield res
@@ -258,17 +258,17 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     } yield res
   }
 
-  def destroyOutdatedUploadsDBIO(until: Rep[ZonedDateTime]) = {
+  def destroyOutdatedUploadsDBIO(until: Rep[OffsetDateTime]) = {
     table.filter { q =>
       q.createdAt <= until && q.state =!= (ImageBlobState.Uploaded: ImageBlobState)
     }
   }
 
-  def findOutdatedUploadsIdDBIO(until: Rep[ZonedDateTime]) = {
+  def findOutdatedUploadsIdDBIO(until: Rep[OffsetDateTime]) = {
     destroyOutdatedUploadsDBIO(until).map(_.pk)
   }
 
-  def destroyOutdatedUploads(until: ZonedDateTime)(implicit ec: ExecutionContext) = {
+  def destroyOutdatedUploads(until: OffsetDateTime)(implicit ec: ExecutionContext) = {
     runInTransaction(TransactionIsolation.ReadCommitted) {
       for {
         _   <- BlobFilesRepo.markOutdatedUploadsDBIO(until)
@@ -301,7 +301,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
             digest = Some(emptyTarSha256Digest),
             contentType = `application/octet-stream`,
             length = emptyTar.length.toLong,
-            createdAt = ZonedDateTime.now(),
+            createdAt = OffsetDateTime.now(),
             uploadedAt = None
           )
           table += blob

@@ -20,6 +20,7 @@ import diode.react.ModelProxy
 import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.frontend.styles.Global
 import io.fcomb.frontend.components.dashboard._
+import io.fcomb.frontend.components.organization.{OrganizationComponent, OrganizationsComponent, NewOrganizationComponent}
 import scala.scalajs.js
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router._

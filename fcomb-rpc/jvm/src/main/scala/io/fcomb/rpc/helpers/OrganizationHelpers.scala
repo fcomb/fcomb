@@ -19,7 +19,6 @@ package io.fcomb.rpc.helpers
 import io.fcomb.models.Organization
 import io.fcomb.models.acl.Role
 import io.fcomb.rpc.OrganizationResponse
-import io.fcomb.rpc.helpers.time.Implicits._
 
 object OrganizationHelpers {
   def responseFrom(org: Organization, role: Role): OrganizationResponse = {
@@ -28,8 +27,8 @@ object OrganizationHelpers {
       name = org.name,
       ownerUserId = Some(org.ownerUserId),
       role = Some(role),
-      createdAt = org.createdAt.toIso8601,
-      updatedAt = org.updatedAt.map(_.toIso8601)
+      createdAt = org.createdAt.toString,
+      updatedAt = org.updatedAt.map(_.toString)
     )
   }
 
@@ -42,8 +41,8 @@ object OrganizationHelpers {
       name = org.name,
       ownerUserId = ownerUserId,
       role = role,
-      createdAt = org.createdAt.toIso8601,
-      updatedAt = org.updatedAt.map(_.toIso8601)
+      createdAt = org.createdAt.toString,
+      updatedAt = org.updatedAt.map(_.toString)
     )
   }
 }

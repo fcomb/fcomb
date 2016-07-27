@@ -17,7 +17,7 @@
 package io.fcomb.models.docker.distribution
 
 import io.fcomb.models.ModelWithAutoIntPk
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.util.control.NoStackTrace
 
@@ -38,8 +38,8 @@ final case class ImageManifest(
     schemaV1JsonBlob: String,
     schemaV2Details: Option[ImageManifestSchemaV2Details],
     length: Long,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
+    createdAt: OffsetDateTime,
+    updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))
 

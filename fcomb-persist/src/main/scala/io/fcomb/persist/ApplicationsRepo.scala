@@ -19,7 +19,7 @@ package io.fcomb.persist
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.{Application, ApplicationState, OwnerKind}
 import io.fcomb.persist.EnumsMapping._
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 class ApplicationTable(tag: Tag)
     extends Table[Application](tag, "applications")
@@ -30,8 +30,8 @@ class ApplicationTable(tag: Tag)
   def ownerId   = column[Int]("owner_id")
   def ownerKind = column[OwnerKind]("owner_kind")
 
-  def createdAt = column[ZonedDateTime]("created_at")
-  def updatedAt = column[Option[ZonedDateTime]]("updated_at")
+  def createdAt = column[OffsetDateTime]("created_at")
+  def updatedAt = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
     (id, name, state, token, ownerId, ownerKind, createdAt, updatedAt) <>

@@ -17,7 +17,7 @@
 package io.fcomb.models.docker.distribution
 
 import io.fcomb.models.common.{Enum, EnumItem}
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import java.util.UUID
 
 sealed trait BlobFileState extends EnumItem
@@ -34,7 +34,7 @@ final case class BlobFile(
     digest: Option[String],
     state: BlobFileState,
     retryCount: Int,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime],
-    retriedAt: Option[ZonedDateTime]
+    createdAt: OffsetDateTime,
+    updatedAt: Option[OffsetDateTime],
+    retriedAt: Option[OffsetDateTime]
 )

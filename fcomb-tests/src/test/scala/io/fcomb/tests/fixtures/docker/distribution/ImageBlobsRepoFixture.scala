@@ -17,7 +17,7 @@
 package io.fcomb.tests.fixtures.docker.distribution
 
 import java.util.UUID
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import akka.util.ByteString
 import cats.data.Validated
 import io.fcomb.models.docker.distribution.{ImageBlob, ImageBlobState}
@@ -39,7 +39,7 @@ object ImageBlobsRepoFixture {
       digest = None,
       contentType = "application/octet-stream",
       length = 0L,
-      createdAt = ZonedDateTime.now(),
+      createdAt = OffsetDateTime.now(),
       uploadedAt = None
     )
     (for {
@@ -63,7 +63,7 @@ object ImageBlobsRepoFixture {
       digest = Some(digest),
       length = bs.length.toLong,
       contentType = "application/octet-stream",
-      createdAt = ZonedDateTime.now(),
+      createdAt = OffsetDateTime.now(),
       uploadedAt = None
     )
     for {

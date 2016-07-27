@@ -17,7 +17,7 @@
 package io.fcomb.models.docker.distribution
 
 import io.fcomb.models.{ModelWithAutoIntPk, Owner}
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 final case class Image(
     id: Option[Int],
@@ -27,8 +27,8 @@ final case class Image(
     visibilityKind: ImageVisibilityKind,
     description: String,
     createdByUserId: Int,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
+    createdAt: OffsetDateTime,
+    updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))
 }

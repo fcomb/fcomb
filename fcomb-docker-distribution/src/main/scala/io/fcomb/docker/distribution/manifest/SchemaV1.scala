@@ -34,7 +34,7 @@ import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.models.errors.docker.distribution.DistributionError._
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
 import io.fcomb.utils.StringUtils
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 import org.apache.commons.codec.digest.DigestUtils
 import org.jose4j.base64url.Base64Url
 import scala.concurrent.{ExecutionContext, Future}
@@ -223,7 +223,7 @@ object SchemaV1 {
     val p = Protected(
       formatLength = formatLength,
       formatTail = base64Encode(formatTail),
-      time = ZonedDateTime.now().withFixedOffsetZone()
+      time = OffsetDateTime.now()
     )
     base64Encode(p.asJson.noSpaces)
   }

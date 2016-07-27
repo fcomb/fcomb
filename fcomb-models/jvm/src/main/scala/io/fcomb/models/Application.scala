@@ -17,7 +17,7 @@
 package io.fcomb.models
 
 import io.fcomb.models.common.{Enum, EnumItem}
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 sealed trait ApplicationState extends EnumItem
 
@@ -35,8 +35,8 @@ final case class Application(
     token: String,
     ownerId: Int,
     ownerKind: OwnerKind,
-    createdAt: ZonedDateTime,
-    updatedAt: Option[ZonedDateTime]
+    createdAt: OffsetDateTime,
+    updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
   def withPk(id: Int) = this.copy(id = Some(id))
 }
