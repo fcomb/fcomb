@@ -46,8 +46,17 @@ object OrganizationsComponent {
       }
     }
 
+    def renderOrg(ctl: RouterCtl[DashboardRoute], org: OrganizationResponse) = {
+      <.li(ctl.link(DashboardRoute.Organization(org.name))(org.name))
+    }
+
+    def renderOrgs(ctl: RouterCtl[DashboardRoute], orgs: Seq[OrganizationResponse]) = {
+      if (orgs.isEmpty) <.span("No organizations. Create one!")
+      else <.ul(orgs.map(renderOrg(ctl, _)))
+    }
+
     def render(ctl: RouterCtl[DashboardRoute], state: State) = {
-      <.div(<.h2("Organizations"))
+      <.div(<.h2("Organizations"), renderOrgs(ctl, state.orgs))
     }
   }
 
