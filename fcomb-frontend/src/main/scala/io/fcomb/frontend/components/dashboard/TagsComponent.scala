@@ -36,7 +36,7 @@ object TagsComponent {
                          sortColumn: String,
                          sortOrder: SortOrder)
 
-  final case class Backend($ : BackendScope[Props, State]) {
+  class Backend($ : BackendScope[Props, State]) {
     val digestLength = 12
 
     def getTags(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {

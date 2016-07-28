@@ -33,7 +33,7 @@ object RepositoryComponent {
   final case class FormState(description: String, isPreview: Boolean, isFormDisabled: Boolean)
   final case class State(repository: Option[RepositoryResponse], form: Option[FormState])
 
-  final case class Backend($ : BackendScope[Props, State]) {
+  class Backend($ : BackendScope[Props, State]) {
     val descriptionRef = Ref[HTMLInputElement]("description")
 
     def getRepository(name: String): Callback = {

@@ -32,7 +32,7 @@ object GroupsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
   final case class State(groups: Seq[OrganizationGroupResponse])
 
-  final case class Backend($ : BackendScope[Props, State]) {
+  class Backend($ : BackendScope[Props, State]) {
     def getGroups(orgName: String): Callback = {
       Callback.future {
         Rpc
@@ -55,7 +55,8 @@ object GroupsComponent {
     def render(props: Props, state: State) = {
       <.div(
         <.h2("Groups"),
-        <.ul(state.groups.map(renderGroup(props.ctl, _)))
+        <.div(props.ctl.link(DashboardRoute.NewOrganizationGroup(props.orgName))("New group")),
+        <.section(<.ul(state.groups.map(renderGroup(props.ctl, _))))
       )
     }
   }

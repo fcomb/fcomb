@@ -31,7 +31,7 @@ object RepositoryVisibilityComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
   final case class State(kind: Option[ImageVisibilityKind], isFormDisabled: Boolean)
 
-  final case class Backend($ : BackendScope[Props, State]) {
+  class Backend($ : BackendScope[Props, State]) {
     // TODO: DRY with Diode Pot
     def getVisibility(name: String): Callback = {
       Callback.future {

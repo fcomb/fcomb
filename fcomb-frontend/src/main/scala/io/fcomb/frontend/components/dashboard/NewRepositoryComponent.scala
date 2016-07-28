@@ -33,7 +33,7 @@ object NewRepositoryComponent {
                          description: Option[String],
                          isFormDisabled: Boolean)
 
-  final case class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
+  class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
     def create(ctl: RouterCtl[DashboardRoute]): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty

@@ -36,7 +36,7 @@ object SignUpComponent {
   final case class State(
       email: String, password: String, username: String, fullName: String, isFormDisabled: Boolean)
 
-  final case class Backend($ : BackendScope[RouterCtl[Route], State]) {
+  class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def register(ctl: RouterCtl[Route]): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty

@@ -31,7 +31,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 object RepositoriesComponent {
   final case class State(repositories: Seq[RepositoryResponse])
 
-  final case class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
+  class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
     def getRepositories() = {
       Callback.future {
         Rpc

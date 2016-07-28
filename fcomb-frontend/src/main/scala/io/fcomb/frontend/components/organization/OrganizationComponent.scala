@@ -31,7 +31,7 @@ object OrganizationComponent {
   final case class FormState(name: String, isFormDisabled: Boolean)
   final case class State(org: Option[OrganizationResponse], form: Option[FormState])
 
-  final case class Backend($ : BackendScope[Props, State]) {
+  class Backend($ : BackendScope[Props, State]) {
     def getOrg(name: String): Callback = {
       Callback.future {
         Rpc.call[OrganizationResponse](RpcMethod.GET, Resource.organization(name)).map {

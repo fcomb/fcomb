@@ -30,7 +30,7 @@ import scalacss.ScalaCssReact._
 object SignInComponent {
   final case class State(email: String, password: String, isFormDisabled: Boolean)
 
-  final case class Backend($ : BackendScope[RouterCtl[Route], State]) {
+  class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def authenticate(ctl: RouterCtl[Route]): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty

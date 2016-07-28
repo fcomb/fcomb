@@ -28,7 +28,7 @@ object DeleteRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
   final case class State(isDisabled: Boolean)
 
-  final case class Backend($ : BackendScope[Props, State]) {
+  class Backend($ : BackendScope[Props, State]) {
     def delete(props: Props)(e: ReactEventI): Callback = {
       e.preventDefaultCB >>
         $.state.flatMap { state => // TODO: DRY

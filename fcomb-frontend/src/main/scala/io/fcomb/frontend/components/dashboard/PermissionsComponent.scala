@@ -41,7 +41,7 @@ object PermissionsComponent {
   private def defaultFormState =
     FormState("", Action.Read, false)
 
-  final case class Backend($ : BackendScope[Props, State]) {
+  class Backend($ : BackendScope[Props, State]) {
     def getPermissions(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
       Callback.future {
         val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))

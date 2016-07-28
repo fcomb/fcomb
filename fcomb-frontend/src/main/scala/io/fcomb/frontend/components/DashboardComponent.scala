@@ -52,14 +52,15 @@ object DashboardComponent {
     staticRoute("organizations" / "new", DashboardRoute.NewOrganization) ~> renderR(
       ctl => NewOrganizationComponent.apply(ctl)) |
     dynamicRouteCT(organizationNamePath.caseClass[DashboardRoute.Organization]) ~> dynRenderR((o, ctl) => OrganizationComponent.apply(ctl, o.name)) |
-    dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~> dynRenderR((o, ctl) => GroupsComponent.apply(ctl, o.name))
+    dynamicRouteCT((organizationNamePath / "groups" / "new").caseClass[DashboardRoute.NewOrganizationGroup]) ~> dynRenderR((o, ctl) => NewGroupComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~> dynRenderR((o, ctl) => GroupsComponent.apply(ctl, o.orgName))
   }
 
   final case class State(ctl: RouterCtl[Route],
                          session: ModelProxy[Option[String]],
                          res: Resolution[Route])
 
-  final case class Backend($ : BackendScope[State, Unit]) {
+  class Backend($ : BackendScope[State, Unit]) {
     def render(state: State) = {
       <.div(Global.app,
         <.header(

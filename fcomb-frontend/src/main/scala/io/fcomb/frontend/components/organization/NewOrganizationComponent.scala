@@ -29,7 +29,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 object NewOrganizationComponent {
   final case class State(name: String, isFormDisabled: Boolean)
 
-  final case class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
+  class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
     def create(ctl: RouterCtl[DashboardRoute]): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty

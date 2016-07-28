@@ -26,7 +26,7 @@ import scala.scalajs.js.timers
 object TimeAgoComponent {
   final case class State(distance: String)
 
-  final case class Backend($ : BackendScope[Date, State]) {
+  class Backend($ : BackendScope[Date, State]) {
     private var timer: timers.SetIntervalHandle = _
 
     def updateDistance(): Callback = {
