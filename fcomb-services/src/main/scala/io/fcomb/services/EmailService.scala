@@ -18,16 +18,12 @@ package io.fcomb.services
 
 import akka.actor._
 import akka.stream.Materializer
-import io.fcomb.models.User
 import io.fcomb.templates.HtmlTemplate
-import io.fcomb.utils.Config
+import io.fcomb.utils.Config.{smtp => config}
 import org.apache.commons.mail._
 import org.slf4j.LoggerFactory
 
 object EmailService {
-
-  import EmailServiceMessages._
-
   val actorName = "email-service"
 
   private var actorRef: ActorRef = _
@@ -42,59 +38,47 @@ object EmailService {
     actorRef
   }
 
-  def sendTemplate(template: HtmlTemplate, user: User) =
-    actorRef ! ResetPassword(template, user)
-
-  def props()(implicit mat: Materializer) =
-    Props(new EmailServiceActor())
-}
-
-private[this] sealed trait EmailServiceMessage
-
-private[this] object EmailServiceMessages {
-  final case class ResetPassword(template: HtmlTemplate, user: User) extends EmailServiceMessage
-}
-
-private[this] class EmailServiceActor(implicit mat: Materializer) extends Actor with ActorLogging {
-  import EmailServiceMessages._
-
-  def receive: Receive = {
-    case msg: EmailServiceMessage =>
-      msg match {
-        case ResetPassword(template, user) =>
-          sendTemplate(template, user)
-        case _ =>
-      }
+  def sendTemplate(template: HtmlTemplate, email: String, fullName: Option[String]) = {
+    actorRef ! EmailMessage(template, email, fullName)
   }
 
-  private val config = Config.smtp
+  def props()(implicit mat: Materializer) = {
+    Props(new EmailServiceActor())
+  }
+}
 
-  private def sendTemplate(template: HtmlTemplate, user: User) = {
+private[this] final case class EmailMessage(template: HtmlTemplate,
+                                            email: String,
+                                            fullName: Option[String])
+
+private[this] class EmailServiceActor(implicit mat: Materializer) extends Actor with ActorLogging {
+  def receive: Receive = {
+    case EmailMessage(template, email, fullName) => sendTemplate(template, email, fullName)
+  }
+
+  private def sendTemplate(template: HtmlTemplate, email: String, fullName: Option[String]) = {
     try {
-      val email = makeDefaultHtmlEmail()
-      email.addTo(user.email, user.fullName.getOrElse(""))
-      email.setSubject(template.subject)
-      email.setHtmlMsg(template.toHtml)
-
-      email.send()
+      val inst = emailInstance()
+      inst.addTo(email, fullName.getOrElse(""))
+      inst.setSubject(template.subject)
+      inst.setHtmlMsg(template.toHtml)
+      inst.send()
     } catch {
       case e: EmailException =>
         log.error(e, e.getMessage)
     }
   }
 
-  private def makeDefaultHtmlEmail() = {
-    val email = new HtmlEmail()
-    email.setHostName(config.getString("host"))
-    email.setSmtpPort(config.getInt("port"))
-    email.setAuthenticator(
+  private def emailInstance() = {
+    val inst = new HtmlEmail()
+    inst.setHostName(config.getString("host"))
+    inst.setSmtpPort(config.getInt("port"))
+    inst.setAuthenticator(
       new DefaultAuthenticator(config.getString("user"), config.getString("password")))
-    email.setSSLOnConnect(config.getBoolean("ssl"))
-    email.setStartTLSEnabled(config.getBoolean("tls"))
-
-    email.setFrom(config.getString("from"), config.getString("fromName"))
-    email.setTextMsg("Your email client does not support HTML messages")
-
-    email
+    inst.setSSLOnConnect(config.getBoolean("ssl"))
+    inst.setStartTLSEnabled(config.getBoolean("tls"))
+    inst.setFrom(config.getString("from"), config.getString("fromName"))
+    inst.setTextMsg("Your email client does not support HTML messages")
+    inst
   }
 }
