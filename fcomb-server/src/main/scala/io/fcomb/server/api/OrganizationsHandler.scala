@@ -119,6 +119,7 @@ object OrganizationsHandler {
           // put(update(slug)) ~
           delete(destroy(slug))
         } ~
+        organization.GroupsHandler.routes(slug) ~
         organization.RepositoriesHandler.routes(slug)
       }
     }

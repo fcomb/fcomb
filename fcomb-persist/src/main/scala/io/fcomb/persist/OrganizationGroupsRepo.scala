@@ -18,12 +18,13 @@ package io.fcomb.persist
 
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
-import io.fcomb.models.OrganizationGroup
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
+import io.fcomb.models.{OrganizationGroup, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
-import io.fcomb.rpc.{OrganizationGroupCreateRequest, OrganizationGroupUpdateRequest}
+import io.fcomb.rpc.helpers.OrganizationGroupHelpers
+import io.fcomb.rpc.{OrganizationGroupCreateRequest, OrganizationGroupUpdateRequest, OrganizationGroupResponse}
 import io.fcomb.validations._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -46,6 +47,7 @@ class OrganizationGroupTable(tag: Tag)
 object OrganizationGroupsRepo
     extends PersistModelWithAutoIntPk[OrganizationGroup, OrganizationGroupTable] {
   val table = TableQuery[OrganizationGroupTable]
+  val label = "groups"
 
   lazy val findByNameCompiled = Compiled { name: Rep[String] =>
     table.filter(_.name === name.asColumnOfType[String]("citext")).take(1)
@@ -75,6 +77,30 @@ object OrganizationGroupsRepo
                 case _ => DBIO.successful(None)
               }
       } yield res
+    }
+  }
+
+  private def findByOrgIdDBIO(orgId: Rep[Int]) = {
+    table.filter(_.organizationId === orgId)
+  }
+
+  private lazy val findByOrgIdCompiled = Compiled {
+    (orgId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
+      findByOrgIdDBIO(orgId).sortBy(_.name).drop(offset).take(limit)
+  }
+
+  private lazy val findByOrgIdTotalCompiled = Compiled { orgId: Rep[Int] =>
+    findByOrgIdDBIO(orgId).length
+  }
+
+  def paginateByOrgId(orgId: Int, p: Pagination)(
+      implicit ec: ExecutionContext): Future[PaginationData[OrganizationGroupResponse]] = {
+    db.run {
+      for {
+        groups <- findByOrgIdCompiled((orgId, p.offset, p.limit)).result
+        total  <- findByOrgIdTotalCompiled(orgId).result
+        data = groups.map(OrganizationGroupHelpers.responseFrom)
+      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
   }
 
@@ -127,7 +153,7 @@ object OrganizationGroupsRepo
   }
 
   def findIdsByOrganizationIdDBIO(organizationId: Int) = {
-    table.filter(_.organizationId === organizationId).map(_.pk)
+    findByOrgIdDBIO(organizationId).map(_.pk)
   }
 
   def destroyByOrganizationIdDBIO(organizationId: Int) = {

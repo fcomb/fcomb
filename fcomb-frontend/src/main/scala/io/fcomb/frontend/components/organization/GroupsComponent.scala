@@ -19,47 +19,54 @@ package io.fcomb.frontend.components.organization
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.Formats._
-import io.fcomb.rpc.OrganizationResponse
+import io.fcomb.models.PaginationData
+import io.fcomb.rpc.OrganizationGroupResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-object OrganizationComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], name: String)
+object GroupsComponent {
+  final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
   final case class FormState(name: String, isFormDisabled: Boolean)
-  final case class State(org: Option[OrganizationResponse], form: Option[FormState])
+  final case class State(groups: Seq[OrganizationGroupResponse], form: Option[FormState])
 
   final case class Backend($ : BackendScope[Props, State]) {
-    def getOrg(name: String): Callback = {
+    def getGroups(orgName: String): Callback = {
       Callback.future {
-        Rpc.call[OrganizationResponse](RpcMethod.GET, Resource.organization(name)).map {
-          case Xor.Right(org) =>
-            $.modState(_.copy(org = Some(org)))
-          case Xor.Left(e) =>
-            println(e)
-            Callback.empty
-        }
+        Rpc
+          .call[PaginationData[OrganizationGroupResponse]](RpcMethod.GET,
+                                                           Resource.organizationGroups(orgName))
+          .map {
+            case Xor.Right(pd) =>
+              $.modState(_.copy(groups = pd.data))
+            case Xor.Left(e) =>
+              println(e)
+              Callback.empty
+          }
       }
+    }
+
+    def renderGroup(ctl: RouterCtl[DashboardRoute], group: OrganizationGroupResponse) = {
+      <.li(group.name)
     }
 
     def render(props: Props, state: State) = {
       <.div(
-        <.h2(s"Organization ${props.name}"),
-        <.div(props.ctl.link(DashboardRoute.Organization(props.name))("Repositories")),
-        <.div(props.ctl.link(DashboardRoute.OrganizationGroups(props.name))("Groups")),
-        <.section("repos...")
+        <.h2("Groups"),
+        <.ul(state.groups.map(renderGroup(props.ctl, _)))
       )
     }
   }
 
-  private val component = ReactComponentB[Props]("OrganizationComponent")
-    .initialState(State(None, None))
+  private val component = ReactComponentB[Props]("GroupsComponent")
+    .initialState(State(Seq.empty, None))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getOrg($.props.name))
+    .componentWillMount($ => $.backend.getGroups($.props.orgName))
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], name: String) =
-    component(Props(ctl, name))
+  def apply(ctl: RouterCtl[DashboardRoute], orgName: String) =
+    component(Props(ctl, orgName))
 }

@@ -24,7 +24,6 @@ object OrganizationGroupHelpers {
     OrganizationGroupResponse(
       id = group.getId(),
       name = group.name,
-      organizationId = group.organizationId,
       role = group.role,
       createdAt = group.createdAt.toString,
       updatedAt = group.updatedAt.map(_.toString)

@@ -30,7 +30,6 @@ final case class OrganizationGroupUpdateRequest(
 
 final case class OrganizationGroupResponse(
     id: Int,
-    organizationId: Int,
     name: String,
     role: Role,
     createdAt: String,

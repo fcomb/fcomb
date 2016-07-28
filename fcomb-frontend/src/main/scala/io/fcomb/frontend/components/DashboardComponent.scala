@@ -20,7 +20,7 @@ import diode.react.ModelProxy
 import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.frontend.styles.Global
 import io.fcomb.frontend.components.dashboard._
-import io.fcomb.frontend.components.organization.{OrganizationComponent, OrganizationsComponent, NewOrganizationComponent}
+import io.fcomb.frontend.components.organization._
 import scala.scalajs.js
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router._
@@ -51,7 +51,8 @@ object DashboardComponent {
       ctl => OrganizationsComponent.apply(ctl)) |
     staticRoute("organizations" / "new", DashboardRoute.NewOrganization) ~> renderR(
       ctl => NewOrganizationComponent.apply(ctl)) |
-    dynamicRouteCT(organizationNamePath.caseClass[DashboardRoute.Organization]) ~> dynRenderR((o, ctl) => OrganizationComponent.apply(ctl, o.name))
+    dynamicRouteCT(organizationNamePath.caseClass[DashboardRoute.Organization]) ~> dynRenderR((o, ctl) => OrganizationComponent.apply(ctl, o.name)) |
+    dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~> dynRenderR((o, ctl) => GroupsComponent.apply(ctl, o.name))
   }
 
   final case class State(ctl: RouterCtl[Route],
