@@ -23,7 +23,8 @@ case class ResetPassword(
     date: String,
     token: String
 ) extends HtmlTemplate {
-  val mandrillTemplateName = "user-password-reset-request"
+  val templateName = "user-password-reset-request"
+  val subject      = title
 
   def toHtml: String = html.resetPassword(this).body
 }

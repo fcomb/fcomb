@@ -34,7 +34,16 @@ fcomb-server {
 
   jdbc-slick.properties = ${fcomb-server.jdbc}
 
-  mandrill.key = ""
+  smtp {
+    host = "smtp.googlemail.com"
+    port = 465
+    user = ""
+    password = ""
+    from = "noreply@fcomb.com"
+    fromName = "Fcomb"
+    ssl = true
+    tls = false
+  }
 }
 
 akka-persistence-jdbc.slick.db = ${fcomb-server.jdbc}

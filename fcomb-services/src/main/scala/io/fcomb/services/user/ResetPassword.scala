@@ -16,22 +16,23 @@
 
 package io.fcomb.services.user
 
+import akka.actor.ActorSystem
+import akka.http.scaladsl.util.FastFuture, FastFuture._
+import akka.stream.Materializer
+import cats.data.Validated
 import io.fcomb.Db.redis
 import io.fcomb.persist.UsersRepo
+import io.fcomb.services.EmailService
 import io.fcomb.templates
-import io.fcomb.validations.ValidationResultUnit
 import io.fcomb.utils.Random
-import akka.stream.Materializer
-import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
-import cats.data.Validated
+import io.fcomb.validations.ValidationResultUnit
 import java.time.LocalDateTime
 import redis._
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 object ResetPassword {
-  private val ttl = Some(1.hour.toSeconds)
+  private val ttl = 1.hour.toSeconds
 
   // TODO: add email validation
   def reset(email: String)(
@@ -41,14 +42,15 @@ object ResetPassword {
     UsersRepo.findByEmail(email).flatMap {
       case Some(user) =>
         val token = Random.random.alphanumeric.take(42).mkString
-        val date  = LocalDateTime.now.plusSeconds(ttl.get)
-        redis.set(s"$prefix$token", user.id.toString, ttl).flatMap { _ =>
+        val date  = LocalDateTime.now.plusSeconds(ttl)
+        redis.set(s"$prefix$token", user.id.toString, Some(ttl)).fast.map { _ =>
           val template = templates.ResetPassword(
             s"title: token $token",
             s"date: $date",
             token
           )
-          ???
+          EmailService.sendTemplate(template, user.email, user.fullName)
+          Validated.Valid(())
         }
       case None =>
         UsersRepo.validationErrorAsFuture("email", "not found")

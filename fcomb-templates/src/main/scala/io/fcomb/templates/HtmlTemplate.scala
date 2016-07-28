@@ -17,7 +17,8 @@
 package io.fcomb.templates
 
 trait HtmlTemplate {
-  val mandrillTemplateName: String
+  val templateName: String
+  val subject: String
 
   def toHtml: String
 }
