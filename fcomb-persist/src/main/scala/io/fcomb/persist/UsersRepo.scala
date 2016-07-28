@@ -173,6 +173,8 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
 
   import Validations._
 
+  // TODO: check username format
+
   private lazy val uniqueUsernameCompiled = Compiled {
     (id: Rep[Option[Int]], username: Rep[String]) =>
       exceptIdFilter(id).filter(_.username === username.asColumnOfType[String]("citext")).exists

@@ -162,6 +162,8 @@ object OrganizationGroupsRepo
 
   import Validations._
 
+  // TODO: check name format
+
   private lazy val uniqueNameCompiled = Compiled {
     (id: Rep[Option[Int]], organizationId: Rep[Int], name: Rep[String]) =>
       exceptIdFilter(id).filter { q =>

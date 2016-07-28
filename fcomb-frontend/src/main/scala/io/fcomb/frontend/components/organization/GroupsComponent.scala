@@ -30,8 +30,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object GroupsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
-  final case class FormState(name: String, isFormDisabled: Boolean)
-  final case class State(groups: Seq[OrganizationGroupResponse], form: Option[FormState])
+  final case class State(groups: Seq[OrganizationGroupResponse])
 
   final case class Backend($ : BackendScope[Props, State]) {
     def getGroups(orgName: String): Callback = {
@@ -41,7 +40,7 @@ object GroupsComponent {
                                                            Resource.organizationGroups(orgName))
           .map {
             case Xor.Right(pd) =>
-              $.modState(_.copy(groups = pd.data))
+              $.modState(_.copy(pd.data))
             case Xor.Left(e) =>
               println(e)
               Callback.empty
@@ -62,7 +61,7 @@ object GroupsComponent {
   }
 
   private val component = ReactComponentB[Props]("GroupsComponent")
-    .initialState(State(Seq.empty, None))
+    .initialState(State(Seq.empty))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getGroups($.props.orgName))
     .build
