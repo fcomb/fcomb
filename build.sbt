@@ -200,7 +200,8 @@ lazy val services = project.in(file("fcomb-services"))
     "com.typesafe.akka" %% "akka-distributed-data-experimental" % akkaVersion,
     "com.typesafe.akka" %% "akka-http-core"                     % akkaVersion,
     "de.heikoseeberger" %% "akka-http-circe"                    % akkaHttpCirceVersion,
-    "io.circe"          %% "circe-generic"                      % circeVersion
+    "io.circe"          %% "circe-generic"                      % circeVersion,
+    "org.apache.commons" % "commons-email"                      % "1.4"
   ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(persist, utils, crypto, templates)

@@ -24,14 +24,17 @@ import io.fcomb.utils.Random
 import akka.stream.Materializer
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import cats.data.Validated
 import java.time.LocalDateTime
+
+import io.fcomb.services.EmailService
 import redis._
 
 object ResetPassword {
-  private val ttl = Some(1.hour.toSeconds)
+  private val ttl = 1.hour.toSeconds
 
   // TODO: add email validation
   def reset(email: String)(
@@ -41,14 +44,16 @@ object ResetPassword {
     UsersRepo.findByEmail(email).flatMap {
       case Some(user) =>
         val token = Random.random.alphanumeric.take(42).mkString
-        val date  = LocalDateTime.now.plusSeconds(ttl.get)
-        redis.set(s"$prefix$token", user.id.toString, ttl).flatMap { _ =>
+        val date  = LocalDateTime.now.plusSeconds(ttl)
+        redis.set(s"$prefix$token", user.id.toString, Some(ttl)).flatMap { _ =>
           val template = templates.ResetPassword(
             s"title: token $token",
             s"date: $date",
             token
           )
-          ???
+
+          EmailService.sendTemplate(template, user)
+          FastFuture.successful(Validated.Valid(()))
         }
       case None =>
         UsersRepo.validationErrorAsFuture("email", "not found")

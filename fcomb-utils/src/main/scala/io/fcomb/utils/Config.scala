@@ -53,6 +53,7 @@ object Config {
     val isAnonymousPublicRepositories = config.getBoolean("security.anonymous-public-repositories")
   }
 
-  val redis       = config.getConfig("redis")
-  val mandrillKey = config.getString("mandrill.key")
+  val redis = config.getConfig("redis")
+
+  val smtp = config.getConfig("smtp")
 }

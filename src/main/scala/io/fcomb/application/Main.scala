@@ -5,7 +5,7 @@ import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.Db
 import io.fcomb.server.{Routes => ApiRoutes}
-import io.fcomb.services.EventService
+import io.fcomb.services.{EmailService, EventService}
 import io.fcomb.docker.distribution.server.{Routes => DockerDistributionRoutes}
 import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
 import io.fcomb.utils.{Config, Implicits}
@@ -45,6 +45,7 @@ object Main extends App {
       ImageBlobPushProcessor.startRegion(25.minutes)
       GarbageCollectorService.start()
       EventService.start()
+      EmailService.start()
     case Failure(e) =>
       logger.error(e.getMessage(), e.getCause())
       try {
