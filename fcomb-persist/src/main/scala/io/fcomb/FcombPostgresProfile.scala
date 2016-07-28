@@ -37,7 +37,7 @@ trait FcombPostgresProfile
     with PgDateSupport
     with PgDate2Support {
 
-  override val pgjson = "jsonb"
+  override val pgjson = "json"
 
   def createJdbcMapping[T <: EnumItem](
       sqlEnumTypeName: String,
