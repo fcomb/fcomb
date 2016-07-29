@@ -16,13 +16,14 @@
 
 package io.fcomb.persist
 
+import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.OrganizationGroupUser
 
 class OrganizationGroupUserTable(tag: Tag)
     extends Table[OrganizationGroupUser](tag, "organization_group_users") {
-  def groupId = column[Int]("group_id")
-  def userId  = column[Int]("user_id")
+  def groupId = column[Int]("group_id", O.PrimaryKey)
+  def userId  = column[Int]("user_id", O.PrimaryKey)
 
   def * =
     (groupId, userId) <>
@@ -38,5 +39,27 @@ object OrganizationGroupUsersRepo
       groupId = groupId,
       userId = userId
     )
+  }
+
+  def upsertDBIO(groupId: Int, userId: Int) = {
+    table.insertOrUpdate(
+      OrganizationGroupUser(
+        groupId = groupId,
+        userId = userId
+      ))
+  }
+
+  def upsert(groupId: Int, userId: Int) = {
+    db.run(upsertDBIO(groupId, userId))
+  }
+
+  def destroyDBIO(groupId: Int, userId: Int) = {
+    table.filter { t =>
+      t.groupId === groupId && t.userId === userId
+    }.delete
+  }
+
+  def destroy(groupId: Int, userId: Int) = {
+    db.run(destroyDBIO(groupId: Int, userId))
   }
 }

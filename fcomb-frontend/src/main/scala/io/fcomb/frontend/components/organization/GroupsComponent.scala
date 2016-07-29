@@ -48,15 +48,15 @@ object GroupsComponent {
       }
     }
 
-    def renderGroup(ctl: RouterCtl[DashboardRoute], group: OrganizationGroupResponse) = {
-      <.li(group.name)
+    def renderGroup(props: Props, group: OrganizationGroupResponse) = {
+      <.li(props.ctl.link(DashboardRoute.OrganizationGroup(props.orgName, group.name))(group.name))
     }
 
     def render(props: Props, state: State) = {
       <.div(
         <.h2("Groups"),
         <.div(props.ctl.link(DashboardRoute.NewOrganizationGroup(props.orgName))("New group")),
-        <.section(<.ul(state.groups.map(renderGroup(props.ctl, _))))
+        <.section(<.ul(state.groups.map(renderGroup(props, _))))
       )
     }
   }

@@ -42,6 +42,9 @@ object Resource {
 
   def organizationGroups(orgName: String) = organization(orgName) + "/groups"
 
+  val groups = prefix + "/groups"
+  def group(name: String) = s"$groups/$name"
+
   val users  = prefix + "/users"
   val signUp = users + "/sign_up"
 

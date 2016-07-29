@@ -22,14 +22,14 @@ import akka.http.scaladsl.server.Route
 import io.fcomb.server.CirceSupport._
 import io.fcomb.json.rpc.Formats.encodeUserProfileResponse
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.rpc.helpers.UserProfileHelpers
+import io.fcomb.rpc.helpers.UserHelpers
 
 object UserHandler {
   val servicePath = "user"
 
   def current = {
     authenticateUser { user =>
-      complete((StatusCodes.OK, UserProfileHelpers.responseFrom(user)))
+      complete((StatusCodes.OK, UserHelpers.profileResponseFrom(user)))
     }
   }
 

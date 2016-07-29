@@ -22,6 +22,7 @@ import io.circe.{Encoder, Decoder}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.dispatcher.actions.LogOut
 import org.scalajs.dom.ext.Ajax
+import org.scalajs.dom.ext.AjaxException
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js.{JSON, URIUtils}
@@ -52,21 +53,17 @@ object Rpc {
     Ajax
       .apply(method.toString, targetUrl, reqBody, timeout, hm, withCredentials = false, "")
       .map { res =>
-        if (res.status == 401) {
-          AppCircuit.dispatch(LogOut)
-          Xor.Left("Unauthorized")
-        } else {
+        if (res.status == 401) unauthorized()
+        else {
           val json =
             if (res.responseText.nonEmpty) res.responseText
             else "null"
-          decodeJs[U](JSON.parse(json)) match {
-            case res @ Xor.Right(_) => res
-            case Xor.Left(e)        => handleThrowable(e)
-          }
+          decodeJs[U](JSON.parse(json)).leftMap(mapThrowable)
         }
       }
       .recover {
-        case e => handleThrowable(e)
+        case AjaxException(xhr) if xhr.status == 401 => unauthorized
+        case e                                       => Xor.Left(mapThrowable(e))
       }
   }
 
@@ -79,10 +76,15 @@ object Rpc {
     callWith(method, url, (), queryParams, headers, timeout)
   }
 
-  private def handleThrowable[E](e: Throwable): Xor[String, E] = {
+  private def unauthorized() = {
+    AppCircuit.dispatch(LogOut)
+    Xor.Left("Unauthorized")
+  }
+
+  private def mapThrowable(e: Throwable): String = {
     val msg = s"${e.toString}: ${e.getMessage}"
     window.console.error(msg)
-    Xor.Left(msg)
+    msg
   }
 
   private val contentTypeHeader = Map("Content-Type" -> "application/json")

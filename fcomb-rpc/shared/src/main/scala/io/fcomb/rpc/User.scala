@@ -35,3 +35,9 @@ final case class UserProfileResponse(
     username: String,
     fullName: Option[String]
 )
+
+final case class UserResponse(
+    id: Int,
+    username: String,
+    fullName: Option[String]
+)

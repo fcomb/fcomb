@@ -17,13 +17,20 @@
 package io.fcomb.rpc.helpers
 
 import io.fcomb.models.User
-import io.fcomb.rpc.UserProfileResponse
+import io.fcomb.rpc.{UserResponse, UserProfileResponse}
 
-object UserProfileHelpers {
-  def responseFrom(user: User): UserProfileResponse =
+object UserHelpers {
+  def profileResponseFrom(user: User): UserProfileResponse =
     UserProfileResponse(
       id = user.getId(),
       email = user.email,
+      username = user.username,
+      fullName = user.fullName
+    )
+
+  def responseFrom(user: User): UserResponse =
+    UserResponse(
+      id = user.getId(),
       username = user.username,
       fullName = user.fullName
     )

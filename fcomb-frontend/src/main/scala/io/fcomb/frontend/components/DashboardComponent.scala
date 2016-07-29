@@ -34,8 +34,8 @@ object DashboardComponent {
     val repositoryNameFormat = """[\w\-\.]+/[\w\-\.]+"""
     val repositoryNamePath = "repositories" / string(repositoryNameFormat)
 
-    val orgNameFormat = """[\w\-\.]+"""
-    val organizationNamePath = "organizations" / string(orgNameFormat)
+    val slugFormat = """[\w\-\.]+"""
+    val organizationNamePath = "organizations" / string(slugFormat)
 
     trimSlashes |
     staticRoute(root, DashboardRoute.Root) ~> redirectToPage(DashboardRoute.Repositories)(
@@ -53,7 +53,8 @@ object DashboardComponent {
       ctl => NewOrganizationComponent.apply(ctl)) |
     dynamicRouteCT(organizationNamePath.caseClass[DashboardRoute.Organization]) ~> dynRenderR((o, ctl) => OrganizationComponent.apply(ctl, o.name)) |
     dynamicRouteCT((organizationNamePath / "groups" / "new").caseClass[DashboardRoute.NewOrganizationGroup]) ~> dynRenderR((o, ctl) => NewGroupComponent.apply(ctl, o.orgName)) |
-    dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~> dynRenderR((o, ctl) => GroupsComponent.apply(ctl, o.orgName))
+    dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~> dynRenderR((o, ctl) => GroupsComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat)).caseClass[DashboardRoute.OrganizationGroup]) ~> dynRenderR((og, ctl) => GroupComponent.apply(ctl, og.orgName, og.name))
   }
 
   final case class State(ctl: RouterCtl[Route],

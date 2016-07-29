@@ -56,13 +56,14 @@ final case class Pagination(
 )
 
 object Pagination {
-  val defaultLimit  = 64L
+  val maxLimit      = 256L
+  val defaultLimit  = 32L
   val defaultOffset = 0L
 
   def apply(sortOpt: Option[String], limitOpt: Option[Long], offsetOpt: Option[Long]): Pagination = {
     val limit = limitOpt match {
-      case Some(v) if v >= 1 && v <= defaultLimit => v
-      case _                                      => defaultLimit
+      case Some(v) if v >= 1 && v <= maxLimit => v
+      case _                                  => defaultLimit
     }
     val offset = offsetOpt match {
       case Some(v) if v >= defaultOffset => v

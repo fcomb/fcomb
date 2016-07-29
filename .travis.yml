@@ -22,3 +22,5 @@ before_install:
   - sudo /etc/init.d/postgresql restart
 before_script:
   - psql -U postgres -c 'create database "fcomb-test";'
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
