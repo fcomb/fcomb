@@ -24,7 +24,7 @@ import io.fcomb.models.{OrganizationGroup, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.helpers.OrganizationGroupHelpers
-import io.fcomb.rpc.{OrganizationGroupCreateRequest, OrganizationGroupUpdateRequest, OrganizationGroupResponse}
+import io.fcomb.rpc.{OrganizationGroupRequest, OrganizationGroupResponse}
 import io.fcomb.validations._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -119,7 +119,7 @@ object OrganizationGroupsRepo
     } yield og
   }
 
-  def create(organizationId: Int, req: OrganizationGroupCreateRequest)(
+  def create(organizationId: Int, req: OrganizationGroupRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     val group = OrganizationGroup(
       id = None,
@@ -132,7 +132,7 @@ object OrganizationGroupsRepo
     create(group)
   }
 
-  def update(id: Int, req: OrganizationGroupUpdateRequest)(
+  def update(id: Int, req: OrganizationGroupRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
     update(id)(
       _.copy(

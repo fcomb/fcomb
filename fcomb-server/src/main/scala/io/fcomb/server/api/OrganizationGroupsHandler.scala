@@ -23,7 +23,7 @@ import cats.data.Validated
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupsRepo
-import io.fcomb.rpc.OrganizationGroupUpdateRequest
+import io.fcomb.rpc.OrganizationGroupRequest
 import io.fcomb.rpc.helpers.OrganizationGroupHelpers
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
@@ -49,7 +49,7 @@ object OrganizationGroupsHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, user.getId()) { group =>
-          entity(as[OrganizationGroupUpdateRequest]) { req =>
+          entity(as[OrganizationGroupRequest]) { req =>
             onSuccess(OrganizationGroupsRepo.update(group.getId(), req)) {
               case Validated.Valid(updated) =>
                 val res = OrganizationGroupHelpers.responseFrom(updated)

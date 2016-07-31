@@ -18,12 +18,7 @@ package io.fcomb.rpc
 
 import io.fcomb.models.acl.Role
 
-final case class OrganizationGroupCreateRequest(
-    name: String,
-    role: Role
-)
-
-final case class OrganizationGroupUpdateRequest(
+final case class OrganizationGroupRequest(
     name: String,
     role: Role
 )

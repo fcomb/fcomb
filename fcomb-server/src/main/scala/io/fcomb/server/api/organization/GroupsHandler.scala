@@ -25,7 +25,7 @@ import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupsRepo
-import io.fcomb.rpc.OrganizationGroupCreateRequest
+import io.fcomb.rpc.OrganizationGroupRequest
 import io.fcomb.rpc.helpers.OrganizationGroupHelpers
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
@@ -57,7 +57,7 @@ object GroupsHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
-          entity(as[OrganizationGroupCreateRequest]) { req =>
+          entity(as[OrganizationGroupRequest]) { req =>
             onSuccess(OrganizationGroupsRepo.create(org.getId(), req)) {
               case Validated.Valid(group) =>
                 val uri     = resourcePrefix + org.getId().toString

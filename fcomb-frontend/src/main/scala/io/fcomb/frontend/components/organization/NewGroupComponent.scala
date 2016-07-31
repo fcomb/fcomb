@@ -21,7 +21,7 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
-import io.fcomb.rpc.{OrganizationGroupCreateRequest, OrganizationGroupResponse}
+import io.fcomb.rpc.{OrganizationGroupRequest, OrganizationGroupResponse}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -38,9 +38,9 @@ object NewGroupComponent {
         else {
           $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
             Callback.future {
-              val req = OrganizationGroupCreateRequest(state.name, state.role)
+              val req = OrganizationGroupRequest(state.name, state.role)
               Rpc
-                .callWith[OrganizationGroupCreateRequest, OrganizationGroupResponse](
+                .callWith[OrganizationGroupRequest, OrganizationGroupResponse](
                   RpcMethod.POST,
                   Resource.organizationGroups(props.orgName),
                   req)
