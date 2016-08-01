@@ -152,7 +152,7 @@ lazy val persist = project.in(file("fcomb-persist"))
     "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
     "com.zaxxer"          %  "HikariCP"            % "2.4.7",
-    "com.etaty.rediscala" %% "rediscala"           % "1.5.0" // TODO: replace it by akka persistence
+    "com.pauldijou"       %% "jwt-circe"           % "0.8.0"
   ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validations)

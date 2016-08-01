@@ -20,7 +20,9 @@ import akka.http.scaladsl.model.headers.{BasicHttpCredentials, OAuth2BearerToken
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.models.User
-import io.fcomb.persist.{SessionsRepo, UsersRepo}
+import io.fcomb.persist.UsersRepo
+import io.fcomb.services.user.SessionService
+
 import scala.concurrent.ExecutionContext
 
 trait AuthenticationDirectives {
@@ -62,11 +64,11 @@ trait AuthenticationDirectives {
 
   private def tryFindByToken(token: String)(
       implicit ec: ExecutionContext): Directive1[Option[User]] = {
-    onSuccess(SessionsRepo.findById(token)).flatMap(provide)
+    onSuccess(SessionService.findUser(token)).flatMap(provide)
   }
 
   private def findByToken(token: String)(implicit ec: ExecutionContext): Directive1[User] = {
-    onSuccess(SessionsRepo.findById(token)).flatMap {
+    onSuccess(SessionService.findUser(token)).flatMap {
       case Some(user) => provide(user)
       case None       => reject(AuthorizationFailedRejection)
     }

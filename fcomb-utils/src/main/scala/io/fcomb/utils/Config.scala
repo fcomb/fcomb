@@ -53,7 +53,12 @@ object Config {
     val isAnonymousPublicRepositories = config.getBoolean("security.anonymous-public-repositories")
   }
 
-  val redis = config.getConfig("redis")
+  object session {
+    val secret              = config.getString("session.secret")
+    val ttl                 = config.getLong("session.ttl")
+    val passwordResetSecret = config.getString("session.passwordResetSecret")
+    val passwordResetTtl    = config.getLong("session.passwordResetTtl")
+  }
 
   val smtp = config.getConfig("smtp")
 }

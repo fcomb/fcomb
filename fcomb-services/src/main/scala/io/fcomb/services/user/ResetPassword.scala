@@ -16,43 +16,58 @@
 
 package io.fcomb.services.user
 
+import java.time.Instant
+
 import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture, FastFuture._
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
-import cats.data.Validated
-import io.fcomb.Db.redis
+import cats.data.{Validated, Xor}
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
 import io.fcomb.persist.UsersRepo
 import io.fcomb.services.EmailService
 import io.fcomb.templates
-import io.fcomb.utils.Random
+import io.fcomb.utils.Config
 import io.fcomb.validations.ValidationResultUnit
-import java.time.LocalDateTime
-import redis._
-import scala.concurrent.duration._
+import org.slf4j.LoggerFactory
+import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
+
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object ResetPassword {
-  private val ttl = 1.hour.toSeconds
+  private val logger = LoggerFactory.getLogger(getClass)
+  private val ttl    = Config.session.passwordResetTtl
+  private val secret = Config.session.passwordResetSecret
+  private val algo   = JwtAlgorithm.HS256
 
   // TODO: add email validation
   def reset(email: String)(
       implicit sys: ActorSystem,
       mat: Materializer
   ): Future[ValidationResultUnit] = {
+    import mat.executionContext
     UsersRepo.findByEmail(email).flatMap {
       case Some(user) =>
-        val token = Random.random.alphanumeric.take(42).mkString
-        val date  = LocalDateTime.now.plusSeconds(ttl)
-        redis.set(s"$prefix$token", user.id.toString, Some(ttl)).fast.map { _ =>
-          val template = templates.ResetPassword(
-            s"title: token $token",
-            s"date: $date",
-            token
-          )
-          EmailService.sendTemplate(template, user.email, user.fullName)
-          Validated.Valid(())
-        }
-      case None =>
+        val expiration = Instant.now.plusSeconds(ttl)
+        val token = JwtCirce.encode(
+          JwtClaim(
+            content = Payload(user.getId()).asJson.noSpaces,
+            expiration = Some(expiration.getEpochSecond),
+            issuedAt = Some(Instant.now.getEpochSecond)
+          ),
+          secret,
+          algo
+        )
+        val template = templates.ResetPassword(
+          s"title: token $token",
+          s"date: $expiration",
+          token
+        )
+        EmailService.sendTemplate(template, user.email, user.fullName)
+        FastFuture.successful(Validated.Valid(()))
+      case _ =>
         UsersRepo.validationErrorAsFuture("email", "not found")
     }
   }
@@ -61,26 +76,27 @@ object ResetPassword {
       implicit ec: ExecutionContext,
       mat: Materializer
   ): Future[ValidationResultUnit] = {
-    val key = s"$prefix$token"
     UsersRepo.validatePassword(password) match {
       case Validated.Valid(_) =>
-        redis.get(key).flatMap {
-          case Some(id) =>
-            val updateF = UsersRepo.updatePassword(id.utf8String.toInt, password).map {
-              isUpdated =>
-                if (isUpdated) Validated.Valid(())
-                else UsersRepo.validationError("id", "not found")
+        JwtCirce.decode(token, secret, Seq(algo)) match {
+          case Success(jwtClaim) =>
+            decode[Payload](jwtClaim.content.asJson.noSpaces) match {
+              case Xor.Right(payload) =>
+                UsersRepo.updatePassword(payload.userId, password).map { isUpdated =>
+                  if (isUpdated) Validated.Valid(())
+                  else UsersRepo.validationError("id", "not found")
+                }
+              case Xor.Left(e) =>
+                logger.debug("failed to decode token's payload: " + jwtClaim.content, e)
+                FastFuture.successful(Validated.Valid(()))
             }
-            for {
-              res <- updateF
-              _   <- redis.del(key)
-            } yield res
-          case _ =>
-            UsersRepo.validationErrorAsFuture("token", "not found")
+          case Failure(e) =>
+            logger.debug("failed to decode token: " + token, e)
+            FastFuture.successful(Validated.Valid(()))
         }
-      case e @ Validated.Invalid(_) => FastFuture.successful(e)
+      case e @ Validated.Invalid(a) => FastFuture.successful(e)
     }
   }
 
-  private val prefix = "rp:"
+  private case class Payload(userId: Int)
 }

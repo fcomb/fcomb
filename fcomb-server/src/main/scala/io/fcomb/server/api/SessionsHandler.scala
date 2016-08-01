@@ -16,19 +16,16 @@
 
 package io.fcomb.server.api
 
-import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Xor
 import io.fcomb.server.CirceSupport._
-import io.fcomb.persist.SessionsRepo
 import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.models.errors.Formats._
-import io.fcomb.server.CommonDirectives._
+import io.fcomb.services.user.SessionService
 
 object SessionsHandler {
   val servicePath = "sessions"
@@ -36,30 +33,17 @@ object SessionsHandler {
   def create =
     extractExecutionContext { implicit ec =>
       entity(as[SessionCreateRequest]) { req =>
-        onSuccess(SessionsRepo.create(req)) {
+        onSuccess(SessionService.create(req)) {
           case Xor.Right(s) => complete((StatusCodes.Created, s))
           case Xor.Left(e)  => complete((StatusCodes.BadRequest, e))
         }
       }
     }
 
-  def destroy =
-    extractExecutionContext { implicit ec =>
-      extractCredentials {
-        case Some(OAuth2BearerToken(token)) =>
-          onSuccess(SessionsRepo.destroy(token)) { _ =>
-            completeAccepted()
-          }
-        case Some(_) => complete(HttpResponse(StatusCodes.BadRequest))
-        case None    => complete(HttpResponse(StatusCodes.Unauthorized))
-      }
-    }
-
   val routes: Route = {
     // format: OFF
     path(servicePath) {
-      post(create) ~
-      delete(destroy)
+      post(create)
     }
     // format: ON
   }

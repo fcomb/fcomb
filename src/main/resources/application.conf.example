@@ -20,10 +20,9 @@ fcomb-server {
     # stream.materializer.debug-logging = true
   }
 
-  redis {
-    host = "127.0.0.1"
-    port = 6379
-    database = 0
+  session {
+    secret = "2AD69A36899039C708DB5729B1C8455AA8748D489C5A56E883A988044AF32424"
+    passwordResetSecret = "9C472D1880DC0428AE7EF02CEA5DD707A99664C723178C58B1A30FDFB4331595"
   }
 
   jdbc {
@@ -36,13 +35,8 @@ fcomb-server {
 
   smtp {
     host = "smtp.googlemail.com"
-    port = 465
-    user = ""
+    user = "fcomb"
     password = ""
-    from = "noreply@fcomb.com"
-    fromName = "Fcomb"
-    ssl = true
-    tls = false
   }
 }
 
