@@ -25,7 +25,7 @@ import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.models.errors.Formats._
-import io.fcomb.services.user.SessionService
+import io.fcomb.services.user.SessionsService
 
 object SessionsHandler {
   val servicePath = "sessions"
@@ -33,7 +33,7 @@ object SessionsHandler {
   def create =
     extractExecutionContext { implicit ec =>
       entity(as[SessionCreateRequest]) { req =>
-        onSuccess(SessionService.create(req)) {
+        onSuccess(SessionsService.create(req)) {
           case Xor.Right(s) => complete((StatusCodes.Created, s))
           case Xor.Left(e)  => complete((StatusCodes.BadRequest, e))
         }

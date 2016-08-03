@@ -16,8 +16,6 @@
 
 package io.fcomb.services.user
 
-import java.time.Instant
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
@@ -32,7 +30,7 @@ import io.fcomb.utils.Config
 import io.fcomb.validations.ValidationResultUnit
 import org.slf4j.LoggerFactory
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
-
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -48,7 +46,7 @@ object ResetPassword {
       mat: Materializer
   ): Future[ValidationResultUnit] = {
     import mat.executionContext
-    UsersRepo.findByEmail(email).flatMap {
+    UsersRepo.findByEmail(email).fast.map {
       case Some(user) =>
         val expiration = Instant.now.plusSeconds(ttl)
         val token = JwtCirce.encode(
@@ -67,8 +65,7 @@ object ResetPassword {
         )
         EmailService.sendTemplate(template, user.email, user.fullName)
         FastFuture.successful(Validated.Valid(()))
-      case _ =>
-        UsersRepo.validationErrorAsFuture("email", "not found")
+      case _ => UsersRepo.validationError("email", "not found")
     }
   }
 
@@ -82,7 +79,7 @@ object ResetPassword {
           case Success(jwtClaim) =>
             decode[Payload](jwtClaim.content.asJson.noSpaces) match {
               case Xor.Right(payload) =>
-                UsersRepo.updatePassword(payload.userId, password).map { isUpdated =>
+                UsersRepo.updatePassword(payload.userId, password).fast.map { isUpdated =>
                   if (isUpdated) Validated.Valid(())
                   else UsersRepo.validationError("id", "not found")
                 }

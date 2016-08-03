@@ -16,9 +16,7 @@
 
 package io.fcomb.services.user
 
-import java.time.Instant
-
-import akka.http.scaladsl.util.FastFuture
+import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Xor
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -30,55 +28,41 @@ import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.utils.Config
 import org.slf4j.LoggerFactory
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
-
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-object SessionService {
+private[this] final case class Payload(userId: Int)
+
+object SessionsService {
   private val logger = LoggerFactory.getLogger(getClass)
   private val ttl    = Config.session.ttl
   private val secret = Config.session.secret
   private val algo   = JwtAlgorithm.HS256
 
-  private def createSession(userId: Int)(
-      implicit ec: ExecutionContext
-  ): Future[Session] = {
-    FastFuture.successful(
-      Session(
-        JwtCirce.encode(
-          JwtClaim(
-            content = Payload(userId).asJson.noSpaces,
-            expiration = Some(Instant.now.plusSeconds(ttl).getEpochSecond),
-            issuedAt = Some(Instant.now.getEpochSecond)
-          ),
-          secret,
-          algo
-        )
-      ))
-  }
-
-  private val invalidEmailOrPassword = FastFuture.successful(
-    Xor.Left(
-      FailureResponse.fromExceptions(
-        Seq(
-          ValidationException("email", "invalid"),
-          ValidationException("password", "invalid")
-        )))
-  )
+  private val invalidEmailOrPassword = Xor.Left(
+    FailureResponse.fromExceptions(
+      Seq(
+        ValidationException("email", "invalid"),
+        ValidationException("password", "invalid")
+      )))
 
   def create(req: SessionCreateRequest)(
-      implicit ec: ExecutionContext
-  ): Future[Xor[FailureResponse, Session]] =
-    UsersRepo.findByEmail(req.email).flatMap {
+      implicit ec: ExecutionContext): Future[Xor[FailureResponse, Session]] = {
+    UsersRepo.findByEmail(req.email).fast.map {
       case Some(user) if user.isValidPassword(req.password) =>
-        createSession(user.getId()).map(Xor.Right(_))
-      case _ =>
-        invalidEmailOrPassword
+        val claim = JwtClaim(
+          content = Payload(user.getId()).asJson.noSpaces,
+          expiration = Some(Instant.now.plusSeconds(ttl).getEpochSecond),
+          issuedAt = Some(Instant.now.getEpochSecond)
+        )
+        val jwt = JwtCirce.encode(claim, secret, algo)
+        Xor.Right(Session(jwt))
+      case _ => invalidEmailOrPassword
     }
+  }
 
-  def findUser(token: String)(
-      implicit ec: ExecutionContext
-  ): Future[Option[User]] = {
+  def find(token: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
     JwtCirce.decode(token, secret, Seq(algo)) match {
       case Success(jwtClaim) =>
         decode[Payload](jwtClaim.content.asJson.noSpaces) match {
@@ -93,6 +77,4 @@ object SessionService {
         FastFuture.successful(None)
     }
   }
-
-  private case class Payload(userId: Int)
 }
