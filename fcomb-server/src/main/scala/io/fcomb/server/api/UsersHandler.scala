@@ -44,17 +44,14 @@ object UsersHandler {
           }
         }
       }
-    } else {
+    } else
       complete((StatusCodes.Unauthorized, FailureResponse.fromException(RegistrationIsDisabled)))
-    }
   }
 
   val routes: Route = {
     // format: OFF
     pathPrefix(servicePath) {
-      path("sign_up") {
-        post(signUp)
-      } ~
+      path("sign_up")(post(signUp)) ~
       pathPrefix(SlugPath) { slug =>
         users.RepositoriesHandler.routes(slug)
       }
