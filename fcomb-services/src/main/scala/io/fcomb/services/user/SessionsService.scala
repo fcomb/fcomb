@@ -18,27 +18,18 @@ package io.fcomb.services.user
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Xor
-import io.circe.generic.auto._
-import io.circe.parser._
-import io.circe.syntax._
+import io.fcomb.crypto.Jwt
 import io.fcomb.models.errors.{FailureResponse, ValidationException}
 import io.fcomb.models.{Session, User}
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.utils.Config
 import org.slf4j.LoggerFactory
-import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
-
-private[this] final case class Payload(userId: Int)
 
 object SessionsService {
   private val logger = LoggerFactory.getLogger(getClass)
-  private val ttl    = Config.session.ttl
-  private val secret = Config.session.secret
-  private val algo   = JwtAlgorithm.HS256
 
   private val invalidEmailOrPassword = Xor.Left(
     FailureResponse.fromExceptions(
@@ -51,30 +42,17 @@ object SessionsService {
       implicit ec: ExecutionContext): Future[Xor[FailureResponse, Session]] = {
     UsersRepo.findByEmail(req.email).fast.map {
       case Some(user) if user.isValidPassword(req.password) =>
-        val claim = JwtClaim(
-          content = Payload(user.getId()).asJson.noSpaces,
-          expiration = Some(Instant.now.plusSeconds(ttl).getEpochSecond),
-          issuedAt = Some(Instant.now.getEpochSecond)
-        )
-        val jwt = JwtCirce.encode(claim, secret, algo)
+        val timeNow = Instant.now()
+        val jwt     = Jwt.encode(user.getId(), Config.jwt.secret, timeNow, Config.jwt.sessionTtl)
         Xor.Right(Session(jwt))
       case _ => invalidEmailOrPassword
     }
   }
 
   def find(token: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
-    JwtCirce.decode(token, secret, Seq(algo)) match {
-      case Success(jwtClaim) =>
-        decode[Payload](jwtClaim.content.asJson.noSpaces) match {
-          case Xor.Right(payload) =>
-            UsersRepo.findById(payload.userId)
-          case Xor.Left(e) =>
-            logger.debug("failed to decode token's payload: " + jwtClaim.content, e)
-            FastFuture.successful(None)
-        }
-      case Failure(e) =>
-        logger.debug("failed to decode token: " + token, e)
-        FastFuture.successful(None)
+    Jwt.decode(token, Config.jwt.secret) match {
+      case Xor.Right(userId) => UsersRepo.findById(userId)
+      case _                 => FastFuture.successful(None)
     }
   }
 }
