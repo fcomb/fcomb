@@ -19,6 +19,7 @@ package io.fcomb.crypto
 import cats.data.Xor
 import io.circe.{Encoder, Decoder}
 import io.circe.syntax._
+import io.circe.parser.{decode => jsonDecode}
 import io.circe.generic.semiauto._
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import java.time.Instant
@@ -45,8 +46,7 @@ object Jwt {
   def decode(token: String, secret: String): Xor[String, Int] = {
     JwtCirce.decode(token, secret, Seq(algo)) match {
       case Success(jwtClaim) =>
-        decodeUserPayload
-          .decodeJson(jwtClaim.content.asJson)
+        jsonDecode[UserPayload](jwtClaim.content)
           .map(_.userId)
           .leftMap(_ => "failed to decode token's payload")
       case Failure(e) => Xor.Left("failed to decode token")

@@ -24,13 +24,10 @@ import io.fcomb.models.{Session, User}
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.utils.Config
-import org.slf4j.LoggerFactory
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
 object SessionsService {
-  private val logger = LoggerFactory.getLogger(getClass)
-
   private val invalidEmailOrPassword = Xor.Left(
     FailureResponse.fromExceptions(
       Seq(
