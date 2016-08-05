@@ -4,8 +4,6 @@ scala:
    - 2.11.8
 jdk:
   - oraclejdk8
-services:
-  - redis-server
 before_install:
   - sudo /etc/init.d/postgresql stop
   - sudo apt-get -y remove --purge postgresql-9.1

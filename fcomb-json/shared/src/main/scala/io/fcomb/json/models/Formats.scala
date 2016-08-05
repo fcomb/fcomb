@@ -30,9 +30,10 @@ object Formats {
   implicit final def encodePaginationData[T](
       implicit encoder: Encoder[T]): Encoder[PaginationData[T]] =
     deriveEncoder
+  implicit final val encodeCreateRepo: Encoder[CreateRepo] = deriveEncoder
+  implicit final val encodePushRepo: Encoder[PushRepo]     = deriveEncoder
 
   implicit final val encodeEventDetails = new Encoder[EventDetails] {
-    import io.circe.generic.auto._
     def apply(details: EventDetails) = details match {
       case evt: CreateRepo => Encoder[CreateRepo].apply(evt)
       case evt: PushRepo   => Encoder[PushRepo].apply(evt)
@@ -49,9 +50,10 @@ object Formats {
   implicit final def decodePaginationData[T](
       implicit decoder: Decoder[T]): Decoder[PaginationData[T]] =
     deriveDecoder
+  implicit final val decodeCreateRepo: Decoder[CreateRepo] = deriveDecoder
+  implicit final val decodePushRepo: Decoder[PushRepo]     = deriveDecoder
 
   implicit final val decodeEventDetails: Decoder[EventDetails] = Decoder.instance { c =>
-    import io.circe.generic.auto._
     c.get[EventKind]("kind").flatMap {
       case EventKind.CreateRepo => Decoder[CreateRepo].apply(c)
       case EventKind.PushRepo   => Decoder[PushRepo].apply(c)

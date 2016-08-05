@@ -4,12 +4,13 @@ import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import io.fcomb.Db
-import io.fcomb.server.{Routes => ApiRoutes}
-import io.fcomb.services.{EmailService, EventService}
 import io.fcomb.docker.distribution.server.{Routes => DockerDistributionRoutes}
 import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
-import io.fcomb.utils.{Config, Implicits}
+import io.fcomb.server.{Routes => ApiRoutes}
+import io.fcomb.services.{EmailService, EventService}
+import io.fcomb.utils.Config
 import org.slf4j.LoggerFactory
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -27,8 +28,6 @@ object Main extends App {
     logger.info("Going to a single-node cluster mode")
     cluster.join(cluster.selfAddress)
   }
-
-  Implicits.global(sys, mat) // TODO: remove it with redis dependency
 
   val interface = Config.config.getString("rest-api.interface")
   val port      = Config.config.getInt("rest-api.port")

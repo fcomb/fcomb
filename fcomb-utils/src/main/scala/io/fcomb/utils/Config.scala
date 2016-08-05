@@ -27,33 +27,38 @@ object Config {
   private implicit def toFiniteDuration(d: JDuration): FiniteDuration =
     Duration.fromNanos(d.toNanos)
 
-  val config          = ConfigFactory.load().getConfig("fcomb-server")
-  val actorSystemName = config.getString("actor-system-name")
-  val jdbcConfig      = config.getConfig("jdbc")
-  val jdbcConfigSlick = config.getConfig("jdbc-slick")
+  lazy val config          = ConfigFactory.load().getConfig("fcomb-server")
+  lazy val actorSystemName = config.getString("actor-system-name")
+  lazy val jdbcConfig      = config.getConfig("jdbc")
+  lazy val jdbcConfigSlick = config.getConfig("jdbc-slick")
 
   object docker {
     object distribution {
-      val imageStorage = config.getString("docker.distribution.image-storage")
-      val realm        = config.getString("docker.distribution.realm")
+      lazy val imageStorage = config.getString("docker.distribution.image-storage")
+      lazy val realm        = config.getString("docker.distribution.realm")
 
       object gc {
-        val outdatedPeriod: JDuration =
+        lazy val outdatedPeriod: JDuration =
           config.get[JDuration]("docker.distribution.gc.outdated-period").value
-        val outdatedCheckInterval: FiniteDuration =
+        lazy val outdatedCheckInterval: FiniteDuration =
           config.get[JDuration]("docker.distribution.gc.outdated-check-interval").value
-        val deletingCheckInterval: FiniteDuration =
+        lazy val deletingCheckInterval: FiniteDuration =
           config.get[JDuration]("docker.distribution.gc.deleting-check-interval").value
       }
     }
   }
 
   object security {
-    val isOpenSignUp                  = config.getBoolean("security.open-sign-up")
-    val isAnonymousPublicRepositories = config.getBoolean("security.anonymous-public-repositories")
+    lazy val isOpenSignUp = config.getBoolean("security.open-sign-up")
+    lazy val isAnonymousPublicRepositories =
+      config.getBoolean("security.anonymous-public-repositories")
   }
 
-  val redis = config.getConfig("redis")
+  object jwt {
+    lazy val secret           = config.getString("jwt.secret")
+    lazy val sessionTtl       = config.get[JDuration]("jwt.session-ttl").value.getSeconds
+    lazy val resetPasswordTtl = config.get[JDuration]("jwt.reset-password-ttl").value.getSeconds
+  }
 
-  val smtp = config.getConfig("smtp")
+  lazy val smtp = config.getConfig("smtp")
 }

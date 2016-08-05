@@ -15,6 +15,5 @@
   <!-- <logger name="slick.compiler.QueryCompilerBenchmark" level="DEBUG" /> -->
 
   <!-- <logger name="com.github.dwhjames.awswrap.s3.FutureTransfer" level="INFO" /> -->
-  <!-- <logger name="scredis" level="INFO" /> -->
   <!-- <logger name="com.zaxxer.hikari" level="INFO" /> -->
 </configuration>
