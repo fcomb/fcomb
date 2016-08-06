@@ -19,11 +19,30 @@ package io.fcomb.server.api.group
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import io.fcomb.models.common.Slug
+import io.fcomb.persist.OrganizationGroupUsersRepo
+import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CirceSupport._
+import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.OrganizationGroupDirectives._
+import io.fcomb.server.PaginationDirectives._
+import io.fcomb.json.rpc.Formats.encodeUserProfileResponse
 
 object MembersHandler {
   val servicePath = "members"
 
-  def index(slug: Slug) = ???
+  def index(slug: Slug) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        groupBySlugWithAcl(slug, user.getId()) { group =>
+          extractPagination { pg =>
+            onSuccess(OrganizationGroupUsersRepo.paginateByGroupId(group.getId(), pg)) { p =>
+              completePagination(OrganizationGroupUsersRepo.label, p)
+            }
+          }
+        }
+      }
+    }
+  }
 
   def upsert(slug: Slug) = ???
 

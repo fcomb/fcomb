@@ -24,8 +24,8 @@ import io.fcomb.models.acl._
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.{Pagination, PaginationData, OwnerKind, User}
 import io.fcomb.persist.EnumsMapping._
-import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, UsersRepo}
 import io.fcomb.persist.docker.distribution.ImagesRepo
+import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, UsersRepo}
 import io.fcomb.rpc.acl._
 import io.fcomb.validations.{ValidationResult, ValidationResultUnit}
 import java.time.OffsetDateTime
