@@ -77,10 +77,13 @@ object OrganizationGroupsHandler {
 
   val routes: Route = {
     // format: OFF
-    path(servicePath / SlugPath) { slug =>
-      get(show(slug)) ~
-      put(update(slug)) ~
-      delete(destroy(slug))
+    pathPrefix(servicePath / SlugPath) { slug =>
+      pathEnd {
+        get(show(slug)) ~
+        put(update(slug)) ~
+        delete(destroy(slug))
+      } ~
+      group.MembersHandler.routes(slug)
     }
     // format: ON
   }

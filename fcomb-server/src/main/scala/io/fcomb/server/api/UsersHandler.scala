@@ -21,13 +21,13 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
-import io.fcomb.server.CirceSupport._
-import io.fcomb.server.SlugPath
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.errors.{FailureResponse, RegistrationIsDisabled}
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.UserSignUpRequest
+import io.fcomb.server.CirceSupport._
+import io.fcomb.server.SlugPath
 import io.fcomb.utils.Config
 
 object UsersHandler {

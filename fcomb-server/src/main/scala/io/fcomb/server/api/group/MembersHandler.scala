@@ -14,16 +14,33 @@
  * limitations under the License.
  */
 
-package io.fcomb.server
+package io.fcomb.server.api.group
 
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.PathMatcher._
-import akka.http.scaladsl.model.Uri.Path
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import io.fcomb.models.common.Slug
 
-object SlugPath extends PathMatcher1[Slug] {
-  def apply(path: Path) = path match {
-    case Path.Segment(segment, tail) => Matched(tail, Tuple1(Slug.parse(segment)))
-    case _                           => Unmatched
+object MembersHandler {
+  val servicePath = "members"
+
+  def index(slug: Slug) = ???
+
+  def upsert(slug: Slug) = ???
+
+  def destroy(slug: Slug, memberSlug: Slug) = ???
+
+  def routes(slug: Slug): Route = {
+    // format: OFF
+    pathPrefix(servicePath) {
+      pathEnd {
+        get(index(slug)) ~
+        put(upsert(slug))
+      } ~
+      path(Segment) { memberSlugSegment =>
+        val memberSlug = Slug.parse(memberSlugSegment)
+        delete(destroy(slug, memberSlug))
+      }
+    }
+    // format: ON
   }
 }

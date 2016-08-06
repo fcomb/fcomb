@@ -20,7 +20,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.util.FastFuture, FastFuture._
+import akka.http.scaladsl.util.FastFuture._
 import cats.data.Validated
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
