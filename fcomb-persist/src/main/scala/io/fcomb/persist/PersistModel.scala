@@ -17,8 +17,9 @@
 package io.fcomb.persist
 
 import akka.http.scaladsl.util.FastFuture
-import cats.data.Validated, cats.std.all._
+import cats.data.Validated
 import cats.syntax.cartesian._
+import cats.instances.all._
 import io.fcomb.Db._
 import io.fcomb.FcombPostgresProfile.IntoInsertActionComposer
 import io.fcomb.FcombPostgresProfile.api._
