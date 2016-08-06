@@ -275,12 +275,13 @@ lazy val frontend = project.in(file("fcomb-frontend"))
     // },
     // compile in Compile <<= (compile in Compile).dependsOn(frontendBundleCreate),
     libraryDependencies ++= Seq(
-      "com.github.japgolly.scalacss"      %%% "ext-react"     % "0.4.1",
-      "com.github.japgolly.scalajs-react" %%% "extra"         % "0.11.1",
-      "org.scala-js"                      %%% "scalajs-dom"   % "0.9.1",
-      "org.typelevel"                     %%% "cats"          % catsVersion,
-      "me.chrons"                         %%% "diode-react"   % "1.0.0",
-      "io.circe"                          %%% "circe-scalajs" % circeVersion
+      "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.4.1",
+      "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.1",
+      "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.5.0",
+      "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
+      "org.typelevel"                                  %%% "cats"          % catsVersion,
+      "me.chrons"                                      %%% "diode-react"   % "1.0.0",
+      "io.circe"                                       %%% "circe-scalajs" % circeVersion
     ),
     scalaJSUseRhino in Global := false,
     skip in packageJSDependencies := false,
