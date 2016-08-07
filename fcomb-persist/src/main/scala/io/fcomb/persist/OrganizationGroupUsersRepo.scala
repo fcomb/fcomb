@@ -16,10 +16,11 @@
 
 package io.fcomb.persist
 
+import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.{Pagination, PaginationData, OrganizationGroupUser}
-import io.fcomb.rpc.UserProfileResponse
+import io.fcomb.rpc.{MemberUserRequest, UserProfileResponse}
 import scala.concurrent.{Future, ExecutionContext}
 
 class OrganizationGroupUserTable(tag: Tag)
@@ -70,16 +71,33 @@ object OrganizationGroupUsersRepo
     )
   }
 
-  def upsertDBIO(groupId: Int, userId: Int) = {
-    table.insertOrUpdate(
-      OrganizationGroupUser(
-        groupId = groupId,
-        userId = userId
-      ))
+  private lazy val existByGroupAndUserIdCompiled = Compiled {
+    (groupId: Rep[Int], userId: Rep[Int]) =>
+      table.filter { t =>
+        t.groupId === groupId && t.userId === userId
+      }.exists
   }
 
-  def upsert(groupId: Int, userId: Int) = {
-    db.run(upsertDBIO(groupId, userId))
+  def upsertDBIO(groupId: Int, req: MemberUserRequest)(implicit ec: ExecutionContext) = {
+    UsersRepo.findByMemberRequestAsValidatedDBIO(req).flatMap {
+      case Validated.Valid(user) =>
+        val userId = user.getId()
+        existByGroupAndUserIdCompiled((groupId, userId)).result.flatMap { exist =>
+          if (exist) DBIO.successful(())
+          else {
+            val member = OrganizationGroupUser(
+              groupId = groupId,
+              userId = userId
+            )
+            (table += member).map(_ => Validated.Valid(()))
+          }
+        }
+      case res @ Validated.Invalid(_) => DBIO.successful(res)
+    }
+  }
+
+  def upsert(groupId: Int, req: MemberUserRequest)(implicit ec: ExecutionContext) = {
+    db.run(upsertDBIO(groupId, req))
   }
 
   def destroyDBIO(groupId: Int, userId: Int) = {

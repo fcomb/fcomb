@@ -16,8 +16,9 @@
 
 package io.fcomb.json.rpc
 
+import cats.data.Xor
 import io.circe.generic.semiauto._
-import io.circe.{Encoder, Decoder}
+import io.circe.{Encoder, Decoder, DecodingFailure}
 import io.fcomb.json.models.acl.Formats._
 import io.fcomb.rpc._
 
@@ -35,6 +36,14 @@ object Formats {
     deriveEncoder
   implicit final val encodeOrganizationGroupResponse: Encoder[OrganizationGroupResponse] =
     deriveEncoder
+  private final val encodeMemberUserIdRequest: Encoder[MemberUserIdRequest]     = deriveEncoder
+  private final val encodeMemberUsernameRequest: Encoder[MemberUsernameRequest] = deriveEncoder
+  implicit final val encodeMemberUserRequest = new Encoder[MemberUserRequest] {
+    def apply(req: MemberUserRequest) = req match {
+      case r: MemberUserIdRequest   => encodeMemberUserIdRequest.apply(r)
+      case r: MemberUsernameRequest => encodeMemberUsernameRequest.apply(r)
+    }
+  }
 
   implicit final val decodeSessionCreateRequest: Decoder[SessionCreateRequest] = deriveDecoder
   implicit final val decodeUserProfileResponse: Decoder[UserProfileResponse]   = deriveDecoder
@@ -49,4 +58,13 @@ object Formats {
     deriveDecoder
   implicit final val decodeOrganizationGroupResponse: Decoder[OrganizationGroupResponse] =
     deriveDecoder
+  implicit final val decodeMemberUserRequest: Decoder[MemberUserRequest] = Decoder.instance { c =>
+    val id       = c.downField("id")
+    val username = c.downField("username")
+    if (id.succeeded && !username.succeeded) {
+      Decoder[Int].apply(id.any).map(MemberUserIdRequest)
+    } else if (!id.succeeded && username.succeeded) {
+      Decoder[String].apply(username.any).map(MemberUsernameRequest)
+    } else Xor.Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
+  }
 }

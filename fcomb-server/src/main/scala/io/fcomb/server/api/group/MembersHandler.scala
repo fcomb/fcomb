@@ -18,6 +18,7 @@ package io.fcomb.server.api.group
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import cats.data.Validated
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupUsersRepo
 import io.fcomb.server.AuthenticationDirectives._
@@ -25,7 +26,8 @@ import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.OrganizationGroupDirectives._
 import io.fcomb.server.PaginationDirectives._
-import io.fcomb.json.rpc.Formats.encodeUserProfileResponse
+import io.fcomb.rpc.MemberUserRequest
+import io.fcomb.json.rpc.Formats.{encodeUserProfileResponse, decodeMemberUserRequest}
 
 object MembersHandler {
   val servicePath = "members"
@@ -44,7 +46,20 @@ object MembersHandler {
     }
   }
 
-  def upsert(slug: Slug) = ???
+  def upsert(slug: Slug) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        groupBySlugWithAcl(slug, user.getId()) { group =>
+          entity(as[MemberUserRequest]) { req =>
+            onSuccess(OrganizationGroupUsersRepo.upsert(group.getId(), req)) {
+              case Validated.Valid(p)   => completeAccepted()
+              case Validated.Invalid(e) => ??? // TODO
+            }
+          }
+        }
+      }
+    }
+  }
 
   def destroy(slug: Slug, memberSlug: Slug) = ???
 

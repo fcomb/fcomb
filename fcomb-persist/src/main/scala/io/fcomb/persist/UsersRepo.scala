@@ -23,7 +23,7 @@ import io.fcomb.Db._
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.User
 import io.fcomb.models.common.Slug
-import io.fcomb.rpc.{UserSignUpRequest, UserUpdateRequest}
+import io.fcomb.rpc.{MemberUserRequest, MemberUserIdRequest, MemberUsernameRequest, UserSignUpRequest, UserUpdateRequest}
 import io.fcomb.validations._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -175,6 +175,14 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     findByUsernameDBIO(username).map {
       case Some(u) => Validated.Valid(u)
       case _       => validationError("member.username", "Not found")
+    }
+  }
+
+  def findByMemberRequestAsValidatedDBIO(req: MemberUserRequest)(
+      implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
+    req match {
+      case MemberUserIdRequest(id)     => findByIdAsValidatedDBIO(id)
+      case MemberUsernameRequest(name) => findByUsernameAsValidatedDBIO(name)
     }
   }
 
