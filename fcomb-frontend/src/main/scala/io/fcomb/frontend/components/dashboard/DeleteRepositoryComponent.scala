@@ -64,7 +64,7 @@ object DeleteRepositoryComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("DeleteRepositoryComponent")
+  private val component = ReactComponentB[Props]("DeleteRepository")
     .initialState(State(false))
     .renderBackend[Backend]
     .build

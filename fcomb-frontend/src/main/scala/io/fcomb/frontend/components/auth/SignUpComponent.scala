@@ -145,7 +145,7 @@ object SignUpComponent {
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[Route]]("SignUpComponent")
+  private val component = ReactComponentB[RouterCtl[Route]]("SignUp")
     .initialState(State("", "", "", "", false))
     .renderBackend[Backend]
     .componentWillMount { $ ⇒

@@ -106,7 +106,7 @@ object TagsComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("TagsComponent")
+  private val component = ReactComponentB[Props]("Tags")
     .initialState(State(Seq.empty, "updatedAt", SortOrder.Desc))
     .renderBackend[Backend]
     .componentWillMount { $ =>

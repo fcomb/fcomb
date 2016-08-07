@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components
 
-import diode.react.ModelProxy
 import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.frontend.styles.Global
 import io.fcomb.frontend.components.dashboard._
@@ -58,7 +57,7 @@ object DashboardComponent {
   }
 
   final case class State(ctl: RouterCtl[Route],
-                         session: ModelProxy[Option[String]],
+                         session: String,
                          res: Resolution[Route])
 
   class Backend($ : BackendScope[State, Unit]) {
@@ -79,14 +78,10 @@ object DashboardComponent {
     }
   }
 
-  private val component = ReactComponentB[State]("DashboardComponent")
+  private val component = ReactComponentB[State]("Dashboard")
     .renderBackend[Backend]
-    .componentWillMount { $ ⇒
-      if ($.props.session().isEmpty) $.props.ctl.set(Route.SignIn).delayMs(1).void
-      else Callback.empty
-    }
     .build
 
-  def apply(ctl: RouterCtl[Route], session: ModelProxy[Option[String]], res: Resolution[Route]) =
+  def apply(ctl: RouterCtl[Route], session: String, res: Resolution[Route]) =
     component(State(ctl, session, res))
 }

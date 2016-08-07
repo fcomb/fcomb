@@ -60,7 +60,7 @@ object OrganizationsComponent {
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("OrganizationsComponent")
+  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("Organizations")
     .initialState(State(Seq.empty))
     .renderBackend[Backend]
     .componentWillMount(_.backend.getOrgs())

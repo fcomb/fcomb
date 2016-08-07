@@ -101,7 +101,7 @@ object NewGroupComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("NewGroupComponent")
+  private val component = ReactComponentB[Props]("NewGroup")
     .initialState(State("", Role.Member, false))
     .renderBackend[Backend]
     .build

@@ -60,7 +60,7 @@ object TimeAgoComponent {
     }
   }
 
-  private val component = ReactComponentB[Date]("TimeAgoComponent")
+  private val component = ReactComponentB[Date]("TimeAgo")
     .initialState(State(""))
     .renderBackend[Backend]
     .componentWillMount(_.backend.updateDistance())

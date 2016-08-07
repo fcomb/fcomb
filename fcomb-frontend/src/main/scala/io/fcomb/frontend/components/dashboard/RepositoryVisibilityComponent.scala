@@ -98,7 +98,7 @@ object RepositoryVisibilityComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("RepositoryVisibilityComponent")
+  private val component = ReactComponentB[Props]("RepositoryVisibility")
     .initialState(State(None, false))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getVisibility($.props.repositoryName))

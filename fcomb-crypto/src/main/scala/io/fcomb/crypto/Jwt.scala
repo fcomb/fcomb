@@ -19,7 +19,7 @@ package io.fcomb.crypto
 import cats.data.Xor
 import io.circe.{Encoder, Decoder}
 import io.circe.syntax._
-import io.circe.parser.{decode => jsonDecode}
+import io.circe.jawn.{decode => jsonDecode}
 import io.circe.generic.semiauto._
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import java.time.Instant

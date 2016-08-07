@@ -242,7 +242,7 @@ object PermissionsComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("PermissionsComponent")
+  private val component = ReactComponentB[Props]("Permissions")
     .initialState(State(Seq.empty, "action", SortOrder.Desc, defaultFormState))
     .renderBackend[Backend]
     .componentWillMount { $ =>

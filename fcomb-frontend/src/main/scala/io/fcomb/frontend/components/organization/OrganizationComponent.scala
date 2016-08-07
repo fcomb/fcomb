@@ -54,7 +54,7 @@ object OrganizationComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("OrganizationComponent")
+  private val component = ReactComponentB[Props]("Organization")
     .initialState(State(None, None))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getOrg($.props.name))

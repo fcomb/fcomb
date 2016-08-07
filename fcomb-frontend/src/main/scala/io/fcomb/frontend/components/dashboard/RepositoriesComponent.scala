@@ -60,7 +60,7 @@ object RepositoriesComponent {
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("RepositoriesComponent")
+  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("Repositories")
     .initialState(State(Seq.empty))
     .renderBackend[Backend]
     .componentWillMount(_.backend.getRepositories())

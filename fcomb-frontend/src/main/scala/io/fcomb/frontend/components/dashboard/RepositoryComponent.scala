@@ -171,7 +171,7 @@ object RepositoryComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("RepositoryComponent")
+  private val component = ReactComponentB[Props]("Repository")
     .initialState(State(None, None))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getRepository($.props.name))

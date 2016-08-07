@@ -61,7 +61,7 @@ object GroupsComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("GroupsComponent")
+  private val component = ReactComponentB[Props]("Groups")
     .initialState(State(Seq.empty))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getGroups($.props.orgName))

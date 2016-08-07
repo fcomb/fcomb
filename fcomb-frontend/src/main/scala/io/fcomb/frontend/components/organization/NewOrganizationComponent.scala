@@ -82,7 +82,7 @@ object NewOrganizationComponent {
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("NewOrganizationComponent")
+  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("NewOrganization")
     .initialState(State("", false))
     .renderBackend[Backend]
     .build

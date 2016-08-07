@@ -161,8 +161,8 @@ lazy val json = crossProject.in(file("fcomb-json"))
   .settings(allSettings:_*)
   .settings(libraryDependencies ++= Seq(
     "com.beachape" %%% "enumeratum-circe" % enumeratumVersion,
-    "io.circe"     %%% "circe-generic"    % circeVersion,
-    "io.circe"     %%% "circe-parser"     % circeVersion
+    "io.circe"     %%% "circe-parser"     % circeVersion,
+    "io.circe"     %%% "circe-generic"    % circeVersion
   ))
   .jvmSettings(libraryDependencies ++= Seq(
     "io.circe" %% "circe-java8" % circeVersion

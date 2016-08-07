@@ -37,7 +37,7 @@ object SettingsComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("SettingsComponent").renderBackend[Backend].build
+  private val component = ReactComponentB[Props]("Settings").renderBackend[Backend].build
 
   def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String) =
     component.apply(Props(ctl, repositoryName))

@@ -116,7 +116,7 @@ object NewRepositoryComponent {
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("NewRepositoryComponent")
+  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("NewRepository")
     .initialState(State("", ImageVisibilityKind.Private, None, false))
     .renderBackend[Backend]
     .build

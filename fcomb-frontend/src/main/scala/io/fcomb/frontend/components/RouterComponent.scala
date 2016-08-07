@@ -20,6 +20,7 @@ import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router._
+import japgolly.scalajs.react.vdom.prefix_<^._
 
 object RouterComponent {
   val baseUrl = BaseUrl.fromWindowOrigin / "#"
@@ -47,13 +48,21 @@ object RouterComponent {
         case (ctl, res) =>
           res.page match {
             case Route.Dashboard(_) =>
-              sessionConn { proxy =>
-                DashboardComponent.apply(ctl, proxy, res)
+              sessionConn { sessionProxy =>
+                sessionProxy.apply() match {
+                  case Some(session) => DashboardComponent.apply(ctl, session, res)
+                  case _             => signInRedirectComponent.apply(ctl)
+                }
               }
             case _ => res.render()
           }
       }
   }
+
+  private val signInRedirectComponent = ReactComponentB[RouterCtl[Route]]("SignInRedirect")
+    .render_P(_ => <.div("Unauthorized"))
+    .componentWillMount(_.props.set(Route.SignIn))
+    .build
 
   private val component = Router(baseUrl, routerConfig.logToConsole)
 
