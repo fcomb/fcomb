@@ -186,6 +186,14 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     }
   }
 
+  def findBySlugAsValidatedDBIO(slug: Slug)(
+      implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
+    slug match {
+      case Slug.Id(id)     => findByIdAsValidatedDBIO(id)
+      case Slug.Name(name) => findByUsernameAsValidatedDBIO(name)
+    }
+  }
+
   import Validations._
 
   // TODO: check username format

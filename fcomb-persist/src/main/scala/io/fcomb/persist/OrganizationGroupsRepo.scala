@@ -160,6 +160,18 @@ object OrganizationGroupsRepo
     table.filter(_.organizationId === organizationId).delete
   }
 
+  def existAdminGroupApartFromDBIO(groupId: Int) = {
+    table
+      .join(table)
+      .on(_.organizationId === _.organizationId)
+      .filter {
+        case (t, ogt) =>
+          t.id === groupId && t.id =!= ogt.id && ogt.role === (Role.Admin: Role)
+      }
+      .exists
+      .result
+  }
+
   import Validations._
 
   // TODO: check name format

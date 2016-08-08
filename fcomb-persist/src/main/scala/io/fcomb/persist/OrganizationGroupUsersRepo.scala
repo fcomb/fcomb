@@ -19,9 +19,11 @@ package io.fcomb.persist
 import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.models.common.Slug
 import io.fcomb.models.{Pagination, PaginationData, OrganizationGroupUser}
 import io.fcomb.rpc.{MemberUserRequest, UserProfileResponse}
 import scala.concurrent.{Future, ExecutionContext}
+import slick.jdbc.TransactionIsolation
 
 class OrganizationGroupUserTable(tag: Tag)
     extends Table[OrganizationGroupUser](tag, "organization_group_users") {
@@ -83,7 +85,7 @@ object OrganizationGroupUsersRepo
       case Validated.Valid(user) =>
         val userId = user.getId()
         existByGroupAndUserIdCompiled((groupId, userId)).result.flatMap { exist =>
-          if (exist) DBIO.successful(())
+          if (exist) DBIO.successful(Validated.Valid(()))
           else {
             val member = OrganizationGroupUser(
               groupId = groupId,
@@ -100,13 +102,33 @@ object OrganizationGroupUsersRepo
     db.run(upsertDBIO(groupId, req))
   }
 
-  def destroyDBIO(groupId: Int, userId: Int) = {
+  private def destroyDBIO(groupId: Int, userId: Int) = {
     table.filter { t =>
       t.groupId === groupId && t.userId === userId
     }.delete
   }
 
-  def destroy(groupId: Int, userId: Int) = {
-    db.run(destroyDBIO(groupId: Int, userId))
+  private def destroyAsValidatedDBIO(groupId: Int, userId: Int)(implicit ec: ExecutionContext) = {
+    destroyDBIO(groupId, userId).map { res =>
+      if (res == 0) notFound
+      else Validated.Valid(())
+    }
   }
+
+  def destroy(groupId: Int, userSlug: Slug)(implicit ec: ExecutionContext) = {
+    runInTransaction(TransactionIsolation.Serializable) {
+      UsersRepo.findBySlugAsValidatedDBIO(userSlug).flatMap {
+        case Validated.Valid(user) =>
+          OrganizationGroupsRepo.existAdminGroupApartFromDBIO(groupId).flatMap { exist =>
+            if (exist) destroyAsValidatedDBIO(groupId, user.getId())
+            else cannotDeleteAdminGroup
+          }
+        case res @ Validated.Invalid(_) => DBIO.successful(res)
+      }
+    }
+  }
+
+  private lazy val notFound = validationError("member", "Not found")
+  private lazy val cannotDeleteAdminGroup =
+    validationErrorAsDBIO("group", "Cannot delete the last admin group")
 }

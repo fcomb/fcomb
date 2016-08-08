@@ -61,7 +61,18 @@ object MembersHandler {
     }
   }
 
-  def destroy(slug: Slug, memberSlug: Slug) = ???
+  def destroy(slug: Slug, memberSlug: Slug) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        groupBySlugWithAcl(slug, user.getId()) { group =>
+          onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), memberSlug)) {
+            case Validated.Valid(p)   => completeAccepted()
+            case Validated.Invalid(e) => ??? // TODO
+          }
+        }
+      }
+    }
+  }
 
   def routes(slug: Slug): Route = {
     // format: OFF

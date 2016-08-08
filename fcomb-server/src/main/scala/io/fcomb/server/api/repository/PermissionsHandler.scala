@@ -65,7 +65,7 @@ object PermissionsHandler {
     }
   }
 
-  def destroy(slug: Slug, memberKind: MemberKind, memberSlug: String) = {
+  def destroy(slug: Slug, memberKind: MemberKind, memberSlug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
@@ -85,8 +85,9 @@ object PermissionsHandler {
         get(index(slug)) ~
         put(upsert(slug))
       } ~
-      path(Segment / Segment) { (kind, memberSlug) =>
+      path(Segment / Segment) { (kind, memberSlugSegment) =>
         extractMemberKind(kind) { memberKind =>
+          val memberSlug = Slug.parse(memberSlugSegment)
           delete(destroy(slug, memberKind, memberSlug))
         }
       }

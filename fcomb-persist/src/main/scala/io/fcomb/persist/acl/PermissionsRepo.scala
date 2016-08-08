@@ -21,6 +21,7 @@ import cats.syntax.eq._
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.acl._
+import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.{Pagination, PaginationData, OwnerKind, User}
 import io.fcomb.persist.EnumsMapping._
@@ -250,17 +251,11 @@ object PermissionsRepo
     }
   }
 
-  private def userIdBySlugDBIO(slug: String)(
-      implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
-    if (slug.forall(Character.isDigit)) UsersRepo.findByIdAsValidatedDBIO(slug.toInt)
-    else UsersRepo.findByUsernameAsValidatedDBIO(slug)
-  }
-
-  def destroyByImage(image: Image, memberKind: MemberKind, slug: String)(
+  def destroyByImage(image: Image, memberKind: MemberKind, slug: Slug)(
       implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
     assert(memberKind === MemberKind.User) // TODO
     runInTransaction(TransactionIsolation.Serializable) { // TODO: DRY
-      userIdBySlugDBIO(slug).flatMap {
+      UsersRepo.findBySlugAsValidatedDBIO(slug).flatMap {
         case Validated.Valid(user) =>
           val memberId = user.getId
           if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
