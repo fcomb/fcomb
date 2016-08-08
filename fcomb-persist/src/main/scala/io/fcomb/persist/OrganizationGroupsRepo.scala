@@ -142,15 +142,22 @@ object OrganizationGroupsRepo
   }
 
   def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
-    for {
-      _   <- PermissionsRepo.destroyByOrganizationGroupIdDBIO(id)
-      res <- super.destroyDBIO(id)
-    } yield res
+    existAdminGroupApartFromDBIO(id).flatMap { exist =>
+      if (exist) {
+        for {
+          _   <- PermissionsRepo.destroyByOrganizationGroupIdDBIO(id)
+          res <- super.destroyDBIO(id)
+        } yield res
+      } else cannotDeleteAdminGroup
+    }
   }
 
   override def destroy(id: Int)(implicit ec: ExecutionContext) = {
     runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
   }
+
+  lazy val cannotDeleteAdminGroup =
+    validationErrorAsDBIO("group", "Cannot delete the last admin group")
 
   def findIdsByOrganizationIdDBIO(organizationId: Int) = {
     findByOrgIdDBIO(organizationId).map(_.pk)
@@ -164,8 +171,10 @@ object OrganizationGroupsRepo
     table
       .join(table)
       .on(_.organizationId === _.organizationId)
+      .join(OrganizationGroupUsersRepo.table)
+      .on(_._2.id === _.groupId)
       .filter {
-        case (t, ogt) =>
+        case ((t, ogt), _) =>
           t.id === groupId && t.id =!= ogt.id && ogt.role === (Role.Admin: Role)
       }
       .exists

@@ -121,7 +121,7 @@ object OrganizationGroupUsersRepo
         case Validated.Valid(user) =>
           OrganizationGroupsRepo.existAdminGroupApartFromDBIO(groupId).flatMap { exist =>
             if (exist) destroyAsValidatedDBIO(groupId, user.getId())
-            else cannotDeleteAdminGroup
+            else OrganizationGroupsRepo.cannotDeleteAdminGroup
           }
         case res @ Validated.Invalid(_) => DBIO.successful(res)
       }
@@ -129,6 +129,4 @@ object OrganizationGroupUsersRepo
   }
 
   private lazy val notFound = validationError("member", "Not found")
-  private lazy val cannotDeleteAdminGroup =
-    validationErrorAsDBIO("group", "Cannot delete the last admin group")
 }
