@@ -132,13 +132,30 @@ object OrganizationGroupsRepo
     create(group)
   }
 
+  override def updateDBIO(group: OrganizationGroup)(implicit ec: ExecutionContext,
+                                                    m: Manifest[OrganizationGroup]) = {
+    existAdminGroupApartFromDBIO(group.getId()).flatMap { exist =>
+      if (exist) super.updateDBIO(group)
+      else cannotUpdateAdminGroup
+    }
+  }
+
+  private lazy val cannotUpdateAdminGroup =
+    validationErrorAsDBIO("group", "Cannot update the last admin group")
+
   def update(id: Int, req: OrganizationGroupRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] = {
-    update(id)(
-      _.copy(
-        name = req.name,
-        role = req.role
-      ))
+    runInTransaction(TransactionIsolation.ReadCommitted) {
+      existAdminGroupApartFromDBIO(id).flatMap { exist =>
+        if (exist)
+          updateDBIO(id)( // TODO: rewrite this with new validation api
+            _.copy(
+              name = req.name,
+              role = req.role
+            ))
+        else cannotUpdateAdminGroup
+      }
+    }
   }
 
   def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
@@ -167,7 +184,7 @@ object OrganizationGroupsRepo
     table.filter(_.organizationId === organizationId).delete
   }
 
-  def existAdminGroupApartFromDBIO(groupId: Int) = {
+  def existAdminGroupApartFromDBIO(groupId: Int): DBIOAction[Boolean, NoStream, Effect.Read] = {
     table
       .join(table)
       .on(_.organizationId === _.organizationId)

@@ -65,7 +65,7 @@ object PermissionsComponent {
         $.state.flatMap { state =>
           $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
             Callback.future {
-              upsertPermissionRpc(repositoryName, username, action).map {
+              upsertPermission(repositoryName, username, action).map {
                 case Xor.Right(_) =>
                   updateFormDisabled(false) >>
                     getPermissions(repositoryName, state.sortColumn, state.sortOrder)
@@ -168,7 +168,7 @@ object PermissionsComponent {
       $.modState(s => s.copy(form = s.form.copy(isFormDisabled = isFormDisabled)))
     }
 
-    private def upsertPermissionRpc(repositoryName: String, username: String, action: Action) = {
+    private def upsertPermission(repositoryName: String, username: String, action: Action) = {
       val member = PermissionUsernameRequest(username)
       val req    = PermissionUserCreateRequest(member, action)
       Rpc.callWith[PermissionUserCreateRequest, PermissionResponse](
@@ -184,8 +184,8 @@ object PermissionsComponent {
         else {
           $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
             Callback.future {
-              upsertPermissionRpc(props.repositoryName, fs.username, fs.action).map {
-                case Xor.Right(repository) =>
+              upsertPermission(props.repositoryName, fs.username, fs.action).map {
+                case Xor.Right(_) =>
                   $.modState(_.copy(form = defaultFormState)) >>
                     getPermissions(props.repositoryName, state.sortColumn, state.sortOrder)
                 case Xor.Left(e) =>

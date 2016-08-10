@@ -36,8 +36,8 @@ object Formats {
     deriveEncoder
   implicit final val encodeOrganizationGroupResponse: Encoder[OrganizationGroupResponse] =
     deriveEncoder
-  private final val encodeMemberUserIdRequest: Encoder[MemberUserIdRequest]     = deriveEncoder
-  private final val encodeMemberUsernameRequest: Encoder[MemberUsernameRequest] = deriveEncoder
+  implicit final val encodeMemberUserIdRequest: Encoder[MemberUserIdRequest]     = deriveEncoder
+  implicit final val encodeMemberUsernameRequest: Encoder[MemberUsernameRequest] = deriveEncoder
   implicit final val encodeMemberUserRequest = new Encoder[MemberUserRequest] {
     def apply(req: MemberUserRequest) = req match {
       case r: MemberUserIdRequest   => encodeMemberUserIdRequest.apply(r)

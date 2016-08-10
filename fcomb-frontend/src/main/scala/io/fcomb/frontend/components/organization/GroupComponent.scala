@@ -16,15 +16,14 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.{Xor, XorT}
-import cats.std.future._
+import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats.decodePaginationData
 import io.fcomb.models.PaginationData
 import io.fcomb.models.acl.Role
-import io.fcomb.rpc.{OrganizationGroupResponse, UserProfileResponse}
+import io.fcomb.rpc.{OrganizationGroupResponse, MemberUsernameRequest, UserProfileResponse}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -32,32 +31,44 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object GroupComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String, name: String)
-  final case class FormState(name: String, role: Role, isFormDisabled: Boolean)
+  final case class FormState(username: String, isFormDisabled: Boolean)
   final case class State(group: Option[OrganizationGroupResponse],
                          members: Seq[UserProfileResponse],
-                         form: Option[FormState])
+                         form: FormState)
+
+  private def defaultFormState =
+    FormState("", false)
 
   class Backend($ : BackendScope[Props, State]) {
-    def getGroup(name: String) =
-      Rpc.call[OrganizationGroupResponse](RpcMethod.GET, Resource.group(name))
-
-    def getMembers(name: String) =
-      Rpc.call[PaginationData[UserProfileResponse]](RpcMethod.GET, Resource.groupMembers(name))
-
-    def getGroupWithMembers(name: String): Callback = {
+    def getGroup(name: String) = {
       Callback.future {
-        val res = for {
-          group <- XorT(getGroup(name))
-          pd    <- XorT(getMembers(name))
-        } yield (group, pd.data)
-        res.value.map {
-          case Xor.Right((group, members)) =>
-            $.modState(_.copy(group = Some(group), members = members))
+        Rpc.call[OrganizationGroupResponse](RpcMethod.GET, Resource.group(name)).map {
+          case Xor.Right(group) => $.modState(_.copy(group = Some(group)))
           case Xor.Left(e) =>
             println(e)
             Callback.empty
         }
       }
+    }
+
+    def getMembers(name: String) = {
+      Callback.future {
+        Rpc
+          .call[PaginationData[UserProfileResponse]](RpcMethod.GET, Resource.groupMembers(name))
+          .map {
+            case Xor.Right(pd) => $.modState(_.copy(members = pd.data))
+            case Xor.Left(e) =>
+              println(e)
+              Callback.empty
+          }
+      }
+    }
+
+    def getGroupWithMembers(name: String): Callback = {
+      for {
+        _ <- getGroup(name)
+        _ <- getMembers(name)
+      } yield ()
     }
 
     def renderGroup(groupOpt: Option[OrganizationGroupResponse]) = {
@@ -71,27 +82,100 @@ object GroupComponent {
       }
     }
 
-    def renderMember(member: UserProfileResponse) = {
-      <.li(s"${member.username} (${member.email})")
+    def deleteMember(name: String, username: String)(e: ReactEventI) = {
+      e.preventDefaultCB >>
+        Callback.future {
+          Rpc.call[Unit](RpcMethod.DELETE, Resource.groupMember(name, username)).map {
+            case Xor.Right(_) => getMembers(name)
+            case Xor.Left(e)  => ??? // TODO
+          }
+        }
     }
 
-    def renderMembers(members: Seq[UserProfileResponse]) = {
-      <.div(
-        <.h3("Members"),
-        <.ul(members.map(renderMember))
-      )
+    def renderMember(name: String, member: UserProfileResponse) = {
+      <.tr(<.td(member.username),
+           <.td(member.email),
+           <.td(
+             <.button(^.`type` := "button",
+                      ^.onClick ==> deleteMember(name, member.username),
+                      "Delete")))
+    }
+
+    def renderMembers(name: String, members: Seq[UserProfileResponse]) = {
+      if (members.isEmpty) <.span("No members. Create one!")
+      else {
+        <.div(<.h3("Members"),
+              <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
+                      <.tbody(members.map(renderMember(name, _)))))
+      }
+    }
+
+    def updateFormDisabled(isFormDisabled: Boolean): Callback = {
+      $.modState(s => s.copy(form = s.form.copy(isFormDisabled = isFormDisabled)))
+    }
+
+    def add(props: Props): Callback = {
+      $.state.flatMap { state =>
+        val fs = state.form
+        if (fs.isFormDisabled) Callback.empty
+        else {
+          $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
+            Callback.future {
+              Rpc
+                .callWith[MemberUsernameRequest, Unit](RpcMethod.PUT,
+                                                       Resource.groupMembers(props.name),
+                                                       MemberUsernameRequest(fs.username))
+                .map {
+                  case Xor.Right(_) =>
+                    $.modState(_.copy(form = defaultFormState)) >>
+                      getMembers(props.name)
+                  case Xor.Left(e) =>
+                    // TODO
+                    updateFormDisabled(false)
+                }
+                .recover {
+                  case _ => updateFormDisabled(false)
+                }
+            }
+        }
+      }
+    }
+
+    def handleOnSubmit(props: Props)(e: ReactEventH): Callback = {
+      e.preventDefaultCB >> add(props)
+    }
+
+    def updateUsername(e: ReactEventI): Callback = {
+      val value = e.target.value
+      $.modState(s => s.copy(form = s.form.copy(username = value)))
+    }
+
+    def renderForm(props: Props, state: State) = {
+      <.form(^.onSubmit ==> handleOnSubmit(props),
+             ^.disabled := state.form.isFormDisabled,
+             <.input.text(^.id := "username",
+                          ^.name := "username",
+                          ^.autoFocus := true,
+                          ^.required := true,
+                          ^.tabIndex := 1,
+                          ^.placeholder := "Username",
+                          ^.value := state.form.username,
+                          ^.onChange ==> updateUsername),
+             <.input.submit(^.tabIndex := 2, ^.value := "Add"))
     }
 
     def render(props: Props, state: State) = {
       <.section(
         renderGroup(state.group),
-        renderMembers(state.members)
+        renderMembers(props.name, state.members),
+        <.hr,
+        renderForm(props, state)
       )
     }
   }
 
   private val component = ReactComponentB[Props]("Group")
-    .initialState(State(None, Seq.empty, None))
+    .initialState(State(None, Seq.empty, defaultFormState))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getGroupWithMembers($.props.name))
     .build

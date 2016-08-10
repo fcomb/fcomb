@@ -230,8 +230,20 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   def updateDBIO(item: T)(
       implicit ec: ExecutionContext,
       m: Manifest[T]
-  ) =
+  ): DBIOAction[ValidationModel, NoStream, Effect.All] =
     findByIdQuery(item.getId()).update(item).map(strictUpdateDBIO(item.getId(), item))
+
+  // TODO: replace
+  def updateDBIO(id: T#PkType)(f: T => T)(
+      implicit ec: ExecutionContext,
+      m: Manifest[T]): DBIOAction[ValidationModel, NoStream, Effect.All] = {
+    findByIdQuery(id).result.headOption.flatMap {
+      case Some(item) =>
+        val mappedItem = f(mapModel(item))
+        validateThenApplyVMDBIO(validate(mappedItem))(updateDBIO(mappedItem))
+      case _ => DBIO.successful(recordNotFound(id))
+    }
+  }
 
   def strictUpdateDBIO[R](id: T#PkType, res: R)(q: Int)(
       implicit ec: ExecutionContext
@@ -240,7 +252,7 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
 
   def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
     val mappedItem = mapModel(item)
-    validateThenApplyVM(validate((mappedItem))) {
+    validateThenApplyVM(validate(mappedItem)) {
       updateDBIO(mappedItem)
     }
   }
@@ -248,11 +260,12 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   def update(id: T#PkType)(f: T => T)(
       implicit ec: ExecutionContext,
       m: Manifest[T]
-  ): Future[ValidationModel] =
+  ): Future[ValidationModel] = {
     findById(id).flatMap {
       case Some(item) => update(f(item))
       case None       => recordNotFoundAsFuture(id)
     }
+  }
 
   def destroyDBIO(id: T#PkType) = {
     findByIdQuery(id).delete
