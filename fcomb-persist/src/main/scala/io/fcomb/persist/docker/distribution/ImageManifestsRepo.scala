@@ -45,7 +45,7 @@ class ImageManifestTable(tag: Tag)
   def v2JsonBlob     = column[Option[String]]("v2_json_blob")
 
   def * =
-    (id,
+    (id.?,
      digest,
      imageId,
      tags,
@@ -288,13 +288,13 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
     (imageId: Rep[Int], tag: Rep[String]) =>
       table.filter { q =>
         q.imageId === imageId && tag === q.tags.any
-      }.map(m => (m.pk, m.tags))
+      }.map(m => (m.id, m.tags))
   }
 
   private lazy val findTagsByImageIdCompiled = Compiled {
     (imageId: Rep[Int], limit: ConstColumn[Long], id: Rep[Int], offset: ConstColumn[Long]) =>
       table.filter { q =>
-        q.imageId === imageId && q.pk >= id
+        q.imageId === imageId && q.id >= id
       }.sortBy(_.id.asc).map(_.tags.unnest).drop(offset).take(limit)
   }
 

@@ -34,7 +34,7 @@ class ApplicationTable(tag: Tag)
   def updatedAt = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
-    (id, name, state, token, ownerId, ownerKind, createdAt, updatedAt) <>
+    (id.?, name, state, token, ownerId, ownerKind, createdAt, updatedAt) <>
       ((Application.apply _).tupled, Application.unapply)
 }
 

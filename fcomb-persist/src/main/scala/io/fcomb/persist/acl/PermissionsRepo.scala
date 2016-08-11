@@ -44,7 +44,7 @@ class PermissionTable(tag: Tag)
   def updatedAt  = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
-    (id, imageId, memberId, memberKind, action, createdAt, updatedAt) <>
+    (id.?, imageId, memberId, memberKind, action, createdAt, updatedAt) <>
       ((Permission.apply _).tupled, Permission.unapply)
 }
 

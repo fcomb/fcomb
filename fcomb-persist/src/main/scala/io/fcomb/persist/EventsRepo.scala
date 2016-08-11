@@ -38,7 +38,7 @@ class EventTable(tag: Tag) extends Table[Event](tag, "dd_events") with PersistTa
   def createdAt       = column[OffsetDateTime]("created_at")
 
   def * =
-    (id, kind, detailsJsonBlob, createdByUserId, createdAt) <>
+    (id.?, kind, detailsJsonBlob, createdByUserId, createdAt) <>
       ({
         case (id, kind, detailsJsonBlob, createdByUserId, createdAt) =>
           val details = detailsJsonBlob.as[EventDetails] match {

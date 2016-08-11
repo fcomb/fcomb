@@ -180,24 +180,21 @@ trait PersistTableWithPk {
   this: Table[_] =>
   type Pk
 
-  def id: Rep[Option[Pk]]
-  def pk: Rep[Pk]
+  def id: Rep[Pk]
 }
 
 trait PersistTableWithUuidPk extends PersistTableWithPk {
   this: Table[_] =>
   type Pk = UUID
 
-  def id = column[Option[UUID]]("id", O.PrimaryKey)
-  def pk = column[UUID]("id", O.PrimaryKey)
+  def id = column[UUID]("id", O.PrimaryKey)
 }
 
 trait PersistTableWithAutoIntPk extends PersistTableWithPk {
   this: Table[_] =>
   type Pk = Int
 
-  def id = column[Option[Int]]("id", O.AutoInc, O.PrimaryKey)
-  def pk = column[Int]("id", O.AutoInc, O.PrimaryKey)
+  def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 }
 
 trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTableWithPk]
@@ -307,7 +304,7 @@ trait PersistModelWithAutoIntPk[
     T <: models.ModelWithAutoIntPk, Q <: Table[T] with PersistTableWithAutoIntPk]
     extends PersistModelWithPk[T, Q] {
   lazy val tableWithPk =
-    table.returning(table.map(_.id)).into((item, id) => item.withPk(id.get).asInstanceOf[T])
+    table.returning(table.map(_.id)).into((item, id) => item.withPk(id).asInstanceOf[T])
 
   protected lazy val findByIdCompiled = Compiled { id: Rep[Int] =>
     table.filter(_.id === id)

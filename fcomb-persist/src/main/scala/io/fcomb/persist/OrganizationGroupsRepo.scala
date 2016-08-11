@@ -40,7 +40,7 @@ class OrganizationGroupTable(tag: Tag)
   def updatedAt      = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
-    (id, organizationId, name, role, createdAt, updatedAt) <>
+    (id.?, organizationId, name, role, createdAt, updatedAt) <>
       ((OrganizationGroup.apply _).tupled, OrganizationGroup.unapply)
 }
 
@@ -177,7 +177,7 @@ object OrganizationGroupsRepo
     validationErrorAsDBIO("group", "Cannot delete the last admin group")
 
   def findIdsByOrganizationIdDBIO(organizationId: Int) = {
-    findByOrgIdDBIO(organizationId).map(_.pk)
+    findByOrgIdDBIO(organizationId).map(_.id)
   }
 
   def destroyByOrganizationIdDBIO(organizationId: Int) = {

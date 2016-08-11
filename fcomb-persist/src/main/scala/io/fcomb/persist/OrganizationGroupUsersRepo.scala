@@ -42,7 +42,7 @@ object OrganizationGroupUsersRepo
 
   private def findByGroupIdScopeDBIO(groupId: Rep[Int]) = {
     table.join(UsersRepo.table).on(_.userId === _.id).filter(_._1.groupId === groupId).map {
-      case (_, u) => (u.pk, u.email, u.username, u.fullName)
+      case (_, u) => (u.id, u.email, u.username, u.fullName)
     }
   }
 

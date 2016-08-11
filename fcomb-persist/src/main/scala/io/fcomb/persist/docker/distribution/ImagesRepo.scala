@@ -48,7 +48,7 @@ class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTa
   def ownerKind = column[OwnerKind]("owner_kind")
 
   def * =
-    (id,
+    (id.?,
      name,
      slug,
      (ownerId, ownerKind),
@@ -154,7 +154,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     table.filter { q =>
       q.ownerId === organizationId &&
       q.ownerKind === (OwnerKind.Organization: OwnerKind)
-    }.map(_.pk)
+    }.map(_.id)
   }
 
   private def availableByUserOwnerDBIO(userId: Rep[Int]) = {
@@ -166,7 +166,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   private def availableByUserPermissionsDBIO(userId: Rep[Int]) = {
     table
       .join(PermissionsRepo.table)
-      .on { case (t, pt) => pt.imageId === t.pk }
+      .on { case (t, pt) => pt.imageId === t.id }
       .filter {
         case (_, pt) =>
           pt.memberId === userId && pt.memberKind === (MemberKind.User: MemberKind)
@@ -239,12 +239,12 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       availableScope(userId)
         .map(_._1)
         .filter(_.slug === slug.asColumnOfType[String]("citext"))
-        .map(_.pk)
+        .map(_.id)
   }
 
   private lazy val findRepositoriesByUserIdCompiled = Compiled {
     (userId: Rep[Int], limit: ConstColumn[Long], id: Rep[Int]) =>
-      availableScope(userId).filter(_._1.pk > id).sortBy(_._1.id.asc).map(_._1.slug).take(limit)
+      availableScope(userId).filter(_._1.id > id).sortBy(_._1.id.asc).map(_._1.slug).take(limit)
   }
 
   val fetchLimit = 64

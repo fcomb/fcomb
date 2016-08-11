@@ -41,7 +41,7 @@ class ImageBlobTable(tag: Tag)
   def uploadedAt  = column[Option[OffsetDateTime]]("uploaded_at")
 
   def * =
-    (id, imageId, state, digest, contentType, length, createdAt, uploadedAt) <>
+    (id.?, imageId, state, digest, contentType, length, createdAt, uploadedAt) <>
       ((ImageBlob.apply _).tupled, ImageBlob.unapply)
 }
 
@@ -130,7 +130,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       implicit ec: ExecutionContext
   ): Future[Seq[(UUID, Option[String], Long)]] =
     db.run {
-      findByImageIdAndDigestsDBIO(imageId, digests).map(t => (t.pk, t.digest, t.length)).result
+      findByImageIdAndDigestsDBIO(imageId, digests).map(t => (t.id, t.digest, t.length)).result
     }
 
   def findByImageIdAndDigests(imageId: Int, digests: Set[String])(implicit ec: ExecutionContext) =
@@ -139,7 +139,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   private lazy val existUploadedByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Int], digest: Rep[String], exceptId: Rep[UUID]) =>
       table.filter { q =>
-        q.pk =!= exceptId && q.imageId === imageId && q.digest === digest &&
+        q.id =!= exceptId && q.imageId === imageId && q.digest === digest &&
         q.state === (ImageBlobState.Uploaded: ImageBlobState)
       }.exists
   }
@@ -156,7 +156,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         } else {
           for {
             _ <- table
-                  .filter(_.pk === id)
+                  .filter(_.id === id)
                   .map(t => (t.state, t.length, t.digest, t.uploadedAt))
                   .update(
                     (
@@ -248,7 +248,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
             it.ownerKind === (OwnerKind.Organization: OwnerKind) &&
             t.digest.isEmpty
       }
-      .map(_._1.pk)
+      .map(_._1.id)
   }
 
   def destroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) = {
@@ -265,7 +265,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   }
 
   def findOutdatedUploadsIdDBIO(until: Rep[OffsetDateTime]) = {
-    destroyOutdatedUploadsDBIO(until).map(_.pk)
+    destroyOutdatedUploadsDBIO(until).map(_.id)
   }
 
   def destroyOutdatedUploads(until: OffsetDateTime)(implicit ec: ExecutionContext) = {

@@ -40,7 +40,7 @@ class OrganizationTable(tag: Tag)
   def updatedAt   = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
-    (id, name, ownerUserId, createdAt, updatedAt) <>
+    (id.?, name, ownerUserId, createdAt, updatedAt) <>
       ((Organization.apply _).tupled, Organization.unapply)
 }
 

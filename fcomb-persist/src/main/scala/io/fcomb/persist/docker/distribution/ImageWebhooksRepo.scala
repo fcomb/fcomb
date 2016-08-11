@@ -33,7 +33,7 @@ class ImageWebhookTable(tag: Tag)
   def url     = column[String]("url")
 
   def * =
-    (id, imageId, url) <>
+    (id.?, imageId, url) <>
       ((ImageWebhook.apply _).tupled, ImageWebhook.unapply)
 }
 
