@@ -28,7 +28,7 @@ final case class User(
     createdAt: OffsetDateTime,
     updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
+  def withId(id: Int) = this.copy(id = Some(id))
 
   def isValidPassword(password: String) =
     password.isBcrypted(passwordHash)

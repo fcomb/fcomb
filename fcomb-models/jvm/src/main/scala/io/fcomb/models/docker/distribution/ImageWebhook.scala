@@ -23,5 +23,5 @@ final case class ImageWebhook(
     imageId: Int,
     url: String
 ) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
+  def withId(id: Int) = this.copy(id = Some(id))
 }

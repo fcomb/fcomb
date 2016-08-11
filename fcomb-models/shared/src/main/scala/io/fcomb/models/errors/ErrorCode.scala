@@ -14,29 +14,12 @@
  * limitations under the License.
  */
 
-package io.fcomb.models
+package io.fcomb.models.errors
 
 import io.fcomb.models.common.{Enum, EnumItem}
-import java.time.OffsetDateTime
 
-sealed trait ApplicationState extends EnumItem
+sealed trait ErrorCode extends EnumItem
 
-object ApplicationState extends Enum[ApplicationState] {
-  final case object Disabled extends EnumItem
-  final case object Enabled  extends EnumItem
-
+object ErrorCode extends Enum[ErrorCode] {
   val values = findValues
-}
-
-final case class Application(
-    id: Option[Int],
-    name: String,
-    state: ApplicationState,
-    token: String,
-    ownerId: Int,
-    ownerKind: OwnerKind,
-    createdAt: OffsetDateTime,
-    updatedAt: Option[OffsetDateTime]
-) extends ModelWithAutoIntPk {
-  def withId(id: Int) = this.copy(id = Some(id))
 }

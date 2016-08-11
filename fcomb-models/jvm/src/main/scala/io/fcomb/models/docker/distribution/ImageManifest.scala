@@ -41,7 +41,7 @@ final case class ImageManifest(
     createdAt: OffsetDateTime,
     updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
+  def withId(id: Int) = this.copy(id = Some(id))
 
   def getSchemaV2JsonBlob() =
     schemaV2Details.map(_.jsonBlob).getOrElse(throw new EmptySchemaV2JsonBlobException)

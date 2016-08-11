@@ -25,5 +25,5 @@ final case class Organization(
     createdAt: OffsetDateTime,
     updatedAt: Option[OffsetDateTime]
 ) extends ModelWithAutoIntPk {
-  def withPk(id: Int) = this.copy(id = Some(id))
+  def withId(id: Int) = this.copy(id = Some(id))
 }

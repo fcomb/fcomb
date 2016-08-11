@@ -16,11 +16,6 @@
 
 package io.fcomb.models.errors
 
-import scala.util.control.NoStackTrace
+sealed trait ErrorDetails
 
-trait Error
-
-trait ErrorResponse // TODO: remove
-
-@SerialVersionUID(1L)
-final case class ThrowableError(error: Error) extends Throwable with NoStackTrace
+object ErrorDetails {}

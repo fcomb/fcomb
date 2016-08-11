@@ -304,7 +304,7 @@ trait PersistModelWithAutoIntPk[
     T <: models.ModelWithAutoIntPk, Q <: Table[T] with PersistTableWithAutoIntPk]
     extends PersistModelWithPk[T, Q] {
   lazy val tableWithPk =
-    table.returning(table.map(_.id)).into((item, id) => item.withPk(id).asInstanceOf[T])
+    table.returning(table.map(_.id)).into((item, id) => item.withId(id).asInstanceOf[T])
 
   protected lazy val findByIdCompiled = Compiled { id: Rep[Int] =>
     table.filter(_.id === id)

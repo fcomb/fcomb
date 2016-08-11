@@ -42,7 +42,7 @@ case class ImageBlob(
     createdAt: OffsetDateTime,
     uploadedAt: Option[OffsetDateTime]
 ) extends ModelWithUuidPk {
-  def withPk(id: UUID) = this.copy(id = Some(id))
+  def withId(id: UUID) = this.copy(id = Some(id))
 
   def isCreated =
     state === ImageBlobState.Created

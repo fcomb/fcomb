@@ -18,6 +18,7 @@ package io.fcomb.models.errors
 
 final case class ErrorMessage(
     message: String,
-    param: Option[String] = None,
-    code: Option[Int] = None
-)
+    // code: ErrorCode,
+    // details: Option[ErrorDetails] = None,
+    param: Option[String] = None
+) extends Error
