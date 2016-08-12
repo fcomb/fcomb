@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.server.api.group
+package io.fcomb.server.api.organization.group
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -32,10 +32,10 @@ import io.fcomb.json.rpc.Formats.{encodeUserProfileResponse, decodeMemberUserReq
 object MembersHandler {
   val servicePath = "members"
 
-  def index(slug: Slug) = {
+  def index(slug: Slug, groupSlug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        groupBySlugWithAcl(slug, user.getId()) { group =>
+        groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
           extractPagination { pg =>
             onSuccess(OrganizationGroupUsersRepo.paginateByGroupId(group.getId(), pg)) { p =>
               completePagination(OrganizationGroupUsersRepo.label, p)
@@ -46,10 +46,10 @@ object MembersHandler {
     }
   }
 
-  def upsert(slug: Slug) = {
+  def upsert(slug: Slug, groupSlug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        groupBySlugWithAcl(slug, user.getId()) { group =>
+        groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
           entity(as[MemberUserRequest]) { req =>
             onSuccess(OrganizationGroupUsersRepo.upsert(group.getId(), req)) {
               case Validated.Valid(p)   => completeAccepted()
@@ -61,10 +61,10 @@ object MembersHandler {
     }
   }
 
-  def destroy(slug: Slug, memberSlug: Slug) = {
+  def destroy(slug: Slug, groupSlug: Slug, memberSlug: Slug) = {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        groupBySlugWithAcl(slug, user.getId()) { group =>
+        groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
           onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), memberSlug)) {
             case Validated.Valid(p)   => completeAccepted()
             case Validated.Invalid(e) => ??? // TODO
@@ -74,16 +74,16 @@ object MembersHandler {
     }
   }
 
-  def routes(slug: Slug): Route = {
+  def routes(slug: Slug, groupSlug: Slug): Route = {
     // format: OFF
     pathPrefix(servicePath) {
       pathEnd {
-        get(index(slug)) ~
-        put(upsert(slug))
+        get(index(slug, groupSlug)) ~
+        put(upsert(slug, groupSlug))
       } ~
       path(Segment) { memberSlugSegment =>
         val memberSlug = Slug.parse(memberSlugSegment)
-        delete(destroy(slug, memberSlug))
+        delete(destroy(slug, groupSlug, memberSlug))
       }
     }
     // format: ON

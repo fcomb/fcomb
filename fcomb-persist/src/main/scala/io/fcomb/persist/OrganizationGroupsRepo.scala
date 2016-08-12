@@ -49,35 +49,22 @@ object OrganizationGroupsRepo
   val table = TableQuery[OrganizationGroupTable]
   val label = "groups"
 
-  lazy val findByNameCompiled = Compiled { name: Rep[String] =>
-    table.filter(_.name === name.asColumnOfType[String]("citext")).take(1)
+  lazy val findByOrgIdAndNameCompiled = Compiled { (orgId: Rep[Int], name: Rep[String]) =>
+    table.filter { t =>
+      t.organizationId === orgId && t.name === name.asColumnOfType[String]("citext")
+    }.take(1)
   }
 
-  def findBySlugDBIO(slug: Slug) = {
+  def findBySlugDBIO(orgId: Int, slug: Slug) = {
     slug match {
       case Slug.Id(id)     => findByIdCompiled(id)
-      case Slug.Name(name) => findByNameCompiled(name)
+      case Slug.Name(name) => findByOrgIdAndNameCompiled((orgId, name))
     }
   }
 
-  def findBySlug(slug: Slug)(implicit ec: ExecutionContext): Future[Option[OrganizationGroup]] = {
-    db.run(findBySlugDBIO(slug).result.headOption)
-  }
-
-  def findBySlugWithAcl(slug: Slug, userId: Int)(
+  def findBySlug(orgId: Int, slug: Slug)(
       implicit ec: ExecutionContext): Future[Option[OrganizationGroup]] = {
-    db.run {
-      for {
-        groupOpt <- findBySlugDBIO(slug).result.headOption
-        res <- groupOpt match {
-                case Some(group) =>
-                  OrganizationsRepo
-                    .isAdminDBIO(group.getId(), userId)
-                    .map(isAdmin => if (isAdmin) groupOpt else None)
-                case _ => DBIO.successful(None)
-              }
-      } yield res
-    }
+    db.run(findBySlugDBIO(orgId, slug).result.headOption)
   }
 
   private def findByOrgIdDBIO(orgId: Rep[Int]) = {

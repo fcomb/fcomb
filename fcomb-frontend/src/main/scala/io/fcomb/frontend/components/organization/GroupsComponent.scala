@@ -48,15 +48,38 @@ object GroupsComponent {
       }
     }
 
+    def deleteGroup(orgName: String, name: String)(e: ReactEventI) = {
+      e.preventDefaultCB >>
+        Callback.future {
+          Rpc.call[Unit](RpcMethod.DELETE, Resource.organizationGroup(orgName, name)).map {
+            case Xor.Right(_) => getGroups(orgName)
+            case Xor.Left(e)  => ??? // TODO
+          }
+        }
+    }
+
     def renderGroup(props: Props, group: OrganizationGroupResponse) = {
-      <.li(props.ctl.link(DashboardRoute.OrganizationGroup(props.orgName, group.name))(group.name))
+      <.tr(
+        <.td(
+          props.ctl.link(DashboardRoute.OrganizationGroup(props.orgName, group.name))(group.name)),
+        <.td(
+          <.button(^.`type` := "button",
+                   ^.onClick ==> deleteGroup(props.orgName, group.name),
+                   "Delete")))
+    }
+
+    def renderGroups(props: Props, groups: Seq[OrganizationGroupResponse]) = {
+      if (groups.isEmpty) <.span("No groups. Create one!")
+      else
+        <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
+                <.tbody(groups.map(renderGroup(props, _))))
     }
 
     def render(props: Props, state: State) = {
       <.div(
         <.h2("Groups"),
         <.div(props.ctl.link(DashboardRoute.NewOrganizationGroup(props.orgName))("New group")),
-        <.section(<.ul(state.groups.map(renderGroup(props, _))))
+        <.div(<.h3("Members"), renderGroups(props, state.groups))
       )
     }
   }

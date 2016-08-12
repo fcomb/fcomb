@@ -22,7 +22,6 @@ import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats.decodePaginationData
 import io.fcomb.models.PaginationData
-import io.fcomb.models.acl.Role
 import io.fcomb.rpc.{OrganizationGroupResponse, MemberUsernameRequest, UserProfileResponse}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -40,21 +39,26 @@ object GroupComponent {
     FormState("", false)
 
   class Backend($ : BackendScope[Props, State]) {
-    def getGroup(name: String) = {
+    def getGroup(orgName: String, name: String) = {
       Callback.future {
-        Rpc.call[OrganizationGroupResponse](RpcMethod.GET, Resource.group(name)).map {
-          case Xor.Right(group) => $.modState(_.copy(group = Some(group)))
-          case Xor.Left(e) =>
-            println(e)
-            Callback.empty
-        }
+        Rpc
+          .call[OrganizationGroupResponse](RpcMethod.GET,
+                                           Resource.organizationGroup(orgName, name))
+          .map {
+            case Xor.Right(group) => $.modState(_.copy(group = Some(group)))
+            case Xor.Left(e) =>
+              println(e)
+              Callback.empty
+          }
       }
     }
 
-    def getMembers(name: String) = {
+    def getMembers(orgName: String, name: String) = {
       Callback.future {
         Rpc
-          .call[PaginationData[UserProfileResponse]](RpcMethod.GET, Resource.groupMembers(name))
+          .call[PaginationData[UserProfileResponse]](
+            RpcMethod.GET,
+            Resource.organizationGroupMembers(orgName, name))
           .map {
             case Xor.Right(pd) => $.modState(_.copy(members = pd.data))
             case Xor.Left(e) =>
@@ -64,10 +68,10 @@ object GroupComponent {
       }
     }
 
-    def getGroupWithMembers(name: String): Callback = {
+    def getGroupWithMembers(orgName: String, name: String): Callback = {
       for {
-        _ <- getGroup(name)
-        _ <- getMembers(name)
+        _ <- getGroup(orgName, name)
+        _ <- getMembers(orgName, name)
       } yield ()
     }
 
@@ -82,32 +86,33 @@ object GroupComponent {
       }
     }
 
-    def deleteMember(name: String, username: String)(e: ReactEventI) = {
+    def deleteMember(orgName: String, name: String, username: String)(e: ReactEventI) = {
       e.preventDefaultCB >>
         Callback.future {
-          Rpc.call[Unit](RpcMethod.DELETE, Resource.groupMember(name, username)).map {
-            case Xor.Right(_) => getMembers(name)
-            case Xor.Left(e)  => ??? // TODO
-          }
+          Rpc
+            .call[Unit](RpcMethod.DELETE,
+                        Resource.organizationGroupMember(orgName, name, username))
+            .map {
+              case Xor.Right(_) => getMembers(orgName, name)
+              case Xor.Left(e)  => ??? // TODO
+            }
         }
     }
 
-    def renderMember(name: String, member: UserProfileResponse) = {
+    def renderMember(orgName: String, name: String, member: UserProfileResponse) = {
       <.tr(<.td(member.username),
            <.td(member.email),
            <.td(
              <.button(^.`type` := "button",
-                      ^.onClick ==> deleteMember(name, member.username),
+                      ^.onClick ==> deleteMember(orgName, name, member.username),
                       "Delete")))
     }
 
-    def renderMembers(name: String, members: Seq[UserProfileResponse]) = {
+    def renderMembers(orgName: String, name: String, members: Seq[UserProfileResponse]) = {
       if (members.isEmpty) <.span("No members. Create one!")
-      else {
-        <.div(<.h3("Members"),
-              <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
-                      <.tbody(members.map(renderMember(name, _)))))
-      }
+      else
+        <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
+                <.tbody(members.map(renderMember(orgName, name, _))))
     }
 
     def updateFormDisabled(isFormDisabled: Boolean): Callback = {
@@ -122,13 +127,14 @@ object GroupComponent {
           $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
             Callback.future {
               Rpc
-                .callWith[MemberUsernameRequest, Unit](RpcMethod.PUT,
-                                                       Resource.groupMembers(props.name),
-                                                       MemberUsernameRequest(fs.username))
+                .callWith[MemberUsernameRequest, Unit](
+                  RpcMethod.PUT,
+                  Resource.organizationGroupMembers(props.orgName, props.name),
+                  MemberUsernameRequest(fs.username))
                 .map {
                   case Xor.Right(_) =>
                     $.modState(_.copy(form = defaultFormState)) >>
-                      getMembers(props.name)
+                      getMembers(props.orgName, props.name)
                   case Xor.Left(e) =>
                     // TODO
                     updateFormDisabled(false)
@@ -167,7 +173,7 @@ object GroupComponent {
     def render(props: Props, state: State) = {
       <.section(
         renderGroup(state.group),
-        renderMembers(props.name, state.members),
+        <.div(<.h3("Members"), renderMembers(props.orgName, props.name, state.members)),
         <.hr,
         renderForm(props, state)
       )
@@ -177,7 +183,7 @@ object GroupComponent {
   private val component = ReactComponentB[Props]("Group")
     .initialState(State(None, Seq.empty, defaultFormState))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getGroupWithMembers($.props.name))
+    .componentWillMount($ => $.backend.getGroupWithMembers($.props.orgName, $.props.name))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], orgName: String, name: String) =

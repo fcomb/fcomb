@@ -40,12 +40,12 @@ object Resource {
   val organizations = prefix + "/organizations"
   def organization(orgName: String) = s"$organizations/$orgName"
 
-  def organizationGroups(orgName: String) = organization(orgName) + "/groups"
-
-  val groups = prefix + "/groups"
-  def group(name: String)                     = s"$groups/$name"
-  def groupMembers(name: String)              = group(name) + "/members"
-  def groupMember(name: String, slug: String) = groupMembers(name) + s"/$slug"
+  def organizationGroups(orgName: String)              = organization(orgName) + "/groups"
+  def organizationGroup(orgName: String, name: String) = organizationGroups(orgName) + s"/$name"
+  def organizationGroupMembers(orgName: String, name: String) =
+    organizationGroup(orgName, name) + "/members"
+  def organizationGroupMember(orgName: String, name: String, slug: String) =
+    organizationGroupMembers(orgName, name) + s"/$slug"
 
   val users  = prefix + "/users"
   val signUp = users + "/sign_up"
