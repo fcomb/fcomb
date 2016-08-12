@@ -49,7 +49,13 @@ object OrganizationGroupsRepo
   val table = TableQuery[OrganizationGroupTable]
   val label = "groups"
 
-  lazy val findByOrgIdAndNameCompiled = Compiled { (orgId: Rep[Int], name: Rep[String]) =>
+  private lazy val findByOrgIdAndIdCompiled = Compiled { (orgId: Rep[Int], id: Rep[Int]) =>
+    table.filter { t =>
+      t.organizationId === orgId && t.id === id
+    }.take(1)
+  }
+
+  private lazy val findByOrgIdAndNameCompiled = Compiled { (orgId: Rep[Int], name: Rep[String]) =>
     table.filter { t =>
       t.organizationId === orgId && t.name === name.asColumnOfType[String]("citext")
     }.take(1)
@@ -57,7 +63,7 @@ object OrganizationGroupsRepo
 
   def findBySlugDBIO(orgId: Int, slug: Slug) = {
     slug match {
-      case Slug.Id(id)     => findByIdCompiled(id)
+      case Slug.Id(id)     => findByOrgIdAndIdCompiled((orgId, id))
       case Slug.Name(name) => findByOrgIdAndNameCompiled((orgId, name))
     }
   }
