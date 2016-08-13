@@ -53,6 +53,7 @@ object OrganizationsHandler {
                 complete((StatusCodes.Created, res))
               }
             case Validated.Invalid(e) =>
+              println(e)
               ??? // TODO
           }
         }
