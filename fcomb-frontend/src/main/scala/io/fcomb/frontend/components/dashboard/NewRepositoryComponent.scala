@@ -43,7 +43,7 @@ object NewRepositoryComponent {
               val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
               Rpc
                 .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST,
-                                                             Resource.userRepositories,
+                                                             Resource.userSelfRepositories,
                                                              req)
                 .map {
                   case Xor.Right(repository) => ctl.set(DashboardRoute.Repository(repository.slug))

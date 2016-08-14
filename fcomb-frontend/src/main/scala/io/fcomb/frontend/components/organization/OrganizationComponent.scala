@@ -19,6 +19,7 @@ package io.fcomb.frontend.components.organization
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.components.RepositoriesComponent
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.rpc.OrganizationResponse
 import japgolly.scalajs.react._
@@ -47,9 +48,8 @@ object OrganizationComponent {
     def render(props: Props, state: State) = {
       <.section(
         <.h2(s"Organization ${props.name}"),
-        <.div(props.ctl.link(DashboardRoute.Organization(props.name))("Repositories")),
         <.div(props.ctl.link(DashboardRoute.OrganizationGroups(props.name))("Groups")),
-        <.section("repos...")
+        RepositoriesComponent.apply(props.ctl, RepositoriesComponent.Organization(props.name))
       )
     }
   }

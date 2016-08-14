@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.dashboard
+package io.fcomb.frontend.components
 
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
@@ -29,21 +29,34 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object RepositoriesComponent {
+  sealed trait Owner
+  final case object UserSelf extends Owner
+  final case class User(slug: String)         extends Owner
+  final case class Organization(slug: String) extends Owner
+
+  final case class Props(ctl: RouterCtl[DashboardRoute], owner: Owner)
   final case class State(repositories: Seq[RepositoryResponse])
 
-  class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
+  class Backend($ : BackendScope[Props, State]) {
+    val urlCB = $.props.map(_.owner).map {
+      case UserSelf         => Resource.userSelfRepositories
+      case User(id)         => Resource.userRepositories(id)
+      case Organization(id) => Resource.organizationRepositories(id)
+    }
+
     def getRepositories() = {
-      Callback.future {
-        Rpc
-          .call[PaginationData[RepositoryResponse]](RpcMethod.GET, Resource.userRepositories)
-          .map {
-            case Xor.Right(pd) =>
-              $.modState(_.copy(pd.data))
-            case Xor.Left(e) =>
-              println(e)
-              Callback.empty
-          }
-      }
+      for {
+        url <- urlCB
+        _ <- Callback.future {
+              Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url).map {
+                case Xor.Right(pd) =>
+                  $.modState(_.copy(pd.data))
+                case Xor.Left(e) =>
+                  println(e)
+                  Callback.empty
+              }
+            }
+      } yield ()
     }
 
     def renderRepository(ctl: RouterCtl[DashboardRoute], repository: RepositoryResponse) = {
@@ -55,16 +68,17 @@ object RepositoriesComponent {
       else <.ul(repositories.map(renderRepository(ctl, _)))
     }
 
-    def render(ctl: RouterCtl[DashboardRoute], state: State) = {
-      <.div(<.h2("Repositories"), renderRepositories(ctl, state.repositories))
+    def render(props: Props, state: State) = {
+      <.div(<.h2("Repositories"), renderRepositories(props.ctl, state.repositories))
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("Repositories")
+  private val component = ReactComponentB[Props]("Repositories")
     .initialState(State(Seq.empty))
     .renderBackend[Backend]
     .componentWillMount(_.backend.getRepositories())
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute]) = component.apply(ctl)
+  def apply(ctl: RouterCtl[DashboardRoute], owner: Owner) =
+    component.apply(Props(ctl, owner))
 }

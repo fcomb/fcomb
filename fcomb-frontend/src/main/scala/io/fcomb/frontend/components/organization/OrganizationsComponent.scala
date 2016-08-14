@@ -35,7 +35,8 @@ object OrganizationsComponent {
     def getOrgs() = {
       Callback.future {
         Rpc
-          .call[PaginationData[OrganizationResponse]](RpcMethod.GET, Resource.userOrganizations)
+          .call[PaginationData[OrganizationResponse]](RpcMethod.GET,
+                                                      Resource.userSelfOrganizations)
           .map {
             case Xor.Right(pd) =>
               $.modState(_.copy(pd.data))
