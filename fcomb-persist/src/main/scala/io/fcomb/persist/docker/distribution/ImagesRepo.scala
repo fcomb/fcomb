@@ -160,7 +160,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   private def availableByUserOwnerDBIO(userId: Rep[Int]) = {
     table.filter { t =>
       t.ownerId === userId && t.ownerKind === (OwnerKind.User: OwnerKind)
-    }.map(t => (t, Action.Manage: Rep[Action]))
+    }.map(t => (t, (Action.Manage: Rep[Action]).asColumnOf[Action]))
   }
 
   private def availableByUserPermissionsDBIO(userId: Rep[Int]) = {
@@ -192,7 +192,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     organizationAdminsScope.filter {
       case ((_, _), ogut) => ogut.userId === userId
     }.subquery.map {
-      case ((t, _), _) => (t, Action.Manage: Rep[Action])
+      case ((t, _), _) => (t, (Action.Manage: Rep[Action]).asColumnOf[Action])
     }
   }
 
@@ -353,7 +353,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     table.filter { q =>
       q.ownerId === ownerId && q.ownerKind === ownerKind &&
       q.visibilityKind === (ImageVisibilityKind.Public: ImageVisibilityKind)
-    }.map(t => (t, Action.Read: Rep[Action]))
+    }.map(t => (t, (Action.Read: Rep[Action]).asColumnOf[Action])).subquery
   }
 
   private lazy val findPublicByOwnerCompiled = Compiled {
@@ -429,8 +429,8 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       case ((_, ogt), ogut) =>
         ogt.organizationId === orgId && ogut.userId === userId
     }.subquery.map {
-      case ((t, _), _) => (t, Action.Manage: Rep[Action])
-    }
+      case ((t, _), _) => (t, Action.Manage: Action)
+    }.subquery
   }
 
   private def availableByOrganizationAndUserGroupsDBIO(orgId: Rep[Int], userId: Rep[Int]) = {
@@ -438,7 +438,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       case ((t, _), gut) => t.ownerId === orgId && gut.userId === userId
     }.subquery.map {
       case ((t, pt), _) => (t, pt.action)
-    }
+    }.subquery
   }
 
   private def findAvailableByOrganizationOwnerDBIO(orgId: Rep[Int], currentUserId: Rep[Int]) = {

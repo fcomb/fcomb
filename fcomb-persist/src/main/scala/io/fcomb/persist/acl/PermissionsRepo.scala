@@ -89,7 +89,7 @@ object PermissionsRepo
       case ((t, _), ogut) =>
         t.id === imageId && t.ownerId === organizationId &&
           ogut.userId === userId
-    }.take(1).map(_ => Action.Manage: Rep[Action]).subquery
+    }.take(1).map(_ => (Action.Manage: Rep[Action]).asColumnOf[Action]).subquery
   }
 
   private def findActionByUserGroupsDBIO(imageId: Rep[Int],

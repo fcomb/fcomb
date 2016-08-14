@@ -80,7 +80,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
       }
 
   private def availableByUserOwnerDBIO(userId: Rep[Int]) = {
-    table.filter(_.ownerUserId === userId).map(t => (t, Role.Admin: Rep[Role]))
+    table.filter(_.ownerUserId === userId).map(t => (t, (Role.Admin: Rep[Role]).asColumnOf[Role]))
   }
 
   private def availableByUserGroupsDBIO(userId: Rep[Int]) = {

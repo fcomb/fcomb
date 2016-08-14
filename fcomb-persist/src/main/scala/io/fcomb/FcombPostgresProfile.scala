@@ -42,8 +42,7 @@ trait FcombPostgresProfile
   def createJdbcMapping[T <: EnumItem](
       sqlEnumTypeName: String,
       enum: Enum[T],
-      quoteName: Boolean = false
-  )(implicit tag: ClassTag[T]): JdbcType[T] = new DriverJdbcType[T] {
+      quoteName: Boolean = false)(implicit tag: ClassTag[T]): JdbcType[T] = new DriverJdbcType[T] {
     override val classTag: ClassTag[T] = tag
 
     override def sqlType: Int = java.sql.Types.OTHER
