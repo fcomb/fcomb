@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.dashboard
+package io.fcomb.frontend.components
 
 import io.fcomb.frontend.utils.DateUtils
 import japgolly.scalajs.react._

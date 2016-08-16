@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.dashboard
+package io.fcomb.frontend.components.repository
 
 import io.fcomb.frontend.DashboardRoute
 import japgolly.scalajs.react._

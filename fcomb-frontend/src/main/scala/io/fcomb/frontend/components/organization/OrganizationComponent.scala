@@ -19,7 +19,7 @@ package io.fcomb.frontend.components.organization
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.components.RepositoriesComponent
+import io.fcomb.frontend.components.repository.RepositoriesComponent
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.rpc.OrganizationResponse
 import japgolly.scalajs.react._

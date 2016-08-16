@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.dashboard
+package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.components.{MarkdownComponent, CopyToClipboardComponent}
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageUpdateRequest}
 import japgolly.scalajs.react._

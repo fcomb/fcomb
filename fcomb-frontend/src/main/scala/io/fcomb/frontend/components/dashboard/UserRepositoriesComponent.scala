@@ -17,7 +17,7 @@
 package io.fcomb.frontend.components.dashboard
 
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.RepositoriesComponent
+import io.fcomb.frontend.components.repository.RepositoriesComponent
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 

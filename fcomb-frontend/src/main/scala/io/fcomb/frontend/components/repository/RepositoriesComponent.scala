@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components
+package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute

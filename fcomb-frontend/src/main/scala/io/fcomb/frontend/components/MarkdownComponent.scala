@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.dashboard
+package io.fcomb.frontend.components
 
 import japgolly.scalajs.react._
 import scala.scalajs.js
 
-object CopyToClipboardComponent {
-  def apply(text: String, onCopy: js.UndefOr[() => Unit], children: ReactNode) = {
+object MarkdownComponent {
+  def apply(source: String) = {
     val props = js.Dynamic.literal()
-    props.updateDynamic("text")(text)
-    onCopy.foreach(v => props.updateDynamic("onCopy")(v))
-    val f = React.asInstanceOf[js.Dynamic].createFactory(js.Dynamic.global.ReactCopyToClipboard)
-    f(props, children).asInstanceOf[ReactComponentU_]
+    props.updateDynamic("source")(source)
+    val f = React.asInstanceOf[js.Dynamic].createFactory(js.Dynamic.global.ReactMarkdown)
+    f(props).asInstanceOf[ReactComponentU_]
   }
 }
