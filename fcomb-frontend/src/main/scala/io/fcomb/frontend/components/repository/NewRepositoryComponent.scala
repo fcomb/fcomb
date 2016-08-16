@@ -28,13 +28,14 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object NewRepositoryComponent {
+  final case class Props(ctl: RouterCtl[DashboardRoute], ownerScope: OwnerScope)
   final case class State(name: String,
                          visibilityKind: ImageVisibilityKind,
                          description: Option[String],
                          isFormDisabled: Boolean)
 
-  class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
-    def create(ctl: RouterCtl[DashboardRoute]): Callback = {
+  class Backend($ : BackendScope[Props, State]) {
+    def create(props: Props): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
@@ -46,7 +47,7 @@ object NewRepositoryComponent {
                                                              Resource.userSelfRepositories,
                                                              req)
                 .map {
-                  case Xor.Right(repository) => ctl.set(DashboardRoute.Repository(repository.slug))
+                  case Xor.Right(repository) => props.ctl.set(DashboardRoute.Repository(repository.slug))
                   case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
                 }
                 .recover {
@@ -58,8 +59,8 @@ object NewRepositoryComponent {
       }
     }
 
-    def handleOnSubmit(ctl: RouterCtl[DashboardRoute])(e: ReactEventH): Callback = {
-      e.preventDefaultCB >> create(ctl)
+    def handleOnSubmit(props: Props)(e: ReactEventH): Callback = {
+      e.preventDefaultCB >> create(props)
     }
 
     def updateName(e: ReactEventI): Callback = {
@@ -80,11 +81,11 @@ object NewRepositoryComponent {
       $.modState(_.copy(description = value))
     }
 
-    def render(ctl: RouterCtl[DashboardRoute], state: State) = {
+    def render(props: Props, state: State) = {
       <.div(
         <.h2("New repository"),
         <.form(
-          ^.onSubmit ==> handleOnSubmit(ctl),
+          ^.onSubmit ==> handleOnSubmit(props),
           ^.disabled := state.isFormDisabled,
           <.label(^.`for` := "name", "Name"),
           <.input.text(^.id := "name",
@@ -116,10 +117,11 @@ object NewRepositoryComponent {
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("NewRepository")
+  private val component = ReactComponentB[Props]("NewRepository")
     .initialState(State("", ImageVisibilityKind.Private, None, false))
     .renderBackend[Backend]
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute]) = component(ctl)
+  def apply(ctl: RouterCtl[DashboardRoute], ownerScope: OwnerScope) =
+    component(Props(ctl, ownerScope))
 }

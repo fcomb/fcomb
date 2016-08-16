@@ -43,7 +43,7 @@ object DashboardComponent {
     staticRoute("repositories", DashboardRoute.Repositories) ~> renderR(
       ctl => UserRepositoriesComponent.apply(ctl, None)) |
     staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~> renderR(
-      ctl => NewRepositoryComponent.apply(ctl)) |
+      ctl => UserNewRepositoryComponent.apply(ctl)) |
     dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~> dynRenderR((r, ctl) => RepositoryComponent.apply(ctl, r.name)) |
     dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~> dynRenderR((r, ctl) => TagsComponent.apply(ctl, r.name)) |
     dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~> dynRenderR((r, ctl) => SettingsComponent.apply(ctl, r.name)) |

@@ -17,20 +17,16 @@
 package io.fcomb.frontend.components.dashboard
 
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.repository.{RepositoriesComponent, Owner, OwnerScope}
+import io.fcomb.frontend.components.repository.{NewRepositoryComponent, OwnerScope}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 
-object UserRepositoriesComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], slug: Option[String])
+object UserNewRepositoryComponent {
+  private val component =
+    ReactComponentB[RouterCtl[DashboardRoute]]("UserNewRepository").render_P { ctl =>
+      NewRepositoryComponent.apply(ctl, OwnerScope.UserSelf)
+    }.build
 
-  private val component = ReactComponentB[Props]("UserRepositories").render_P { props =>
-    props.slug match {
-      case Some(slug) => RepositoriesComponent.apply(props.ctl, Owner.User(slug))
-      case None       => RepositoriesComponent.apply(props.ctl, OwnerScope.UserSelf)
-    }
-  }.build
-
-  def apply(ctl: RouterCtl[DashboardRoute], slug: Option[String]) =
-    component.apply(Props(ctl, slug))
+  def apply(ctl: RouterCtl[DashboardRoute]) =
+    component.apply(ctl)
 }
