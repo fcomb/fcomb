@@ -18,7 +18,7 @@ lazy val buildSettings = Seq(
 
 lazy val akkaHttpCirceVersion = "1.8.0"
 lazy val akkaVersion = "2.4.9-RC2"
-lazy val bouncyCastleVersion = "1.53"
+lazy val bouncyCastleVersion = "1.54"
 lazy val catsVersion = "0.6.1"
 lazy val circeVersion = "0.5.0-M2"
 lazy val commonsVersion = "1.10"
@@ -113,7 +113,7 @@ lazy val models = crossProject.in(file("fcomb-models"))
     "com.beachape" %%% "enumeratum" % enumeratumVersion
   ))
   .jvmSettings(libraryDependencies ++= Seq(
-    "com.github.t3hnar" %% "scala-bcrypt" % "2.4"
+    "com.github.t3hnar" %% "scala-bcrypt" % "2.6"
   ))
   .enablePlugins(AutomateHeaderPlugin)
 
@@ -180,7 +180,7 @@ lazy val crypto = project.in(file("fcomb-crypto"))
     "commons-codec"     %  "commons-codec"  % commonsVersion,
     "org.bouncycastle"  %  "bcprov-jdk15on" % bouncyCastleVersion,
     "org.bouncycastle"  %  "bcpkix-jdk15on" % bouncyCastleVersion,
-    "org.bitbucket.b_c" %  "jose4j"         % "0.5.0",
+    "org.bitbucket.b_c" %  "jose4j"         % "0.5.2",
     "io.circe"          %% "circe-parser"   % circeVersion,
     "com.pauldijou"     %% "jwt-circe"      % "0.8.0"
   ))
