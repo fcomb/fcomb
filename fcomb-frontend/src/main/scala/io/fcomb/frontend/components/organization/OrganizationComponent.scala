@@ -19,7 +19,7 @@ package io.fcomb.frontend.components.organization
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.components.repository.{RepositoriesComponent, OwnerScope}
+import io.fcomb.frontend.components.repository.{RepositoriesComponent, Owner}
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.rpc.OrganizationResponse
 import japgolly.scalajs.react._
@@ -48,8 +48,12 @@ object OrganizationComponent {
     def render(props: Props, state: State) = {
       <.section(
         <.h2(s"Organization ${props.name}"),
-        <.div(props.ctl.link(DashboardRoute.OrganizationGroups(props.name))("Groups")),
-        RepositoriesComponent.apply(props.ctl, OwnerScope.Organization(props.name))
+        <.ul(
+          <.li(props.ctl.link(DashboardRoute.OrganizationGroups(props.name))("Groups")),
+          <.li(
+            props.ctl.link(DashboardRoute.NewOrganizationRepository(props.name))("New repository"))
+        ),
+        RepositoriesComponent.apply(props.ctl, Owner.Organization(props.name))
       )
     }
   }

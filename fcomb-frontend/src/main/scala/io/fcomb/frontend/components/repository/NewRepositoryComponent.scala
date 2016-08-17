@@ -35,25 +35,31 @@ object NewRepositoryComponent {
                          isFormDisabled: Boolean)
 
   class Backend($ : BackendScope[Props, State]) {
+    val urlCB = $.props.map(_.ownerScope).map {
+      case Owner.UserSelf         => Resource.userSelfRepositories
+      case Owner.Organization(id) => Resource.organizationRepositories(id)
+    }
+
     def create(props: Props): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
           $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
-            Callback.future {
-              val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
-              Rpc
-                .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST,
-                                                             Resource.userSelfRepositories,
-                                                             req)
-                .map {
-                  case Xor.Right(repository) => props.ctl.set(DashboardRoute.Repository(repository.slug))
-                  case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
+            for {
+              url <- urlCB
+                _ <- Callback.future {
+                  val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
+                  Rpc
+                    .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
+                    .map {
+                      case Xor.Right(repository) => props.ctl.set(DashboardRoute.Repository(repository.slug))
+                      case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
+                    }
+                    .recover {
+                      case _ => $.setState(state.copy(isFormDisabled = false))
+                    }
                 }
-                .recover {
-                  case _ => $.setState(state.copy(isFormDisabled = false))
-                }
-            }
+            } yield ()
           }
         }
       }

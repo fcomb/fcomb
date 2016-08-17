@@ -29,14 +29,14 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object RepositoriesComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], ownerScope: OwnerScope)
+  final case class Props(ctl: RouterCtl[DashboardRoute], owner: Owner)
   final case class State(repositories: Seq[RepositoryResponse])
 
   class Backend($ : BackendScope[Props, State]) {
-    val urlCB = $.props.map(_.ownerScope).map {
-      case OwnerScope.UserSelf         => Resource.userSelfRepositories
-      case Owner.User(id)              => Resource.userRepositories(id)
-      case OwnerScope.Organization(id) => Resource.organizationRepositories(id)
+    val urlCB = $.props.map(_.owner).map {
+      case Owner.UserSelf         => Resource.userSelfRepositories
+      case Owner.User(id)         => Resource.userRepositories(id)
+      case Owner.Organization(id) => Resource.organizationRepositories(id)
     }
 
     def getRepositories() = {
@@ -74,6 +74,6 @@ object RepositoriesComponent {
     .componentWillMount(_.backend.getRepositories())
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], ownerScope: OwnerScope) =
-    component.apply(Props(ctl, ownerScope))
+  def apply(ctl: RouterCtl[DashboardRoute], owner: Owner) =
+    component.apply(Props(ctl, owner))
 }

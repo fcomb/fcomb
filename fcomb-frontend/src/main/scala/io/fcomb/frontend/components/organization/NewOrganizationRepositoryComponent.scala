@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.dashboard
+package io.fcomb.frontend.components.organization
 
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.components.repository.{NewRepositoryComponent, Owner}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 
-object UserNewRepositoryComponent {
-  private val component =
-    ReactComponentB[RouterCtl[DashboardRoute]]("UserNewRepository").render_P { ctl =>
-      NewRepositoryComponent.apply(ctl, Owner.UserSelf)
-    }.build
+object NewOrganizationRepositoryComponent {
+  final case class Props(ctl: RouterCtl[DashboardRoute], name: String)
 
-  def apply(ctl: RouterCtl[DashboardRoute]) =
-    component.apply(ctl)
+  private val component = ReactComponentB[Props]("NewOrganizationRepository").render_P { props =>
+    NewRepositoryComponent.apply(props.ctl, Owner.Organization(props.name))
+  }.build
+
+  def apply(ctl: RouterCtl[DashboardRoute], name: String) =
+    component.apply(Props(ctl, name))
 }

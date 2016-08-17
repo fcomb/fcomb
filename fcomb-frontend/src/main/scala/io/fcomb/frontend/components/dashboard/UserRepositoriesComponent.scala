@@ -17,7 +17,7 @@
 package io.fcomb.frontend.components.dashboard
 
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.repository.{RepositoriesComponent, Owner, OwnerScope}
+import io.fcomb.frontend.components.repository.{RepositoriesComponent, Owner}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 
@@ -27,7 +27,7 @@ object UserRepositoriesComponent {
   private val component = ReactComponentB[Props]("UserRepositories").render_P { props =>
     props.slug match {
       case Some(slug) => RepositoriesComponent.apply(props.ctl, Owner.User(slug))
-      case None       => RepositoriesComponent.apply(props.ctl, OwnerScope.UserSelf)
+      case None       => RepositoriesComponent.apply(props.ctl, Owner.UserSelf)
     }
   }.build
 

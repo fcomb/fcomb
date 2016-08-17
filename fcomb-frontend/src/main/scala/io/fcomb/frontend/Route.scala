@@ -42,4 +42,5 @@ object DashboardRoute {
   final case class OrganizationGroups(orgName: String)              extends DashboardRoute
   final case class NewOrganizationGroup(orgName: String)            extends DashboardRoute
   final case class OrganizationGroup(orgName: String, name: String) extends DashboardRoute
+  final case class NewOrganizationRepository(orgName: String)       extends DashboardRoute
 }
