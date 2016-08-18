@@ -48,6 +48,7 @@ sealed trait PermissionMemberResponse {
   val kind: MemberKind
 
   def name: String
+  def title: String
   def isOwner: Boolean
 }
 
@@ -59,7 +60,8 @@ final case class PermissionUserMemberResponse(
 ) extends PermissionMemberResponse {
   val kind = MemberKind.User
 
-  def name = username + fullName.map(n => s"($n)").getOrElse("")
+  def name  = username
+  def title = username + fullName.map(n => s" ($n)").getOrElse("")
 }
 
 final case class PermissionGroupMemberResponse(
@@ -68,6 +70,7 @@ final case class PermissionGroupMemberResponse(
 ) extends PermissionMemberResponse {
   val kind = MemberKind.Group
 
+  def title   = name
   def isOwner = false
 }
 

@@ -149,7 +149,7 @@ object PermissionsComponent {
     }
 
     def renderPermissionRow(repositoryName: String, state: State, permission: PermissionResponse) = {
-      <.tr(<.td(permission.member.name),
+      <.tr(<.td(permission.member.title),
            renderActionCell(repositoryName, state, permission),
            renderOptionsCell(repositoryName, state, permission))
     }
