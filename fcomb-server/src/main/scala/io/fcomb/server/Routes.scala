@@ -33,9 +33,9 @@ object Routes {
 
   def apply(): Route = {
     // format: OFF
-    redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
-      respondWithDefaultHeaders(defaultHeaders) {
-        pathPrefix(apiVersion) {
+    pathPrefix(apiVersion) {
+      redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
+        respondWithDefaultHeaders(defaultHeaders) {
           RepositoriesHandler.routes ~
           OrganizationsHandler.routes ~
           UserHandler.routes ~

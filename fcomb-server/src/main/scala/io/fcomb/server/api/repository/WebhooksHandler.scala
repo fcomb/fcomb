@@ -34,7 +34,7 @@ object WebhooksHandler {
   val servicePath = "webhooks"
 
   def index(slug: Slug) = {
-    authenticateUserBasic { user =>
+    authenticateUser { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
         imageBySlugWithAcl(slug, user.getId(), Action.Read) { image =>
@@ -49,7 +49,7 @@ object WebhooksHandler {
   }
 
   def upsert(slug: Slug) = {
-    authenticateUserBasic { user =>
+    authenticateUser { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
         imageBySlugWithAcl(slug, user.getId(), Action.Write) { image =>

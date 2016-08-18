@@ -33,7 +33,7 @@ import io.fcomb.models.docker.distribution.{ImageBlobState, Reference}
 import io.fcomb.models.errors._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
-import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.docker.distribution.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import java.util.UUID

@@ -18,24 +18,24 @@ package io.fcomb.docker.distribution.server.api
 
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.Xor
-import io.fcomb.server.CirceSupport._
-import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.CommonDirectives._
-import io.fcomb.docker.distribution.server.ImageDirectives._
+import io.fcomb.docker.distribution.server.AuthenticationDirectives._
 import io.fcomb.docker.distribution.server.headers._
+import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
+import io.fcomb.server.CirceSupport._
+import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
