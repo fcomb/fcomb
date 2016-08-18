@@ -20,37 +20,74 @@ import cats.data.Xor
 import io.circe.generic.semiauto._
 import io.circe.{Encoder, Decoder, DecodingFailure}
 import io.fcomb.json.models.acl.Formats._
+import io.fcomb.models.acl.MemberKind
 import io.fcomb.rpc.acl._
 
 object Formats {
   implicit final val encodePermissionUserMemberResponse: Encoder[PermissionUserMemberResponse] =
     deriveEncoder
-  implicit final val encodePermissionResponse: Encoder[PermissionResponse]          = deriveEncoder
-  private final val encodePermissionUserIdRequest: Encoder[PermissionUserIdRequest] = deriveEncoder
-  private final val encodePermissionUsernameRequest: Encoder[PermissionUsernameRequest] =
+  implicit final val encodePermissionGroupMemberResponse: Encoder[PermissionGroupMemberResponse] =
     deriveEncoder
-  implicit final val encodePermissionPermissionUserRequest = new Encoder[PermissionUserRequest] {
-    def apply(req: PermissionUserRequest) = req match {
-      case r: PermissionUserIdRequest   => encodePermissionUserIdRequest.apply(r)
-      case r: PermissionUsernameRequest => encodePermissionUsernameRequest.apply(r)
+  implicit final val encodePermissionMemberResponse: Encoder[PermissionMemberResponse] =
+    new Encoder[PermissionMemberResponse] {
+      def apply(res: PermissionMemberResponse) = res match {
+        case r: PermissionUserMemberResponse  => encodePermissionUserMemberResponse.apply(r)
+        case r: PermissionGroupMemberResponse => encodePermissionGroupMemberResponse.apply(r)
+      }
+    }
+  implicit final val encodePermissionResponse: Encoder[PermissionResponse] = deriveEncoder
+  private final val encodePermissionUserIdRequest: Encoder[PermissionUserIdRequest] =
+    Encoder.forProduct2("id", "kind")(r => (r.id, r.kind: MemberKind))
+  private final val encodePermissionUsernameRequest: Encoder[PermissionUsernameRequest] =
+    Encoder.forProduct2("username", "kind")(r => (r.username, r.kind: MemberKind))
+  private final val encodePermissionGroupIdRequest: Encoder[PermissionGroupIdRequest] =
+    Encoder.forProduct2("id", "kind")(r => (r.id, r.kind: MemberKind))
+  private final val encodePermissionGroupNameRequest: Encoder[PermissionGroupNameRequest] =
+    Encoder.forProduct2("name", "kind")(r => (r.name, r.kind: MemberKind))
+  implicit final val encodePermissionMemberRequest = new Encoder[PermissionMemberRequest] {
+    def apply(req: PermissionMemberRequest) = req match {
+      case r: PermissionUserIdRequest    => encodePermissionUserIdRequest.apply(r)
+      case r: PermissionUsernameRequest  => encodePermissionUsernameRequest.apply(r)
+      case r: PermissionGroupIdRequest   => encodePermissionGroupIdRequest.apply(r)
+      case r: PermissionGroupNameRequest => encodePermissionGroupNameRequest.apply(r)
     }
   }
-  implicit final val encodePermissionPermissionUserCreateRequest: Encoder[
-    PermissionUserCreateRequest] = deriveEncoder
+  implicit final val encodePermissionPermissionCreateRequest: Encoder[PermissionCreateRequest] =
+    deriveEncoder
 
   implicit final val decodePermissionUserMemberResponse: Decoder[PermissionUserMemberResponse] =
     deriveDecoder
-  implicit final val decodePermissionResponse: Decoder[PermissionResponse] = deriveDecoder
-  implicit final val decodePermissionPermissionUserRequest: Decoder[PermissionUserRequest] =
+  implicit final val decodePermissionGroupMemberResponse: Decoder[PermissionGroupMemberResponse] =
+    deriveDecoder
+  implicit final val decodePermissionMemberResponse: Decoder[PermissionMemberResponse] =
     Decoder.instance { c =>
-      val id       = c.downField("id")
-      val username = c.downField("username")
-      if (id.succeeded && !username.succeeded) {
-        Decoder[Int].apply(id.any).map(PermissionUserIdRequest)
-      } else if (!id.succeeded && username.succeeded) {
-        Decoder[String].apply(username.any).map(PermissionUsernameRequest)
-      } else Xor.Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
+      c.get[MemberKind]("kind").flatMap {
+        case MemberKind.User  => decodePermissionUserMemberResponse.apply(c)
+        case MemberKind.Group => decodePermissionGroupMemberResponse.apply(c)
+      }
     }
-  implicit final val decodePermissionPermissionUserCreateRequest: Decoder[
-    PermissionUserCreateRequest] = deriveDecoder
+
+  implicit final val decodePermissionResponse: Decoder[PermissionResponse] = deriveDecoder
+  implicit final val decodePermissionMemberRequest: Decoder[PermissionMemberRequest] =
+    Decoder.instance { c =>
+      val id = c.downField("id")
+      c.get[MemberKind]("kind").flatMap {
+        case MemberKind.User =>
+          val username = c.downField("username")
+          if (id.succeeded && !username.succeeded)
+            Decoder[Int].apply(id.any).map(PermissionUserIdRequest)
+          else if (!id.succeeded && username.succeeded)
+            Decoder[String].apply(username.any).map(PermissionUsernameRequest)
+          else Xor.Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
+        case MemberKind.Group =>
+          val name = c.downField("name")
+          if (id.succeeded && !name.succeeded)
+            Decoder[Int].apply(id.any).map(PermissionGroupIdRequest)
+          else if (!id.succeeded && name.succeeded)
+            Decoder[String].apply(name.any).map(PermissionGroupNameRequest)
+          else Xor.Left(DecodingFailure("You should pass 'id' or 'name' field", c.history))
+      }
+    }
+  implicit final val decodePermissionPermissionCreateRequest: Decoder[PermissionCreateRequest] =
+    deriveDecoder
 }

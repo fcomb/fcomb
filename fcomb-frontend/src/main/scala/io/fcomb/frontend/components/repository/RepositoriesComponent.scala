@@ -29,28 +29,28 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object RepositoriesComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], owner: Owner)
+  final case class Props(ctl: RouterCtl[DashboardRoute], owner: RepositoryOwner)
   final case class State(repositories: Seq[RepositoryResponse])
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     val urlCB = $.props.map(_.owner).map {
-      case Owner.UserSelf         => Resource.userSelfRepositories
-      case Owner.User(id)         => Resource.userRepositories(id)
-      case Owner.Organization(id) => Resource.organizationRepositories(id)
+      case RepositoryOwner.UserSelf         => Resource.userSelfRepositories
+      case RepositoryOwner.User(id)         => Resource.userRepositories(id)
+      case RepositoryOwner.Organization(id) => Resource.organizationRepositories(id)
     }
 
     def getRepositories() = {
       for {
         url <- urlCB
         _ <- Callback.future {
-              Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url).map {
-                case Xor.Right(pd) =>
-                  $.modState(_.copy(pd.data))
-                case Xor.Left(e) =>
-                  println(e)
-                  Callback.empty
-              }
-            }
+          Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url).map {
+            case Xor.Right(pd) =>
+              $.modState(_.copy(pd.data))
+            case Xor.Left(e) =>
+              println(e)
+              Callback.empty
+          }
+        }
       } yield ()
     }
 
@@ -74,6 +74,6 @@ object RepositoriesComponent {
     .componentWillMount(_.backend.getRepositories())
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], owner: Owner) =
+  def apply(ctl: RouterCtl[DashboardRoute], owner: RepositoryOwner) =
     component.apply(Props(ctl, owner))
 }

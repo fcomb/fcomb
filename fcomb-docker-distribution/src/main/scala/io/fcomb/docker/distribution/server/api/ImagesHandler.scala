@@ -23,8 +23,14 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.ByteString
 import cats.data.Xor
-import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest, SchemaV2 => SchemaV2Manifest}
-import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
+import io.fcomb.docker.distribution.manifest.{
+  SchemaV1 => SchemaV1Manifest,
+  SchemaV2 => SchemaV2Manifest
+}
+import io.fcomb.docker.distribution.server.ContentTypes.{
+  `application/vnd.docker.distribution.manifest.v1+prettyjws`,
+  `application/vnd.docker.distribution.manifest.v2+json`
+}
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.MediaTypes
 import io.fcomb.docker.distribution.server.headers._

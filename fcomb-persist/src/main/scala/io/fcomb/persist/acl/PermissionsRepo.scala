@@ -20,13 +20,20 @@ import cats.data.Validated
 import cats.syntax.eq._
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.models.OrganizationGroup
 import io.fcomb.models.acl._
 import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.models.{Pagination, PaginationData, OwnerKind, User}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.docker.distribution.ImagesRepo
-import io.fcomb.persist.{PaginationActions, PersistTableWithAutoIntPk, PersistModelWithAutoIntPk, OrganizationGroupsRepo, UsersRepo}
+import io.fcomb.persist.{
+  PaginationActions,
+  PersistTableWithAutoIntPk,
+  PersistModelWithAutoIntPk,
+  OrganizationGroupsRepo,
+  UsersRepo
+}
 import io.fcomb.rpc.acl._
 import io.fcomb.validations.{ValidationResult, ValidationResultUnit}
 import java.time.OffsetDateTime
@@ -54,26 +61,38 @@ object PermissionsRepo
   val table = TableQuery[PermissionTable]
   val label = "permissions"
 
-  private def findIdByImageAndUserScope(imageId: Rep[Int], userId: Rep[Int]) = {
+  private def findIdByImageAndMemberScope(imageId: Rep[Int],
+                                          userId: Rep[Int],
+                                          memberKind: Rep[MemberKind]) = {
     table.filter { q =>
       q.imageId === imageId &&
       q.memberId === userId &&
-      q.memberKind === (MemberKind.User: MemberKind)
+      q.memberKind === memberKind
     }.take(1)
+  }
+
+  private lazy val findIdByImageAndMemberCompiled = Compiled {
+    (imageId: Rep[Int], memberId: Rep[Int], memberKind: Rep[MemberKind]) =>
+      findIdByImageAndMemberScope(imageId, memberId, memberKind)
   }
 
   private lazy val findIdByImageAndUserCompiled = Compiled {
     (imageId: Rep[Int], userId: Rep[Int]) =>
-      findIdByImageAndUserScope(imageId, userId)
+      findIdByImageAndMemberScope(imageId, userId, MemberKind.User)
   }
 
   private def findIdByImageAndUserDBIO(imageId: Rep[Int], userId: Rep[Int]) = {
-    findIdByImageAndUserScope(imageId, userId).map(_.action).subquery
+    findIdByImageAndMemberScope(imageId, userId, MemberKind.User).map(_.action).subquery
   }
 
   private lazy val findActionByImageAndUserCompiled = Compiled {
     (imageId: Rep[Int], userId: Rep[Int]) =>
       findIdByImageAndUserDBIO(imageId, userId)
+  }
+
+  private lazy val findIdByImageAndGroupCompiled = Compiled {
+    (imageId: Rep[Int], userId: Rep[Int]) =>
+      findIdByImageAndMemberScope(imageId, userId, MemberKind.Group)
   }
 
   def findActionByImageAndUserDBIO(
@@ -114,17 +133,20 @@ object PermissionsRepo
     findActionByImageAsGroupUserCompiled((imageId, organizationId, userId)).result.headOption
   }
 
-  def createUserOwnerDBIO(imageId: Int, userId: Int, action: Action) = {
+  def createMemberOwnerDBIO(imageId: Int, memberId: Int, memberKind: MemberKind, action: Action) = {
     tableWithPk += Permission(
       id = None,
       imageId = imageId,
-      memberId = userId,
-      memberKind = MemberKind.User,
+      memberId = memberId,
+      memberKind = memberKind,
       action = action,
       createdAt = OffsetDateTime.now(),
       updatedAt = None
     )
   }
+
+  def createUserOwnerDBIO(imageId: Int, userId: Int, action: Action) =
+    createMemberOwnerDBIO(imageId, userId, MemberKind.User, action)
 
   private type PermissionResponseTuple =
     (Int, MemberKind, Action, OffsetDateTime, Option[OffsetDateTime], (String, Option[String]))
@@ -189,9 +211,8 @@ object PermissionsRepo
       case (userId, kind, action, createdAt, updatedAt, (username, fullName)) =>
         val isOwner = image.owner.kind === OwnerKind.User && image.owner.id == userId
         val member = PermissionUserMemberResponse(id = userId,
-                                                  kind = MemberKind.User,
                                                   isOwner = isOwner,
-                                                  name = username,
+                                                  username = username,
                                                   fullName = fullName)
         PermissionResponse(
           member = member,
@@ -201,7 +222,7 @@ object PermissionsRepo
         )
     }
 
-  private def userIdByMemberRequestDBIO(req: PermissionMemberRequest)(
+  private def userIdByMemberRequestDBIO(req: PermissionUserRequest)(
       implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
     req match {
       case PermissionUserIdRequest(id)     => UsersRepo.findByIdAsValidatedDBIO(id)
@@ -209,70 +230,137 @@ object PermissionsRepo
     }
   }
 
+  private def groupIdByMemberRequestDBIO(orgId: Int, req: PermissionGroupRequest)(
+      implicit ec: ExecutionContext)
+    : DBIOAction[ValidationResult[OrganizationGroup], NoStream, Effect.Read] = {
+    req match {
+      case PermissionGroupIdRequest(id) =>
+        OrganizationGroupsRepo.findByIdAsValidatedDBIO(orgId, id)
+      case PermissionGroupNameRequest(name) =>
+        OrganizationGroupsRepo.findByNameAsValidatedDBIO(orgId, name)
+    }
+  }
+
   private lazy val cannotSetPermissionForOwner =
     validationError("owner", "Cannot set a permission for owner")
 
-  def upsertByImage(image: Image, req: PermissionUserCreateRequest)(
+  def upsertByImage(image: Image, req: PermissionCreateRequest)(
       implicit ec: ExecutionContext): Future[ValidationResult[PermissionResponse]] = {
     runInTransaction(TransactionIsolation.Serializable) { // TODO: DRY
-      userIdByMemberRequestDBIO(req.member).flatMap {
-        case Validated.Valid(user) =>
-          val memberId = user.getId
-          if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
-            DBIO.successful(cannotSetPermissionForOwner)
-          else {
-            findIdByImageAndUserCompiled((image.getId(), memberId)).result.headOption.flatMap {
-              case Some(p) =>
-                val up = p.copy(
-                  action = req.action,
-                  updatedAt = Some(OffsetDateTime.now)
-                )
-                findByIdQuery(p.getId()).update(up).map(_ => up)
-              case _ =>
-                createUserOwnerDBIO(image.getId(), memberId, req.action)
-            }.map { p =>
-              val member = PermissionUserMemberResponse(
-                id = memberId,
-                kind = MemberKind.User,
-                isOwner = false, // impossible to change the permissions for the owner
-                name = user.username,
-                fullName = user.fullName)
-              Validated.Valid(
-                PermissionResponse(
-                  member = member,
-                  action = p.action,
-                  createdAt = p.createdAt.toString,
-                  updatedAt = p.updatedAt.map(_.toString)
-                ))
-            }
-          }
-        case res @ Validated.Invalid(_) => DBIO.successful(res)
+      req.member match {
+        case member: PermissionUserRequest  => upsertUser(image, member, req.action)
+        case member: PermissionGroupRequest => upsertGroup(image, member, req.action)
       }
     }
   }
 
-  def destroyByImage(image: Image, memberKind: MemberKind, slug: Slug)(
-      implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
-    assert(memberKind === MemberKind.User) // TODO
-    runInTransaction(TransactionIsolation.Serializable) { // TODO: DRY
-      UsersRepo.findBySlugAsValidatedDBIO(slug).flatMap {
-        case Validated.Valid(user) =>
-          val memberId = user.getId
-          if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
-            DBIO.successful(cannotSetPermissionForOwner)
-          else {
-            findIdByImageAndUserCompiled((image.getId(), memberId)).result.headOption.flatMap {
-              case Some(p) =>
-                findByIdQuery(p.getId()).delete.map { res =>
-                  if (res == 0) notFound
-                  else Validated.Valid(())
-                }
-              case _ => DBIO.successful(notFound)
-            }
+  private def upsertUser(image: Image, member: PermissionUserRequest, action: Action)(
+      implicit ec: ExecutionContext) = {
+    userIdByMemberRequestDBIO(member).flatMap {
+      case Validated.Valid(user) =>
+        val memberId = user.getId
+        if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
+          DBIO.successful(cannotSetPermissionForOwner)
+        else {
+          findIdByImageAndUserCompiled((image.getId(), memberId)).result.headOption.flatMap {
+            case Some(p) =>
+              val up = p.copy(
+                action = action,
+                updatedAt = Some(OffsetDateTime.now)
+              )
+              findByIdQuery(p.getId()).update(up).map(_ => up)
+            case _ =>
+              createUserOwnerDBIO(image.getId(), memberId, action)
+          }.map { p =>
+            val member = PermissionUserMemberResponse(
+              id = memberId,
+              isOwner = false, // impossible to change the permissions for the owner
+              username = user.username,
+              fullName = user.fullName)
+            Validated.Valid(
+              PermissionResponse(
+                member = member,
+                action = p.action,
+                createdAt = p.createdAt.toString,
+                updatedAt = p.updatedAt.map(_.toString)
+              ))
+          }
+        }
+      case res @ Validated.Invalid(_) => DBIO.successful(res)
+    }
+  }
+
+  private def upsertGroup(image: Image, member: PermissionGroupRequest, action: Action)(
+      implicit ec: ExecutionContext) = {
+    if (image.owner.kind == OwnerKind.Organization) {
+      groupIdByMemberRequestDBIO(image.owner.id, member).flatMap {
+        case Validated.Valid(group) =>
+          val memberId = group.getId
+          findIdByImageAndGroupCompiled((image.getId(), memberId)).result.headOption.flatMap {
+            case Some(p) =>
+              val up = p.copy(
+                action = action,
+                updatedAt = Some(OffsetDateTime.now)
+              )
+              findByIdQuery(p.getId()).update(up).map(_ => up)
+            case _ =>
+              createMemberOwnerDBIO(image.getId(), memberId, MemberKind.Group, action)
+          }.map { p =>
+            val member = PermissionGroupMemberResponse(id = memberId, name = group.name)
+            Validated.Valid(
+              PermissionResponse(
+                member = member,
+                action = p.action,
+                createdAt = p.createdAt.toString,
+                updatedAt = p.updatedAt.map(_.toString)
+              ))
           }
         case res @ Validated.Invalid(_) => DBIO.successful(res)
       }
+    } else validationErrorAsDBIO("owner.kind", "Should be organization")
+  }
+
+  def destroyByImage(image: Image, memberKind: MemberKind, slug: Slug)(
+      implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
+    runInTransaction(TransactionIsolation.Serializable) {
+      memberKind match {
+        case MemberKind.User  => destroyByUser(image, slug)
+        case MemberKind.Group => destroyByGroup(image, slug)
+      }
     }
+  }
+
+  private def destroyByMemberAsValidated(imageId: Int, memberId: Int, memberKind: MemberKind)(
+      implicit ec: ExecutionContext) = {
+    findIdByImageAndMemberCompiled((imageId, memberId, memberKind)).result.headOption.flatMap {
+      case Some(p) =>
+        findByIdQuery(p.getId()).delete.map { res =>
+          if (res == 0) notFound
+          else Validated.Valid(())
+        }
+      case _ => DBIO.successful(notFound)
+    }
+  }
+
+  private def destroyByUser(image: Image, slug: Slug)(implicit ec: ExecutionContext) = {
+    UsersRepo.findBySlugAsValidatedDBIO(slug).flatMap {
+      case Validated.Valid(user) =>
+        val memberId = user.getId
+        if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)
+          DBIO.successful(cannotSetPermissionForOwner)
+        else destroyByMemberAsValidated(image.getId(), memberId, MemberKind.User)
+      case res @ Validated.Invalid(_) => DBIO.successful(res)
+    }
+  }
+
+  private def destroyByGroup(image: Image, slug: Slug)(implicit ec: ExecutionContext) = {
+    if (image.owner.kind == OwnerKind.Organization) {
+      OrganizationGroupsRepo.findBySlugAsValidatedDBIO(image.owner.id, slug).flatMap {
+        case Validated.Valid(group) =>
+          destroyByMemberAsValidated(image.getId(), group.getId(), MemberKind.Group)
+        case res @ Validated.Invalid(_) => DBIO.successful(res)
+      }
+    } else validationErrorAsDBIO("owner.kind", "Should be organization")
   }
 
   private lazy val notFound = validationError("permission", "Not found")
@@ -281,7 +369,7 @@ object PermissionsRepo
     table.filter { q =>
       q.imageId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)) ||
       (q.memberId.in(OrganizationGroupsRepo.findIdsByOrganizationIdDBIO(organizationId)) &&
-          q.memberKind === (MemberKind.Group: MemberKind))
+      q.memberKind === (MemberKind.Group: MemberKind))
     }.delete
   }
 

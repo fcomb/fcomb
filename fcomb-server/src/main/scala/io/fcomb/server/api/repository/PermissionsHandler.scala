@@ -27,7 +27,7 @@ import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.errors.{FailureResponse, UnknownEnumItemException}
 import io.fcomb.persist.acl.PermissionsRepo
-import io.fcomb.rpc.acl.PermissionUserCreateRequest
+import io.fcomb.rpc.acl.PermissionCreateRequest
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ImageDirectives._
@@ -54,7 +54,7 @@ object PermissionsHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
-          entity(as[PermissionUserCreateRequest]) { req =>
+          entity(as[PermissionCreateRequest]) { req =>
             onSuccess(PermissionsRepo.upsertByImage(image, req)) {
               case Validated.Valid(p)   => complete((StatusCodes.Accepted, p))
               case Validated.Invalid(e) => ??? // TODO

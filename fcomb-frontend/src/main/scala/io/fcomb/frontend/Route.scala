@@ -20,9 +20,9 @@ sealed trait Route
 
 object Route {
   final case class Dashboard(route: DashboardRoute) extends Route
-  final case object SignIn  extends Route
-  final case object SignUp  extends Route
-  final case object SignOut extends Route
+  final case object SignIn                          extends Route
+  final case object SignUp                          extends Route
+  final case object SignOut                         extends Route
 }
 
 sealed trait DashboardRoute
@@ -30,14 +30,14 @@ sealed trait DashboardRoute
 object DashboardRoute {
   final case object Root extends DashboardRoute
 
-  final case object Repositories  extends DashboardRoute
-  final case object NewRepository extends DashboardRoute
+  final case object Repositories                    extends DashboardRoute
+  final case object NewRepository                   extends DashboardRoute
   final case class Repository(name: String)         extends DashboardRoute
   final case class RepositoryTags(name: String)     extends DashboardRoute
   final case class RepositorySettings(name: String) extends DashboardRoute
 
-  final case object Organizations   extends DashboardRoute
-  final case object NewOrganization extends DashboardRoute
+  final case object Organizations                                   extends DashboardRoute
+  final case object NewOrganization                                 extends DashboardRoute
   final case class Organization(name: String)                       extends DashboardRoute
   final case class OrganizationGroups(orgName: String)              extends DashboardRoute
   final case class NewOrganizationGroup(orgName: String)            extends DashboardRoute

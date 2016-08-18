@@ -34,8 +34,7 @@ trait ModelWithIntPk extends ModelWithPk {
   type PkType = Int
 }
 
-sealed trait ModelWithAutoPk {
-  this: ModelWithPk =>
+sealed trait ModelWithAutoPk { this: ModelWithPk =>
 
   def withId(id: PkType): ModelWithAutoPk
 }

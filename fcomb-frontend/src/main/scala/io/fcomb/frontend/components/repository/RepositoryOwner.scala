@@ -16,11 +16,11 @@
 
 package io.fcomb.frontend.components.repository
 
-sealed trait OwnerScope
-sealed trait Owner
+sealed trait RepositoryOwner
+sealed trait RepositoryOwnerScope
 
-object Owner {
-  final case object UserSelf extends Owner with OwnerScope
-  final case class User(slug: String)         extends Owner
-  final case class Organization(slug: String) extends Owner with OwnerScope
+object RepositoryOwner {
+  final case object UserSelf                  extends RepositoryOwner with RepositoryOwnerScope
+  final case class User(slug: String)         extends RepositoryOwner
+  final case class Organization(slug: String) extends RepositoryOwner with RepositoryOwnerScope
 }

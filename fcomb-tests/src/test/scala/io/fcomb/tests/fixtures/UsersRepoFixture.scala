@@ -36,11 +36,11 @@ object UsersRepoFixture {
   ): Future[User] = {
     for {
       Validated.Valid(user) <- UsersRepo.create(
-                                email = email,
-                                username = username,
-                                password = password,
-                                fullName = fullName
-                              )
+        email = email,
+        username = username,
+        password = password,
+        fullName = fullName
+      )
     } yield user
   }
 }

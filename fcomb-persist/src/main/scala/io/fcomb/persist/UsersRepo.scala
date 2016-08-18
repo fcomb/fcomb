@@ -23,7 +23,13 @@ import io.fcomb.Db._
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.User
 import io.fcomb.models.common.Slug
-import io.fcomb.rpc.{MemberUserRequest, MemberUserIdRequest, MemberUsernameRequest, UserSignUpRequest, UserUpdateRequest}
+import io.fcomb.rpc.{
+  MemberUserRequest,
+  MemberUserIdRequest,
+  MemberUsernameRequest,
+  UserSignUpRequest,
+  UserUpdateRequest
+}
 import io.fcomb.validations._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}

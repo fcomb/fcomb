@@ -28,16 +28,16 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object NewRepositoryComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], ownerScope: OwnerScope)
+  final case class Props(ctl: RouterCtl[DashboardRoute], ownerScope: RepositoryOwnerScope)
   final case class State(name: String,
                          visibilityKind: ImageVisibilityKind,
                          description: Option[String],
                          isFormDisabled: Boolean)
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     val urlCB = $.props.map(_.ownerScope).map {
-      case Owner.UserSelf         => Resource.userSelfRepositories
-      case Owner.Organization(id) => Resource.organizationRepositories(id)
+      case RepositoryOwner.UserSelf         => Resource.userSelfRepositories
+      case RepositoryOwner.Organization(id) => Resource.organizationRepositories(id)
     }
 
     def create(props: Props): Callback = {
@@ -128,6 +128,6 @@ object NewRepositoryComponent {
     .renderBackend[Backend]
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], ownerScope: OwnerScope) =
+  def apply(ctl: RouterCtl[DashboardRoute], ownerScope: RepositoryOwnerScope) =
     component(Props(ctl, ownerScope))
 }

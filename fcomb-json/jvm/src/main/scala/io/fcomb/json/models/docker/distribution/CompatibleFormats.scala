@@ -21,7 +21,16 @@ import enumeratum.Circe
 import io.circe.generic.semiauto._
 import io.circe.java8.time._
 import io.circe.parser._
-import io.circe.{Decoder, Encoder, ParsingFailure, DecodingFailure, Json, Printer, HCursor, KeyDecoder}
+import io.circe.{
+  Decoder,
+  Encoder,
+  ParsingFailure,
+  DecodingFailure,
+  Json,
+  Printer,
+  HCursor,
+  KeyDecoder
+}
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
 import scala.collection.generic.CanBuildFrom
@@ -208,11 +217,11 @@ object CompatibleFormats {
             config <- configJson.as[SchemaV1.Config]
             acc = Xor.right[DecodingFailure, List[SchemaV1.Layer]](Nil)
             xs <- xsJson.foldRight(acc) { (item, lacc) =>
-                   for {
-                     acc   <- lacc
-                     layer <- item.as[SchemaV1.Layer]
-                   } yield layer :: acc
-                 }
+              for {
+                acc   <- lacc
+                layer <- item.as[SchemaV1.Layer]
+              } yield layer :: acc
+            }
           } yield config :: xs
         case _ => Xor.Left(DecodingFailure("history", c.history))
       }

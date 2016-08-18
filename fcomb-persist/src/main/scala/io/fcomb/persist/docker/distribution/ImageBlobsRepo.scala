@@ -156,15 +156,15 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         } else {
           for {
             _ <- table
-                  .filter(_.id === id)
-                  .map(t => (t.state, t.length, t.digest, t.uploadedAt))
-                  .update(
-                    (
-                      ImageBlobState.Uploaded,
-                      length,
-                      Some(digest),
-                      Some(OffsetDateTime.now())
-                    ))
+              .filter(_.id === id)
+              .map(t => (t.state, t.length, t.digest, t.uploadedAt))
+              .update(
+                (
+                  ImageBlobState.Uploaded,
+                  length,
+                  Some(digest),
+                  Some(OffsetDateTime.now())
+                ))
             res <- BlobFilesRepo.markDBIO(id, digest)
           } yield res
         }
@@ -216,7 +216,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
             it.ownerId === organizationId &&
             it.ownerKind === (OwnerKind.Organization: OwnerKind) &&
             !(it2.ownerId === organizationId &&
-                  it2.ownerKind === (OwnerKind.Organization: OwnerKind))
+              it2.ownerKind === (OwnerKind.Organization: OwnerKind))
       }
       .map(_._1._1._1.digest)
       .distinct
@@ -281,8 +281,8 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     for {
       _ <- BlobFilesRepo.markOrDestroyByOrganizationIdDBIO(organizationId)
       res <- table
-              .filter(_.imageId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)))
-              .delete
+        .filter(_.imageId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)))
+        .delete
     } yield res
   }
 

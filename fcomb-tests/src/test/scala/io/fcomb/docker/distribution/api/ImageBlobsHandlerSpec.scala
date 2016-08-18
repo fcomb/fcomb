@@ -60,11 +60,11 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         _ <- ImageBlobsRepoFixture.createAs(
-              user.getId(),
-              image.getId(),
-              bs,
-              ImageBlobState.Uploaded
-            )
+          user.getId(),
+          image.getId(),
+          bs,
+          ImageBlobState.Uploaded
+        )
       } yield image.slug)
 
       Head(s"/v2/$imageSlug/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
@@ -83,11 +83,11 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         _ <- ImageBlobsRepoFixture.createAs(
-              user.getId(),
-              image.getId(),
-              bs,
-              ImageBlobState.Uploaded
-            )
+          user.getId(),
+          image.getId(),
+          bs,
+          ImageBlobState.Uploaded
+        )
       } yield image.slug)
 
       Get(s"/v2/$imageSlug/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
@@ -106,11 +106,11 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId(),
-                 image.getId(),
-                 bs,
-                 ImageBlobState.Uploaded
-               )
+          user.getId(),
+          image.getId(),
+          bs,
+          ImageBlobState.Uploaded
+        )
       } yield (blob, image.slug))
       val offset = 5
       val limit  = 10
@@ -139,11 +139,11 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         _ <- ImageBlobsRepoFixture.createAs(
-              user.getId(),
-              image.getId(),
-              bs,
-              ImageBlobState.Uploaded
-            )
+          user.getId(),
+          image.getId(),
+          bs,
+          ImageBlobState.Uploaded
+        )
       } yield image.slug)
       val headers = `If-None-Match`(EntityTag(s"sha256:$bsDigest"))
 
@@ -158,11 +158,11 @@ class ImageBlobsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId(),
-                 image.getId(),
-                 bs,
-                 ImageBlobState.Uploaded
-               )
+          user.getId(),
+          image.getId(),
+          bs,
+          ImageBlobState.Uploaded
+        )
       } yield (blob, image.slug))
 
       Delete(s"/v2/$imageSlug/blobs/sha256:${blob.digest.get}") ~> addCredentials(credentials) ~> route ~> check {

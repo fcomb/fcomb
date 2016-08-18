@@ -17,14 +17,14 @@
 package io.fcomb.frontend.components.dashboard
 
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.repository.{NewRepositoryComponent, Owner}
+import io.fcomb.frontend.components.repository.{NewRepositoryComponent, RepositoryOwner}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 
 object UserNewRepositoryComponent {
   private val component =
     ReactComponentB[RouterCtl[DashboardRoute]]("UserNewRepository").render_P { ctl =>
-      NewRepositoryComponent.apply(ctl, Owner.UserSelf)
+      NewRepositoryComponent.apply(ctl, RepositoryOwner.UserSelf)
     }.build
 
   def apply(ctl: RouterCtl[DashboardRoute]) =

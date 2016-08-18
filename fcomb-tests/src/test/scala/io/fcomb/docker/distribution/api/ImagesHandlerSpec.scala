@@ -29,7 +29,10 @@ import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.circe.parser._
 import io.circe.syntax._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
-import io.fcomb.docker.distribution.server.ContentTypes.{`application/vnd.docker.distribution.manifest.v1+prettyjws`, `application/vnd.docker.distribution.manifest.v2+json`}
+import io.fcomb.docker.distribution.server.ContentTypes.{
+  `application/vnd.docker.distribution.manifest.v1+prettyjws`,
+  `application/vnd.docker.distribution.manifest.v2+json`
+}
 import io.fcomb.docker.distribution.server.Routes
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
@@ -150,12 +153,11 @@ class ImagesHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsRepoFixture.createAs(
-                  user.getId(),
-                  image.getId(),
-                  ByteString.empty,
-                  ImageBlobState.Uploaded,
-                  digestOpt =
-                    Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
+          user.getId(),
+          image.getId(),
+          ByteString.empty,
+          ImageBlobState.Uploaded,
+          digestOpt = Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
       } yield image)
 
       Put(
@@ -194,20 +196,18 @@ class ImagesHandlerSpec
     "return digest header for PUT request with schema v2 to manifest upload path" in {
       val manifestV2 = ByteString(getFixture("docker/distribution/manifestV2.json"))
       val digest     = "eeb39ca4e9565a6689fa1a6b79d130e058796359a1da88a6f3e3d0fc95ed3b0b"
-      val configBlobBs = ByteString(
-        getFixture(
-          "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
+      val configBlobBs = ByteString(getFixture(
+        "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
 
       val (configBlob, imageSlug) = Fixtures.await(for {
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsRepoFixture.createAs(
-                  user.getId(),
-                  image.getId(),
-                  ByteString.empty,
-                  ImageBlobState.Uploaded,
-                  digestOpt =
-                    Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
+          user.getId(),
+          image.getId(),
+          ByteString.empty,
+          ImageBlobState.Uploaded,
+          digestOpt = Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
         cb <- ImageBlobsRepoFixture.createAs(user.getId(),
                                              image.getId(),
                                              configBlobBs,
@@ -231,9 +231,8 @@ class ImagesHandlerSpec
     "return a failure reponse for PUT request with schema v2 to manifest upload path" in {
       val manifestV2 = ByteString(getFixture("docker/distribution/manifestV2.json"))
       val digest     = "eeb39ca4e9565a6689fa1a6b79d130e058796359a1da88a6f3e3d0fc95ed3b0b"
-      val configBlobBs = ByteString(
-        getFixture(
-          "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
+      val configBlobBs = ByteString(getFixture(
+        "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
       val configBlobDigest = "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08"
 
       val (user, image) = Fixtures.await(for {
@@ -254,11 +253,11 @@ class ImagesHandlerSpec
 
       val configBlob = Fixtures.await(for {
         res <- ImageBlobsRepoFixture.createAs(
-                user.getId(),
-                image.getId(),
-                configBlobBs,
-                ImageBlobState.Uploaded
-              )
+          user.getId(),
+          image.getId(),
+          configBlobBs,
+          ImageBlobState.Uploaded
+        )
       } yield res)
       configBlob.digest should contain(
         "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")

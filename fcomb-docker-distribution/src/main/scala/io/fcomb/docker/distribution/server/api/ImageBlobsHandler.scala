@@ -93,7 +93,7 @@ object ImageBlobsHandler {
                   val source =
                     if (digest == ImageManifest.emptyTarSha256Digest)
                       Source.single(ByteString(
-                          ImageManifest.emptyTar.drop(offset.toInt).take(chunkLength.toInt)))
+                        ImageManifest.emptyTar.drop(offset.toInt).take(chunkLength.toInt)))
                     else BlobFileUtils.streamBlob(digest, offset, chunkLength)
                   complete(
                     HttpResponse(

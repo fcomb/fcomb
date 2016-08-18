@@ -34,7 +34,7 @@ object RepositoryComponent {
   final case class FormState(description: String, isPreview: Boolean, isFormDisabled: Boolean)
   final case class State(repository: Option[RepositoryResponse], form: Option[FormState])
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     val descriptionRef = Ref[HTMLInputElement]("description")
 
     def getRepository(name: String): Callback = {
@@ -66,21 +66,21 @@ object RepositoryComponent {
           _    <- $.modState(_.copy(form = Some(fs.copy(isFormDisabled = true))))
           name <- $.props.map(_.name)
           _ <- Callback.future {
-                val req = ImageUpdateRequest(fs.description)
-                Rpc
-                  .callWith[ImageUpdateRequest, RepositoryResponse](RpcMethod.PUT,
-                                                                    Resource.repository(name),
-                                                                    req)
-                  .map {
-                    case Xor.Right(repository) =>
-                      $.modState(_.copy(repository = Some(repository), form = None))
-                    case Xor.Left(e) =>
-                      $.modState(_.copy(form = Some(fs.copy(isFormDisabled = false))))
-                  }
-                  .recover {
-                    case _ => $.modState(_.copy(form = Some(fs.copy(isFormDisabled = false))))
-                  }
+            val req = ImageUpdateRequest(fs.description)
+            Rpc
+              .callWith[ImageUpdateRequest, RepositoryResponse](RpcMethod.PUT,
+                                                                Resource.repository(name),
+                                                                req)
+              .map {
+                case Xor.Right(repository) =>
+                  $.modState(_.copy(repository = Some(repository), form = None))
+                case Xor.Left(e) =>
+                  $.modState(_.copy(form = Some(fs.copy(isFormDisabled = false))))
               }
+              .recover {
+                case _ => $.modState(_.copy(form = Some(fs.copy(isFormDisabled = false))))
+              }
+          }
         } yield ()
       }
     }

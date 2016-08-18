@@ -24,7 +24,7 @@ object Resource {
 
   val sessions = prefix + "/sessions"
 
-  val repositories = prefix + "/repositories"
+  val repositories                                  = prefix + "/repositories"
   def repository(imageName: String)                 = s"$repositories/$imageName"
   def repositoryTags(imageName: String)             = repository(imageName) + "/tags"
   def repositoryTag(imageName: String, tag: String) = repositoryTags(imageName) + s"/$tag"
@@ -34,7 +34,7 @@ object Resource {
   def repositoryVisibility(imageName: String, kind: ImageVisibilityKind) =
     repository(imageName) + s"/visibility/${kind.entryName}"
 
-  val organizations = prefix + "/organizations"
+  val organizations                                    = prefix + "/organizations"
   def organization(orgName: String)                    = s"$organizations/$orgName"
   def organizationGroups(orgName: String)              = organization(orgName) + "/groups"
   def organizationGroup(orgName: String, name: String) = organizationGroups(orgName) + s"/$name"

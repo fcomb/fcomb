@@ -47,11 +47,11 @@ object ImageManifestsRepoFixture {
     for {
       Some(image) <- ImagesRepo.findById(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV1(
-                              image = image,
-                              manifest = manifest,
-                              schemaV1JsonBlob = schemaV1JsonBlob,
-                              digest = digest
-                            )
+        image = image,
+        manifest = manifest,
+        schemaV1JsonBlob = schemaV1JsonBlob,
+        digest = digest
+      )
     } yield im
   }
 
@@ -104,18 +104,18 @@ object ImageManifestsRepoFixture {
     for {
       Some(image) <- ImagesRepo.findById(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV2(
-                              image = image,
-                              manifest = manifest,
-                              reference = reference,
-                              configBlob = blob,
-                              schemaV1JsonBlob = schemaV1JsonBlob,
-                              schemaV2JsonBlob = schemaV2JsonBlob,
-                              digest = digest
-                            )
+        image = image,
+        manifest = manifest,
+        reference = reference,
+        configBlob = blob,
+        schemaV1JsonBlob = schemaV1JsonBlob,
+        schemaV2JsonBlob = schemaV2JsonBlob,
+        digest = digest
+      )
       _ <- db.run(for {
-            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), tags)
-            _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
-          } yield ())
+        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), tags)
+        _ <- ImageManifestsRepo.updateDBIO(im.copy(tags = tags))
+      } yield ())
     } yield im
   }
 }

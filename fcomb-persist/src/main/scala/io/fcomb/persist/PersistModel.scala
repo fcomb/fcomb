@@ -176,22 +176,19 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     else Validated.Valid(())
 }
 
-trait PersistTableWithPk {
-  this: Table[_] =>
+trait PersistTableWithPk { this: Table[_] =>
   type Pk
 
   def id: Rep[Pk]
 }
 
-trait PersistTableWithUuidPk extends PersistTableWithPk {
-  this: Table[_] =>
+trait PersistTableWithUuidPk extends PersistTableWithPk { this: Table[_] =>
   type Pk = UUID
 
   def id = column[UUID]("id", O.PrimaryKey)
 }
 
-trait PersistTableWithAutoIntPk extends PersistTableWithPk {
-  this: Table[_] =>
+trait PersistTableWithAutoIntPk extends PersistTableWithPk { this: Table[_] =>
   type Pk = Int
 
   def id = column[Int]("id", O.AutoInc, O.PrimaryKey)

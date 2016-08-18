@@ -30,27 +30,49 @@ final case class PermissionUserIdRequest(id: Int) extends PermissionUserRequest
 
 final case class PermissionUsernameRequest(username: String) extends PermissionUserRequest
 
-final case class PermissionUserCreateRequest(
-    member: PermissionUserRequest,
+sealed trait PermissionGroupRequest extends PermissionMemberRequest {
+  val kind = MemberKind.Group
+}
+
+final case class PermissionGroupIdRequest(id: Int) extends PermissionGroupRequest
+
+final case class PermissionGroupNameRequest(name: String) extends PermissionGroupRequest
+
+final case class PermissionCreateRequest(
+    member: PermissionMemberRequest,
     action: Action
 )
 
 sealed trait PermissionMemberResponse {
   val id: Int
   val kind: MemberKind
-  val name: String
+
+  def name: String
+  def isOwner: Boolean
 }
 
 final case class PermissionUserMemberResponse(
     id: Int,
-    kind: MemberKind,
     isOwner: Boolean,
-    name: String,
+    username: String,
     fullName: Option[String]
-) extends PermissionMemberResponse
+) extends PermissionMemberResponse {
+  val kind = MemberKind.User
+
+  def name = username + fullName.map(n => s"($n)").getOrElse("")
+}
+
+final case class PermissionGroupMemberResponse(
+    id: Int,
+    name: String
+) extends PermissionMemberResponse {
+  val kind = MemberKind.Group
+
+  def isOwner = false
+}
 
 final case class PermissionResponse(
-    member: PermissionUserMemberResponse,
+    member: PermissionMemberResponse,
     action: Action,
     createdAt: String,
     updatedAt: Option[String]

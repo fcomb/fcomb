@@ -79,10 +79,9 @@ object ImageManifestTagsRepo
             WHERE id = ${imt.imageManifestId}
           """
       _ <- table.filter { q =>
-            q.imageId === imt.imageId && q.imageManifestId === imt.imageManifestId &&
-            q.tag === imt.tag
-          }.map(t => (t.imageManifestId, t.updatedAt))
-            .update((imageManifestId, OffsetDateTime.now()))
+        q.imageId === imt.imageId && q.imageManifestId === imt.imageManifestId &&
+        q.tag === imt.tag
+      }.map(t => (t.imageManifestId, t.updatedAt)).update((imageManifestId, OffsetDateTime.now()))
     } yield ()
   }
 

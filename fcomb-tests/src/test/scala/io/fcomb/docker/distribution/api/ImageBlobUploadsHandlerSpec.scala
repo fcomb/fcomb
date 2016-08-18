@@ -140,11 +140,11 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId(),
-                 image.getId(),
-                 bs,
-                 ImageBlobState.Uploaded
-               )
+          user.getId(),
+          image.getId(),
+          bs,
+          ImageBlobState.Uploaded
+        )
         mountImage <- ImagesRepoFixture.create(user,
                                                s"${imageName}-mount",
                                                ImageVisibilityKind.Private)
@@ -268,11 +268,11 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId(),
-                 image.getId(),
-                 bs,
-                 ImageBlobState.Uploading
-               )
+          user.getId(),
+          image.getId(),
+          bs,
+          ImageBlobState.Uploading
+        )
         _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs))
       } yield (blob, image.slug))
 
@@ -298,11 +298,11 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId(),
-                 image.getId(),
-                 bs.take(1),
-                 ImageBlobState.Uploading
-               )
+          user.getId(),
+          image.getId(),
+          bs.take(1),
+          ImageBlobState.Uploading
+        )
         _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
       } yield (blob, image.slug))
 
@@ -328,11 +328,11 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId(),
-                 image.getId(),
-                 bs,
-                 ImageBlobState.Uploading
-               )
+          user.getId(),
+          image.getId(),
+          bs,
+          ImageBlobState.Uploading
+        )
         _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs))
       } yield (blob, image.slug))
 
@@ -358,11 +358,11 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId(),
-                 image.getId(),
-                 bs.take(1),
-                 ImageBlobState.Uploading
-               )
+          user.getId(),
+          image.getId(),
+          bs.take(1),
+          ImageBlobState.Uploading
+        )
         _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
       } yield (blob, image.slug))
 
@@ -388,11 +388,11 @@ class ImageBlobUploadsHandlerSpec
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsRepoFixture.createAs(
-                 user.getId(),
-                 image.getId(),
-                 bs,
-                 ImageBlobState.Uploading
-               )
+          user.getId(),
+          image.getId(),
+          bs,
+          ImageBlobState.Uploading
+        )
       } yield (blob, image.slug))
 
       Delete(s"/v2/$imageSlug/blobs/uploads/${blob.getId}") ~> addCredentials(credentials) ~> route ~> check {

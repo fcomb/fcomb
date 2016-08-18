@@ -52,8 +52,7 @@ private[this] object PersistSpec {
     tables.map(t => s"TRUNCATE ${t.baseTableRow.tableName} CASCADE").mkString(";\n")
 }
 
-trait PersistSpec extends BeforeAndAfterAll with BeforeAndAfterEach {
-  this: Suite =>
+trait PersistSpec extends BeforeAndAfterAll with BeforeAndAfterEach { this: Suite =>
   lazy val logger = LoggerFactory.getLogger(getClass)
 
   override def beforeAll(): Unit = {

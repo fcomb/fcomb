@@ -123,11 +123,11 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     for {
       orgOpt <- findBySlugDBIO(slug).result.headOption
       res <- orgOpt match {
-              case Some(org) =>
-                findRoleByIdAndUserIdCompiled((org.getId(), userId)).result.headOption.map(r =>
-                    Some((org, r)))
-              case _ => DBIO.successful(None)
-            }
+        case Some(org) =>
+          findRoleByIdAndUserIdCompiled((org.getId(), userId)).result.headOption.map(r =>
+            Some((org, r)))
+        case _ => DBIO.successful(None)
+      }
     } yield res
   }
 

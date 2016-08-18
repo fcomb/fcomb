@@ -16,6 +16,7 @@
 
 package io.fcomb.persist
 
+import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.acl.Role
@@ -84,6 +85,28 @@ object OrganizationGroupsRepo
 
   private lazy val findByOrgIdTotalCompiled = Compiled { orgId: Rep[Int] =>
     findByOrgIdDBIO(orgId).length
+  }
+
+  def findByIdAsValidatedDBIO(orgId: Int, id: Int)(implicit ec: ExecutionContext) = {
+    findByOrgIdAndIdCompiled((orgId, id)).result.headOption.map {
+      case Some(g) => Validated.Valid(g)
+      case _       => validationError("member.id", "Not found")
+    }
+  }
+
+  def findByNameAsValidatedDBIO(orgId: Int, name: String)(implicit ec: ExecutionContext) = {
+    findByOrgIdAndNameCompiled((orgId, name)).result.headOption.map {
+      case Some(g) => Validated.Valid(g)
+      case _       => validationError("member.name", "Not found")
+    }
+  }
+
+  def findBySlugAsValidatedDBIO(orgId: Int, slug: Slug)(implicit ec: ExecutionContext)
+    : DBIOAction[ValidationResult[OrganizationGroup], NoStream, Effect.Read] = {
+    slug match {
+      case Slug.Id(id)     => findByIdAsValidatedDBIO(orgId, id)
+      case Slug.Name(name) => findByNameAsValidatedDBIO(orgId, name)
+    }
   }
 
   def paginateByOrgId(orgId: Int, p: Pagination)(

@@ -26,8 +26,18 @@ import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.models.{Organization, Owner, OwnerKind, Pagination, PaginationData, User}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
-import io.fcomb.persist.{EventsRepo, OrganizationGroupUsersRepo, OrganizationGroupsRepo, PersistModelWithAutoIntPk, PersistTableWithAutoIntPk}
-import io.fcomb.rpc.docker.distribution.{ImageCreateRequest, ImageUpdateRequest, RepositoryResponse}
+import io.fcomb.persist.{
+  EventsRepo,
+  OrganizationGroupUsersRepo,
+  OrganizationGroupsRepo,
+  PersistModelWithAutoIntPk,
+  PersistTableWithAutoIntPk
+}
+import io.fcomb.rpc.docker.distribution.{
+  ImageCreateRequest,
+  ImageUpdateRequest,
+  RepositoryResponse
+}
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.validations._
 import java.time.OffsetDateTime
@@ -311,16 +321,16 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       img <- super.createDBIO(item)
       imageId = img.getId()
       _ <- item.owner.kind match {
-            case OwnerKind.User =>
-              PermissionsRepo.createUserOwnerDBIO(imageId, img.owner.id, Action.Manage)
-            case _ => DBIO.successful(())
-          }
+        case OwnerKind.User =>
+          PermissionsRepo.createUserOwnerDBIO(imageId, img.owner.id, Action.Manage)
+        case _ => DBIO.successful(())
+      }
       _ <- EventsRepo.createRepoEventDBIO(
-            repoId = imageId,
-            name = img.name,
-            slug = img.slug,
-            createdByUserId = img.createdByUserId
-          )
+        repoId = imageId,
+        name = img.name,
+        slug = img.slug,
+        createdByUserId = img.createdByUserId
+      )
     } yield img
   }
 
@@ -383,8 +393,8 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
         case (t, pt) =>
           t.ownerId === ownerId && t.ownerKind === (OwnerKind.User: OwnerKind) &&
             (t.ownerId === currentUserId ||
-                  (pt.memberId === currentUserId &&
-                        pt.memberKind === (MemberKind.User: MemberKind)))
+              (pt.memberId === currentUserId &&
+                pt.memberKind === (MemberKind.User: MemberKind)))
       }
       .map { case (t, pt) => (t, pt.action) }
       .subquery

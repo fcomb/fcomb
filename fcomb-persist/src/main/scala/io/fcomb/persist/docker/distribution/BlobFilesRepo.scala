@@ -81,8 +81,8 @@ object BlobFilesRepo {
         for {
           _ <- findByUuidDBIO(uuid).map(_.digest).update(Some(digest))
           _ <- table.filter { q =>
-                q.digest === digest && q.uuid =!= uuid && q.state === (BlobFileState.Deleting: BlobFileState)
-              }.delete
+            q.digest === digest && q.uuid =!= uuid && q.state === (BlobFileState.Deleting: BlobFileState)
+          }.delete
         } yield BlobFileState.Available
       }
     }
@@ -121,7 +121,7 @@ object BlobFilesRepo {
         case (t, ibt) =>
           ibt.imageId === imageId &&
             (t.digest.isEmpty ||
-                  !t.digest.in(ImageBlobsRepo.duplicateDigestsByImageIdDBIO(imageId)))
+              !t.digest.in(ImageBlobsRepo.duplicateDigestsByImageIdDBIO(imageId)))
       }
       .map(_._1.state)
       .update(BlobFileState.Deleting)

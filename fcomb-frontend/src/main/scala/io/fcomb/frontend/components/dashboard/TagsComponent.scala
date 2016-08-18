@@ -20,7 +20,11 @@ import cats.data.Xor
 import cats.syntax.eq._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.components.{CopyToClipboardComponent, TimeAgoComponent, SizeInBytesComponent}
+import io.fcomb.frontend.components.{
+  CopyToClipboardComponent,
+  TimeAgoComponent,
+  SizeInBytesComponent
+}
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.{PaginationData, SortOrder}

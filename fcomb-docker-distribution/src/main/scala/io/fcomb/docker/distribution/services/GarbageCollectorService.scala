@@ -33,7 +33,7 @@ object GarbageCollectorService {
   val actorName = "garbage-collector"
 
   private var actorRef: ActorRef = _
-  private lazy val logger = LoggerFactory.getLogger(getClass)
+  private lazy val logger        = LoggerFactory.getLogger(getClass)
 
   def start()(implicit system: ActorSystem, mat: Materializer): ActorRef = {
     if (actorRef eq null) {

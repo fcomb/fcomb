@@ -73,22 +73,21 @@ object SchemaV1 {
             case (acc, signature) =>
               val `protected` = new String(base64Decode(signature.`protected`))
               acc *> (decode[Protected](`protected`) match {
-                    case Xor.Right(p) =>
-                      val formatTail      = new String(base64Decode(p.formatTail))
-                      val formatTailIndex = original.lastIndexOf(formatTail)
-                      val formatted       = original.take(formatTailIndex + formatTail.length)
-                      if (formatTailIndex == p.formatLength) {
-                        val payload        = s"${signature.`protected`}.${base64Encode(formatted)}"
-                        val signatureBytes = base64Decode(signature.signature)
-                        val (alg, jwk)     = (signature.header.alg, signature.header.jwk)
-                        if (Jws.verify(alg, jwk, payload, signatureBytes))
-                          Xor.Right((original, DigestUtils.sha256Hex(formatted)))
-                        else Xor.Left(ManifestUnverified())
-                      } else
-                        Xor.Left(
-                          ManifestInvalid("formatted length does not match with fortmatLength"))
-                    case Xor.Left(e) => Xor.Left(Unknown(e.show))
-                  })
+                case Xor.Right(p) =>
+                  val formatTail      = new String(base64Decode(p.formatTail))
+                  val formatTailIndex = original.lastIndexOf(formatTail)
+                  val formatted       = original.take(formatTailIndex + formatTail.length)
+                  if (formatTailIndex == p.formatLength) {
+                    val payload        = s"${signature.`protected`}.${base64Encode(formatted)}"
+                    val signatureBytes = base64Decode(signature.signature)
+                    val (alg, jwk)     = (signature.header.alg, signature.header.jwk)
+                    if (Jws.verify(alg, jwk, payload, signatureBytes))
+                      Xor.Right((original, DigestUtils.sha256Hex(formatted)))
+                    else Xor.Left(ManifestUnverified())
+                  } else
+                    Xor.Left(ManifestInvalid("formatted length does not match with fortmatLength"))
+                case Xor.Left(e) => Xor.Left(Unknown(e.show))
+              })
           }
         }
       case Xor.Right(None) => Xor.Left(ManifestInvalid())
