@@ -17,6 +17,7 @@
 package io.fcomb.models
 
 import cats.Eq
+import scala.collection.immutable
 
 sealed trait SortOrder {
   def flip: SortOrder
@@ -51,6 +52,7 @@ final case class PaginationData[T](
 
 final case class Pagination(
     sort: List[(String, SortOrder)],
+    filter: immutable.Map[String, String],
     limit: Long,
     offset: Long
 )
@@ -77,6 +79,6 @@ object Pagination {
         }
       case _ => Nil
     }
-    Pagination(sort, limit, offset)
+    Pagination(sort, Map.empty, limit, offset)
   }
 }

@@ -214,6 +214,14 @@ object OrganizationGroupsRepo
       .result
   }
 
+  def findSuggestionsDBIO(imageId: Rep[Int], orgId: Rep[Int], name: Rep[String]) = {
+    table.filter { t =>
+      t.organizationId === orgId &&
+      t.name.like(name.asColumnOfType[String]("citext")) &&
+      !t.id.in(PermissionsRepo.findGroupMemberIdsByImageIdDBIO(imageId))
+    }
+  }
+
   import Validations._
 
   // TODO: check name format

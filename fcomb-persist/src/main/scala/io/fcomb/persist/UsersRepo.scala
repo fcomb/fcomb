@@ -23,6 +23,7 @@ import io.fcomb.Db._
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.User
 import io.fcomb.models.common.Slug
+import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.{
   MemberUserRequest,
   MemberUserIdRequest,
@@ -30,6 +31,7 @@ import io.fcomb.rpc.{
   UserSignUpRequest,
   UserUpdateRequest
 }
+import io.fcomb.rpc.acl.PermissionUserMemberResponse
 import io.fcomb.validations._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -198,6 +200,37 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       case Slug.Id(id)     => findByIdAsValidatedDBIO(id)
       case Slug.Name(name) => findByUsernameAsValidatedDBIO(name)
     }
+  }
+
+  def findSuggestionsDBIO(imageId: Rep[Int], username: Rep[String]) = {
+    table.filter { t =>
+      t.username.like(username.asColumnOfType[String]("citext")) &&
+      !t.id.in(PermissionsRepo.findUserMemberIdsByImageIdDBIO(imageId))
+    }
+  }
+
+  private lazy val findSuggestionsCompiled = Compiled {
+    (imageId: Rep[Int], userOwnerId: Rep[Int], username: Rep[String], limit: ConstColumn[Long]) =>
+      findSuggestionsDBIO(imageId, username)
+        .filter(_.id =!= userOwnerId)
+        .map(t => (t.id, t.username, t.fullName))
+        .take(limit)
+  }
+
+  def findSuggestions(imageId: Int, userOwnerId: Int, q: String, limit: Long = 16L)(
+      implicit ec: ExecutionContext): Future[Seq[PermissionUserMemberResponse]] = {
+    val username = s"$q%".trim
+    db.run(findSuggestionsCompiled((imageId, userOwnerId, username, limit)).result)
+      .fast
+      .map(_.map {
+        case (id, username, fullName) =>
+          PermissionUserMemberResponse(
+            id = id,
+            isOwner = false,
+            username = username,
+            fullName = fullName
+          )
+      })
   }
 
   import Validations._

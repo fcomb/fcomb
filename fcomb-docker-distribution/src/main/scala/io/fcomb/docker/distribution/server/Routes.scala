@@ -81,7 +81,7 @@ object Routes {
 
   private val versionHeader = `Docker-Distribution-Api-Version`("2.0")
 
-  private val defaultHeaders = List(
+  val defaultHeaders = List(
     versionHeader,
     `X-Content-Type-Options`("nosniff"),
     `X-Frame-Options`("sameorigin"),

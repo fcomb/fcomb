@@ -16,14 +16,20 @@
 
 package io.fcomb.persist
 
+import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
-import io.fcomb.models.acl.Role
+import io.fcomb.models.acl.{Role, MemberKind}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{Organization, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
+import io.fcomb.rpc.acl.{
+  PermissionMemberResponse,
+  PermissionGroupMemberResponse,
+  PermissionUserMemberResponse
+}
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationResponse}
 import io.fcomb.validations._
@@ -193,6 +199,40 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
 
   override def destroy(id: Int)(implicit ec: ExecutionContext) = {
     runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
+  }
+
+  private lazy val findSuggestionsCompiled = Compiled {
+    (imageId: Rep[Int], orgId: Rep[Int], name: Rep[String], limit: ConstColumn[Long]) =>
+      val groupsScope = OrganizationGroupsRepo
+        .findSuggestionsDBIO(imageId, orgId, name)
+        .map(t => (t.id, MemberKind.Group: Rep[MemberKind], t.name, None: Rep[Option[String]]))
+        .subquery
+      val usersScope = UsersRepo
+        .findSuggestionsDBIO(imageId, name)
+        .map(t => (t.id, MemberKind.User: Rep[MemberKind], t.username, t.fullName))
+        .subquery
+      groupsScope.union(usersScope).sortBy(_._3).take(limit)
+  }
+
+  def findSuggestions(imageId: Int, orgId: Int, q: String, limit: Long = 16L)(
+      implicit ec: ExecutionContext): Future[Seq[PermissionMemberResponse]] = {
+    val name = s"$q%".trim
+    db.run(findSuggestionsCompiled((imageId, orgId, name, limit)).result)
+      .fast
+      .map(_.map {
+        case (id, MemberKind.User, username, fullName) =>
+          PermissionUserMemberResponse(
+            id = id,
+            isOwner = false,
+            username = username,
+            fullName = fullName
+          )
+        case (id, MemberKind.Group, name, _) =>
+          PermissionGroupMemberResponse(
+            id = id,
+            name = name
+          )
+      })
   }
 
   import Validations._

@@ -22,11 +22,13 @@ import akka.http.scaladsl.server.{Directive1, Route}
 import cats.data.Validated
 import io.fcomb.server.CirceSupport._
 import io.fcomb.json.models.errors.Formats._
+import io.fcomb.json.rpc.Formats.encodeDataResponse
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.errors.{FailureResponse, UnknownEnumItemException}
 import io.fcomb.persist.acl.PermissionsRepo
+import io.fcomb.rpc.DataResponse
 import io.fcomb.rpc.acl.PermissionCreateRequest
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
@@ -78,6 +80,20 @@ object PermissionsHandler {
     }
   }
 
+  def suggestions(slug: Slug) = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
+          parameter('q) { q =>
+            onSuccess(PermissionsRepo.findSuggestions(image, q)) { p =>
+              complete((StatusCodes.OK, DataResponse(p)))
+            }
+          }
+        }
+      }
+    }
+  }
+
   def routes(slug: Slug): Route = {
     // format: OFF
     pathPrefix(servicePath) {
@@ -85,6 +101,7 @@ object PermissionsHandler {
         get(index(slug)) ~
         put(upsert(slug))
       } ~
+      path("members" / "suggestions")(get(suggestions(slug))) ~
       path(Segment / Segment) { (kind, memberSlugSegment) =>
         extractMemberKind(kind) { memberKind =>
           val memberSlug = Slug.parse(memberSlugSegment)

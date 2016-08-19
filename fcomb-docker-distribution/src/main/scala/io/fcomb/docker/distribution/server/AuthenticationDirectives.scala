@@ -16,15 +16,17 @@
 
 package io.fcomb.docker.distribution.server
 
-import akka.http.scaladsl.model.headers.BasicHttpCredentials
+import akka.http.scaladsl.model.headers.{BasicHttpCredentials, HttpChallenges, `WWW-Authenticate`}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.json.models.errors.docker.distribution.Formats._
+import io.fcomb.docker.distribution.server.Routes.defaultHeaders
 import io.fcomb.models.errors.docker.distribution.{DistributionErrorResponse, DistributionError}
 import io.fcomb.models.User
 import io.fcomb.persist.UsersRepo
 import io.fcomb.server.CirceSupport._
+import io.fcomb.utils.Config.docker.distribution.realm
 
 trait AuthenticationDirectives {
   def authenticateUserBasic: Directive1[User] =
@@ -33,16 +35,25 @@ trait AuthenticationDirectives {
         case Some(BasicHttpCredentials(username, password)) =>
           onSuccess(UsersRepo.matchByUsernameAndPassword(username, password)).flatMap {
             case Some(user) => provide(user)
-            case None       => complete(unauthorizedError)
+            case None       => unauthorizedError()
           }
-        case _ => complete(unauthorizedError)
+        case _ => unauthorizedError()
       }
     }
 
-  private val unauthorizedError = (
-    StatusCodes.Unauthorized,
-    DistributionErrorResponse.from(DistributionError.Unauthorized())
-  )
+  private def unauthorizedError[T](): Directive1[T] = {
+    respondWithHeaders(defaultAuthenticateHeaders).tflatMap { _ =>
+      complete(
+        (
+          StatusCodes.Unauthorized,
+          DistributionErrorResponse.from(DistributionError.Unauthorized())
+        ))
+    }
+  }
+
+  private val authenticateHeader = `WWW-Authenticate`(HttpChallenges.basic(realm))
+
+  private val defaultAuthenticateHeaders = authenticateHeader :: defaultHeaders
 }
 
 object AuthenticationDirectives extends AuthenticationDirectives

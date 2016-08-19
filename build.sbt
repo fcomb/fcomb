@@ -17,7 +17,7 @@ lazy val buildSettings = Seq(
 )
 
 lazy val akkaHttpCirceVersion = "1.8.0"
-lazy val akkaVersion = "2.4.9-RC2"
+lazy val akkaVersion = "2.4.9"
 lazy val bouncyCastleVersion = "1.54"
 lazy val catsVersion = "0.6.1"
 lazy val circeVersion = "0.5.0-M2"
@@ -39,7 +39,7 @@ lazy val commonSettings =
         Resolver.bintrayRepo("etaty", "maven")
       ),
       libraryDependencies ++= Seq(
-        "com.chuusai"   %% "shapeless" % "2.3.1",
+        "com.chuusai"   %% "shapeless" % "2.3.2",
         "org.typelevel" %% "cats"      % catsVersion
       ),
       scalacOptions ++= Seq(

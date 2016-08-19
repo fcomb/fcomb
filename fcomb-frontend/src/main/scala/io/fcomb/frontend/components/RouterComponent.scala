@@ -16,11 +16,12 @@
 
 package io.fcomb.frontend.components
 
-import io.fcomb.frontend.{DashboardRoute, Route}
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.dispatcher.AppCircuit
-import japgolly.scalajs.react._
+import io.fcomb.frontend.{DashboardRoute, Route}
 import japgolly.scalajs.react.extra.router._
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 
 object RouterComponent {
   val baseUrl = BaseUrl.fromWindowOrigin / "#"
@@ -46,7 +47,7 @@ object RouterComponent {
       .notFound(redirectToPage(Route.Dashboard(DashboardRoute.Root))(Redirect.Replace))
       .renderWith {
         case (ctl, res) =>
-          res.page match {
+          val body = res.page match {
             case Route.Dashboard(_) =>
               sessionConn { sessionProxy =>
                 sessionProxy.apply() match {
@@ -56,12 +57,15 @@ object RouterComponent {
               }
             case _ => res.render()
           }
+          MuiMuiThemeProvider(muiTheme = theme)(body)
       }
   }
 
+  private val theme: MuiTheme = Mui.Styles.getMuiTheme(Mui.Styles.LightRawTheme)
+
   private val signInRedirectComponent = ReactComponentB[RouterCtl[Route]]("SignInRedirect")
     .render_P(_ => <.div("Unauthorized"))
-    .componentWillMount(_.props.set(Route.SignIn))
+    .componentWillMount(_.props.set(Route.SignIn).delayMs(1).void)
     .build
 
   private val component = Router(baseUrl, routerConfig.logToConsole)

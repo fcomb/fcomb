@@ -31,6 +31,7 @@ import io.fcomb.persist.{
   PaginationActions,
   PersistTableWithAutoIntPk,
   PersistModelWithAutoIntPk,
+  OrganizationsRepo,
   OrganizationGroupsRepo,
   UsersRepo
 }
@@ -147,6 +148,18 @@ object PermissionsRepo
 
   def createUserOwnerDBIO(imageId: Int, userId: Int, action: Action) =
     createMemberOwnerDBIO(imageId, userId, MemberKind.User, action)
+
+  private def findMemberIdsByImageIdAndMemberKindDBIO(imageId: Rep[Int], memberKind: MemberKind) = {
+    table.filter { t =>
+      t.imageId === imageId && t.memberKind === memberKind
+    }.map(_.memberId)
+  }
+
+  def findUserMemberIdsByImageIdDBIO(imageId: Rep[Int]) =
+    findMemberIdsByImageIdAndMemberKindDBIO(imageId, MemberKind.User)
+
+  def findGroupMemberIdsByImageIdDBIO(imageId: Rep[Int]) =
+    findMemberIdsByImageIdAndMemberKindDBIO(imageId, MemberKind.Group)
 
   private type PermissionResponseTuple =
     (Int, MemberKind, Action, OffsetDateTime, Option[OffsetDateTime], (String, Option[String]))
@@ -318,6 +331,16 @@ object PermissionsRepo
         case res @ Validated.Invalid(_) => DBIO.successful(res)
       }
     } else validationErrorAsDBIO("owner.kind", "Should be organization")
+  }
+
+  def findSuggestions(image: Image, q: String)(
+      implicit ec: ExecutionContext): Future[Seq[PermissionMemberResponse]] = {
+    image.owner.kind match {
+      case OwnerKind.User =>
+        UsersRepo.findSuggestions(image.getId(), image.owner.id, q)
+      case OwnerKind.Organization =>
+        OrganizationsRepo.findSuggestions(image.getId(), image.owner.id, q)
+    }
   }
 
   def destroyByImage(image: Image, memberKind: MemberKind, slug: Slug)(

@@ -17,6 +17,8 @@ RUN chown -R java:java ${WORKDIR} && \
     chown -R fcomb:fcomb ${APP} && \
     deluser --remove-home java
 
+EXPOSE 8080
+
 COPY docker/run.sh /
 WORKDIR ${APP}
 CMD /run.sh

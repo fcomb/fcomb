@@ -25,9 +25,10 @@ import io.fcomb.rpc.acl._
 
 object Formats {
   implicit final val encodePermissionUserMemberResponse: Encoder[PermissionUserMemberResponse] =
-    deriveEncoder
+    Encoder.forProduct5("id", "kind", "isOwner", "username", "fullName")(r =>
+      (r.id, r.kind: MemberKind, r.isOwner, r.username, r.fullName))
   implicit final val encodePermissionGroupMemberResponse: Encoder[PermissionGroupMemberResponse] =
-    deriveEncoder
+    Encoder.forProduct3("id", "kind", "name")(r => (r.id, r.kind: MemberKind, r.name))
   implicit final val encodePermissionMemberResponse: Encoder[PermissionMemberResponse] =
     new Encoder[PermissionMemberResponse] {
       def apply(res: PermissionMemberResponse) = res match {

@@ -18,20 +18,23 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import cats.syntax.eq._
-import io.fcomb.frontend.DashboardRoute
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats.decodeRepositoryResponse
-import io.fcomb.models.OwnerKind
 import io.fcomb.models.acl.{Action, MemberKind}
+import io.fcomb.models.OwnerKind
 import io.fcomb.models.{PaginationData, SortOrder}
 import io.fcomb.rpc.acl._
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 
 object PermissionsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
@@ -247,9 +250,22 @@ object PermissionsComponent {
       $.modState(s => s.copy(form = s.form.copy(kind = value)))
     }
 
+    val onNewRequest: (Value, js.UndefOr[Int], js.Array[String]) => Callback =
+      (chosen, idx, ds) => Callback.info(s"onNewRequest: chosen: $chosen, idx: $idx")
+
+    val onUpdateInput: (SearchText, js.Array[Value]) => Callback =
+      (search, ds) => Callback.info(s"onUpdateInput: search $search")
+
     def renderForm(props: Props, state: State) = {
       <.form(^.onSubmit ==> handleOnSubmit(props),
              ^.disabled := state.form.isFormDisabled,
+             MuiAutoComplete(
+               floatingLabelText = "Username or group name",
+               filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
+               dataSource = js.Array(),
+               onNewRequest = onNewRequest,
+               onUpdateInput = onUpdateInput
+             )(),
              <.input.text(^.id := "name",
                           ^.name := "name",
                           ^.autoFocus := true,

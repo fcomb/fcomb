@@ -16,18 +16,20 @@
     "gulp-decompress": "^2.0.0",
     "image-webpack-loader": "^2.0.0",
     "imagemin": "^5.2.2",
+    "json-loader": "^0.5.4",
     "node-libs-browser": "^1.0.0",
     "react-hot-loader": "^1.3.0",
     "style-loader": "^0.13.1",
     "url-loader": "^0.5.7",
-    "json-loader": "^0.5.4",
-    "webpack": "^1.13.1",
+    "webpack": "^1.13.2",
     "webpack-dev-server": "^1.14.1"
   },
   "dependencies": {
+    "material-ui": "^v0.15.4",
     "react": "^15.3.0",
+    "react-copy-to-clipboard": "^4.2.3",
     "react-dom": "^15.3.0",
     "react-markdown": "^2.4.2",
-    "react-copy-to-clipboard": "^4.2.3"
+    "react-tap-event-plugin": "^1.0.0"
   }
 }

@@ -44,6 +44,9 @@ object Formats {
       case r: MemberUsernameRequest => encodeMemberUsernameRequest.apply(r)
     }
   }
+  implicit final def encodeDataResponse[T](
+      implicit encoder: Encoder[T]): Encoder[DataResponse[T]] =
+    deriveEncoder
 
   implicit final val decodeSessionCreateRequest: Decoder[SessionCreateRequest] = deriveDecoder
   implicit final val decodeUserProfileResponse: Decoder[UserProfileResponse]   = deriveDecoder
@@ -67,4 +70,7 @@ object Formats {
       Decoder[String].apply(username.any).map(MemberUsernameRequest)
     } else Xor.Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
   }
+  implicit final def decodeDataResponse[T](
+      implicit decoder: Decoder[T]): Decoder[DataResponse[T]] =
+    deriveDecoder
 }
