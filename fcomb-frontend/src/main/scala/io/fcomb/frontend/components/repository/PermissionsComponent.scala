@@ -245,6 +245,7 @@ object PermissionsComponent {
                  MemberComponent.apply(props.repositoryName,
                                        ownerKind,
                                        state.form.member.map(_.title),
+                                       state.form.isFormDisabled,
                                        updateMember _),
                  <.select(^.id := "action",
                           ^.name := "action",
