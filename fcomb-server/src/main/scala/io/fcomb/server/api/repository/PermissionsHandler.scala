@@ -101,7 +101,7 @@ object PermissionsHandler {
         get(index(slug)) ~
         put(upsert(slug))
       } ~
-      path("members" / "suggestions")(get(suggestions(slug))) ~
+      path("members_suggestions")(get(suggestions(slug))) ~
       path(Segment / Segment) { (kind, memberSlugSegment) =>
         extractMemberKind(kind) { memberKind =>
           val memberSlug = Slug.parse(memberSlugSegment)

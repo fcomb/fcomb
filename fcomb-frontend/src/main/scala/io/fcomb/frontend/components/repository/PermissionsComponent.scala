@@ -18,8 +18,6 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import cats.syntax.eq._
-import chandu0101.scalajs.react.components.Implicits._
-import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.json.models.Formats._
@@ -34,7 +32,6 @@ import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js
 
 object PermissionsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
@@ -250,45 +247,37 @@ object PermissionsComponent {
       $.modState(s => s.copy(form = s.form.copy(kind = value)))
     }
 
-    val onNewRequest: (Value, js.UndefOr[Int], js.Array[String]) => Callback =
-      (chosen, idx, ds) => Callback.info(s"onNewRequest: chosen: $chosen, idx: $idx")
-
-    val onUpdateInput: (SearchText, js.Array[Value]) => Callback =
-      (search, ds) => Callback.info(s"onUpdateInput: search $search")
-
     def renderForm(props: Props, state: State) = {
-      <.form(^.onSubmit ==> handleOnSubmit(props),
-             ^.disabled := state.form.isFormDisabled,
-             MuiAutoComplete(
-               floatingLabelText = "Username or group name",
-               filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
-               dataSource = js.Array(),
-               onNewRequest = onNewRequest,
-               onUpdateInput = onUpdateInput
-             )(),
-             <.input.text(^.id := "name",
-                          ^.name := "name",
-                          ^.autoFocus := true,
+      state.ownerKind match {
+        case Some(ownerKind) =>
+          <.form(^.onSubmit ==> handleOnSubmit(props),
+                 ^.disabled := state.form.isFormDisabled,
+                 MemberComponent.apply(props.repositoryName, ownerKind),
+                 <.input.text(^.id := "name",
+                              ^.name := "name",
+                              ^.autoFocus := true,
+                              ^.required := true,
+                              ^.tabIndex := 1,
+                              ^.placeholder := "Name",
+                              ^.value := state.form.name,
+                              ^.onChange ==> updateName),
+                 <.select(^.id := "kind",
+                          ^.name := "kind",
                           ^.required := true,
-                          ^.tabIndex := 1,
-                          ^.placeholder := "Name",
-                          ^.value := state.form.name,
-                          ^.onChange ==> updateName),
-             <.select(^.id := "kind",
-                      ^.name := "kind",
-                      ^.required := true,
-                      ^.tabIndex := 2,
-                      ^.value := state.form.kind.value,
-                      ^.onChange ==> updateMemberKind,
-                      memberKinds),
-             <.select(^.id := "action",
-                      ^.name := "action",
-                      ^.required := true,
-                      ^.tabIndex := 3,
-                      ^.value := state.form.action.value,
-                      ^.onChange ==> updateAction,
-                      actions),
-             <.input.submit(^.tabIndex := 4, ^.value := "Add"))
+                          ^.tabIndex := 2,
+                          ^.value := state.form.kind.value,
+                          ^.onChange ==> updateMemberKind,
+                          memberKinds),
+                 <.select(^.id := "action",
+                          ^.name := "action",
+                          ^.required := true,
+                          ^.tabIndex := 3,
+                          ^.value := state.form.action.value,
+                          ^.onChange ==> updateAction,
+                          actions),
+                 <.input.submit(^.tabIndex := 4, ^.value := "Add"))
+        case _ => EmptyTag // TODO
+      }
     }
 
     def render(props: Props, state: State) = {
@@ -303,7 +292,11 @@ object PermissionsComponent {
     .initialState(State(Seq.empty, "action", SortOrder.Desc, None, defaultFormState))
     .renderBackend[Backend]
     .componentWillMount { $ =>
-      $.backend.getPermissions($.props.repositoryName, $.state.sortColumn, $.state.sortOrder)
+      for {
+        _ <- $.backend.getRepositoryOwnerKind($.props.repositoryName)
+        _ <- $.backend
+          .getPermissions($.props.repositoryName, $.state.sortColumn, $.state.sortOrder)
+      } yield ()
     }
     .build
 

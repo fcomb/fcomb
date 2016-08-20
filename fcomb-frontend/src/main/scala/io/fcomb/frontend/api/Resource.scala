@@ -29,6 +29,8 @@ object Resource {
   def repositoryTags(imageName: String)             = repository(imageName) + "/tags"
   def repositoryTag(imageName: String, tag: String) = repositoryTags(imageName) + s"/$tag"
   def repositoryPermissions(imageName: String)      = repository(imageName) + "/permissions"
+  def repositoryPermissionsMembersSuggestions(imageName: String) =
+    repositoryPermissions(imageName) + "/members_suggestions"
   def repositoryPermission(imageName: String, kind: MemberKind, slug: String) =
     repositoryPermissions(imageName) + s"/${kind.entryName}/$slug"
   def repositoryVisibility(imageName: String, kind: ImageVisibilityKind) =
