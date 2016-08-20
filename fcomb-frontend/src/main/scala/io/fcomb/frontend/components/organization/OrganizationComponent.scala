@@ -38,9 +38,7 @@ object OrganizationComponent {
         Rpc.call[OrganizationResponse](RpcMethod.GET, Resource.organization(name)).map {
           case Xor.Right(org) =>
             $.modState(_.copy(org = Some(org)))
-          case Xor.Left(e) =>
-            println(e)
-            Callback.empty
+          case Xor.Left(e) => Callback.warn(e)
         }
       }
     }

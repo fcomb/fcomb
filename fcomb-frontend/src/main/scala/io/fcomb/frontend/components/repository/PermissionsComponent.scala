@@ -35,8 +35,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object PermissionsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
-  final case class FormState(name: String,
-                             kind: MemberKind,
+  final case class FormState(member: Option[PermissionMemberResponse],
                              action: Action,
                              isFormDisabled: Boolean)
   final case class State(permissions: Seq[PermissionResponse],
@@ -46,7 +45,7 @@ object PermissionsComponent {
                          form: FormState)
 
   private def defaultFormState =
-    FormState("", MemberKind.User, Action.Read, false)
+    FormState(None, Action.Read, false)
 
   final class Backend($ : BackendScope[Props, State]) {
     // TODO: DRY with Diode Pot
@@ -55,9 +54,7 @@ object PermissionsComponent {
         Rpc.call[RepositoryResponse](RpcMethod.GET, Resource.repository(name)).map {
           case Xor.Right(repository) =>
             $.modState(_.copy(ownerKind = Some(repository.owner.kind)))
-          case Xor.Left(e) =>
-            println(e)
-            Callback.empty
+          case Xor.Left(e) => Callback.warn(e)
         }
       }
     }
@@ -72,9 +69,7 @@ object PermissionsComponent {
           .map {
             case Xor.Right(pd) =>
               $.modState(_.copy(permissions = pd.data))
-            case Xor.Left(e) =>
-              println(e)
-              Callback.empty
+            case Xor.Left(e) => Callback.warn(e)
           }
       }
     }
@@ -209,21 +204,22 @@ object PermissionsComponent {
     def add(props: Props): Callback = {
       $.state.flatMap { state =>
         val fs = state.form
-        if (fs.isFormDisabled) Callback.empty
-        else {
-          $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
-            Callback.future {
-              upsertPermission(props.repositoryName, fs.name, fs.kind, fs.action).map {
-                case Xor.Right(_) =>
-                  $.modState(_.copy(form = defaultFormState)) >>
-                    getPermissions(props.repositoryName, state.sortColumn, state.sortOrder)
-                case Xor.Left(e) =>
-                  // TODO
-                  updateFormDisabled(false)
-              }.recover {
-                case _ => updateFormDisabled(false)
+        fs.member match {
+          case Some(member) if !fs.isFormDisabled =>
+            $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
+              Callback.future {
+                upsertPermission(props.repositoryName, member.name, member.kind, fs.action).map {
+                  case Xor.Right(_) =>
+                    $.modState(_.copy(form = defaultFormState)) >>
+                      getPermissions(props.repositoryName, state.sortColumn, state.sortOrder)
+                  case Xor.Left(e) =>
+                    // TODO
+                    updateFormDisabled(false)
+                }.recover {
+                  case _ => updateFormDisabled(false)
+                }
               }
-            }
+          case _ => Callback.empty
         }
       }
     }
@@ -232,9 +228,8 @@ object PermissionsComponent {
       e.preventDefaultCB >> add(props)
     }
 
-    def updateName(e: ReactEventI): Callback = {
-      val value = e.target.value
-      $.modState(s => s.copy(form = s.form.copy(name = value)))
+    def updateMember(member: PermissionMemberResponse): Callback = {
+      $.modState(s => s.copy(form = s.form.copy(member = Some(member))))
     }
 
     def updateAction(e: ReactEventI): Callback = {
@@ -242,40 +237,23 @@ object PermissionsComponent {
       $.modState(s => s.copy(form = s.form.copy(action = value)))
     }
 
-    def updateMemberKind(e: ReactEventI): Callback = {
-      val value = MemberKind.withName(e.target.value)
-      $.modState(s => s.copy(form = s.form.copy(kind = value)))
-    }
-
     def renderForm(props: Props, state: State) = {
       state.ownerKind match {
         case Some(ownerKind) =>
           <.form(^.onSubmit ==> handleOnSubmit(props),
                  ^.disabled := state.form.isFormDisabled,
-                 MemberComponent.apply(props.repositoryName, ownerKind),
-                 <.input.text(^.id := "name",
-                              ^.name := "name",
-                              ^.autoFocus := true,
-                              ^.required := true,
-                              ^.tabIndex := 1,
-                              ^.placeholder := "Name",
-                              ^.value := state.form.name,
-                              ^.onChange ==> updateName),
-                 <.select(^.id := "kind",
-                          ^.name := "kind",
-                          ^.required := true,
-                          ^.tabIndex := 2,
-                          ^.value := state.form.kind.value,
-                          ^.onChange ==> updateMemberKind,
-                          memberKinds),
+                 MemberComponent.apply(props.repositoryName,
+                                       ownerKind,
+                                       state.form.member.map(_.title),
+                                       updateMember _),
                  <.select(^.id := "action",
                           ^.name := "action",
                           ^.required := true,
-                          ^.tabIndex := 3,
+                          ^.tabIndex := 2,
                           ^.value := state.form.action.value,
                           ^.onChange ==> updateAction,
                           actions),
-                 <.input.submit(^.tabIndex := 4, ^.value := "Add"))
+                 <.input.submit(^.tabIndex := 3, ^.value := "Add"))
         case _ => EmptyTag // TODO
       }
     }

@@ -28,10 +28,16 @@ import io.fcomb.rpc.acl._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
 
 object MemberComponent {
-  final case class Props(repositoryName: String, ownerKind: OwnerKind)
-  final case class State(members: Seq[PermissionMemberResponse], data: js.Array[String])
+  final case class Props(repositoryName: String,
+                         ownerKind: OwnerKind,
+                         searchText: Option[String],
+                         cb: PermissionMemberResponse => Callback)
+  final case class State(member: Option[PermissionMemberResponse],
+                         members: Seq[PermissionMemberResponse],
+                         data: js.Array[String])
 
   final class Backend($ : BackendScope[Props, State]) {
     private def getSuggestions(q: String): Callback = {
@@ -50,9 +56,7 @@ object MemberComponent {
                     members = res.data,
                     data = mapMembers(res.data, props.ownerKind)
                   ))
-              case Xor.Left(e) =>
-                println(e)
-                Callback.empty
+              case Xor.Left(e) => Callback.warn(e)
             }
         }
       } yield ()
@@ -60,14 +64,29 @@ object MemberComponent {
 
     private def mapMembers(members: Seq[PermissionMemberResponse], ownerKind: OwnerKind) = {
       val xs = ownerKind match {
-        case OwnerKind.User         => members.map(_.name)
+        case OwnerKind.User         => members.map(_.title)
         case OwnerKind.Organization => members.map(r => s"${r.title} [${r.kind}]")
       }
       js.Array(xs: _*)
     }
 
-    private def onNewRequest(chosen: Value, idx: js.UndefOr[Int], ds: js.Array[String]): Callback =
-      Callback.info(s"onNewRequest: chosen: $chosen, idx: $idx")
+    private def onNewRequest(chosen: Value, idx: js.UndefOr[Int], ds: js.Array[String]): Callback = {
+      idx.toOption match {
+        case Some(index) =>
+          (for {
+            members <- $.state.map(_.members)
+            cb      <- $.props.map(_.cb)
+          } yield (members, cb)).flatMap {
+            case (members, cb) =>
+              members.lift(index) match {
+                case Some(member) if chosen.startsWith(member.title) =>
+                  $.modState(_.copy(member = Some(member))) >> cb(member)
+                case _ => Callback.warn(s"Unknown member: $chosen")
+              }
+          }
+        case _ => Callback.warn("Empty index")
+      }
+    }
 
     private def onUpdateInput(search: SearchText, ds: js.Array[Value]): Callback =
       getSuggestions(search)
@@ -81,6 +100,7 @@ object MemberComponent {
         floatingLabelText = label,
         filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
         dataSource = state.data,
+        searchText = props.searchText.orUndefined,
         onNewRequest = onNewRequest _,
         onUpdateInput = onUpdateInput _
       )()
@@ -89,10 +109,13 @@ object MemberComponent {
 
   private val component =
     ReactComponentB[Props]("Member")
-      .initialState(State(Seq.empty, js.Array()))
+      .initialState(State(None, Seq.empty, js.Array()))
       .renderBackend[Backend]
       .build
 
-  def apply(repositoryName: String, ownerKind: OwnerKind) =
-    component.apply(Props(repositoryName, ownerKind))
+  def apply(repositoryName: String,
+            ownerKind: OwnerKind,
+            searchText: Option[String],
+            cb: PermissionMemberResponse => Callback) =
+    component.apply(Props(repositoryName, ownerKind, searchText, cb))
 }

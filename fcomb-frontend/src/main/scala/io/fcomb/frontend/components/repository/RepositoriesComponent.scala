@@ -46,9 +46,7 @@ object RepositoriesComponent {
           Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url).map {
             case Xor.Right(pd) =>
               $.modState(_.copy(pd.data))
-            case Xor.Left(e) =>
-              println(e)
-              Callback.empty
+            case Xor.Left(e) => Callback.warn(e)
           }
         }
       } yield ()

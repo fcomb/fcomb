@@ -41,9 +41,7 @@ object GroupsComponent {
           .map {
             case Xor.Right(pd) =>
               $.modState(_.copy(pd.data))
-            case Xor.Left(e) =>
-              println(e)
-              Callback.empty
+            case Xor.Left(e) => Callback.warn(e)
           }
       }
     }

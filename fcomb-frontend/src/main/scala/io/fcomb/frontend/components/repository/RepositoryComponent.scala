@@ -42,9 +42,7 @@ object RepositoryComponent {
         Rpc.call[RepositoryResponse](RpcMethod.GET, Resource.repository(name)).map {
           case Xor.Right(repository) =>
             $.modState(_.copy(repository = Some(repository)))
-          case Xor.Left(e) =>
-            println(e)
-            Callback.empty
+          case Xor.Left(e) => Callback.warn(e)
         }
       }
     }

@@ -54,9 +54,7 @@ object TagsComponent {
           .map {
             case Xor.Right(pd) =>
               $.modState(_.copy(tags = pd.data))
-            case Xor.Left(e) =>
-              println(e)
-              Callback.empty
+            case Xor.Left(e) => Callback.warn(e)
           }
       }
     }

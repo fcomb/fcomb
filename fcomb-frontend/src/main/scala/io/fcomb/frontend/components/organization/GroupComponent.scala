@@ -46,9 +46,7 @@ object GroupComponent {
                                            Resource.organizationGroup(orgName, name))
           .map {
             case Xor.Right(group) => $.modState(_.copy(group = Some(group)))
-            case Xor.Left(e) =>
-              println(e)
-              Callback.empty
+            case Xor.Left(e)      => Callback.warn(e)
           }
       }
     }
@@ -61,9 +59,7 @@ object GroupComponent {
             Resource.organizationGroupMembers(orgName, name))
           .map {
             case Xor.Right(pd) => $.modState(_.copy(members = pd.data))
-            case Xor.Left(e) =>
-              println(e)
-              Callback.empty
+            case Xor.Left(e)   => Callback.warn(e)
           }
       }
     }
