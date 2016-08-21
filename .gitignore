@@ -1,4 +1,4 @@
 application.conf
 fcomb-frontend/node_modules/
-fcomb-frontend/src/main/resources/web/assets/
+fcomb-frontend/src/main/resources/public
 target/

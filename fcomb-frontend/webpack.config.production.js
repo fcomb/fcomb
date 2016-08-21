@@ -2,18 +2,23 @@
 
 var webpack = require('webpack'),
     CommonsChunkPlugin = webpack.optimize.CommonsChunkPlugin,
-    webPath = __dirname + '/src/main/resources/web';
+    HtmlWebpackPlugin = require('html-webpack-plugin'),
+    webPath = __dirname + '/src/main/resources/public';
 
 module.exports = {
   entry: {
     frontend: './bundles/frontend.js'
   },
   output: {
-    path: webPath + '/assets',
-    publicPath: '/assets/',
+    path: webPath,
+    publicPath: '/',
     filename: '[name]-bundle.js'
   },
   plugins: [
+    new HtmlWebpackPlugin({
+      filename: 'index.html',
+      template: 'src/main/assets/index.html'
+    }),
     new webpack.NoErrorsPlugin(),
     new CommonsChunkPlugin({
       name: 'frontend'
@@ -38,6 +43,10 @@ module.exports = {
       {
         test: /\.json$/,
         loader: 'json'
+      },
+      {
+        test: /\.html$/,
+        loader: 'raw!html-minify'
       }
     ]
   }

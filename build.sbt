@@ -256,7 +256,7 @@ lazy val frontend = project.in(file("fcomb-frontend"))
   .settings(moduleName := "frontend")
   .settings(allSettings:_*)
   .settings(
-    frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "web" / "assets",
+    frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "public",
     // frontendBundle := frontendAssets.value / "bundle.js",
     // frontendBundleBuild := {
     //   (JsEngineKeys.npmNodeModules in Assets).value
