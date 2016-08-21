@@ -10,12 +10,16 @@ ENV WORKDIR /home/java/project
 COPY . ${WORKDIR}
 WORKDIR ${WORKDIR}
 
-RUN chown -R java:java ${WORKDIR} && \
+RUN apk update && \
+    apk add nodejs-dev && \
+    chown -R java:java ${WORKDIR} && \
     su java -c "/home/java/bin/sbt universal:packageZipTarball" && \
     tar -xf ${WORKDIR}/target/universal/dist.tgz -C / && \
     mv /dist ${APP} && \
     chown -R fcomb:fcomb ${APP} && \
-    deluser --remove-home java
+    deluser --remove-home java && \
+    apk del --purge nodejs-dev && \
+    rm -rf /var/cache/apk/*
 
 EXPOSE 8080
 

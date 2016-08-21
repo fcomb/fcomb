@@ -257,7 +257,7 @@ lazy val frontend = project.in(file("fcomb-frontend"))
     frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "public",
     frontendBundleBuild := {
       fullOptJS
-      s"${baseDirectory.value}/build.sh".!
+      assert(s"${baseDirectory.value}/build.sh".! == 0, "js build error")
     },
     packageBin in Compile <<= (packageBin in Compile).dependsOn(frontendBundleBuild),
     libraryDependencies ++= Seq(
