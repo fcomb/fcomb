@@ -41,7 +41,7 @@ import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
-import io.fcomb.docker.distribution.server.Routes
+import io.fcomb.docker.distribution.server.Api
 import akka.http.scaladsl.testkit.RouteTestTimeout
 
 class ImageBlobUploadsHandlerSpec
@@ -54,7 +54,7 @@ class ImageBlobUploadsHandlerSpec
     with FutureSpec {
   implicit val routeTimeout = RouteTestTimeout(5.seconds)
 
-  val route            = Routes()
+  val route            = Api.routes()
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)

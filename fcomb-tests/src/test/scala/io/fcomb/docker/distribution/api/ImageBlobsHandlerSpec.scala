@@ -32,7 +32,7 @@ import io.fcomb.tests.fixtures.docker.distribution.{ImageBlobsRepoFixture, Image
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
-import io.fcomb.docker.distribution.server.Routes
+import io.fcomb.docker.distribution.server.Api
 
 class ImageBlobsHandlerSpec
     extends WordSpec
@@ -42,7 +42,7 @@ class ImageBlobsHandlerSpec
     with ScalaFutures
     with PersistSpec
     with ActorClusterSpec {
-  val route            = Routes()
+  val route            = Api.routes()
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)

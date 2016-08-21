@@ -33,7 +33,7 @@ import io.fcomb.docker.distribution.server.ContentTypes.{
   `application/vnd.docker.distribution.manifest.v1+prettyjws`,
   `application/vnd.docker.distribution.manifest.v2+json`
 }
-import io.fcomb.docker.distribution.server.Routes
+import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.json.models.docker.distribution.Formats._
@@ -57,7 +57,7 @@ class ImagesHandlerSpec
     with ScalaFutures
     with PersistSpec
     with ActorClusterSpec {
-  val route            = Routes()
+  val route            = Api.routes()
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)

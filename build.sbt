@@ -248,32 +248,18 @@ lazy val tests = project.in(file("fcomb-tests"))
   .dependsOn(server, dockerDistribution)
 
 lazy val frontendAssetsDirectory = settingKey[File]("Assets directory path")
-// lazy val frontendBundle = settingKey[File]("bundle.js path")
-// lazy val frontendBundleBuild = taskKey[Unit]("Build frontend bundle.js")
-// lazy val frontendBundleCreate = taskKey[Unit]("Create frontend bundle.js if it does not exist")
+lazy val frontendBundleBuild = taskKey[Unit]("Build frontend assets through webpack")
 
 lazy val frontend = project.in(file("fcomb-frontend"))
   .settings(moduleName := "frontend")
   .settings(allSettings:_*)
   .settings(
     frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "public",
-    // frontendBundle := frontendAssets.value / "bundle.js",
-    // frontendBundleBuild := {
-    //   (JsEngineKeys.npmNodeModules in Assets).value
-    //   val in = (baseDirectory.value / "lib.js").getAbsolutePath
-    //   val out = frontendBundle.value
-    //   out.getParentFile.mkdirs()
-    //   val nodeModules = (baseDirectory.value / "node_modules").getAbsolutePath
-    //   SbtJsTask.executeJs(state.value, JsEngineKeys.engineType.value, None, Seq(nodeModules),
-    //     baseDirectory.value / "browserify.js", Seq(in, out.getAbsolutePath), 30.seconds)
-    // },
-    // frontendBundleCreate := {
-    //   Def.taskDyn {
-    //     if (frontendBundle.value.exists) Def.task {}
-    //     else frontendBundleBuild
-    //   }.value
-    // },
-    // compile in Compile <<= (compile in Compile).dependsOn(frontendBundleCreate),
+    frontendBundleBuild := {
+      fullOptJS
+      s"${baseDirectory.value}/build.sh".!
+    },
+    packageBin in Compile <<= (packageBin in Compile).dependsOn(frontendBundleBuild),
     libraryDependencies ++= Seq(
       "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.4.1",
       "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.1",

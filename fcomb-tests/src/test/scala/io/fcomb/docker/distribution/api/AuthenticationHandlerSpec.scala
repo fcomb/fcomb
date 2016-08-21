@@ -23,7 +23,7 @@ import org.scalatest.{Matchers, WordSpec}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import io.fcomb.docker.distribution.server.Routes
+import io.fcomb.docker.distribution.server.Api
 import io.circe.Json
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 
@@ -32,7 +32,7 @@ class AuthenticationHandlerSpec
     with Matchers
     with ScalatestRouteTest
     with PersistSpec {
-  val route       = Routes()
+  val route       = Api.routes()
   val credentials = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
 
   "The authentication handler" should {
