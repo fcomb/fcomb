@@ -17,7 +17,10 @@ module.exports = {
     new webpack.NoErrorsPlugin(),
     new CommonsChunkPlugin({
       name: 'frontend'
-    })
+    }),
+    new webpack.optimize.DedupePlugin(),
+    new webpack.optimize.UglifyJsPlugin(),
+    new webpack.optimize.AggressiveMergingPlugin()
   ],
   module: {
     loaders: [
@@ -37,20 +40,5 @@ module.exports = {
         loader: 'json'
       }
     ]
-  },
-  devServer: {
-    // hot: true,
-    contentBase: webPath,
-    proxy: {
-      '/api/*': {
-        target: 'http://localhost:8080',
-        rewrite: function(req) {
-          req.url = req.url.replace(/^\/api/, '');
-        }
-      }
-    },
-    stats: { colors: true },
-    quiet: false,
-    port: 8899
   }
 };

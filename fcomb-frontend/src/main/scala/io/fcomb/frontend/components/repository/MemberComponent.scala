@@ -34,7 +34,7 @@ object MemberComponent {
   final case class Props(repositoryName: String,
                          ownerKind: OwnerKind,
                          searchText: Option[String],
-                         disabled: Boolean,
+                         isDisabled: Boolean,
                          cb: PermissionMemberResponse => Callback)
   final case class State(member: Option[PermissionMemberResponse],
                          members: Seq[PermissionMemberResponse],
@@ -100,7 +100,7 @@ object MemberComponent {
       MuiAutoComplete(
         floatingLabelText = label,
         filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
-        disabled = props.disabled,
+        disabled = props.isDisabled,
         dataSource = state.data,
         searchText = props.searchText.orUndefined,
         onNewRequest = onNewRequest _,
@@ -118,7 +118,7 @@ object MemberComponent {
   def apply(repositoryName: String,
             ownerKind: OwnerKind,
             searchText: Option[String],
-            disabled: Boolean,
+            isDisabled: Boolean,
             cb: PermissionMemberResponse => Callback) =
-    component.apply(Props(repositoryName, ownerKind, searchText, disabled, cb))
+    component.apply(Props(repositoryName, ownerKind, searchText, isDisabled, cb))
 }
