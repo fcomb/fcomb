@@ -16,7 +16,6 @@
 
 package io.fcomb.docker.distribution.server
 
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.docker.distribution.server.api._
@@ -24,10 +23,10 @@ import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.models.docker.distribution.{Reference, ImageManifest}
 import io.fcomb.server.headers._
 
-object Routes {
+object Api {
   val apiVersion = "v2"
 
-  def apply(): Route = {
+  def routes(): Route = {
     // format: OFF
     pathPrefix(apiVersion) {
       respondWithDefaultHeaders(defaultHeaders) {

@@ -6,9 +6,9 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import io.fcomb.Db
 import io.fcomb.application.server.Frontend
-import io.fcomb.docker.distribution.server.{Routes => DockerDistributionRoutes}
+import io.fcomb.docker.distribution.server.{Api => DockerApi}
 import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
-import io.fcomb.server.Routes
+import io.fcomb.server.Api
 import io.fcomb.services.{EmailService, EventService}
 import io.fcomb.utils.Config
 import org.slf4j.LoggerFactory
@@ -32,8 +32,7 @@ object Main extends App {
 
   val interface = Config.config.getString("rest-api.interface")
   val port      = Config.config.getInt("rest-api.port")
-
-  val routes = Routes() ~ DockerDistributionRoutes() ~ Frontend.routes()
+  val routes    = Api.routes() ~ DockerApi.routes() ~ Frontend.routes()
 
   (for {
     _ <- Db.migrate()

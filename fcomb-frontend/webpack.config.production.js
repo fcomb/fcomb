@@ -17,7 +17,8 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       filename: 'index.html',
-      template: 'src/main/assets/index.html'
+      template: 'src/main/assets/index.html',
+      inject: false
     }),
     new webpack.NoErrorsPlugin(),
     new CommonsChunkPlugin({

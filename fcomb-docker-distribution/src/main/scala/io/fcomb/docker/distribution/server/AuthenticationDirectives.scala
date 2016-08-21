@@ -21,7 +21,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.json.models.errors.docker.distribution.Formats._
-import io.fcomb.docker.distribution.server.Routes.defaultHeaders
+import io.fcomb.docker.distribution.server.Api.defaultHeaders
 import io.fcomb.models.errors.docker.distribution.{DistributionErrorResponse, DistributionError}
 import io.fcomb.models.User
 import io.fcomb.persist.UsersRepo

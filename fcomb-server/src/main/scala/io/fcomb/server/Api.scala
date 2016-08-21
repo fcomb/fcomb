@@ -22,7 +22,7 @@ import akka.http.scaladsl.server._
 import io.fcomb.server.api._
 import io.fcomb.server.headers._
 
-object Routes {
+object Api {
   private val pongJsonResponse = HttpResponse(
     status = StatusCodes.OK,
     entity = HttpEntity(
@@ -31,7 +31,7 @@ object Routes {
     )
   )
 
-  def apply(): Route = {
+  def routes(): Route = {
     // format: OFF
     pathPrefix(apiVersion) {
       redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
