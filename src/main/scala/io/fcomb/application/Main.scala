@@ -5,6 +5,7 @@ import akka.cluster.Cluster
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import io.fcomb.Db
+import io.fcomb.application.server.Frontend
 import io.fcomb.docker.distribution.server.{Routes => DockerDistributionRoutes}
 import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
 import io.fcomb.server.Routes
@@ -32,7 +33,7 @@ object Main extends App {
   val interface = Config.config.getString("rest-api.interface")
   val port      = Config.config.getInt("rest-api.port")
 
-  val routes = Routes() ~ DockerDistributionRoutes()
+  val routes = Routes() ~ DockerDistributionRoutes() ~ Frontend.routes()
 
   (for {
     _ <- Db.migrate()

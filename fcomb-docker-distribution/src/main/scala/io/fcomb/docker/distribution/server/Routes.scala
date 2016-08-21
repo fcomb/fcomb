@@ -29,11 +29,8 @@ object Routes {
 
   def apply(): Route = {
     // format: OFF
-    respondWithDefaultHeaders(defaultHeaders) {
-      pathSingleSlash {
-        get(complete(HttpResponse(StatusCodes.OK)))
-      } ~
-      pathPrefix(apiVersion) {
+    pathPrefix(apiVersion) {
+      respondWithDefaultHeaders(defaultHeaders) {
         pathEndOrSingleSlash {
           get(AuthenticationHandler.versionCheck)
         } ~

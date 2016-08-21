@@ -290,7 +290,10 @@ lazy val frontend = project.in(file("fcomb-frontend"))
     crossTarget in (Compile, fullOptJS) := frontendAssetsDirectory.value,
     crossTarget in (Compile, fastOptJS) := frontendAssetsDirectory.value,
     artifactPath in (Compile, fastOptJS) := ((crossTarget in (Compile, fastOptJS)).value /
-      ((moduleName in fastOptJS).value + "-opt.js"))
+      ((moduleName in fastOptJS).value + "-opt.js")),
+    mappings in (Compile, packageBin) ~= { (ms: Seq[(File, String)]) =>
+      ms.filter { case (_, p) => p.endsWith(".js") || p.endsWith(".html") }
+    }
   )
   .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
   .dependsOn(modelsJS, rpcJS, jsonJS)
