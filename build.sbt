@@ -16,13 +16,13 @@ lazy val buildSettings = Seq(
   scalafmtConfig := Some(file(".scalafmt"))
 )
 
-lazy val akkaHttpCirceVersion = "1.8.0"
+lazy val akkaHttpCirceVersion = "1.9.0"
 lazy val akkaVersion = "2.4.9"
 lazy val bouncyCastleVersion = "1.54"
 lazy val catsVersion = "0.7.0"
 lazy val circeVersion = "0.5.0-M3"
 lazy val commonsVersion = "1.10"
-lazy val enumeratumVersion = "1.4.10"
+lazy val enumeratumVersion = "1.4.11"
 lazy val guavaVersion = "19.0"
 lazy val slickPgVersion = "0.15.0-M1"
 lazy val slickVersion = "3.2.0-M1"
