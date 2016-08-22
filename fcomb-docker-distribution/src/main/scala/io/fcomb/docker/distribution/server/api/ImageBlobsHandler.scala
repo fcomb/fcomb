@@ -43,9 +43,9 @@ import scala.util.{Right, Left}
 
 object ImageBlobsHandler {
   def showBlob(imageName: String, digest: String) =
-    authenticateUserBasic { user =>
+    tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
+        imageByNameRead(imageName, userOpt) { image =>
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>
@@ -62,7 +62,6 @@ object ImageBlobsHandler {
                   HttpEntity(contentType(blob.contentType), blob.length, Source.empty)
                 )
               )
-            case _ => completeNotFound()
           }
         }
       }
@@ -73,9 +72,9 @@ object ImageBlobsHandler {
   def downloadBlob(imageName: String, digest: String)(
       implicit req: HttpRequest
   ) =
-    authenticateUserBasic { user =>
+    tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
-        imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
+        imageByNameRead(imageName, userOpt) { image =>
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>

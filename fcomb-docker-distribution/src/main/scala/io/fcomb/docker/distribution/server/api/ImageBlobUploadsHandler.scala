@@ -87,7 +87,7 @@ object ImageBlobUploadsHandler {
   ): Route = {
     val userId = user.getId()
     imageByNameWithAcl(imageName, userId, Action.Write) { toImage =>
-      imageByNameWithAcl(from, userId, Action.Read) { fromImage =>
+      imageByNameRead(from, Some(user)) { fromImage =>
         val digest      = Reference.getDigest(sha256Digest)
         val mountResFut = ImageBlobsRepo.mount(fromImage.getId(), toImage.getId(), digest, userId)
         onSuccess(mountResFut) {

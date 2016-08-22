@@ -19,7 +19,6 @@ package io.fcomb.server.api.repository
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.docker.distribution.ImageManifestTagsRepo
 import io.fcomb.server.AuthenticationDirectives._
@@ -31,8 +30,8 @@ object TagsHandler {
 
   def index(slug: Slug) = {
     extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        imageBySlugWithAcl(slug, user.getId(), Action.Read) { image =>
+      tryAuthenticateUser { userOpt =>
+        imageBySlugRead(slug, userOpt) { image =>
           extractPagination { pg =>
             onSuccess(ImageManifestTagsRepo.paginateByImageId(image.getId(), pg)) { p =>
               completePagination(ImageManifestTagsRepo.label, p)

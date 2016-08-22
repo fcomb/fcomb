@@ -41,6 +41,18 @@ trait AuthenticationDirectives {
       }
     }
 
+  def tryAuthenticateUserBasic: Directive1[Option[User]] =
+    extractExecutionContext.flatMap { implicit ec =>
+      extractCredentials.flatMap {
+        case Some(BasicHttpCredentials(username, password)) =>
+          onSuccess(UsersRepo.matchByUsernameAndPassword(username, password)).flatMap {
+            case Some(user) => provide(Some(user))
+            case None       => provide(None)
+          }
+        case _ => provide(None)
+      }
+    }
+
   private def unauthorizedError[T](): Directive1[T] = {
     respondWithHeaders(defaultAuthenticateHeaders).tflatMap { _ =>
       complete(
