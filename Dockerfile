@@ -11,14 +11,14 @@ COPY . ${WORKDIR}
 WORKDIR ${WORKDIR}
 
 RUN apk update && \
-    apk add nodejs-dev && \
+    apk add nodejs nodejs-dev && \
     chown -R java:java ${WORKDIR} && \
     su java -c "/home/java/bin/sbt universal:packageZipTarball" && \
     tar -xf ${WORKDIR}/target/universal/dist.tgz -C / && \
     mv /dist ${APP} && \
     chown -R fcomb:fcomb ${APP} && \
     deluser --remove-home java && \
-    apk del --purge nodejs-dev && \
+    apk del --purge nodejs nodejs-dev && \
     rm -rf /var/cache/apk/*
 
 EXPOSE 8080
