@@ -17,8 +17,9 @@
 package io.fcomb.frontend.components.auth
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.{DashboardRoute, Route}
-import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.services.AuthService
 import io.fcomb.frontend.styles.Global
 import japgolly.scalajs.react._
@@ -99,10 +100,6 @@ object SignInComponent {
   private val component = ReactComponentB[RouterCtl[Route]]("SignIn")
     .initialState(State("", "", false))
     .renderBackend[Backend]
-    .componentWillMount { $ ⇒
-      if (AppCircuit.session.nonEmpty) $.props.set(Route.Dashboard(DashboardRoute.Root)).delayMs(1).void
-      else Callback.empty
-    }
     .build
 
   def apply(ctl: RouterCtl[Route]) = component(ctl)

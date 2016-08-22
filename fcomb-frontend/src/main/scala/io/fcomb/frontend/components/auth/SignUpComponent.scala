@@ -19,7 +19,6 @@ package io.fcomb.frontend.components.auth
 import cats.data.Xor
 import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.services.AuthService
 import io.fcomb.frontend.styles.Global
 import io.fcomb.rpc.UserSignUpRequest
@@ -148,10 +147,6 @@ object SignUpComponent {
   private val component = ReactComponentB[RouterCtl[Route]]("SignUp")
     .initialState(State("", "", "", "", false))
     .renderBackend[Backend]
-    .componentWillMount { $ ⇒
-      if (AppCircuit.session.nonEmpty) $.props.set(Route.Dashboard(DashboardRoute.Root)).delayMs(1).void
-      else Callback.empty
-    }
     .build
 
   def apply(ctl: RouterCtl[Route]) = component(ctl)

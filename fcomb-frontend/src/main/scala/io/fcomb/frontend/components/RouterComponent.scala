@@ -17,6 +17,7 @@
 package io.fcomb.frontend.components
 
 import chandu0101.scalajs.react.components.materialui._
+import io.fcomb.frontend.components.auth._
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.{DashboardRoute, Route}
 import japgolly.scalajs.react.extra.router._
@@ -37,25 +38,32 @@ object RouterComponent {
       }
 
     val routes =
+      // format: OFF
       trimSlashes |
-        dashboardRoutes |
-        staticRoute("sign_in", Route.SignIn) ~> renderR(ctl => auth.SignInComponent.apply(ctl)) |
-        staticRoute("sign_up", Route.SignUp) ~> renderR(ctl => auth.SignUpComponent.apply(ctl)) |
-        staticRoute("sign_out", Route.SignOut) ~> renderR(ctl => auth.SignOutComponent.apply(ctl))
+      dashboardRoutes |
+      staticRoute("sign_in", Route.SignIn) ~> renderR(SignInComponent.apply(_)) |
+      staticRoute("sign_up", Route.SignUp) ~> renderR(SignUpComponent.apply(_)) |
+      staticRoute("sign_out", Route.SignOut) ~> renderR(SignOutComponent.apply(_))
+      // format: ON
 
     routes
       .notFound(redirectToPage(Route.Dashboard(DashboardRoute.Root))(Redirect.Replace))
       .renderWith {
         case (ctl, res) =>
-          val body = res.page match {
-            case Route.Dashboard(_) =>
-              sessionConn { sessionProxy =>
-                sessionProxy.apply() match {
+          val body = sessionConn { sessionProxy =>
+            val session = sessionProxy.apply()
+            res.page match {
+              case Route.Dashboard(_) =>
+                session match {
                   case Some(session) => DashboardComponent.apply(ctl, session, res)
                   case _             => signInRedirectComponent.apply(ctl)
                 }
-              }
-            case _ => res.render()
+              case _ =>
+                session match {
+                  case None => res.render()
+                  case _    => dashboardRedirectComponent.apply(ctl)
+                }
+            }
           }
           MuiMuiThemeProvider(muiTheme = theme)(body)
       }
@@ -66,6 +74,11 @@ object RouterComponent {
   private val signInRedirectComponent = ReactComponentB[RouterCtl[Route]]("SignInRedirect")
     .render_P(_ => <.div("Unauthorized"))
     .componentWillMount(_.props.set(Route.SignIn).delayMs(1).void)
+    .build
+
+  private val dashboardRedirectComponent = ReactComponentB[RouterCtl[Route]]("DashboardRedirect")
+    .render_P(_ => <.div("Authorized"))
+    .componentWillMount(_.props.set(Route.Dashboard(DashboardRoute.Root)).delayMs(1).void)
     .build
 
   private val component = Router(baseUrl, routerConfig.logToConsole)

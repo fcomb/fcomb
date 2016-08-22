@@ -53,11 +53,8 @@ module.exports = {
     // hot: true,
     contentBase: webPath,
     proxy: {
-      '/api/*': {
-        target: 'http://localhost:8080',
-        rewrite: function(req) {
-          req.url = req.url.replace(/^\/api/, '');
-        }
+      '/v1/*': {
+        target: 'http://localhost:8080'
       }
     },
     stats: { colors: true },

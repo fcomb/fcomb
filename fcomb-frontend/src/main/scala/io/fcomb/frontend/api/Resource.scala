@@ -20,7 +20,7 @@ import io.fcomb.models.acl.MemberKind
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
 object Resource {
-  val prefix = "/api/v1"
+  val prefix = "/v1"
 
   val sessions = prefix + "/sessions"
 

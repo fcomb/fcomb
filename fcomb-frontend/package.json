@@ -25,13 +25,13 @@
     "style-loader": "^0.13.1",
     "url-loader": "^0.5.7",
     "webpack": "^1.13.2",
-    "webpack-dev-server": "^1.14.1"
+    "webpack-dev-server": "^1.15.0"
   },
   "dependencies": {
     "material-ui": "^v0.15.4",
-    "react": "^15.3.0",
+    "react": "^15.3.1",
     "react-copy-to-clipboard": "^4.2.3",
-    "react-dom": "^15.3.0",
+    "react-dom": "^15.3.1",
     "react-markdown": "^2.4.2",
     "react-tap-event-plugin": "^1.0.0"
   }
