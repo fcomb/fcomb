@@ -18,6 +18,7 @@ package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Xor
+import cats.syntax.eq._
 import io.fcomb.Db.db
 import io.fcomb.FcombPostgresProfile.api._
 import io.fcomb.models.acl.{Action, MemberKind, Role}
@@ -133,18 +134,22 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       implicit ec: ExecutionContext): DBIOAction[ImageAclResult, NoStream, Effect.Read] = {
     imageOpt match {
       case Some(image) =>
-        image.owner.kind match {
-          case OwnerKind.User =>
-            if (image.owner.id == userId) DBIO.successful(Xor.Right(Some((image, Action.Manage))))
-            else
+        if (image.visibilityKind === ImageVisibilityKind.Public && action === Action.Read)
+          DBIO.successful(Xor.Right(Some((image, Action.Read))))
+        else
+          image.owner.kind match {
+            case OwnerKind.User =>
+              if (image.owner.id == userId)
+                DBIO.successful(Xor.Right(Some((image, Action.Manage))))
+              else
+                PermissionsRepo
+                  .findActionByImageAndUserDBIO(image.getId(), userId)
+                  .map(checkAcl(_, action, image))
+            case OwnerKind.Organization =>
               PermissionsRepo
-                .findActionByImageAndUserDBIO(image.getId(), userId)
+                .findActionByImageAsGroupUserDBIO(image.getId(), image.owner.id, userId)
                 .map(checkAcl(_, action, image))
-          case OwnerKind.Organization =>
-            PermissionsRepo
-              .findActionByImageAsGroupUserDBIO(image.getId(), image.owner.id, userId)
-              .map(checkAcl(_, action, image))
-        }
+          }
       case _ => DBIO.successful(Xor.Right(None))
     }
   }

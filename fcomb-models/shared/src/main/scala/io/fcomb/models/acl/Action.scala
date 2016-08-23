@@ -30,9 +30,9 @@ sealed trait Action extends EnumItem {
 }
 
 object Action extends Enum[Action] {
-  case object Manage extends Action
-  case object Write  extends Action
-  case object Read   extends Action
+  final case object Manage extends Action
+  final case object Write  extends Action
+  final case object Read   extends Action
 
   val values = findValues
 }

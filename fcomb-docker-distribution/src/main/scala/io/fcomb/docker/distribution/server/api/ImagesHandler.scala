@@ -50,7 +50,7 @@ object ImagesHandler {
     tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[Accept]() { acceptOpt =>
-          imageByNameRead(imageName, userOpt) { image =>
+          imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
             import mat.executionContext
             onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId(), reference)) {
               case Some(im) =>
@@ -176,7 +176,7 @@ object ImagesHandler {
     tryAuthenticateUserBasic { userOpt =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
-          imageByNameRead(imageName, userOpt) { image =>
+          imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
             onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId(), n, last)) {
               (tags, limit, hasNext) =>
                 val headers = if (hasNext) {

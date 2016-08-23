@@ -45,7 +45,7 @@ object ImageBlobsHandler {
   def showBlob(imageName: String, digest: String) =
     tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
-        imageByNameRead(imageName, userOpt) { image =>
+        imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>
@@ -74,7 +74,7 @@ object ImageBlobsHandler {
   ) =
     tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
-        imageByNameRead(imageName, userOpt) { image =>
+        imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>
