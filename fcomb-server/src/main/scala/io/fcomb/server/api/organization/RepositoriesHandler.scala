@@ -42,10 +42,10 @@ object RepositoriesHandler {
   def index(slug: Slug) = {
     extractExecutionContext { implicit ec =>
       organizationBySlug(slug) { org =>
-        tryAuthenticateUser { currentUserOpt =>
+        tryAuthenticateUser { userOpt =>
           extractPagination { pg =>
             val res = ImagesRepo.paginateAvailableByOrganizationOwner(org.getId(),
-                                                                      currentUserOpt.flatMap(_.id),
+                                                                      userOpt.flatMap(_.id),
                                                                       pg)
             onSuccess(res) { p =>
               completePagination(ImagesRepo.label, p)

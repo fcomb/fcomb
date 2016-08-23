@@ -20,9 +20,10 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import cats.data.Xor
+import io.fcomb.models.User
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
-import io.fcomb.models.docker.distribution.Image
+import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.persist.docker.distribution.ImagesRepo
 
 trait ImageDirectives {
@@ -41,6 +42,21 @@ trait ImageDirectives {
   final def imageBySlugWithAcl(slug: Slug, userId: Int, action: Action): Directive1[Image] = {
     imageWithActionBySlugWithAcl(slug, userId, action).flatMap {
       case (image, _) => provide(image)
+    }
+  }
+
+  final def imageBySlugRead(slug: Slug, userOpt: Option[User]): Directive1[Image] = {
+    userOpt match {
+      case Some(user) => imageBySlugWithAcl(slug, user.getId(), Action.Read)
+      case _ =>
+        extractExecutionContext.flatMap { implicit ec =>
+          onSuccess(ImagesRepo.findBySlug(slug)).flatMap {
+            case Some(image) if image.visibilityKind == ImageVisibilityKind.Public =>
+              provide(image)
+            case Some(image) => complete(HttpResponse(StatusCodes.Forbidden))
+            case _           => complete(HttpResponse(StatusCodes.NotFound))
+          }
+        }
     }
   }
 }

@@ -29,17 +29,22 @@ import io.fcomb.server.CirceSupport._
 import io.fcomb.utils.Config.docker.distribution.realm
 
 trait AuthenticationDirectives {
-  def authenticateUserBasic: Directive1[User] =
+  def tryAuthenticateUserBasic: Directive1[Option[User]] = {
     extractExecutionContext.flatMap { implicit ec =>
       extractCredentials.flatMap {
         case Some(BasicHttpCredentials(username, password)) =>
-          onSuccess(UsersRepo.matchByUsernameAndPassword(username, password)).flatMap {
-            case Some(user) => provide(user)
-            case None       => unauthorizedError()
-          }
-        case _ => unauthorizedError()
+          onSuccess(UsersRepo.matchByUsernameAndPassword(username, password)).flatMap(provide)
+        case _ => provide(None)
       }
     }
+  }
+
+  def authenticateUserBasic: Directive1[User] = {
+    tryAuthenticateUserBasic.flatMap {
+      case Some(user) => provide(user)
+      case None       => unauthorizedError()
+    }
+  }
 
   private def unauthorizedError[T](): Directive1[T] = {
     respondWithHeaders(defaultAuthenticateHeaders).tflatMap { _ =>

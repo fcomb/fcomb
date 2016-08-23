@@ -38,11 +38,10 @@ object RepositoriesHandler {
 
   def show(slug: Slug) = {
     extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        imageWithActionBySlugWithAcl(slug, user.getId(), Action.Read) {
-          case (image, action) =>
-            val res = ImageHelpers.responseFrom(image, action)
-            complete((StatusCodes.OK, res))
+      tryAuthenticateUser { userOpt =>
+        imageBySlugRead(slug, userOpt) { image =>
+          val res = ImageHelpers.responseFrom(image, Action.Read)
+          complete((StatusCodes.OK, res))
         }
       }
     }

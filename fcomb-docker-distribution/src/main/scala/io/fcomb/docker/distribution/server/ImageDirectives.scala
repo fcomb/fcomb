@@ -20,28 +20,46 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import cats.data.Xor
+import cats.syntax.eq._
 import io.fcomb.server.CirceSupport._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
-import io.fcomb.models.docker.distribution.Image
+import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.json.models.errors.docker.distribution.Formats._
 
 trait ImageDirectives {
-  final def imageByNameWithAcl(slug: String, userId: Int, action: Action): Directive1[Image] = {
+  final def imageByNameWithAcl(name: String, userId: Int, action: Action): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
-      onSuccess(ImagesRepo.findBySlugWithAcl(Slug.Name(slug), userId, action)).flatMap {
+      onSuccess(ImagesRepo.findBySlugWithAcl(Slug.Name(name), userId, action)).flatMap {
         case Xor.Right(Some((image, _))) => provide(image)
-        case _ =>
-          complete(
-            (
-              StatusCodes.NotFound,
-              DistributionErrorResponse.from(DistributionError.NameUnknown())
-            ))
+        case _                           => complete(nameUnknownError)
       }
     }
   }
+
+  final def imageByNameWithReadAcl(name: String, userIdOpt: Option[Int]): Directive1[Image] = {
+    userIdOpt match {
+      case Some(userId) => imageByNameWithAcl(name, userId, Action.Read)
+      case _            => publicImageByName(name)
+    }
+  }
+
+  private final def publicImageByName(name: String): Directive1[Image] = {
+    extractExecutionContext.flatMap { implicit ec =>
+      onSuccess(ImagesRepo.findBySlug(Slug.Name(name))).flatMap {
+        case Some(image) if image.visibilityKind === ImageVisibilityKind.Public =>
+          provide(image)
+        case _ => complete(nameUnknownError)
+      }
+    }
+  }
+
+  private val nameUnknownError = (
+    StatusCodes.NotFound,
+    DistributionErrorResponse.from(DistributionError.NameUnknown())
+  )
 }
 
 object ImageDirectives extends ImageDirectives

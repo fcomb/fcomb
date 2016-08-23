@@ -47,10 +47,10 @@ import scala.collection.immutable
 
 object ImagesHandler {
   def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
-    authenticateUserBasic { user =>
+    tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[Accept]() { acceptOpt =>
-          imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
+          imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
             import mat.executionContext
             onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId(), reference)) {
               case Some(im) =>
@@ -173,10 +173,10 @@ object ImagesHandler {
     }
 
   def tags(imageName: String) =
-    authenticateUserBasic { user =>
+    tryAuthenticateUserBasic { userOpt =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
-          imageByNameWithAcl(imageName, user.getId(), Action.Read) { image =>
+          imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
             onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId(), n, last)) {
               (tags, limit, hasNext) =>
                 val headers = if (hasNext) {
