@@ -41,8 +41,8 @@ object RouterComponent {
       // format: OFF
       trimSlashes |
       dashboardRoutes |
-      staticRoute("sign_in", Route.SignIn) ~> renderR(SignInComponent.apply(_)) |
-      staticRoute("sign_up", Route.SignUp) ~> renderR(SignUpComponent.apply(_)) |
+      staticRoute("sign_in", Route.SignIn) ~> renderR(AuthComponent.apply(_, AuthTab.SignIn)) |
+      staticRoute("sign_up", Route.SignUp) ~> renderR(AuthComponent.apply(_, AuthTab.SignUp)) |
       staticRoute("sign_out", Route.SignOut) ~> renderR(SignOutComponent.apply(_))
       // format: ON
 

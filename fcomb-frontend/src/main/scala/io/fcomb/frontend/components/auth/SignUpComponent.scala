@@ -22,7 +22,6 @@ import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.services.AuthService
-import io.fcomb.frontend.styles.Global
 import io.fcomb.rpc.UserSignUpRequest
 import io.fcomb.json.rpc.Formats.encodeUserSignUpRequest
 import japgolly.scalajs.react._
@@ -30,12 +29,14 @@ import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scalacss.ScalaCssReact._
 
 // TODO: check Config.security.isOpenSignUp
 object SignUpComponent {
-  final case class State(
-      email: String, password: String, username: String, fullName: String, isFormDisabled: Boolean)
+  final case class State(email: String,
+                         password: String,
+                         username: String,
+                         fullName: String,
+                         isFormDisabled: Boolean)
 
   class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def register(ctl: RouterCtl[Route]): Callback = {
@@ -100,45 +101,40 @@ object SignUpComponent {
     }
 
     def render(ctl: RouterCtl[Route], state: State) = {
-      <.div(Global.app,
-            <.h1("Sign Up"),
-            <.span("or"),
-            <.div(ctl.link(Route.SignIn)("Sign In")),
-            <.form(^.onSubmit ==> handleOnSubmit(ctl),
-                   ^.disabled := state.isFormDisabled,
-                   <.div(
-                     ^.display.flex,
-                     ^.flexDirection.column,
-                     MuiTextField(floatingLabelText = "Email",
-                                  `type` = "email",
-                                  id = "email",
-                                  name = "email",
-                                  disabled = state.isFormDisabled,
-                                  value = state.email,
-                                  onChange = updateEmail _)(),
-                    MuiTextField(floatingLabelText = "Password",
-                                  `type` = "password",
-                                  id = "password",
-                                  name = "password",
-                                  disabled = state.isFormDisabled,
-                                  value = state.password,
-                                  onChange = updatePassword _)(),
-                    MuiTextField(floatingLabelText = "Username",
-                                 id = "username",
-                                 name = "username",
-                                 disabled = state.isFormDisabled,
-                                 value = state.username,
-                                 onChange = updateUsername _)(),
-                    MuiTextField(floatingLabelText = "Full name (optional)",
-                                 id = "fullName",
-                                 name = "username",
-                                 disabled = state.isFormDisabled,
-                                 value = state.fullName,
-                                 onChange = updateFullName _)(),
-                    MuiRaisedButton(`type` = "submit",
-                                    primary = true,
-                                    label = "Register",
-                                    disabled = state.isFormDisabled)())))
+      <.form(^.onSubmit ==> handleOnSubmit(ctl),
+             ^.disabled := state.isFormDisabled,
+             <.div(^.display.flex,
+                   ^.flexDirection.column,
+                   MuiTextField(floatingLabelText = "Email",
+                                `type` = "email",
+                                id = "email",
+                                name = "email",
+                                disabled = state.isFormDisabled,
+                                value = state.email,
+                                onChange = updateEmail _)(),
+                   MuiTextField(floatingLabelText = "Password",
+                                `type` = "password",
+                                id = "password",
+                                name = "password",
+                                disabled = state.isFormDisabled,
+                                value = state.password,
+                                onChange = updatePassword _)(),
+                   MuiTextField(floatingLabelText = "Username",
+                                id = "username",
+                                name = "username",
+                                disabled = state.isFormDisabled,
+                                value = state.username,
+                                onChange = updateUsername _)(),
+                   MuiTextField(floatingLabelText = "Full name (optional)",
+                                id = "fullName",
+                                name = "username",
+                                disabled = state.isFormDisabled,
+                                value = state.fullName,
+                                onChange = updateFullName _)(),
+                   MuiRaisedButton(`type` = "submit",
+                                   primary = true,
+                                   label = "Register",
+                                   disabled = state.isFormDisabled)()))
     }
   }
 
