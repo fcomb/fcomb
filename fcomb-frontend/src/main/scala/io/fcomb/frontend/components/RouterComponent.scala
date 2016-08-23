@@ -59,10 +59,8 @@ object RouterComponent {
                   case _             => signInRedirectComponent.apply(ctl)
                 }
               case _ =>
-                session match {
-                  case None => res.render()
-                  case _    => dashboardRedirectComponent.apply(ctl)
-                }
+                if (session.isEmpty || res.page == Route.SignOut) res.render()
+                else dashboardRedirectComponent.apply(ctl)
             }
           }
           MuiMuiThemeProvider(muiTheme = theme)(body)
