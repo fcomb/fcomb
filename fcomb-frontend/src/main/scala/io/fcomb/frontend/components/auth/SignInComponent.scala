@@ -25,9 +25,18 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js.JSConverters._
+import scala.scalajs.js.UndefOr
+import scala.language.implicitConversions
 
 object SignInComponent {
-  final case class State(email: String, password: String, isFormDisabled: Boolean)
+  final case class State(email: String,
+                         password: String,
+                         errors: Map[String, String],
+                         isFormDisabled: Boolean)
+
+  implicit def optString2ReactNode(opt: Option[String]): UndefOr[ReactNode] =
+    opt.map(_.asInstanceOf[ReactNode]).orUndefined
 
   class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def authenticate(ctl: RouterCtl[Route]): Callback = {
@@ -40,7 +49,15 @@ object SignInComponent {
                 .authentication(state.email, state.password)
                 .map {
                   case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
-                  case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
+                  case Xor.Left(errs) =>
+                    val errors = errs.foldLeft(Map.empty[String, String]) {
+                      case (m, err) =>
+                        val column = err.param.getOrElse("_")
+                        val msg    = err.message
+                        val value  = m.get(column).map(v => s"$v\n$msg").getOrElse(msg)
+                        m + ((column, value))
+                    }
+                    $.setState(state.copy(isFormDisabled = false, errors = errors))
                 }
                 .recover {
                   case _ => $.setState(state.copy(isFormDisabled = false))
@@ -75,6 +92,7 @@ object SignInComponent {
                                 id = "email",
                                 name = "email",
                                 disabled = state.isFormDisabled,
+                                errorText = state.errors.get("email"),
                                 value = state.email,
                                 onChange = updateEmail _)(),
                    MuiTextField(floatingLabelText = "Password",
@@ -82,17 +100,18 @@ object SignInComponent {
                                 id = "password",
                                 name = "password",
                                 disabled = state.isFormDisabled,
+                                errorText = state.errors.get("password"),
                                 value = state.password,
                                 onChange = updatePassword _)(),
                    MuiRaisedButton(`type` = "submit",
                                    primary = true,
-                                   label = "Authenticate",
+                                   label = "Login",
                                    disabled = state.isFormDisabled)()))
     }
   }
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignIn")
-    .initialState(State("", "", false))
+    .initialState(State("", "", Map.empty, false))
     .renderBackend[Backend]
     .build
 

@@ -17,15 +17,15 @@ lazy val buildSettings = Seq(
 )
 
 lazy val akkaHttpCirceVersion = "1.9.0"
-lazy val akkaVersion = "2.4.9"
-lazy val bouncyCastleVersion = "1.54"
-lazy val catsVersion = "0.7.0"
-lazy val circeVersion = "0.5.0-M3"
-lazy val commonsVersion = "1.10"
-lazy val enumeratumVersion = "1.4.11"
-lazy val guavaVersion = "19.0"
-lazy val slickPgVersion = "0.15.0-M1"
-lazy val slickVersion = "3.2.0-M1"
+lazy val akkaVersion          = "2.4.9"
+lazy val bouncyCastleVersion  = "1.54"
+lazy val catsVersion          = "0.7.0"
+lazy val circeVersion         = "0.5.0-M3"
+lazy val commonsVersion       = "1.10"
+lazy val enumeratumVersion    = "1.4.12"
+lazy val guavaVersion         = "19.0"
+lazy val slickPgVersion       = "0.15.0-M1"
+lazy val slickVersion         = "3.2.0-M1"
 
 lazy val commonSettings =
   reformatOnCompileSettings ++
@@ -77,93 +77,104 @@ lazy val commonSettings =
         "-Xlint:deprecation"
       ),
       publishArtifact in (Compile, packageDoc) := false,
-      publishArtifact in packageDoc            := false,
-      sources         in (Compile, doc)        := Seq.empty /*,
+      publishArtifact in packageDoc := false,
+      sources in (Compile, doc) := Seq.empty /*,
       wartremoverWarnings ++= Warts.all */
     )
 
 lazy val publishSettings = Seq(
   homepage := Some(url("https://fcomb.io")),
-  scmInfo  := Some(ScmInfo(url("https://github.com/fcomb/fcomb"), "https://github.com/fcomb/fcomb.git")),
-  licenses := Seq("Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+  scmInfo := Some(
+    ScmInfo(url("https://github.com/fcomb/fcomb"), "https://github.com/fcomb/fcomb.git")),
+  licenses := Seq(
+    "Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 )
 
 lazy val noPublishSettings = Seq(
-  publish         := (),
-  publishLocal    := (),
+  publish := (),
+  publishLocal := (),
   publishArtifact := false
 )
 
 lazy val allSettings = buildSettings ++ commonSettings ++ publishSettings
 
-lazy val utils = project.in(file("fcomb-utils"))
+lazy val utils = project
+  .in(file("fcomb-utils"))
   .settings(moduleName := "utils")
-  .settings(allSettings:_*)
-  .settings(libraryDependencies ++= Seq(
-    "com.typesafe"      %  "config"      % "1.3.0",
-    "com.github.kxbmap" %% "configs"     % "0.4.2",
-    "com.typesafe.akka" %% "akka-stream" % akkaVersion
-  ))
+  .settings(allSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe"      % "config"       % "1.3.0",
+      "com.github.kxbmap" %% "configs"     % "0.4.2",
+      "com.typesafe.akka" %% "akka-stream" % akkaVersion
+    ))
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val models = crossProject.in(file("fcomb-models"))
+lazy val models = crossProject
+  .in(file("fcomb-models"))
   .settings(moduleName := "models")
-  .settings(allSettings:_*)
-  .settings(libraryDependencies ++= Seq(
-    "com.beachape" %%% "enumeratum" % enumeratumVersion
-  ))
+  .settings(allSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.beachape" %%% "enumeratum" % enumeratumVersion
+    ))
   .jvmSettings(libraryDependencies ++= Seq(
     "com.github.t3hnar" %% "scala-bcrypt" % "2.6"
   ))
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val modelsJVM = models.jvm
-lazy val modelsJS = models.js
+lazy val modelsJS  = models.js
 
-lazy val rpc = crossProject.in(file("fcomb-rpc"))
+lazy val rpc = crossProject
+  .in(file("fcomb-rpc"))
   .settings(moduleName := "rpc")
-  .settings(allSettings:_*)
+  .settings(allSettings: _*)
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(models)
 
 lazy val rpcJVM = rpc.jvm
-lazy val rpcJS = rpc.js
+lazy val rpcJS  = rpc.js
 
-lazy val validations = project.in(file("fcomb-validations"))
+lazy val validations = project
+  .in(file("fcomb-validations"))
   .settings(moduleName := "validations")
-  .settings(allSettings:_*)
+  .settings(allSettings: _*)
   .settings(libraryDependencies ++= Seq(
     "com.typesafe.slick" %% "slick" % slickVersion // TODO: move DBIO validation into persist module
   ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM)
 
-lazy val persist = project.in(file("fcomb-persist"))
+lazy val persist = project
+  .in(file("fcomb-persist"))
   .settings(moduleName := "persist")
-  .settings(allSettings:_*)
+  .settings(allSettings: _*)
   .settings(libraryDependencies ++= Seq(
-    "commons-codec"       %  "commons-codec"       % commonsVersion,
+    "commons-codec"       % "commons-codec"        % commonsVersion,
     "io.fcomb"            %% "db-migration"        % "0.3.1",
-    "org.postgresql"      %  "postgresql"          % "9.4.1209" exclude("org.slf4j", "slf4j-simple"),
+    "org.postgresql"      % "postgresql"           % "9.4.1209" exclude ("org.slf4j", "slf4j-simple"),
     "com.typesafe.akka"   %% "akka-http-core"      % akkaVersion,
     "com.typesafe.slick"  %% "slick"               % slickVersion,
     "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
     "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
-    "com.zaxxer"          %  "HikariCP"            % "2.4.7"
+    "com.zaxxer"          % "HikariCP"             % "2.4.7"
   ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validations)
 
-lazy val json = crossProject.in(file("fcomb-json"))
+lazy val json = crossProject
+  .in(file("fcomb-json"))
   .settings(moduleName := "json")
-  .settings(allSettings:_*)
-  .settings(libraryDependencies ++= Seq(
-    "com.beachape" %%% "enumeratum-circe" % enumeratumVersion,
-    "io.circe"     %%% "circe-parser"     % circeVersion,
-    "io.circe"     %%% "circe-generic"    % circeVersion
-  ))
+  .settings(allSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.beachape" %%% "enumeratum-circe" % enumeratumVersion,
+      "io.circe" %%% "circe-parser"         % circeVersion,
+      "io.circe" %%% "circe-generic"        % circeVersion
+    ))
   .jvmSettings(libraryDependencies ++= Seq(
     "io.circe" %% "circe-java8" % circeVersion
   ))
@@ -171,63 +182,73 @@ lazy val json = crossProject.in(file("fcomb-json"))
   .dependsOn(models, rpc)
 
 lazy val jsonJVM = json.jvm
-lazy val jsonJS = json.js
+lazy val jsonJS  = json.js
 
-lazy val crypto = project.in(file("fcomb-crypto"))
+lazy val crypto = project
+  .in(file("fcomb-crypto"))
   .settings(moduleName := "crypto")
-  .settings(allSettings:_*)
-  .settings(libraryDependencies ++= Seq(
-    "commons-codec"     %  "commons-codec"  % commonsVersion,
-    "org.bouncycastle"  %  "bcprov-jdk15on" % bouncyCastleVersion,
-    "org.bouncycastle"  %  "bcpkix-jdk15on" % bouncyCastleVersion,
-    "org.bitbucket.b_c" %  "jose4j"         % "0.5.2",
-    "io.circe"          %% "circe-parser"   % circeVersion,
-    "com.pauldijou"     %% "jwt-circe"      % "0.8.0"
-  ))
+  .settings(allSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      "commons-codec"     % "commons-codec"  % commonsVersion,
+      "org.bouncycastle"  % "bcprov-jdk15on" % bouncyCastleVersion,
+      "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
+      "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
+      "io.circe"          %% "circe-parser"  % circeVersion,
+      "com.pauldijou"     %% "jwt-circe"     % "0.8.0"
+    ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM)
 
-lazy val templates = project.in(file("fcomb-templates"))
+lazy val templates = project
+  .in(file("fcomb-templates"))
   .settings(moduleName := "templates")
-  .settings(allSettings:_*)
+  .settings(allSettings: _*)
   .settings(TwirlKeys.templateImports += "io.fcomb.templates._, io.fcomb.utils._")
   .enablePlugins(AutomateHeaderPlugin, SbtTwirl)
   .dependsOn(utils)
 
-lazy val services = project.in(file("fcomb-services"))
+lazy val services = project
+  .in(file("fcomb-services"))
   .settings(moduleName := "services")
-  .settings(allSettings:_*)
-  .settings(libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-distributed-data-experimental" % akkaVersion,
-    "com.typesafe.akka" %% "akka-http-core"                     % akkaVersion,
-    "de.heikoseeberger" %% "akka-http-circe"                    % akkaHttpCirceVersion,
-    "org.apache.commons" % "commons-email"                      % "1.4"
-  ))
+  .settings(allSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka"  %% "akka-distributed-data-experimental" % akkaVersion,
+      "com.typesafe.akka"  %% "akka-http-core"                     % akkaVersion,
+      "de.heikoseeberger"  %% "akka-http-circe"                    % akkaHttpCirceVersion,
+      "org.apache.commons" % "commons-email"                       % "1.4"
+    ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(persist, utils, crypto, templates)
 
-lazy val server = project.in(file("fcomb-server"))
+lazy val server = project
+  .in(file("fcomb-server"))
   .settings(moduleName := "server")
-  .settings(allSettings:_*)
-  .settings(libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion
-  ))
+  .settings(allSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion
+    ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(persist, utils, jsonJVM, validations, services)
 
-lazy val dockerDistribution = project.in(file("fcomb-docker-distribution"))
+lazy val dockerDistribution = project
+  .in(file("fcomb-docker-distribution"))
   .settings(moduleName := "docker-distribution")
-  .settings(allSettings:_*)
-  .settings(libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
-    "com.google.guava"  %  "guava"                 % guavaVersion
-  ))
+  .settings(allSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
+      "com.google.guava"  % "guava"                  % guavaVersion
+    ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(server)
 
-lazy val tests = project.in(file("fcomb-tests"))
+lazy val tests = project
+  .in(file("fcomb-tests"))
   .settings(moduleName := "tests")
-  .settings(allSettings:_*)
+  .settings(allSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % "test",
@@ -237,9 +258,9 @@ lazy val tests = project.in(file("fcomb-tests"))
       "org.specs2"         %% "specs2-core"       % "3.8.4" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.0" % "test",
       "com.ironcorelabs"   %% "cats-scalatest"    % "1.3.0" % "test",
-      "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude("junit", "junit-dep"),
-      "ch.qos.logback"     %  "logback-classic"   % "1.1.7",
-      "junit"              %  "junit-dep"         % "4.10" % "test"
+      "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
+      "ch.qos.logback"     % "logback-classic"    % "1.1.7",
+      "junit"              % "junit-dep"          % "4.10" % "test"
     ),
     parallelExecution in Test := false,
     fork in Test := true
@@ -248,11 +269,12 @@ lazy val tests = project.in(file("fcomb-tests"))
   .dependsOn(server, dockerDistribution)
 
 lazy val frontendAssetsDirectory = settingKey[File]("Assets directory path")
-lazy val frontendBundleBuild = taskKey[Unit]("Build frontend assets through webpack")
+lazy val frontendBundleBuild     = taskKey[Unit]("Build frontend assets through webpack")
 
-lazy val frontend = project.in(file("fcomb-frontend"))
+lazy val frontend = project
+  .in(file("fcomb-frontend"))
   .settings(moduleName := "frontend")
-  .settings(allSettings:_*)
+  .settings(allSettings: _*)
   .settings(
     frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "public",
     frontendBundleBuild := {
@@ -261,13 +283,13 @@ lazy val frontend = project.in(file("fcomb-frontend"))
     },
     packageBin in Compile <<= (packageBin in Compile).dependsOn(frontendBundleBuild),
     libraryDependencies ++= Seq(
-      "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.4.1",
-      "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.1",
-      "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.5.0",
-      "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
-      "org.typelevel"                                  %%% "cats"          % catsVersion,
-      "me.chrons"                                      %%% "diode-react"   % "1.0.0",
-      "io.circe"                                       %%% "circe-scalajs" % circeVersion
+      "com.github.japgolly.scalacss" %%% "ext-react"              % "0.4.1",
+      "com.github.japgolly.scalajs-react" %%% "extra"             % "0.11.1",
+      "com.github.chandu0101.scalajs-react-components" %%% "core" % "0.5.0",
+      "org.scala-js" %%% "scalajs-dom"                            % "0.9.1",
+      "org.typelevel" %%% "cats"                                  % catsVersion,
+      "me.chrons" %%% "diode-react"                               % "1.0.0",
+      "io.circe" %%% "circe-scalajs"                              % circeVersion
     ),
     scalaJSUseRhino in Global := false,
     skip in packageJSDependencies := false,
@@ -301,8 +323,9 @@ lazy val javaRunOptions = Seq(
   "-XX:-UseBiasedLocking"
 )
 
-lazy val root = project.in(file("."))
-  .settings(allSettings:_*)
+lazy val root = project
+  .in(file("."))
+  .settings(allSettings: _*)
   .settings(noPublishSettings)
   .settings(RevolverPlugin.settings)
   .settings(SbtNativePackager.packageArchetype.java_application)
@@ -311,21 +334,21 @@ lazy val root = project.in(file("."))
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion,
-      "com.lihaoyi"       %  "ammonite-repl"          % "0.7.4" % "test" cross CrossVersion.full,
-      "ch.qos.logback"    %  "logback-classic"        % "1.1.7"
+      "com.lihaoyi"       % "ammonite-repl"           % "0.7.4" % "test" cross CrossVersion.full,
+      "ch.qos.logback"    % "logback-classic"         % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",
-    aggregate in reStart :=  false,
-    mainClass in reStart :=  Some("io.fcomb.application.Main"),
-    mainClass in Compile :=  Some("io.fcomb.application.Main"),
-    executableScriptName :=  "start",
+    aggregate in reStart := false,
+    mainClass in reStart := Some("io.fcomb.application.Main"),
+    mainClass in Compile := Some("io.fcomb.application.Main"),
+    executableScriptName := "start",
     javaOptions in Universal ++= javaRunOptions.map(o => s"-J$o"),
-    packageName in Universal :=  "dist",
-    scriptClasspath ~=  (cp => "../config" +: cp),
+    packageName in Universal := "dist",
+    scriptClasspath ~= (cp => "../config" +: cp),
     javaOptions in (Test, run) ++= javaRunOptions,
-    parallelExecution :=  true,
-    fork in run :=  true,
-    fork in reStart :=  true
+    parallelExecution := true,
+    fork in run := true,
+    fork in reStart := true
   )
   .aggregate(tests)
   .dependsOn(server, dockerDistribution, frontend)

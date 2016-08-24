@@ -16,21 +16,22 @@
 
 package io.fcomb.frontend.services
 
-import org.scalajs.dom.window
 import cats.data.Xor
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.dispatcher.actions.Authenticated
-import io.fcomb.models.Session
-import io.fcomb.rpc.SessionCreateRequest
-import io.fcomb.json.rpc.Formats.encodeSessionCreateRequest
+import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.json.models.Formats.decodeSession
+import io.fcomb.json.rpc.Formats.encodeSessionCreateRequest
+import io.fcomb.models.Session
+import io.fcomb.models.errors.ErrorMessage
+import io.fcomb.rpc.SessionCreateRequest
+import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Try, Success}
 
 object AuthService {
   def authentication(email: String, password: String)(
-      implicit ec: ExecutionContext): Future[Xor[String, Unit]] = {
+      implicit ec: ExecutionContext): Future[Xor[Seq[ErrorMessage], Unit]] = {
     val req = SessionCreateRequest(
       email = email.trim(),
       password = password.trim()
