@@ -19,11 +19,13 @@ package io.fcomb.frontend.components.auth
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.components.helpers.Implicits._
+import io.fcomb.frontend.components.helpers._
 import io.fcomb.frontend.services.AuthService
-import io.fcomb.rpc.UserSignUpRequest
+import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.json.rpc.Formats.encodeUserSignUpRequest
+import io.fcomb.rpc.UserSignUpRequest
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -36,6 +38,7 @@ object SignUpComponent {
                          password: String,
                          username: String,
                          fullName: String,
+                         errors: Map[String, String],
                          isFormDisabled: Boolean)
 
   class Backend($ : BackendScope[RouterCtl[Route], State]) {
@@ -61,11 +64,12 @@ object SignUpComponent {
                 .callWith[UserSignUpRequest, Unit](RpcMethod.POST, Resource.signUp, req)
                 .flatMap {
                   case Xor.Right(_)      => AuthService.authentication(email, password)
-                  case res @ Xor.Left(e) => Future.successful(res)
+                  case res @ Xor.Left(_) => Future.successful(res)
                 }
                 .map {
                   case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
-                  case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
+                  case Xor.Left(errs) =>
+                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
                 }
                 .recover {
                   case _ => $.setState(state.copy(isFormDisabled = false))
@@ -110,6 +114,7 @@ object SignUpComponent {
                                 id = "email",
                                 name = "email",
                                 disabled = state.isFormDisabled,
+                                errorText = state.errors.get("email"),
                                 value = state.email,
                                 onChange = updateEmail _)(),
                    MuiTextField(floatingLabelText = "Password",
@@ -117,18 +122,21 @@ object SignUpComponent {
                                 id = "password",
                                 name = "password",
                                 disabled = state.isFormDisabled,
+                                errorText = state.errors.get("password"),
                                 value = state.password,
                                 onChange = updatePassword _)(),
                    MuiTextField(floatingLabelText = "Username",
                                 id = "username",
                                 name = "username",
                                 disabled = state.isFormDisabled,
+                                errorText = state.errors.get("username"),
                                 value = state.username,
                                 onChange = updateUsername _)(),
                    MuiTextField(floatingLabelText = "Full name (optional)",
                                 id = "fullName",
-                                name = "username",
+                                name = "fullName",
                                 disabled = state.isFormDisabled,
+                                errorText = state.errors.get("fullName"),
                                 value = state.fullName,
                                 onChange = updateFullName _)(),
                    MuiRaisedButton(`type` = "submit",
@@ -139,7 +147,7 @@ object SignUpComponent {
   }
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignUp")
-    .initialState(State("", "", "", "", false))
+    .initialState(State("", "", "", "", Map.empty, false))
     .renderBackend[Backend]
     .build
 

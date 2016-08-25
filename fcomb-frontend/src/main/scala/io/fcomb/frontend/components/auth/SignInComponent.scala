@@ -19,24 +19,20 @@ package io.fcomb.frontend.components.auth
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.{DashboardRoute, Route}
+import io.fcomb.frontend.components.helpers._
+import io.fcomb.frontend.components.helpers.Implicits._
 import io.fcomb.frontend.services.AuthService
+import io.fcomb.frontend.{DashboardRoute, Route}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js.JSConverters._
-import scala.scalajs.js.UndefOr
-import scala.language.implicitConversions
 
 object SignInComponent {
   final case class State(email: String,
                          password: String,
                          errors: Map[String, String],
                          isFormDisabled: Boolean)
-
-  implicit def optString2ReactNode(opt: Option[String]): UndefOr[ReactNode] =
-    opt.map(_.asInstanceOf[ReactNode]).orUndefined
 
   class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def authenticate(ctl: RouterCtl[Route]): Callback = {
@@ -50,14 +46,7 @@ object SignInComponent {
                 .map {
                   case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
                   case Xor.Left(errs) =>
-                    val errors = errs.foldLeft(Map.empty[String, String]) {
-                      case (m, err) =>
-                        val column = err.param.getOrElse("_")
-                        val msg    = err.message
-                        val value  = m.get(column).map(v => s"$v\n$msg").getOrElse(msg)
-                        m + ((column, value))
-                    }
-                    $.setState(state.copy(isFormDisabled = false, errors = errors))
+                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
                 }
                 .recover {
                   case _ => $.setState(state.copy(isFormDisabled = false))
