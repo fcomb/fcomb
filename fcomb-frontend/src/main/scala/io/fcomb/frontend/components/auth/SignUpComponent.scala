@@ -20,8 +20,8 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.components.helpers.Implicits._
-import io.fcomb.frontend.components.helpers._
+import io.fcomb.frontend.components.Helpers._
+import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.services.AuthService
 import io.fcomb.frontend.{DashboardRoute, Route}
 import io.fcomb.json.rpc.Formats.encodeUserSignUpRequest
@@ -41,7 +41,7 @@ object SignUpComponent {
                          errors: Map[String, String],
                          isFormDisabled: Boolean)
 
-  class Backend($ : BackendScope[RouterCtl[Route], State]) {
+  final class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def register(ctl: RouterCtl[Route]): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty

@@ -16,16 +16,12 @@
 
 package io.fcomb.frontend.components
 
-import io.fcomb.models.errors.ErrorMessage
+import japgolly.scalajs.react.ReactNode
+import scala.language.implicitConversions
+import scala.scalajs.js.JSConverters._
+import scala.scalajs.js.UndefOr
 
-object Helpers {
-  def foldErrors(errors: Seq[ErrorMessage]): Map[String, String] = {
-    errors.foldLeft(Map.empty[String, String]) {
-      case (m, err) =>
-        val column = err.param.getOrElse("_")
-        val msg    = err.message
-        val value  = m.get(column).map(v => s"$v\n$msg").getOrElse(msg)
-        m + ((column, value))
-    }
-  }
+object Implicits {
+  implicit def optString2ReactNode(opt: Option[String]): UndefOr[ReactNode] =
+    opt.map(_.asInstanceOf[ReactNode]).orUndefined
 }
