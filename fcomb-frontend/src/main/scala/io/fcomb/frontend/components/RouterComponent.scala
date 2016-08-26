@@ -16,12 +16,9 @@
 
 package io.fcomb.frontend.components
 
-import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.components.auth._
-import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.{DashboardRoute, Route}
 import japgolly.scalajs.react.extra.router._
-import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 
 object RouterComponent {
@@ -29,8 +26,6 @@ object RouterComponent {
 
   val routerConfig: RouterConfig[Route] = RouterConfigDsl[Route].buildConfig { dsl =>
     import dsl._
-
-    val sessionConn = AppCircuit.connect(_.session)
 
     val dashboardRoutes =
       DashboardComponent.routes.prefixPath_/("dashboard").pmap[Route](Route.Dashboard) {
@@ -48,36 +43,8 @@ object RouterComponent {
 
     routes
       .notFound(redirectToPage(Route.Dashboard(DashboardRoute.Root))(Redirect.Replace))
-      .renderWith {
-        case (ctl, res) =>
-          val body = sessionConn { sessionProxy =>
-            val session = sessionProxy.apply()
-            res.page match {
-              case Route.Dashboard(_) =>
-                session match {
-                  case Some(session) => DashboardComponent.apply(ctl, session, res)
-                  case _             => signInRedirectComponent.apply(ctl)
-                }
-              case _ =>
-                if (session.isEmpty || res.page == Route.SignOut) res.render()
-                else dashboardRedirectComponent.apply(ctl)
-            }
-          }
-          MuiMuiThemeProvider(muiTheme = theme)(body)
-      }
+      .renderWith(LayoutComponent.apply)
   }
-
-  private val theme: MuiTheme = Mui.Styles.getMuiTheme(Mui.Styles.LightRawTheme)
-
-  private val signInRedirectComponent = ReactComponentB[RouterCtl[Route]]("SignInRedirect")
-    .render_P(_ => <.div("Unauthorized"))
-    .componentWillMount(_.props.set(Route.SignIn).delayMs(1).void)
-    .build
-
-  private val dashboardRedirectComponent = ReactComponentB[RouterCtl[Route]]("DashboardRedirect")
-    .render_P(_ => <.div("Authorized"))
-    .componentWillMount(_.props.set(Route.Dashboard(DashboardRoute.Root)).delayMs(1).void)
-    .build
 
   private val component = Router(baseUrl, routerConfig.logToConsole)
 

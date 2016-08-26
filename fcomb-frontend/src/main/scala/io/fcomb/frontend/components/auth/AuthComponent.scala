@@ -21,7 +21,6 @@ import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.Route
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
-import japgolly.scalajs.react.vdom.prefix_<^._
 
 object AuthComponent {
   final case class Props(ctl: RouterCtl[Route], tab: AuthTab)
@@ -36,16 +35,13 @@ object AuthComponent {
     }
 
     def render(props: Props) = {
-      <.div(<.header(MuiAppBar(title = "fcomb registry", showMenuIconButton = true)()),
-            <.section(
-              MuiTabs[AuthTab](value = props.tab, onChange = onChange _)(
-                MuiTab(key = "login", label = "Login", value = AuthTab.SignIn)(
-                  SignInComponent(props.ctl)
-                ),
-                MuiTab(key = "registration", label = "Registration", value = AuthTab.SignUp)(
-                  SignUpComponent(props.ctl)
-                ))
-            ))
+      MuiTabs[AuthTab](value = props.tab, onChange = onChange _)(
+        MuiTab(key = "login", label = "Login", value = AuthTab.SignIn)(
+          SignInComponent(props.ctl)
+        ),
+        MuiTab(key = "registration", label = "Registration", value = AuthTab.SignUp)(
+          SignUpComponent(props.ctl)
+        ))
     }
   }
 
