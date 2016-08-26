@@ -53,18 +53,17 @@ private[this] final case class EmailMessage(template: HtmlTemplate,
 
 private[this] class EmailServiceActor(implicit mat: Materializer) extends Actor with ActorLogging {
   def receive: Receive = {
-    case EmailMessage(template, email, fullName) =>
-      sendTemplate(template, email, fullName)
-      ()
+    case EmailMessage(template, email, fullName) => sendTemplate(template, email, fullName)
   }
 
-  private def sendTemplate(template: HtmlTemplate, email: String, fullName: Option[String]) = {
+  private def sendTemplate(template: HtmlTemplate, email: String, fullName: Option[String]): Unit = {
     try {
       val inst = emailInstance()
       inst.addTo(email, fullName.getOrElse(""))
       inst.setSubject(template.subject)
       inst.setHtmlMsg(template.toHtml)
       inst.send()
+      ()
     } catch {
       case e: EmailException =>
         log.error(e, e.getMessage)

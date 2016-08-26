@@ -78,12 +78,12 @@ private[this] class EventServiceActor(implicit mat: Materializer) extends Actor 
       msg match {
         case PushRepoEvent(details, createdByUserId) =>
           pushRepoEvent(details, createdByUserId)
-          ()
         case _ =>
       }
   }
 
-  def pushRepoEvent(details: EventDetails.PushRepo, createdByUserId: Int) = {
+  // TODO: sync queue
+  def pushRepoEvent(details: EventDetails.PushRepo, createdByUserId: Int): Unit = {
     EventsRepo.create(details, createdByUserId).flatMap { event =>
       val body   = Encoder[EventDetails].apply(details).noSpaces
       val entity = HttpEntity(`application/json`, body)
@@ -94,5 +94,6 @@ private[this] class EventServiceActor(implicit mat: Materializer) extends Actor 
         }
         .runWith(Sink.ignore)
     }
+    ()
   }
 }
