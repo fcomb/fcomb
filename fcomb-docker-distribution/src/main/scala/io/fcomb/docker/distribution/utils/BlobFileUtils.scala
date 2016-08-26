@@ -60,6 +60,7 @@ object BlobFileUtils {
         if (!newFile.getParentFile.exists()) newFile.getParentFile.mkdirs()
         file.renameTo(newFile)
       }
+      ()
     })
 
   def rename(uuid: UUID, digest: String)(implicit ec: ExecutionContext): Future[Unit] =
@@ -83,9 +84,17 @@ object BlobFileUtils {
     StreamConverters.fromInputStream(() => bs, 8192)
   }
 
-  def destroyUploadBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] =
-    Future(blocking(getUploadFilePath(uuid).delete))
+  def destroyUploadBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] = {
+    Future(blocking {
+      getUploadFilePath(uuid).delete
+      ()
+    })
+  }
 
-  def destroyBlob(digest: String)(implicit ec: ExecutionContext): Future[Unit] =
-    Future(blocking(getBlobFilePath(digest).delete))
+  def destroyBlob(digest: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    Future(blocking {
+      getBlobFilePath(digest).delete
+      ()
+    })
+  }
 }

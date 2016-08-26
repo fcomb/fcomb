@@ -74,7 +74,9 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
   private val stashed = new mutable.HashSet[GarbageCollectorEntity]()
 
   val busy: Receive = {
-    case e: GarbageCollectorEntity => stashed += e
+    case e: GarbageCollectorEntity =>
+      stashed += e
+      ()
   }
 
   val idle: Receive = {

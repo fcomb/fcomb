@@ -244,6 +244,7 @@ trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor =>
         }
         unstashAll()
         p.complete(Success(state))
+        ()
       case msg =>
         log.warning(s"stash message: $msg")
         stash()

@@ -34,5 +34,7 @@ object Main extends JSApp {
 
     AppCircuit.dispatch(Initialize)
     ReactDOM.render(RouterComponent.apply(), document.getElementById("app"))
+
+    ()
   }
 }

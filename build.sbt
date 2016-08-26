@@ -58,14 +58,16 @@ lazy val commonSettings =
         "-Xfuture",
         "-Ybackend:GenBCode",
         "-Ydelambdafy:method",
+        "-Yno-adapted-args",
+        "-Yopt-warnings",
         "-Yopt:l:classpath",
         "-Yopt:unreachable-code",
-        "-Yopt-warnings",
         "-Ywarn-dead-code",
         "-Ywarn-infer-any",
         "-Ywarn-numeric-widen",
         "-Ywarn-unused",
-        "-Ywarn-unused-import"
+        "-Ywarn-unused-import",
+        "-Ywarn-value-discard"
       ),
       javaOptions ++= Seq("-Dfile.encoding=UTF-8"),
       javacOptions ++= Seq(

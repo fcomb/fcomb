@@ -78,6 +78,7 @@ private[this] class EventServiceActor(implicit mat: Materializer) extends Actor 
       msg match {
         case PushRepoEvent(details, createdByUserId) =>
           pushRepoEvent(details, createdByUserId)
+          ()
         case _ =>
       }
   }
