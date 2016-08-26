@@ -60,7 +60,7 @@ object LayoutComponent {
 
   private val sessionConn = AppCircuit.connect(_.session)
 
-  private val theme: MuiTheme = Mui.Styles.getMuiTheme(Mui.Styles.LightRawTheme)
+  private val theme = Mui.Styles.getMuiTheme(Mui.Styles.LightRawTheme)
 
   private val component = ReactComponentB[Props]("Layout").renderBackend[Backend].build
 

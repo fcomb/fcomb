@@ -33,6 +33,7 @@
     "react-copy-to-clipboard": "^4.2.3",
     "react-dom": "^15.3.1",
     "react-markdown": "^2.4.2",
-    "react-tap-event-plugin": "^1.0.0"
+    "react-tap-event-plugin": "^1.0.0",
+    "roboto-npm-webfont": "^0.0.2"
   }
 }

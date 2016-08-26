@@ -300,7 +300,8 @@ lazy val frontend = project
     artifactPath in (Compile, fastOptJS) := ((crossTarget in (Compile, fastOptJS)).value /
       ((moduleName in fastOptJS).value + "-opt.js")),
     mappings in (Compile, packageBin) ~= { (ms: Seq[(File, String)]) =>
-      ms.filter { case (_, p) => p.endsWith(".js") || p.endsWith(".html") }
+      val exts = Set(".js", ".html", ".ttf", ".woff", ".woff2")
+      ms.filter { case (_, p) => exts.exists(p.endsWith) }
     }
   )
   .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)

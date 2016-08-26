@@ -48,6 +48,10 @@ module.exports = {
       {
         test: /\.html$/,
         loader: 'raw!html-minify'
+      },
+      {
+        test: /\.(ttf|eot|svg|woff|woff2)(\?[\s\S]+)?$/,
+        loader: 'file'
       }
     ]
   }
