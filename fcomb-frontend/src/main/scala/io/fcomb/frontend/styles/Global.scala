@@ -25,7 +25,11 @@ object Global extends StyleSheet.Inline {
     addClassNames("btn", "btn-default")
   )
 
-  val app = style(display.flex, flexDirection.column, listStyle := "none", padding.`0`)
+  val app = style(display.flex,
+                  flexDirection.column,
+                  listStyle := "none",
+                  fontFamily := "Roboto, sans-serif",
+                  padding.`0`)
 
   val menuItem = styleF.bool(
     selected =>

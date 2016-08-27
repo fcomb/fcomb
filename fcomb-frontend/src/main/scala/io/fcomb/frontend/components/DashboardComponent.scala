@@ -62,7 +62,7 @@ object DashboardComponent {
                          session: String,
                          res: Resolution[Route])
 
-  class Backend($ : BackendScope[State, Unit]) {
+  final class Backend($ : BackendScope[State, Unit]) {
     def render(state: State) = {
       <.div(Global.app,
         <.header(
