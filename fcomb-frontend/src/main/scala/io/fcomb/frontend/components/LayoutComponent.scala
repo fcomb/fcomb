@@ -26,9 +26,16 @@ import japgolly.scalajs.react._
 
 object LayoutComponent {
   final case class Props(ctl: RouterCtl[Route], res: Resolution[Route])
+  final case class State(isOpen: Boolean)
 
-  final class Backend($ : BackendScope[Props, Unit]) {
-    def render(props: Props) = {
+  final class Backend($ : BackendScope[Props, State]) {
+    def openDrawer(e: ReactEventH): Callback =
+      $.modState(s => s.copy(isOpen = !s.isOpen))
+
+    def closeDrawer(open: Boolean, reason: String): Callback =
+      $.modState(_.copy(false))
+
+    def render(props: Props, state: State) = {
       val body = sessionConn { sessionProxy =>
         val session = sessionProxy.apply()
         props.res.page match {
@@ -43,8 +50,12 @@ object LayoutComponent {
         }
       }
       MuiMuiThemeProvider(muiTheme = theme)(
-        <.div(<.header(MuiAppBar(title = "fcomb registry", showMenuIconButton = true)()),
-              <.section(body)))
+        <.div(<.header(
+                MuiAppBar(title = "fcomb registry",
+                          onLeftIconButtonTouchTap = openDrawer _,
+                          showMenuIconButton = true)()),
+              <.section(body),
+              MuiDrawer(open = state.isOpen, onRequestChange = closeDrawer _)()))
     }
   }
 
@@ -62,7 +73,8 @@ object LayoutComponent {
 
   private val theme = Mui.Styles.getMuiTheme(Mui.Styles.LightRawTheme)
 
-  private val component = ReactComponentB[Props]("Layout").renderBackend[Backend].build
+  private val component =
+    ReactComponentB[Props]("Layout").initialState(State(false)).renderBackend[Backend].build
 
   def apply(ctl: RouterCtl[Route], res: Resolution[Route]) = component(Props(ctl, res))
 }
