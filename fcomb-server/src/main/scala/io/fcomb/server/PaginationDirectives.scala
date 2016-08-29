@@ -18,7 +18,7 @@ package io.fcomb.server
 
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.{ContentRange, StatusCodes}
+import akka.http.scaladsl.model.{ContentRange, StatusCodes, HttpRequest}
 import akka.http.scaladsl.model.headers.{`Content-Range`, Range, RangeUnits}
 import io.fcomb.server.CirceSupport._
 import io.circe.Encoder
@@ -27,25 +27,37 @@ import io.fcomb.json.models.Formats._
 import scala.compat.java8.OptionConverters._
 import scala.collection.immutable
 
-trait PaginationDirectives {
-  def extractPagination: Directive1[Pagination] =
-    optionalHeaderValueByType[Range](()).flatMap {
-      case Some(Range(_, range +: _)) =>
-        parameter('sort.?).flatMap { sortOpt =>
-          val p = Pagination(
-            sortOpt = sortOpt,
-            limitOpt = range.getSliceLast.asScala,
-            offsetOpt = range.getOffset.asScala
-          )
-          provide(p)
-        }
-      case _ =>
-        parameters(('sort.?, 'limit.as[Long].?, 'offset.as[Long].?)).tflatMap {
-          case (sortOpt, limitOpt, offsetOpt) =>
-            val p = Pagination(sortOpt = sortOpt, limitOpt = limitOpt, offsetOpt = offsetOpt)
+object PaginationDirectives {
+  def extractPagination: Directive1[Pagination] = {
+    extractRequest.flatMap { req =>
+      optionalHeaderValueByType[Range](()).flatMap {
+        case Some(Range(_, range +: _)) =>
+          parameter('sort.?).flatMap { sortOpt =>
+            val p = Pagination.wrap(sortOpt,
+                                    parseFilter(req),
+                                    range.getSliceLast.asScala,
+                                    range.getOffset.asScala)
             provide(p)
-        }
+          }
+        case _ =>
+          parameters(('sort.?, 'limit.as[Long].?, 'offset.as[Long].?)).tflatMap {
+            case (sortOpt, limitOpt, offsetOpt) =>
+              val p = Pagination.wrap(sortOpt, parseFilter(req), limitOpt, offsetOpt)
+              provide(p)
+          }
+      }
     }
+  }
+
+  private def parseFilter(req: HttpRequest): immutable.Map[String, String] = {
+    req.uri
+      .query()
+      .filterNot {
+        case ("sort" | "limit" | "offset" | "token", _) => true
+        case _                                          => false
+      }
+      .toMap
+  }
 
   // TODO: add Link: <api?limit=&offset=>; rel="next", <api?limit=&offset=>; rel="last"
   def completePagination[T](label: String, pd: PaginationData[T])(implicit encoder: Encoder[T]) = {
@@ -64,5 +76,3 @@ trait PaginationDirectives {
     }
   }
 }
-
-object PaginationDirectives extends PaginationDirectives

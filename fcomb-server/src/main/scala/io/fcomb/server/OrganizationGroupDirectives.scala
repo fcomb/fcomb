@@ -25,10 +25,8 @@ import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupsRepo
 import io.fcomb.server.OrganizationDirectives._
 
-trait OrganizationGroupDirectives {
-  final def groupBySlugWithAcl(slug: Slug,
-                               groupSlug: Slug,
-                               userId: Int): Directive1[OrganizationGroup] = {
+object OrganizationGroupDirectives {
+  def groupBySlugWithAcl(slug: Slug, groupSlug: Slug, userId: Int): Directive1[OrganizationGroup] = {
     organizationBySlugWithAcl(slug, userId, Role.Admin).flatMap { org =>
       extractExecutionContext.flatMap { implicit ec =>
         onSuccess(OrganizationGroupsRepo.findBySlug(org.getId(), groupSlug)).flatMap(provideGroup)
@@ -36,13 +34,10 @@ trait OrganizationGroupDirectives {
     }
   }
 
-  private final def provideGroup(
-      groupOpt: Option[OrganizationGroup]): Directive1[OrganizationGroup] = {
+  final def provideGroup(groupOpt: Option[OrganizationGroup]): Directive1[OrganizationGroup] = {
     groupOpt match {
       case Some(group) => provide(group)
       case _           => complete(HttpResponse(StatusCodes.NotFound))
     }
   }
 }
-
-object OrganizationGroupDirectives extends OrganizationGroupDirectives

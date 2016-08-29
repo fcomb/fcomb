@@ -24,28 +24,24 @@ import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationsRepo
 
-trait OrganizationDirectives {
-  final def organizationBySlugWithAcl(slug: Slug,
-                                      userId: Int,
-                                      role: Role): Directive1[Organization] = {
+object OrganizationDirectives {
+  def organizationBySlugWithAcl(slug: Slug, userId: Int, role: Role): Directive1[Organization] = {
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(OrganizationsRepo.findBySlugWithAcl(slug, userId, role))
         .flatMap(provideOrganization)
     }
   }
 
-  final def organizationBySlug(slug: Slug): Directive1[Organization] = {
+  def organizationBySlug(slug: Slug): Directive1[Organization] = {
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(OrganizationsRepo.findBySlug(slug)).flatMap(provideOrganization)
     }
   }
 
-  private final def provideOrganization(orgOpt: Option[Organization]): Directive1[Organization] = {
+  private def provideOrganization(orgOpt: Option[Organization]): Directive1[Organization] = {
     orgOpt match {
       case Some(org) => provide(org)
       case _         => complete(HttpResponse(StatusCodes.NotFound))
     }
   }
 }
-
-object OrganizationDirectives extends OrganizationDirectives

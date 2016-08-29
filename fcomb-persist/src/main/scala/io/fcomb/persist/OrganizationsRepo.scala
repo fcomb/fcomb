@@ -35,6 +35,7 @@ import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationResponse}
 import io.fcomb.validations._
 import java.time.OffsetDateTime
 import scala.concurrent.{Future, ExecutionContext}
+import scala.collection.immutable
 import slick.jdbc.TransactionIsolation
 
 class OrganizationTable(tag: Tag)
@@ -95,25 +96,28 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     }.map { case ((t, ogt), _) => (t, ogt.role) }.subquery
   }
 
-  private def availableByUserIdDBIO(userId: Rep[Int]) = {
-    availableByUserOwnerDBIO(userId).union(availableByUserGroupsDBIO(userId)).subquery
-  }
-
-  private lazy val findAvailableByUserIdCompiled = Compiled {
-    (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      availableByUserIdDBIO(userId).sortBy(_._1.name).drop(offset).take(limit)
-  }
-
-  private lazy val findAvailableByUserIdTotalCompiled = Compiled { userId: Rep[Int] =>
-    availableByUserIdDBIO(userId).length
+  private def availableByUserIdDBIO(userId: Rep[Int], filter: immutable.Map[String, String]) = {
+    val scope = availableByUserOwnerDBIO(userId).union(availableByUserGroupsDBIO(userId)).subquery
+    filter.foldLeft(scope) {
+      case (s, (column, value)) =>
+        s.filter { q =>
+          column match {
+            case "name" =>
+              q._1.name.like(value.replaceAll("\\*", "%").asColumnOfType[String]("citext"))
+            case "role" => q._2 === Role.withName(value)
+            case _      => LiteralColumn(false)
+          }
+        }
+    }
   }
 
   def paginateAvailableByUserId(userId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[OrganizationResponse]] = {
+    val scope = availableByUserIdDBIO(userId, p.filter)
     db.run {
       for {
-        orgs  <- findAvailableByUserIdCompiled((userId, p.offset, p.limit)).result
-        total <- findAvailableByUserIdTotalCompiled(userId).result
+        orgs  <- scope.sortBy(_._1.name).drop(p.offset).take(p.limit).result
+        total <- scope.length.result
         data = orgs.map { case (org, role) => OrganizationHelpers.responseFrom(org, role) }
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
