@@ -16,9 +16,9 @@
 
 package io.fcomb.frontend.dispatcher
 
-import io.circe.parser.decode
 import diode.Circuit
 import diode.react.ReactConnector
+import io.circe.parser.decode
 import io.fcomb.frontend.dispatcher.handlers._
 import io.fcomb.json.models.Formats.decodeSessionPayloadUser
 import io.fcomb.models.SessionPayload

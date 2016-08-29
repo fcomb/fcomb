@@ -23,7 +23,9 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
+import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.models.{Owner, OwnerKind}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest}
 import japgolly.scalajs.react._
@@ -73,9 +75,8 @@ object NewRepositoryComponent {
       }
     }
 
-    def handleOnSubmit(props: Props)(e: ReactEventH): Callback = {
+    def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> create(props)
-    }
 
     def updateName(e: ReactEventI): Callback = {
       val value = e.target.value
@@ -96,6 +97,8 @@ object NewRepositoryComponent {
     }
 
     def render(props: Props, state: State) = {
+      // val owners = AppCircuit.currentUser.map(u => List(u.username)).getOrElse(Nil)
+
       <.div(
         <.h2("New repository"),
         <.form(
@@ -103,6 +106,13 @@ object NewRepositoryComponent {
           ^.disabled := state.isFormDisabled,
           <.div(^.display.flex,
                 ^.flexDirection.column,
+                MuiAutoComplete(
+                  floatingLabelText = "Owner",
+                  filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
+                  disabled = state.isFormDisabled,
+                  dataSource = scala.scalajs.js.Array(),
+                  searchText = "owner"
+                )(),
                 MuiTextField(floatingLabelText = "Name",
                              id = "name",
                              name = "name",
