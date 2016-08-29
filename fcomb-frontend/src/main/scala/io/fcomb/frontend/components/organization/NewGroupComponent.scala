@@ -17,8 +17,12 @@
 package io.fcomb.frontend.components.organization
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.components.Helpers._
+import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
 import io.fcomb.rpc.{OrganizationGroupRequest, OrganizationGroupResponse}
@@ -29,7 +33,10 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object NewGroupComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
-  final case class State(name: String, role: Role, isFormDisabled: Boolean)
+  final case class State(name: String,
+                         role: Role,
+                         errors: Map[String, String],
+                         isFormDisabled: Boolean)
 
   class Backend($ : BackendScope[Props, State]) {
     def create(props: Props): Callback = {
@@ -47,7 +54,8 @@ object NewGroupComponent {
                 .map {
                   case Xor.Right(group) =>
                     props.ctl.set(DashboardRoute.OrganizationGroup(props.orgName, group.name))
-                  case Xor.Left(e) => $.setState(state.copy(isFormDisabled = false))
+                  case Xor.Left(errs) =>
+                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
                 }
                 .recover {
                   case _ => $.setState(state.copy(isFormDisabled = false))
@@ -67,42 +75,41 @@ object NewGroupComponent {
       $.modState(_.copy(name = value))
     }
 
-    def updateRole(e: ReactEventI): Callback = {
-      val value = Role.withName(e.target.value)
-      $.modState(_.copy(role = value))
-    }
+    def updateRole(e: ReactEventI, idx: Int, role: Role): Callback =
+      $.modState(_.copy(role = role))
+
+    lazy val roles = Role.values.map(r =>
+      MuiMenuItem[Role](key = r.value, value = r, primaryText = r.entryName)())
 
     def render(props: Props, state: State) = {
       <.div(
         <.h2("New group"),
         <.form(^.onSubmit ==> handleOnSubmit(props),
                ^.disabled := state.isFormDisabled,
-               <.label(^.`for` := "name", "Name"),
-               <.input.text(^.id := "name",
-                            ^.name := "name",
-                            ^.autoFocus := true,
-                            ^.required := true,
-                            ^.tabIndex := 1,
-                            ^.value := state.name,
-                            ^.onChange ==> updateName),
-               <.br,
-               <.label(^.`for` := "role", "Role"),
-               <.select(^.id := "role",
-                        ^.name := "role",
-                        ^.required := true,
-                        ^.tabIndex := 2,
-                        ^.value := state.role.value,
-                        ^.onChange ==> updateRole,
-                        Role.values.map(r => <.option(^.value := r.value)(r.entryName))),
-               <.br,
-               <.br,
-               <.input.submit(^.tabIndex := 3, ^.value := "Create"))
+               <.div(^.display.flex,
+                     ^.flexDirection.column,
+                     MuiTextField(floatingLabelText = "Name",
+                                  id = "name",
+                                  name = "name",
+                                  disabled = state.isFormDisabled,
+                                  errorText = state.errors.get("name"),
+                                  value = state.name,
+                                  onChange = updateName _)(),
+                     MuiSelectField[Role](id = "role",
+                                          floatingLabelText = "Role",
+                                          errorText = state.errors.get("role"),
+                                          value = state.role,
+                                          onChange = updateRole _)(roles),
+                     MuiRaisedButton(`type` = "submit",
+                                     primary = true,
+                                     label = "Create",
+                                     disabled = state.isFormDisabled)()))
       )
     }
   }
 
   private val component = ReactComponentB[Props]("NewGroup")
-    .initialState(State("", Role.Member, false))
+    .initialState(State("", Role.Member, Map.empty, false))
     .renderBackend[Backend]
     .build
 

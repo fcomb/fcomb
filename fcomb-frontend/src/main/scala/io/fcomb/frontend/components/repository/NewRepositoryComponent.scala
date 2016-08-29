@@ -17,8 +17,12 @@
 package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.components.Helpers._
+import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest}
@@ -26,12 +30,14 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js.JSConverters._
 
 object NewRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], ownerScope: RepositoryOwnerScope)
   final case class State(name: String,
                          visibilityKind: ImageVisibilityKind,
                          description: Option[String],
+                         errors: Map[String, String],
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
@@ -47,18 +53,20 @@ object NewRepositoryComponent {
           $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
             for {
               url <- urlCB
-                _ <- Callback.future {
-                  val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
-                  Rpc
-                    .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
-                    .map {
-                      case Xor.Right(repository) => props.ctl.set(DashboardRoute.Repository(repository.slug))
-                      case Xor.Left(e)  => $.setState(state.copy(isFormDisabled = false))
-                    }
-                    .recover {
-                      case _ => $.setState(state.copy(isFormDisabled = false))
-                    }
-                }
+              _ <- Callback.future {
+                val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
+                Rpc
+                  .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
+                  .map {
+                    case Xor.Right(repository) =>
+                      props.ctl.set(DashboardRoute.Repository(repository.slug))
+                    case Xor.Left(errs) =>
+                      $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
+                  }
+                  .recover {
+                    case _ => $.setState(state.copy(isFormDisabled = false))
+                  }
+              }
             } yield ()
           }
         }
@@ -74,9 +82,9 @@ object NewRepositoryComponent {
       $.modState(_.copy(name = value))
     }
 
-    def updateVisibilityKind(e: ReactEventI): Callback = {
-      val value = ImageVisibilityKind.withName(e.target.value)
-      $.modState(_.copy(visibilityKind = value))
+    def updateVisibilityKind(e: ReactEventI, value: String): Callback = {
+      val kind = ImageVisibilityKind.withName(value)
+      $.modState(_.copy(visibilityKind = kind))
     }
 
     def updateDescription(e: ReactEventI): Callback = {
@@ -93,38 +101,50 @@ object NewRepositoryComponent {
         <.form(
           ^.onSubmit ==> handleOnSubmit(props),
           ^.disabled := state.isFormDisabled,
-          <.label(^.`for` := "name", "Name"),
-          <.input.text(^.id := "name",
-                       ^.name := "name",
-                       ^.autoFocus := true,
-                       ^.required := true,
-                       ^.tabIndex := 1,
-                       ^.value := state.name,
-                       ^.onChange ==> updateName),
-          <.br,
-          <.label(^.`for` := "visibilityKind", "Visibility"),
-          <.select(^.id := "visibilityKind",
-                   ^.name := "visibilityKind",
-                   ^.required := true,
-                   ^.tabIndex := 2,
-                   ^.value := state.visibilityKind.value,
-                   ^.onChange ==> updateVisibilityKind,
-                   ImageVisibilityKind.values.map(k => <.option(^.value := k.value)(k.entryName))),
-          <.br,
-          <.label(^.`for` := "description", "Description"),
-          <.textarea(^.id := "description",
-                     ^.name := "description",
-                     ^.tabIndex := 3,
-                     ^.value := state.description.getOrElse(""),
-                     ^.onChange ==> updateDescription),
-          <.br,
-          <.input.submit(^.tabIndex := 4, ^.value := "Create"))
+          <.div(^.display.flex,
+                ^.flexDirection.column,
+                MuiTextField(floatingLabelText = "Name",
+                             id = "name",
+                             name = "name",
+                             disabled = state.isFormDisabled,
+                             errorText = state.errors.get("name"),
+                             value = state.name,
+                             onChange = updateName _)(),
+                MuiTextField(floatingLabelText = "Description",
+                             id = "description",
+                             name = "description",
+                             multiLine = true,
+                             disabled = state.isFormDisabled,
+                             errorText = state.errors.get("description"),
+                             value = state.description.orUndefined,
+                             onChange = updateDescription _)(),
+                <.label(^.`for` := "visibilityKind", "Visibility"),
+                MuiRadioButtonGroup(name = "visibilityKind",
+                                    defaultSelected = state.visibilityKind.value,
+                                    onChange = updateVisibilityKind _)(
+                  MuiRadioButton(
+                    key = "public",
+                    value = ImageVisibilityKind.Public.value,
+                    label = "Public",
+                    disabled = state.isFormDisabled
+                  )(),
+                  MuiRadioButton(
+                    key = "private",
+                    value = ImageVisibilityKind.Private.value,
+                    label = "Private",
+                    disabled = state.isFormDisabled
+                  )()
+                ),
+                MuiRaisedButton(`type` = "submit",
+                                primary = true,
+                                label = "Create",
+                                disabled = state.isFormDisabled)()))
       )
     }
   }
 
   private val component = ReactComponentB[Props]("NewRepository")
-    .initialState(State("", ImageVisibilityKind.Private, None, false))
+    .initialState(State("", ImageVisibilityKind.Private, None, Map.empty, false))
     .renderBackend[Backend]
     .build
 

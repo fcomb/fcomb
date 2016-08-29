@@ -17,6 +17,9 @@
 package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
+import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
@@ -61,8 +64,15 @@ object RepositoriesComponent {
       else <.ul(repositories.map(renderRepository(ctl, _)))
     }
 
+    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+      $.props.flatMap(_.ctl.set(route))
+
     def render(props: Props, state: State) = {
-      <.div(<.h2("Repositories"), renderRepositories(props.ctl, state.repositories))
+      <.div(<.h1("Repositories"),
+            MuiFloatingActionButton(onTouchTap = setRoute(DashboardRoute.NewRepository) _)(
+              ContentAdd()()),
+            <.br,
+            renderRepositories(props.ctl, state.repositories))
     }
   }
 

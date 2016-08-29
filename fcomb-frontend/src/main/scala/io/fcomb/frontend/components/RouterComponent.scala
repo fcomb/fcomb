@@ -17,6 +17,9 @@
 package io.fcomb.frontend.components
 
 import io.fcomb.frontend.components.auth._
+import io.fcomb.frontend.components.dashboard._
+import io.fcomb.frontend.components.organization._
+import io.fcomb.frontend.components.repository._
 import io.fcomb.frontend.{DashboardRoute, Route}
 import japgolly.scalajs.react.extra.router._
 import japgolly.scalajs.react._
@@ -24,11 +27,43 @@ import japgolly.scalajs.react._
 object RouterComponent {
   val baseUrl = BaseUrl.fromWindowOrigin / "#"
 
+  val dashboardRouterConfig = RouterConfigDsl[DashboardRoute].buildRule { dsl =>
+    import dsl._
+
+    val repositoryNameFormat = """[\w\-\.]+/[\w\-\.]+"""
+    val repositoryNamePath   = "repositories" / string(repositoryNameFormat)
+
+    val slugFormat           = """[\w\-\.]+"""
+    val organizationNamePath = "organizations" / string(slugFormat)
+
+    // format: OFF
+    trimSlashes |
+    staticRoute(root, DashboardRoute.Root) ~> redirectToPage(DashboardRoute.Repositories)(
+      Redirect.Replace) |
+    staticRoute("repositories", DashboardRoute.Repositories) ~> renderR(
+      ctl => UserRepositoriesComponent.apply(ctl, None)) |
+    staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~> renderR(
+      ctl => UserNewRepositoryComponent.apply(ctl)) |
+    dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~> dynRenderR((r, ctl) => RepositoryComponent.apply(ctl, r.name)) |
+    dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~> dynRenderR((r, ctl) => TagsComponent.apply(ctl, r.name)) |
+    dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~> dynRenderR((r, ctl) => SettingsComponent.apply(ctl, r.name)) |
+    staticRoute("organizations", DashboardRoute.Organizations) ~> renderR(
+      ctl => OrganizationsComponent.apply(ctl)) |
+    staticRoute("organizations" / "new", DashboardRoute.NewOrganization) ~> renderR(
+      ctl => NewOrganizationComponent.apply(ctl)) |
+    dynamicRouteCT((organizationNamePath / "repositories" / "new").caseClass[DashboardRoute.NewOrganizationRepository]) ~> dynRenderR((o, ctl) => NewOrganizationRepositoryComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT(organizationNamePath.caseClass[DashboardRoute.Organization]) ~> dynRenderR((o, ctl) => OrganizationComponent.apply(ctl, o.name)) |
+    dynamicRouteCT((organizationNamePath / "groups" / "new").caseClass[DashboardRoute.NewOrganizationGroup]) ~> dynRenderR((o, ctl) => NewGroupComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~> dynRenderR((o, ctl) => GroupsComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat)).caseClass[DashboardRoute.OrganizationGroup]) ~> dynRenderR((og, ctl) => GroupComponent.apply(ctl, og.orgName, og.name))
+    // format: ON
+  }
+
   val routerConfig: RouterConfig[Route] = RouterConfigDsl[Route].buildConfig { dsl =>
     import dsl._
 
     val dashboardRoutes =
-      DashboardComponent.routes.prefixPath_/("dashboard").pmap[Route](Route.Dashboard) {
+      dashboardRouterConfig.prefixPath_/("dashboard").pmap[Route](Route.Dashboard) {
         case Route.Dashboard(r) => r
       }
 

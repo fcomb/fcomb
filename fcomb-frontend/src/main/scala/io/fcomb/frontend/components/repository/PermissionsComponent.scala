@@ -18,8 +18,12 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import cats.syntax.eq._
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.components.Helpers._
+import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats.decodeRepositoryResponse
@@ -37,6 +41,7 @@ object PermissionsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
   final case class FormState(member: Option[PermissionMemberResponse],
                              action: Action,
+                             errors: Map[String, String],
                              isFormDisabled: Boolean)
   final case class State(permissions: Seq[PermissionResponse],
                          sortColumn: String,
@@ -45,7 +50,7 @@ object PermissionsComponent {
                          form: FormState)
 
   private def defaultFormState =
-    FormState(None, Action.Read, false)
+    FormState(None, Action.Read, Map.empty, false)
 
   final class Backend($ : BackendScope[Props, State]) {
     // TODO: DRY with Diode Pot
@@ -84,9 +89,9 @@ object PermissionsComponent {
                 case Xor.Right(_) =>
                   updateFormDisabled(false) >>
                     getPermissions(repositoryName, state.sortColumn, state.sortOrder)
-                case Xor.Left(e) =>
-                  // TODO
-                  updateFormDisabled(false)
+                case Xor.Left(errs) =>
+                  $.setState(state.copy(
+                    form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
               }.recover {
                 case _ => updateFormDisabled(false)
               }
@@ -94,7 +99,8 @@ object PermissionsComponent {
         }
     }
 
-    lazy val actions     = Action.values.map(k => <.option(^.value := k.value)(k.entryName))
+    lazy val actions = Action.values.map(r =>
+      MuiMenuItem[Action](key = r.value, value = r, primaryText = r.entryName)())
     lazy val memberKinds = MemberKind.values.map(k => <.option(^.value := k.value)(k.entryName))
 
     def renderActionCell(repositoryName: String, state: State, permission: PermissionResponse) = {
@@ -182,9 +188,8 @@ object PermissionsComponent {
       }
     }
 
-    def updateFormDisabled(isFormDisabled: Boolean): Callback = {
+    def updateFormDisabled(isFormDisabled: Boolean): Callback =
       $.modState(s => s.copy(form = s.form.copy(isFormDisabled = isFormDisabled)))
-    }
 
     private def upsertPermission(repositoryName: String,
                                  name: String,
@@ -212,9 +217,9 @@ object PermissionsComponent {
                   case Xor.Right(_) =>
                     $.modState(_.copy(form = defaultFormState)) >>
                       getPermissions(props.repositoryName, state.sortColumn, state.sortOrder)
-                  case Xor.Left(e) =>
-                    // TODO
-                    updateFormDisabled(false)
+                  case Xor.Left(errs) =>
+                    $.setState(state.copy(
+                      form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
                 }.recover {
                   case _ => updateFormDisabled(false)
                 }
@@ -224,37 +229,36 @@ object PermissionsComponent {
       }
     }
 
-    def handleOnSubmit(props: Props)(e: ReactEventH): Callback = {
+    def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> add(props)
-    }
 
-    def updateMember(member: PermissionMemberResponse): Callback = {
+    def updateMember(member: PermissionMemberResponse): Callback =
       $.modState(s => s.copy(form = s.form.copy(member = Some(member))))
-    }
 
-    def updateAction(e: ReactEventI): Callback = {
-      val value = Action.withName(e.target.value)
-      $.modState(s => s.copy(form = s.form.copy(action = value)))
-    }
+    def updateAction(e: ReactEventI, idx: Int, action: Action): Callback =
+      $.modState(s => s.copy(form = s.form.copy(action = action)))
 
     def renderForm(props: Props, state: State) = {
       state.ownerKind match {
         case Some(ownerKind) =>
           <.form(^.onSubmit ==> handleOnSubmit(props),
                  ^.disabled := state.form.isFormDisabled,
-                 MemberComponent.apply(props.repositoryName,
-                                       ownerKind,
-                                       state.form.member.map(_.title),
-                                       state.form.isFormDisabled,
-                                       updateMember _),
-                 <.select(^.id := "action",
-                          ^.name := "action",
-                          ^.required := true,
-                          ^.tabIndex := 2,
-                          ^.value := state.form.action.value,
-                          ^.onChange ==> updateAction,
-                          actions),
-                 <.input.submit(^.tabIndex := 3, ^.value := "Add"))
+                 <.div(^.display.flex,
+                       ^.flexDirection.column,
+                       MemberComponent.apply(props.repositoryName,
+                                             ownerKind,
+                                             state.form.member.map(_.title),
+                                             state.form.isFormDisabled,
+                                             updateMember _),
+                       MuiSelectField[Action](id = "action",
+                                              floatingLabelText = "Action",
+                                              errorText = state.form.errors.get("action"),
+                                              value = state.form.action,
+                                              onChange = updateAction _)(actions),
+                       MuiRaisedButton(`type` = "submit",
+                                       primary = true,
+                                       label = "Add",
+                                       disabled = state.form.isFormDisabled)()))
         case _ => EmptyTag // TODO
       }
     }

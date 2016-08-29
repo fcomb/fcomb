@@ -17,6 +17,9 @@
 package io.fcomb.frontend.components.organization
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
+import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
@@ -29,9 +32,10 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object OrganizationsComponent {
+  final case class Props(ctl: RouterCtl[DashboardRoute])
   final case class State(orgs: Seq[OrganizationResponse])
 
-  class Backend($ : BackendScope[RouterCtl[DashboardRoute], State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def getOrgs() = {
       Callback.future {
         Rpc
@@ -54,16 +58,24 @@ object OrganizationsComponent {
       else <.ul(orgs.map(renderOrg(ctl, _)))
     }
 
-    def render(ctl: RouterCtl[DashboardRoute], state: State) = {
-      <.div(<.h2("Organizations"), renderOrgs(ctl, state.orgs))
+    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+      $.props.flatMap(_.ctl.set(route))
+
+    def render(props: Props, state: State) = {
+      <.div(<.h1("Organizations"),
+            MuiFloatingActionButton(onTouchTap = setRoute(DashboardRoute.NewOrganization) _)(
+              ContentAdd()()),
+            <.br,
+            renderOrgs(props.ctl, state.orgs))
     }
   }
 
-  private val component = ReactComponentB[RouterCtl[DashboardRoute]]("Organizations")
+  private val component = ReactComponentB[Props]("Organizations")
     .initialState(State(Seq.empty))
     .renderBackend[Backend]
     .componentWillMount(_.backend.getOrgs())
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute]) = component.apply(ctl)
+  def apply(ctl: RouterCtl[DashboardRoute]) =
+    component.apply(Props(ctl))
 }

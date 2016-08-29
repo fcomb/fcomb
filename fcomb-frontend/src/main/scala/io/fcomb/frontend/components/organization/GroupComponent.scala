@@ -17,8 +17,12 @@
 package io.fcomb.frontend.components.organization
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.components.Helpers._
+import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats.decodePaginationData
 import io.fcomb.models.PaginationData
@@ -30,13 +34,15 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object GroupComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String, name: String)
-  final case class FormState(username: String, isFormDisabled: Boolean)
+  final case class FormState(username: String,
+                             errors: Map[String, String],
+                             isFormDisabled: Boolean)
   final case class State(group: Option[OrganizationGroupResponse],
                          members: Seq[UserProfileResponse],
                          form: FormState)
 
   private def defaultFormState =
-    FormState("", false)
+    FormState("", Map.empty, false)
 
   class Backend($ : BackendScope[Props, State]) {
     def getGroup(orgName: String, name: String) = {
@@ -131,9 +137,9 @@ object GroupComponent {
                   case Xor.Right(_) =>
                     $.modState(_.copy(form = defaultFormState)) >>
                       getMembers(props.orgName, props.name)
-                  case Xor.Left(e) =>
-                    // TODO
-                    updateFormDisabled(false)
+                  case Xor.Left(errs) =>
+                    $.setState(state.copy(
+                      form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
                 }
                 .recover {
                   case _ => updateFormDisabled(false)
@@ -153,17 +159,22 @@ object GroupComponent {
     }
 
     def renderForm(props: Props, state: State) = {
+      val form = state.form
       <.form(^.onSubmit ==> handleOnSubmit(props),
-             ^.disabled := state.form.isFormDisabled,
-             <.input.text(^.id := "username",
-                          ^.name := "username",
-                          ^.autoFocus := true,
-                          ^.required := true,
-                          ^.tabIndex := 1,
-                          ^.placeholder := "Username",
-                          ^.value := state.form.username,
-                          ^.onChange ==> updateUsername),
-             <.input.submit(^.tabIndex := 2, ^.value := "Add"))
+             ^.disabled := form.isFormDisabled,
+             <.div(^.display.flex,
+                   ^.flexDirection.column,
+                   MuiTextField(floatingLabelText = "Username",
+                                id = "username",
+                                name = "username",
+                                disabled = form.isFormDisabled,
+                                errorText = form.errors.get("username"),
+                                value = form.username,
+                                onChange = updateUsername _)(),
+                   MuiRaisedButton(`type` = "submit",
+                                   primary = true,
+                                   label = "Create",
+                                   disabled = form.isFormDisabled)()))
     }
 
     def render(props: Props, state: State) = {

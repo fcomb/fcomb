@@ -32,8 +32,14 @@ object LayoutComponent {
     def openDrawer(e: ReactEventH): Callback =
       $.modState(s => s.copy(isOpen = !s.isOpen))
 
+    def closeDrawerCB() =
+      $.modState(_.copy(isOpen = false))
+
     def closeDrawer(open: Boolean, reason: String): Callback =
-      $.modState(_.copy(false))
+      closeDrawerCB()
+
+    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+      closeDrawerCB() >> $.props.flatMap(_.ctl.set(Route.Dashboard(route)))
 
     def render(props: Props, state: State) = {
       val body = sessionConn { sessionProxy =>
@@ -41,7 +47,7 @@ object LayoutComponent {
         props.res.page match {
           case Route.Dashboard(_) =>
             session match {
-              case Some(session) => DashboardComponent.apply(props.ctl, session, props.res)
+              case Some(session) => props.res.render()
               case _             => signInRedirectComponent.apply(props.ctl)
             }
           case _ =>
@@ -55,7 +61,14 @@ object LayoutComponent {
                           onLeftIconButtonTouchTap = openDrawer _,
                           showMenuIconButton = true)()),
               <.section(body),
-              MuiDrawer(open = state.isOpen, onRequestChange = closeDrawer _)()))
+              MuiDrawer(docked = false, open = state.isOpen, onRequestChange = closeDrawer _)(
+                MuiMenuItem(key = "repos",
+                            primaryText = "Repositories",
+                            onTouchTap = setRoute(DashboardRoute.Repositories) _)(),
+                MuiMenuItem(key = "orgs",
+                            primaryText = "Organizations",
+                            onTouchTap = setRoute(DashboardRoute.Organizations) _)()
+              )))
     }
   }
 
