@@ -17,7 +17,6 @@
 package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
-import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
 import io.fcomb.frontend.DashboardRoute
