@@ -17,3 +17,9 @@
 package io.fcomb.models
 
 case class Session(token: String)
+
+sealed trait SessionPayload
+
+object SessionPayload {
+  final case class User(id: Int, username: String) extends SessionPayload
+}

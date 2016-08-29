@@ -40,7 +40,8 @@ object Formats {
     }
   }
 
-  implicit final val encodeEventResponse: Encoder[EventResponse] = deriveEncoder
+  implicit final val encodeEventResponse: Encoder[EventResponse]            = deriveEncoder
+  implicit final val encodeSessionPayloadUser: Encoder[SessionPayload.User] = deriveEncoder
 
   implicit final val decodeOwnerKind: Decoder[OwnerKind] = Circe.decoder(OwnerKind)
   implicit final val decodeEventKind: Decoder[EventKind] = Circe.decoder(EventKind)
@@ -60,5 +61,6 @@ object Formats {
     }
   }
 
-  implicit final val decodeEventResponse: Decoder[EventResponse] = deriveDecoder
+  implicit final val decodeEventResponse: Decoder[EventResponse]            = deriveDecoder
+  implicit final val decodeSessionPayloadUser: Decoder[SessionPayload.User] = deriveDecoder
 }

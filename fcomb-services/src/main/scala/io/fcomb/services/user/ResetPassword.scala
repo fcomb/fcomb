@@ -37,7 +37,7 @@ object ResetPassword {
     UsersRepo.findByEmail(email).fast.map {
       case Some(user) =>
         val timeNow = Instant.now()
-        val jwt     = Jwt.encode(user.getId(), Config.jwt.secret, timeNow, Config.jwt.resetPasswordTtl)
+        val jwt     = Jwt.encodeUser(user, Config.jwt.secret, timeNow, Config.jwt.resetPasswordTtl)
         val template = templates.ResetPassword(
           s"title: token $jwt",
           s"date: $timeNow",
@@ -52,8 +52,8 @@ object ResetPassword {
   def set(token: String, password: String)(
       implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
     Jwt.decode(token, Config.jwt.secret) match {
-      case Xor.Right(userId) => UsersRepo.updatePassword(userId, password)
-      case Xor.Left(msg)     => UsersRepo.validationErrorAsFuture("token", msg)
+      case Xor.Right(payload) => UsersRepo.updatePassword(payload.id, password)
+      case Xor.Left(msg)      => UsersRepo.validationErrorAsFuture("token", msg)
     }
   }
 }

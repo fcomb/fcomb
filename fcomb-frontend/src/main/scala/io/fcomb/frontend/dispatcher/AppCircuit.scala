@@ -16,9 +16,13 @@
 
 package io.fcomb.frontend.dispatcher
 
+import io.circe.parser.decode
 import diode.Circuit
 import diode.react.ReactConnector
 import io.fcomb.frontend.dispatcher.handlers._
+import io.fcomb.json.models.Formats.decodeSessionPayloadUser
+import io.fcomb.models.SessionPayload
+import org.scalajs.dom.window
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   protected def actionHandler = composeHandlers(
@@ -30,4 +34,9 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   def currentState = zoom(identity).value
 
   def session = currentState.session
+
+  def currentUser =
+    session
+      .flatMap(_.split('.').lift(1))
+      .flatMap(s => decode[SessionPayload.User](window.atob(s)).toOption)
 }

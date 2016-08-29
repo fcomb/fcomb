@@ -40,7 +40,7 @@ object SessionsService {
     UsersRepo.findByEmail(req.email).fast.map {
       case Some(user) if user.isValidPassword(req.password) =>
         val timeNow = Instant.now()
-        val jwt     = Jwt.encode(user.getId(), Config.jwt.secret, timeNow, Config.jwt.sessionTtl)
+        val jwt     = Jwt.encodeUser(user, Config.jwt.secret, timeNow, Config.jwt.sessionTtl)
         Xor.Right(Session(jwt))
       case _ => invalidEmailOrPassword
     }
@@ -48,8 +48,8 @@ object SessionsService {
 
   def find(token: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
     Jwt.decode(token, Config.jwt.secret) match {
-      case Xor.Right(userId) => UsersRepo.findById(userId)
-      case _                 => FastFuture.successful(None)
+      case Xor.Right(payload) => UsersRepo.findById(payload.id)
+      case _                  => FastFuture.successful(None)
     }
   }
 }

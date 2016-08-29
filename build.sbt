@@ -200,7 +200,7 @@ lazy val crypto = project
       "com.pauldijou"     %% "jwt-circe"     % "0.8.0"
     ))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(modelsJVM)
+  .dependsOn(modelsJVM, jsonJVM)
 
 lazy val templates = project
   .in(file("fcomb-templates"))

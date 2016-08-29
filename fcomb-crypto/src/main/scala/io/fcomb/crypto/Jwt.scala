@@ -17,38 +17,36 @@
 package io.fcomb.crypto
 
 import cats.data.Xor
-import io.circe.{Encoder, Decoder}
-import io.circe.syntax._
 import io.circe.jawn.{decode => jsonDecode}
-import io.circe.generic.semiauto._
-import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
+import io.circe.syntax._
+import io.fcomb.models.{SessionPayload, User}
+import io.fcomb.json.models.Formats.{encodeSessionPayloadUser, decodeSessionPayloadUser}
 import java.time.Instant
+import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import scala.util.{Failure, Success}
 
 object Jwt {
   private val algo = JwtAlgorithm.HS256
 
-  private sealed trait Payload
-  private[this] final case class UserPayload(userId: Int) extends Payload
-
-  private[this] implicit lazy val encodeUserPayload: Encoder[UserPayload] = deriveEncoder
-  private[this] implicit lazy val decodeUserPayload: Decoder[UserPayload] = deriveDecoder
-
-  def encode(userId: Int, secret: String, issuedAt: Instant, ttl: Long) = {
+  def encode(payload: SessionPayload.User, secret: String, issuedAt: Instant, ttl: Long) = {
     val claim = JwtClaim(
-      content = UserPayload(userId).asJson.noSpaces,
+      content = payload.asJson.noSpaces,
       expiration = Some(issuedAt.plusSeconds(ttl).getEpochSecond),
       issuedAt = Some(issuedAt.getEpochSecond)
     )
     JwtCirce.encode(claim, secret, algo)
   }
 
-  def decode(token: String, secret: String): Xor[String, Int] = {
+  def encodeUser(user: User, secret: String, issuedAt: Instant, ttl: Long) = {
+    val payload = SessionPayload.User(user.getId(), user.username)
+    encode(payload, secret, issuedAt, ttl)
+  }
+
+  def decode(token: String, secret: String): Xor[String, SessionPayload.User] = {
     JwtCirce.decode(token, secret, Seq(algo)) match {
       case Success(jwtClaim) =>
-        jsonDecode[UserPayload](jwtClaim.content)
-          .map(_.userId)
-          .leftMap(_ => "failed to decode token's payload")
+        jsonDecode[SessionPayload.User](jwtClaim.content).leftMap(_ =>
+          "failed to decode token's payload")
       case Failure(e) => Xor.Left("failed to decode token")
     }
   }
