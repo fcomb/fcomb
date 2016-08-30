@@ -37,7 +37,7 @@ object ResetPassword {
     UsersRepo.findByEmail(email).fast.map {
       case Some(user) =>
         val timeNow = Instant.now()
-        val jwt     = Jwt.encodeUser(user, Config.jwt.secret, timeNow, Config.jwt.resetPasswordTtl)
+        val jwt     = Jwt.encode(user, Config.jwt.secret, timeNow, Config.jwt.resetPasswordTtl)
         val template = templates.ResetPassword(
           s"title: token $jwt",
           s"date: $timeNow",

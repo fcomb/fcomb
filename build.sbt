@@ -259,7 +259,7 @@ lazy val tests = project
       "org.scalacheck"     %% "scalacheck"        % "1.13.2" % "test",
       "org.specs2"         %% "specs2-core"       % "3.8.4" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.0" % "test",
-      "com.ironcorelabs"   %% "cats-scalatest"    % "1.3.0" % "test",
+      "com.ironcorelabs"   %% "cats-scalatest"    % "1.4.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
       "ch.qos.logback"     % "logback-classic"    % "1.1.7",
       "junit"              % "junit-dep"          % "4.10" % "test"
@@ -337,7 +337,7 @@ lazy val root = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion,
-      "com.lihaoyi"       % "ammonite-repl"           % "0.7.4" % "test" cross CrossVersion.full,
+      "com.lihaoyi"       % "ammonite-repl"           % "0.7.5" % "test" cross CrossVersion.full,
       "ch.qos.logback"    % "logback-classic"         % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",

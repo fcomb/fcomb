@@ -24,6 +24,7 @@ import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.models.{Owner, OwnerKind}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest}
 import japgolly.scalajs.react._
@@ -34,48 +35,45 @@ import scala.scalajs.js.JSConverters._
 
 object NewRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], ownerScope: RepositoryOwnerScope)
-  final case class State(name: String,
+  final case class State(owner: Option[Owner],
+                         name: String,
                          visibilityKind: ImageVisibilityKind,
                          description: Option[String],
                          errors: Map[String, String],
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
-    val urlCB = $.props.map(_.ownerScope).map {
-      case RepositoryOwner.UserSelf         => Resource.userSelfRepositories
-      case RepositoryOwner.Organization(id) => Resource.organizationRepositories(id)
-    }
-
     def create(props: Props): Callback = {
       $.state.flatMap { state =>
-        if (state.isFormDisabled) Callback.empty
-        else {
-          $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
-            for {
-              url <- urlCB
-              _ <- Callback.future {
+        state.owner match {
+          case Some(owner) if !state.isFormDisabled =>
+            $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
+              val url = owner match {
+                case Owner(_, OwnerKind.User)          => Resource.userSelfRepositories
+                case Owner(id, OwnerKind.Organization) => Resource.organizationRepositories(id.toString)
+              }
+              Callback.future {
                 val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
                 Rpc
                   .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
                   .map {
-                    case Xor.Right(repository) =>
-                      props.ctl.set(DashboardRoute.Repository(repository.slug))
-                    case Xor.Left(errs) =>
-                      $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
-                  }
+                  case Xor.Right(repository) =>
+                    props.ctl.set(DashboardRoute.Repository(repository.slug))
+                  case Xor.Left(errs) =>
+                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
+                }
                   .recover {
-                    case _ => $.setState(state.copy(isFormDisabled = false))
-                  }
+                  case _ => $.setState(state.copy(isFormDisabled = false))
+                }
               }
-            } yield ()
-          }
+            }
+          case _ =>Callback.empty
         }
       }
     }
 
-    def handleOnSubmit(props: Props)(e: ReactEventH): Callback = {
+    def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> create(props)
-    }
 
     def updateName(e: ReactEventI): Callback = {
       val value = e.target.value
@@ -95,6 +93,9 @@ object NewRepositoryComponent {
       $.modState(_.copy(description = value))
     }
 
+    def updateOwner(owner: Owner) =
+      $.modState(_.copy(owner = Some(owner)))
+
     def render(props: Props, state: State) = {
       <.div(
         <.h2("New repository"),
@@ -103,6 +104,7 @@ object NewRepositoryComponent {
           ^.disabled := state.isFormDisabled,
           <.div(^.display.flex,
                 ^.flexDirection.column,
+                OwnerComponent.apply(props.ownerScope, state.isFormDisabled, updateOwner _),
                 MuiTextField(floatingLabelText = "Name",
                              id = "name",
                              name = "name",
@@ -138,13 +140,13 @@ object NewRepositoryComponent {
                 MuiRaisedButton(`type` = "submit",
                                 primary = true,
                                 label = "Create",
-                                disabled = state.isFormDisabled)()))
+                                disabled = state.isFormDisabled || state.owner.isEmpty)()))
       )
     }
   }
 
   private val component = ReactComponentB[Props]("NewRepository")
-    .initialState(State("", ImageVisibilityKind.Private, None, Map.empty, false))
+    .initialState(State(None, "", ImageVisibilityKind.Private, None, Map.empty, false))
     .renderBackend[Backend]
     .build
 

@@ -29,8 +29,8 @@ import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.json.models.errors.docker.distribution.Formats._
 
-trait ImageDirectives {
-  final def imageByNameWithAcl(name: String, userId: Int, action: Action): Directive1[Image] = {
+object ImageDirectives {
+  def imageByNameWithAcl(name: String, userId: Int, action: Action): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlugWithAcl(Slug.Name(name), userId, action)).flatMap {
         case Xor.Right(Some((image, _))) => provide(image)
@@ -39,14 +39,14 @@ trait ImageDirectives {
     }
   }
 
-  final def imageByNameWithReadAcl(name: String, userIdOpt: Option[Int]): Directive1[Image] = {
+  def imageByNameWithReadAcl(name: String, userIdOpt: Option[Int]): Directive1[Image] = {
     userIdOpt match {
       case Some(userId) => imageByNameWithAcl(name, userId, Action.Read)
       case _            => publicImageByName(name)
     }
   }
 
-  private final def publicImageByName(name: String): Directive1[Image] = {
+  private def publicImageByName(name: String): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlug(Slug.Name(name))).flatMap {
         case Some(image) if image.visibilityKind === ImageVisibilityKind.Public =>
@@ -61,5 +61,3 @@ trait ImageDirectives {
     DistributionErrorResponse.from(DistributionError.NameUnknown())
   )
 }
-
-object ImageDirectives extends ImageDirectives

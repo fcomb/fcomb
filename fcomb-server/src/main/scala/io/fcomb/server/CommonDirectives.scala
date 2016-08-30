@@ -20,18 +20,16 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model._
 
-trait CommonDirectives {
-  final def completeWithStatus(status: StatusCode): Route =
+object CommonDirectives {
+  def completeWithStatus(status: StatusCode): Route =
     complete(HttpResponse(status))
 
-  final def completeNotFound(): Route =
+  def completeNotFound(): Route =
     completeWithStatus(StatusCodes.NotFound)
 
-  final def completeNoContent(): Route =
+  def completeNoContent(): Route =
     completeWithStatus(StatusCodes.NoContent)
 
-  final def completeAccepted(): Route =
+  def completeAccepted(): Route =
     completeWithStatus(StatusCodes.Accepted)
 }
-
-object CommonDirectives extends CommonDirectives

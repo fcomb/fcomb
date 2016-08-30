@@ -40,7 +40,7 @@ object SessionsService {
     UsersRepo.findByEmail(req.email).fast.map {
       case Some(user) if user.isValidPassword(req.password) =>
         val timeNow = Instant.now()
-        val jwt     = Jwt.encodeUser(user, Config.jwt.secret, timeNow, Config.jwt.sessionTtl)
+        val jwt     = Jwt.encode(user, Config.jwt.secret, timeNow, Config.jwt.sessionTtl)
         Xor.Right(Session(jwt))
       case _ => invalidEmailOrPassword
     }

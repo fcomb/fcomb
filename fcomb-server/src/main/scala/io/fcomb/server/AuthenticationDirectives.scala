@@ -23,7 +23,7 @@ import io.fcomb.models.User
 import io.fcomb.services.user.SessionsService
 import scala.concurrent.ExecutionContext
 
-trait AuthenticationDirectives {
+object AuthenticationDirectives {
   def tryAuthenticateUser: Directive1[Option[User]] =
     extractExecutionContext.flatMap { implicit ec =>
       extractCredentials.flatMap {
@@ -60,5 +60,3 @@ trait AuthenticationDirectives {
     }
   }
 }
-
-object AuthenticationDirectives extends AuthenticationDirectives

@@ -20,8 +20,8 @@ import de.heikoseeberger.akkahttpcirce
 import io.circe.{Json, Printer}
 import scala.language.implicitConversions
 
-trait CirceSupport extends akkahttpcirce.CirceSupport {
-  private final val compactPrinter: Printer = Printer(
+object CirceSupport extends akkahttpcirce.CirceSupport {
+  private val compactPrinter: Printer = Printer(
     preserveOrder = false,
     dropNullKeys = true,
     indent = ""
@@ -30,5 +30,3 @@ trait CirceSupport extends akkahttpcirce.CirceSupport {
   implicit final def printer(json: Json): String =
     compactPrinter.pretty(json)
 }
-
-object CirceSupport extends CirceSupport
