@@ -28,7 +28,7 @@ import io.fcomb.persist.UsersRepo
 import io.fcomb.server.CirceSupport._
 import io.fcomb.utils.Config.docker.distribution.realm
 
-trait AuthenticationDirectives {
+object AuthenticationDirectives {
   def tryAuthenticateUserBasic: Directive1[Option[User]] = {
     extractExecutionContext.flatMap { implicit ec =>
       extractCredentials.flatMap {
@@ -60,5 +60,3 @@ trait AuthenticationDirectives {
 
   private val defaultAuthenticateHeaders = authenticateHeader :: defaultHeaders
 }
-
-object AuthenticationDirectives extends AuthenticationDirectives

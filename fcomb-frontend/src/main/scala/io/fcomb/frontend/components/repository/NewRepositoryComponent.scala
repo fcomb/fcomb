@@ -23,9 +23,8 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.{Owner, OwnerKind}
+import io.fcomb.models.Owner
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest}
 import japgolly.scalajs.react._
@@ -36,7 +35,8 @@ import scala.scalajs.js.JSConverters._
 
 object NewRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], ownerScope: RepositoryOwnerScope)
-  final case class State(name: String,
+  final case class State(owner: Option[Owner],
+                         name: String,
                          visibilityKind: ImageVisibilityKind,
                          description: Option[String],
                          errors: Map[String, String],
@@ -96,9 +96,10 @@ object NewRepositoryComponent {
       $.modState(_.copy(description = value))
     }
 
-    def render(props: Props, state: State) = {
-      // val owners = AppCircuit.currentUser.map(u => List(u.username)).getOrElse(Nil)
+    def updateOwner(owner: Owner) =
+      $.modState(_.copy(owner = Some(owner)))
 
+    def render(props: Props, state: State) = {
       <.div(
         <.h2("New repository"),
         <.form(
@@ -106,13 +107,7 @@ object NewRepositoryComponent {
           ^.disabled := state.isFormDisabled,
           <.div(^.display.flex,
                 ^.flexDirection.column,
-                MuiAutoComplete(
-                  floatingLabelText = "Owner",
-                  filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
-                  disabled = state.isFormDisabled,
-                  dataSource = scala.scalajs.js.Array(),
-                  searchText = "owner"
-                )(),
+                OwnerComponent.apply(props.ownerScope, state.isFormDisabled, updateOwner _),
                 MuiTextField(floatingLabelText = "Name",
                              id = "name",
                              name = "name",
@@ -154,7 +149,7 @@ object NewRepositoryComponent {
   }
 
   private val component = ReactComponentB[Props]("NewRepository")
-    .initialState(State("", ImageVisibilityKind.Private, None, Map.empty, false))
+    .initialState(State(None, "", ImageVisibilityKind.Private, None, Map.empty, false))
     .renderBackend[Backend]
     .build
 

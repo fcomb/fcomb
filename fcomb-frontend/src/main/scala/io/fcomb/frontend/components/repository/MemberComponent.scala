@@ -52,23 +52,16 @@ object MemberComponent {
               Map("q" -> q.trim))
             .map {
               case Xor.Right(res) =>
+                val data = js.Array(res.data.map(_.title): _*)
                 $.modState(
                   _.copy(
                     members = res.data,
-                    data = mapMembers(res.data, props.ownerKind)
+                    data = data
                   ))
               case Xor.Left(e) => Callback.warn(e)
             }
         }
       } yield ()
-    }
-
-    private def mapMembers(members: Seq[PermissionMemberResponse], ownerKind: OwnerKind) = {
-      val xs = ownerKind match {
-        case OwnerKind.User         => members.map(_.title)
-        case OwnerKind.Organization => members.map(r => s"${r.title} [${r.kind}]")
-      }
-      js.Array(xs: _*)
     }
 
     private def onNewRequest(chosen: Value, idx: js.UndefOr[Int], ds: js.Array[String]): Callback = {
@@ -80,7 +73,7 @@ object MemberComponent {
           } yield (members, cb)).flatMap {
             case (members, cb) =>
               members.lift(index) match {
-                case Some(member) if chosen.startsWith(member.title) =>
+                case Some(member) if chosen == member.title =>
                   $.modState(_.copy(member = Some(member))) >> cb(member)
                 case _ => Callback.warn(s"Unknown member: $chosen")
               }

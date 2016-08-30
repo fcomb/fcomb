@@ -28,7 +28,7 @@ import scala.util.{Failure, Success}
 object Jwt {
   private val algo = JwtAlgorithm.HS256
 
-  def encode(payload: SessionPayload.User, secret: String, issuedAt: Instant, ttl: Long) = {
+  def encode(payload: SessionPayload.User, secret: String, issuedAt: Instant, ttl: Long): String = {
     val claim = JwtClaim(
       content = payload.asJson.noSpaces,
       expiration = Some(issuedAt.plusSeconds(ttl).getEpochSecond),
@@ -37,7 +37,7 @@ object Jwt {
     JwtCirce.encode(claim, secret, algo)
   }
 
-  def encodeUser(user: User, secret: String, issuedAt: Instant, ttl: Long) = {
+  def encode(user: User, secret: String, issuedAt: Instant, ttl: Long): String = {
     val payload = SessionPayload.User(user.getId(), user.username)
     encode(payload, secret, issuedAt, ttl)
   }

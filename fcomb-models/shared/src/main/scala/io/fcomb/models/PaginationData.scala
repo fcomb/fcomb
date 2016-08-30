@@ -58,7 +58,7 @@ final case class Pagination(
 )
 
 object Pagination {
-  val maxLimit      = 128L
+  val maxLimit      = 256L
   val defaultLimit  = 32L
   val defaultOffset = 0L
 
