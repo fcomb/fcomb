@@ -24,7 +24,7 @@ import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.Owner
+import io.fcomb.models.{Owner, OwnerKind}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest}
 import japgolly.scalajs.react._
@@ -43,34 +43,31 @@ object NewRepositoryComponent {
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
-    val urlCB = $.props.map(_.ownerScope).map {
-      case RepositoryOwner.UserSelf         => Resource.userSelfRepositories
-      case RepositoryOwner.Organization(id) => Resource.organizationRepositories(id)
-    }
-
     def create(props: Props): Callback = {
       $.state.flatMap { state =>
-        if (state.isFormDisabled) Callback.empty
-        else {
-          $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
-            for {
-              url <- urlCB
-              _ <- Callback.future {
+        state.owner match {
+          case Some(owner) if !state.isFormDisabled =>
+            $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
+              val url = owner match {
+                case Owner(_, OwnerKind.User)          => Resource.userSelfRepositories
+                case Owner(id, OwnerKind.Organization) => Resource.organizationRepositories(id.toString)
+              }
+              Callback.future {
                 val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
                 Rpc
                   .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
                   .map {
-                    case Xor.Right(repository) =>
-                      props.ctl.set(DashboardRoute.Repository(repository.slug))
-                    case Xor.Left(errs) =>
-                      $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
-                  }
+                  case Xor.Right(repository) =>
+                    props.ctl.set(DashboardRoute.Repository(repository.slug))
+                  case Xor.Left(errs) =>
+                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
+                }
                   .recover {
-                    case _ => $.setState(state.copy(isFormDisabled = false))
-                  }
+                  case _ => $.setState(state.copy(isFormDisabled = false))
+                }
               }
-            } yield ()
-          }
+            }
+          case _ =>Callback.empty
         }
       }
     }
@@ -143,7 +140,7 @@ object NewRepositoryComponent {
                 MuiRaisedButton(`type` = "submit",
                                 primary = true,
                                 label = "Create",
-                                disabled = state.isFormDisabled)()))
+                                disabled = state.isFormDisabled || state.owner.isEmpty)()))
       )
     }
   }

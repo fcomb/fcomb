@@ -96,6 +96,7 @@ object MemberComponent {
         disabled = props.isDisabled,
         dataSource = state.data,
         searchText = props.searchText.orUndefined,
+        openOnFocus = true,
         onNewRequest = onNewRequest _,
         onUpdateInput = onUpdateInput _
       )()

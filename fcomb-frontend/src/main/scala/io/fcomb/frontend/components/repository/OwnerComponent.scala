@@ -49,10 +49,15 @@ object OwnerComponent {
       for {
         props <- $.props
         _ <- Callback.future {
+          val params = Map(
+            "name"  -> q.trim,
+            "role"  -> "admin",
+            "limit" -> "256"
+          )
           Rpc
             .call[PaginationData[OrganizationResponse]](RpcMethod.GET,
                                                         Resource.userSelfOrganizations,
-                                                        Map("name" -> q.trim, "role" -> "admin"))
+                                                        params)
             .map {
               case Xor.Right(res) =>
                 val owners = currentUser ++ res.data.map { o =>
@@ -80,7 +85,7 @@ object OwnerComponent {
             case RepositoryOwner.UserSelf => currentUser.headOption
             case RepositoryOwner.Organization(slug) =>
               owners.collectFirst {
-                case res @ OwnerItem(_, _, title) if title.startsWith(slug) => res
+                case res @ OwnerItem(_, _, `slug`) => res
               }
           }
           $.modState(
@@ -91,9 +96,8 @@ object OwnerComponent {
       }
     }
 
-    def fetchDefaultOwners(): Callback = {
+    def fetchDefaultOwners(): Callback =
       getSuggestions("") >> setDefaultOwner()
-    }
 
     private def onNewRequest(chosen: Value, idx: js.UndefOr[Int], ds: js.Array[String]): Callback = {
       idx.toOption match {
@@ -123,6 +127,7 @@ object OwnerComponent {
         disabled = props.isDisabled,
         dataSource = state.data,
         searchText = state.searchText.orUndefined,
+        openOnFocus = true,
         onNewRequest = onNewRequest _,
         onUpdateInput = onUpdateInput _
       )()
