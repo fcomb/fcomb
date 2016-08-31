@@ -32,7 +32,7 @@ object EmailService {
   // todo - Pinned Dispatcher?
   def start()(implicit system: ActorSystem, mat: Materializer): ActorRef = {
     if (actorRef eq null) {
-      logger.info("Start " + actorName)
+      logger.info("Start {}", actorName)
       actorRef = system.actorOf(props(), name = actorName)
     }
     actorRef

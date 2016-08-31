@@ -49,7 +49,9 @@ object OrganizationComponent {
         <.ul(
           <.li(props.ctl.link(DashboardRoute.OrganizationGroups(props.name))("Groups")),
           <.li(
-            props.ctl.link(DashboardRoute.NewOrganizationRepository(props.name))("New repository"))
+            props.ctl.link(DashboardRoute.NewOrganizationRepository(props.name))(
+              "New repository")),
+          <.li(props.ctl.link(DashboardRoute.OrganizationSettings(props.name))("Settings"))
         ),
         RepositoriesComponent.apply(props.ctl, RepositoryOwner.Organization(props.name))
       )

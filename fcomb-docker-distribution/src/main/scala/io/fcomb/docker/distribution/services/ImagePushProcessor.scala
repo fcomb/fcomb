@@ -210,7 +210,7 @@ trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor =>
       context.unbecome()
       unstashAll()
     case msg =>
-      log.warning(s"stash message: $msg")
+      log.warning(s"stash message: {}", msg)
       stash()
   }
 
@@ -246,7 +246,7 @@ trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor =>
         p.complete(Success(state))
         ()
       case msg =>
-        log.warning(s"stash message: $msg")
+        log.warning(s"stash message: {}", msg)
         stash()
     }, rfOpt.isEmpty)
     fut.onComplete {

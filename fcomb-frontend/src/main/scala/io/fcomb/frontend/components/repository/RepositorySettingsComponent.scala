@@ -21,7 +21,7 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 
-object SettingsComponent {
+object RepositorySettingsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
 
   class Backend($ : BackendScope[Props, Unit]) {
@@ -37,7 +37,7 @@ object SettingsComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("Settings").renderBackend[Backend].build
+  private val component = ReactComponentB[Props]("RepositorySettings").renderBackend[Backend].build
 
   def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String) =
     component.apply(Props(ctl, repositoryName))
