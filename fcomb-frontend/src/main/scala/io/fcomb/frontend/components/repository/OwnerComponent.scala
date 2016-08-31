@@ -49,8 +49,12 @@ object OwnerComponent {
       for {
         props <- $.props
         _ <- Callback.future {
+          val name = q.trim match {
+            case s if s.nonEmpty => s"$s*"
+            case _               => ""
+          }
           val params = Map(
-            "name"  -> q.trim,
+            "name"  -> name,
             "role"  -> "admin",
             "limit" -> "256"
           )

@@ -238,6 +238,9 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       .subquery
   }
 
+  def findIdsByImageIdDBIO(imageId: Int) =
+    table.filter(_.imageId === imageId).map(_.id)
+
   def findIdsWithEmptyDigestsByOrganizationIdDBIO(organizationId: Int) = {
     table
       .join(ImagesRepo.table)

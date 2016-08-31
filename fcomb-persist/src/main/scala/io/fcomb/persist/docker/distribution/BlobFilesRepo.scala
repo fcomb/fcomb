@@ -114,17 +114,11 @@ object BlobFilesRepo {
   }
 
   def markOrDestroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) = {
-    table
-      .join(ImageBlobsRepo.table)
-      .on(_.uuid === _.id)
-      .filter {
-        case (t, ibt) =>
-          ibt.imageId === imageId &&
-            (t.digest.isEmpty ||
-              !t.digest.in(ImageBlobsRepo.duplicateDigestsByImageIdDBIO(imageId)))
-      }
-      .map(_._1.state)
-      .update(BlobFileState.Deleting)
+    table.filter { t =>
+      t.uuid.in(ImageBlobsRepo.findIdsByImageIdDBIO(imageId)) &&
+      (t.digest.isEmpty ||
+      !t.digest.in(ImageBlobsRepo.duplicateDigestsByImageIdDBIO(imageId)))
+    }.map(_.state).update(BlobFileState.Deleting)
   }
 
   def markOrDestroyByOrganizationIdDBIO(orgId: Int)(implicit ec: ExecutionContext) = {

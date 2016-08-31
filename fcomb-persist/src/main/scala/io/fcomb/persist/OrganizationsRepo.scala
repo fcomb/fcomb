@@ -24,7 +24,7 @@ import io.fcomb.models.common.Slug
 import io.fcomb.models.{Organization, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
-import io.fcomb.persist.docker.distribution.ImageBlobsRepo
+import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.acl.{
   PermissionMemberResponse,
   PermissionGroupMemberResponse,
@@ -98,7 +98,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
 
   private def availableByUserIdDBIO(userId: Rep[Int], filter: immutable.Map[String, String]) = {
     val scope = availableByUserOwnerDBIO(userId).union(availableByUserGroupsDBIO(userId)).subquery
-    filter.foldLeft(scope) {
+    val q = filter.foldLeft(scope) {
       case (s, (column, value)) =>
         s.filter { q =>
           column match {
@@ -109,6 +109,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
           }
         }
     }
+    q.subquery
   }
 
   def paginateAvailableByUserId(userId: Int, p: Pagination)(
@@ -196,7 +197,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     for {
       _   <- PermissionsRepo.destroyByOrganizationIdDBIO(id)
       _   <- OrganizationGroupsRepo.destroyByOrganizationIdDBIO(id)
-      _   <- ImageBlobsRepo.destroyByOrganizationIdDBIO(id)
+      _   <- ImagesRepo.destroyByOrganizationIdDBIO(id)
       res <- super.destroyDBIO(id)
     } yield res
   }

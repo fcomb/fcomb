@@ -16,11 +16,6 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.Xor
-import chandu0101.scalajs.react.components.Implicits._
-import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.components.Helpers._
-import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.DashboardRoute
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -28,25 +23,18 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 
 object OrganizationSettingsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
-  final case class State(isFormDisabled: Boolean)
 
-  class Backend($ : BackendScope[Props, State]) {
-    def render(props: Props, state: State) = {
+  class Backend($ : BackendScope[Props, Unit]) {
+    def render(props: Props) = {
       <.section(
         <.h1("Settings"),
-        MuiRaisedButton(`type` = "submit",
-                        secondary = true,
-                        label = "Delete",
-                        disabled = state.isFormDisabled)()
+        DeleteOrganizationComponent.apply(props.ctl, props.orgName)
       )
     }
   }
 
   private val component =
-    ReactComponentB[Props]("OrganizationSettings")
-      .initialState(State(false))
-      .renderBackend[Backend]
-      .build
+    ReactComponentB[Props]("OrganizationSettings").renderBackend[Backend].build
 
   def apply(ctl: RouterCtl[DashboardRoute], orgName: String) =
     component.apply(Props(ctl, orgName))

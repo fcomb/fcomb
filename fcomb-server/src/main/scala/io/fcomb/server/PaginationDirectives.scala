@@ -54,7 +54,7 @@ object PaginationDirectives {
       .query()
       .filterNot {
         case ("" | "sort" | "limit" | "offset" | "token", _) => true
-        case _                                               => false
+        case (_, value)                                      => value.isEmpty
       }
       .toMap
   }
