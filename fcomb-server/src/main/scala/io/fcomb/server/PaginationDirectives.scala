@@ -53,8 +53,8 @@ object PaginationDirectives {
     req.uri
       .query()
       .filterNot {
-        case ("sort" | "limit" | "offset" | "token", _) => true
-        case _                                          => false
+        case ("" | "sort" | "limit" | "offset" | "token", _) => true
+        case _                                               => false
       }
       .toMap
   }
