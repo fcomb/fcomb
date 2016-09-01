@@ -41,7 +41,7 @@ object RepositoriesHandler {
       tryAuthenticateUser { userOpt =>
         imageBySlugRead(slug, userOpt) { image =>
           val res = ImageHelpers.responseFrom(image, Action.Read)
-          complete((StatusCodes.OK, res))
+          completeWithEtag(StatusCodes.OK, res)
         }
       }
     }

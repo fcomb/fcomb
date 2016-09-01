@@ -71,7 +71,7 @@ object OrganizationsHandler {
         onSuccess(futRes) {
           case Some((org, role)) =>
             val res = OrganizationHelpers.responseFrom(org, role)
-            complete((StatusCodes.OK, res))
+            completeWithEtag(StatusCodes.OK, res)
           case _ => completeNotFound()
         }
       }

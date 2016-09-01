@@ -83,7 +83,7 @@ object GroupsHandler {
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
           val res = OrganizationGroupHelpers.responseFrom(group)
-          complete((StatusCodes.OK, res))
+          completeWithEtag(StatusCodes.OK, res)
         }
       }
     }

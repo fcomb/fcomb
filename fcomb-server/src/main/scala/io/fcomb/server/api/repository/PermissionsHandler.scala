@@ -86,7 +86,7 @@ object PermissionsHandler {
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
           parameter('q) { q =>
             onSuccess(PermissionsRepo.findSuggestions(image, q)) { p =>
-              complete((StatusCodes.OK, DataResponse(p)))
+              completeWithEtag(StatusCodes.OK, DataResponse(p))
             }
           }
         }

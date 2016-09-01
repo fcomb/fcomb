@@ -197,7 +197,7 @@ object ImageBlobUploadsHandler {
                       rangeHeader(0L, totalLength)
                     )
                     respondWithHeaders(headers) {
-                      complete((StatusCodes.Accepted, HttpEntity.Empty))
+                      completeAccepted()
                     }
                   }
                 }
