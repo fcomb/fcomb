@@ -1,4 +1,4 @@
-addSbtPlugin("org.scala-js"      % "sbt-scalajs"         % "0.6.11")
+addSbtPlugin("org.scala-js"      % "sbt-scalajs"         % "0.6.12")
 addSbtPlugin("io.get-coursier"   % "sbt-coursier"        % "1.0.0-M13")
 addSbtPlugin("de.heikoseeberger" % "sbt-header"          % "1.5.1")
 addSbtPlugin("com.geirsson"      % "sbt-scalafmt"        % "0.3.1")
