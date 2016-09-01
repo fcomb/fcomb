@@ -42,10 +42,12 @@ object OwnerComponent {
       .map(u => Seq(OwnerItem(u.id, OwnerKind.User, u.username)))
       .getOrElse(Seq.empty)
 
+    private val limit = 256
+
     def fetchOwners(): Callback = {
       val params = Map(
         "role"  -> "admin",
-        "limit" -> "256"
+        "limit" -> limit.toString()
       )
       for {
         props <- $.props
@@ -64,13 +66,12 @@ object OwnerComponent {
                   case RepositoryOwner.Organization(slug)                    =>
                     owners.collectFirst { case res @ OwnerItem(_, _, `slug`) => res }
                 }
-                owner.map(o => props.cb(Owner(o.id, o.kind))).getOrElse(Callback.empty) >>
-                  $.modState(
-                    _.copy(
-                      owner = owner,
-                      owners = owners,
-                      data = data
-                    ))
+                $.modState(
+                  _.copy(
+                    owner = owner,
+                    owners = owners,
+                    data = data
+                  )) >> owner.map(o => props.cb(Owner(o.id, o.kind))).getOrElse(Callback.empty)
               case Xor.Left(e) => Callback.warn(e)
             }
         }
@@ -94,6 +95,7 @@ object OwnerComponent {
         floatingLabelText = "Owner",
         disabled = props.isDisabled,
         value = state.owner.orUndefined,
+        maxHeight = limit + 1,
         onChange = onChange _
       )(owners)
     }

@@ -96,9 +96,16 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     }.map { case ((t, ogt), _) => (t, ogt.role) }.subquery
   }
 
-  private def availableByUserIdDBIO(userId: Rep[Int], filter: immutable.Map[String, String]) = {
-    val scope = availableByUserOwnerDBIO(userId).union(availableByUserGroupsDBIO(userId)).subquery
-    val q = filter.foldLeft(scope) {
+  private type AvailableScopeQuery =
+    Query[(OrganizationTable, Rep[Role]), (Organization, Role), Seq]
+
+  private def availableByUserIdScopeDBIO(userId: Rep[Int]): AvailableScopeQuery =
+    availableByUserOwnerDBIO(userId).union(availableByUserGroupsDBIO(userId)).subquery
+
+  private def availableByUserIdScopeDBIO(
+      userId: Rep[Int],
+      filter: immutable.Map[String, String]): AvailableScopeQuery = {
+    val q = filter.foldLeft(availableByUserIdScopeDBIO(userId)) {
       case (s, (column, value)) =>
         s.filter { q =>
           column match {
@@ -112,13 +119,35 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     q.subquery
   }
 
+  private lazy val availableByUserIdCompiled = Compiled {
+    (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
+      availableByUserIdScopeDBIO(userId).sortBy(_._1.name).drop(offset).take(limit)
+  }
+
+  private lazy val availableByUserIdTotalCompiled = Compiled { (userId: Rep[Int]) =>
+    availableByUserIdScopeDBIO(userId).length
+  }
+
+  private def availableByUserIdDBIO(userId: Int, p: Pagination) = {
+    if (p.filter.isEmpty) {
+      val orgs  = availableByUserIdCompiled((userId, p.offset, p.limit)).result
+      val total = availableByUserIdTotalCompiled(userId).result
+      (orgs, total)
+    } else {
+      val scope = availableByUserIdScopeDBIO(userId, p.filter)
+      val orgs  = scope.sortBy(_._1.name).drop(p.offset).take(p.limit).result
+      val total = scope.length.result
+      (orgs, total)
+    }
+  }
+
   def paginateAvailableByUserId(userId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[OrganizationResponse]] = {
-    val scope = availableByUserIdDBIO(userId, p.filter)
+    val (orgsQ, totalQ) = availableByUserIdDBIO(userId, p)
     db.run {
       for {
-        orgs  <- scope.sortBy(_._1.name).drop(p.offset).take(p.limit).result
-        total <- scope.length.result
+        orgs  <- orgsQ
+        total <- totalQ
         data = orgs.map { case (org, role) => OrganizationHelpers.responseFrom(org, role) }
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
