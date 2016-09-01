@@ -93,7 +93,7 @@ object DeleteOrganizationComponent {
               title = "Are you sure you want to delete this?",
               actions = actions,
               open = state.isOpen,
-              modal = true,
+              modal = false,
               onRequestClose = onRequestClose _
             )(
               <.div(<.p("Enter this organization’s name to confirm"),

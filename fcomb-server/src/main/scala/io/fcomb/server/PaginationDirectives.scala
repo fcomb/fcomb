@@ -81,7 +81,7 @@ object PaginationDirectives {
         val (status, headers) =
           if (pd.offset == 0L && position < pd.total) (StatusCodes.OK, immutable.Seq(etag))
           else if (pd.total != 0 && pd.offset >= pd.total)
-            (StatusCodes.RequestedRangeNotSatisfiable, immutable.Seq(etag))
+            (StatusCodes.RequestedRangeNotSatisfiable, immutable.Seq.empty)
           else {
             val range = ContentRange(pd.offset, position, pd.total.toLong)
             val xs    = immutable.Seq(etag, `Content-Range`(RangeUnits.Other(label), range))
