@@ -17,30 +17,34 @@
 package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 
 object DeleteRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
-  final case class State(isDisabled: Boolean)
+  final case class State(isOpen: Boolean, isDisabled: Boolean)
 
   class Backend($ : BackendScope[Props, State]) {
-    def delete(props: Props)(e: ReactEventI): Callback = {
-      e.preventDefaultCB >>
-        $.state.flatMap { state => // TODO: DRY
+    def delete(e: ReactTouchEventH): Callback = {
+      (for {
+        props <- $.props
+        state <- $.state
+      } yield (props, state)).flatMap {
+        case (props, state) if !state.isDisabled =>
           $.setState(state.copy(isDisabled = true)) >>
             Callback.future {
               Rpc
                 .call[Unit](RpcMethod.DELETE, Resource.repository(props.repositoryName))
                 .map {
-                  case Xor.Right(_) =>
-                    updateDisabled(false) >>
-                      props.ctl.set(DashboardRoute.Root)
-                  case Xor.Left(e) =>
+                  case Xor.Right(_) => props.ctl.set(DashboardRoute.Root)
+                  case Xor.Left(e)  =>
                     // TODO
                     updateDisabled(false)
                 }
@@ -48,24 +52,48 @@ object DeleteRepositoryComponent {
                   case _ => updateDisabled(false)
                 }
             }
-        }
+      }
     }
 
-    def updateDisabled(isDisabled: Boolean): Callback = {
+    def openDialog(e: ReactTouchEventH): Callback =
+      $.modState(_.copy(isOpen = true))
+
+    def closeDialog(e: ReactTouchEventH): Callback =
+      $.modState(_.copy(isOpen = false))
+
+    def onRequestClose(buttonClicked: Boolean): Callback =
+      $.modState(_.copy(isOpen = false))
+
+    def updateDisabled(isDisabled: Boolean): Callback =
       $.modState(_.copy(isDisabled = isDisabled))
-    }
+
+    lazy val actions = js.Array(
+      MuiFlatButton(key = "cancel",
+                    label = "Cancel",
+                    primary = true,
+                    onTouchTap = closeDialog _)(),
+      MuiFlatButton(key = "delete", label = "Delete", primary = true, onTouchTap = delete _)()
+    )
 
     def render(props: Props, state: State) = {
       <.div(<.h2("Delete repository"),
-            <.button(^.`type` := "button",
-                     ^.disabled := state.isDisabled,
-                     ^.onClick ==> delete(props),
-                     "Destroy"))
+            MuiDialog(
+              title = "Are you sure you want to delete this?",
+              actions = actions,
+              open = state.isOpen,
+              modal = false,
+              onRequestClose = onRequestClose _
+            )(),
+            MuiRaisedButton(`type` = "submit",
+                            secondary = true,
+                            label = "Delete",
+                            disabled = state.isDisabled,
+                            onTouchTap = openDialog _)())
     }
   }
 
   private val component = ReactComponentB[Props]("DeleteRepository")
-    .initialState(State(false))
+    .initialState(State(false, false))
     .renderBackend[Backend]
     .build
 

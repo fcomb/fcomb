@@ -26,19 +26,19 @@ import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.acl.Formats._
-import io.fcomb.json.rpc.docker.distribution.Formats.decodeRepositoryResponse
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.OwnerKind
 import io.fcomb.models.{PaginationData, SortOrder}
 import io.fcomb.rpc.acl._
-import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object PermissionsComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
+  final case class Props(ctl: RouterCtl[DashboardRoute],
+                         repositoryName: String,
+                         ownerKind: OwnerKind)
   final case class FormState(member: Option[PermissionMemberResponse],
                              action: Action,
                              errors: Map[String, String],
@@ -46,24 +46,12 @@ object PermissionsComponent {
   final case class State(permissions: Seq[PermissionResponse],
                          sortColumn: String,
                          sortOrder: SortOrder,
-                         ownerKind: Option[OwnerKind],
                          form: FormState)
 
   private def defaultFormState =
     FormState(None, Action.Read, Map.empty, false)
 
   final class Backend($ : BackendScope[Props, State]) {
-    // TODO: DRY with Diode Pot
-    def getRepositoryOwnerKind(name: String): Callback = {
-      Callback.future {
-        Rpc.call[RepositoryResponse](RpcMethod.GET, Resource.repository(name)).map {
-          case Xor.Right(repository) =>
-            $.modState(_.copy(ownerKind = Some(repository.owner.kind)))
-          case Xor.Left(e) => Callback.warn(e)
-        }
-      }
-    }
-
     def getPermissions(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
       Callback.future {
         val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
@@ -239,28 +227,24 @@ object PermissionsComponent {
       $.modState(s => s.copy(form = s.form.copy(action = action)))
 
     def renderForm(props: Props, state: State) = {
-      state.ownerKind match {
-        case Some(ownerKind) =>
-          <.form(^.onSubmit ==> handleOnSubmit(props),
-                 ^.disabled := state.form.isFormDisabled,
-                 <.div(^.display.flex,
-                       ^.flexDirection.column,
-                       MemberComponent.apply(props.repositoryName,
-                                             ownerKind,
-                                             state.form.member.map(_.title),
-                                             state.form.isFormDisabled,
-                                             updateMember _),
-                       MuiSelectField[Action](id = "action",
-                                              floatingLabelText = "Action",
-                                              errorText = state.form.errors.get("action"),
-                                              value = state.form.action,
-                                              onChange = updateAction _)(actions),
-                       MuiRaisedButton(`type` = "submit",
-                                       primary = true,
-                                       label = "Add",
-                                       disabled = state.form.isFormDisabled)()))
-        case _ => EmptyTag // TODO
-      }
+      <.form(^.onSubmit ==> handleOnSubmit(props),
+             ^.disabled := state.form.isFormDisabled,
+             <.div(^.display.flex,
+                   ^.flexDirection.column,
+                   MemberComponent.apply(props.repositoryName,
+                                         props.ownerKind,
+                                         state.form.member.map(_.title),
+                                         state.form.isFormDisabled,
+                                         updateMember _),
+                   MuiSelectField[Action](id = "action",
+                                          floatingLabelText = "Action",
+                                          errorText = state.form.errors.get("action"),
+                                          value = state.form.action,
+                                          onChange = updateAction _)(actions),
+                   MuiRaisedButton(`type` = "submit",
+                                   primary = true,
+                                   label = "Add",
+                                   disabled = state.form.isFormDisabled)()))
     }
 
     def render(props: Props, state: State) = {
@@ -272,17 +256,13 @@ object PermissionsComponent {
   }
 
   private val component = ReactComponentB[Props]("Permissions")
-    .initialState(State(Seq.empty, "action", SortOrder.Desc, None, defaultFormState))
+    .initialState(State(Seq.empty, "action", SortOrder.Desc, defaultFormState))
     .renderBackend[Backend]
     .componentWillMount { $ =>
-      for {
-        _ <- $.backend.getRepositoryOwnerKind($.props.repositoryName)
-        _ <- $.backend
-          .getPermissions($.props.repositoryName, $.state.sortColumn, $.state.sortOrder)
-      } yield ()
+      $.backend.getPermissions($.props.repositoryName, $.state.sortColumn, $.state.sortOrder)
     }
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String) =
-    component.apply(Props(ctl, repositoryName))
+  def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String, ownerKind: OwnerKind) =
+    component.apply(Props(ctl, repositoryName, ownerKind))
 }

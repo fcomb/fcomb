@@ -17,35 +17,30 @@
 package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
-import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object RepositoryVisibilityComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
+  final case class Props(ctl: RouterCtl[DashboardRoute],
+                         repositoryName: String,
+                         kind: ImageVisibilityKind)
   final case class State(kind: Option[ImageVisibilityKind], isFormDisabled: Boolean)
 
   class Backend($ : BackendScope[Props, State]) {
-    // TODO: DRY with Diode Pot
-    def getVisibility(name: String): Callback = {
-      Callback.future {
-        Rpc.call[RepositoryResponse](RpcMethod.GET, Resource.repository(name)).map {
-          case Xor.Right(repository) =>
-            $.modState(_.copy(kind = Some(repository.visibilityKind)))
-          case Xor.Left(e) => Callback.warn(e)
-        }
-      }
-    }
-
-    def updateVisibility(props: Props, kind: ImageVisibilityKind)(e: ReactEventI): Callback = {
-      e.preventDefaultCB >>
-        $.state.flatMap { state => // TODO: DRY
+    def updateVisibilityKind(e: ReactEventI, value: String): Callback = {
+      val kind = ImageVisibilityKind.withName(value)
+      (for {
+        props <- $.props
+        state <- $.state
+      } yield (props, state)).flatMap {
+        case (props, state) if !state.isFormDisabled && !state.kind.contains(kind) =>
           $.setState(state.copy(isFormDisabled = true)) >>
             Callback.future {
               Rpc
@@ -53,7 +48,7 @@ object RepositoryVisibilityComponent {
                             Resource.repositoryVisibility(props.repositoryName, kind))
                 .map {
                   case Xor.Right(_) =>
-                    updateFormDisabled(false) >> getVisibility(props.repositoryName)
+                    $.modState(_.copy(kind = Some(kind), isFormDisabled = false))
                   case Xor.Left(e) =>
                     // TODO
                     updateFormDisabled(false)
@@ -62,46 +57,45 @@ object RepositoryVisibilityComponent {
                   case _ => updateFormDisabled(false)
                 }
             }
-        }
+        case _ => Callback.empty
+      }
     }
 
-    def handleOnSubmit(e: ReactEventH): Callback = {
+    def handleOnSubmit(e: ReactEventH): Callback =
       e.preventDefaultCB
-    }
 
-    def updateFormDisabled(isFormDisabled: Boolean): Callback = {
+    def updateFormDisabled(isFormDisabled: Boolean): Callback =
       $.modState(_.copy(isFormDisabled = isFormDisabled))
-    }
 
     def render(props: Props, state: State) = {
-      <.div(
-        <.h2("Repository visibility"),
-        <.form(^.onSubmit ==> handleOnSubmit,
-               ^.disabled := state.isFormDisabled,
-               <.input.radio(^.id := "public",
-                             ^.name := "public",
-                             ^.tabIndex := 1,
-                             ^.checked := state.kind.contains(ImageVisibilityKind.Public),
-                             ^.disabled := state.kind.contains(ImageVisibilityKind.Public),
-                             ^.onClick ==> updateVisibility(props, ImageVisibilityKind.Public)),
-               <.label(^.`for` := "public", "Public"),
-               <.br,
-               <.input.radio(^.id := "private",
-                             ^.name := "private",
-                             ^.tabIndex := 2,
-                             ^.checked := state.kind.contains(ImageVisibilityKind.Private),
-                             ^.disabled := state.kind.contains(ImageVisibilityKind.Private),
-                             ^.onClick ==> updateVisibility(props, ImageVisibilityKind.Private)),
-               <.label(^.`for` := "private", "Private")))
+      val kind = state.kind.getOrElse(props.kind)
+      <.div(<.h2("Repository visibility"),
+            <.form(^.onSubmit ==> handleOnSubmit,
+                   ^.disabled := state.isFormDisabled,
+                   MuiRadioButtonGroup(name = "visibilityKind",
+                                       defaultSelected = kind.value,
+                                       onChange = updateVisibilityKind _)(
+                     MuiRadioButton(
+                       key = "public",
+                       value = ImageVisibilityKind.Public.value,
+                       label = "Public",
+                       disabled = state.isFormDisabled
+                     )(),
+                     MuiRadioButton(
+                       key = "private",
+                       value = ImageVisibilityKind.Private.value,
+                       label = "Private",
+                       disabled = state.isFormDisabled
+                     )())))
     }
   }
 
   private val component = ReactComponentB[Props]("RepositoryVisibility")
     .initialState(State(None, false))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getVisibility($.props.repositoryName))
+    .componentWillMount($ => $.modState(_.copy(kind = Some($.props.kind))))
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String) =
-    component.apply(Props(ctl, repositoryName))
+  def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String, kind: ImageVisibilityKind) =
+    component.apply(Props(ctl, repositoryName, kind))
 }

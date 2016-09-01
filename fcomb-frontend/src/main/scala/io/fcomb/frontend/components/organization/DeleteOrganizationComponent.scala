@@ -43,10 +43,8 @@ object DeleteOrganizationComponent {
               Rpc
                 .call[Unit](RpcMethod.DELETE, Resource.organization(props.orgName))
                 .map {
-                  case Xor.Right(_) =>
-                    updateDisabled(false) >>
-                      props.ctl.set(DashboardRoute.Root)
-                  case Xor.Left(e) =>
+                  case Xor.Right(_) => props.ctl.set(DashboardRoute.Root)
+                  case Xor.Left(e)  =>
                     // TODO
                     updateDisabled(false)
                 }
