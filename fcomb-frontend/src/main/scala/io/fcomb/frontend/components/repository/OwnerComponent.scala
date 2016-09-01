@@ -81,18 +81,19 @@ object OwnerComponent {
 
     private def setDefaultOwner(): Callback = {
       (for {
-        ownerScope <- $.props.map(_.ownerScope)
-        owners     <- $.state.map(_.owners)
-      } yield (ownerScope, owners)).flatMap {
-        case (ownerScope, owners) =>
-          val owner = ownerScope match {
+        props  <- $.props
+        owners <- $.state.map(_.owners)
+      } yield (props, owners)).flatMap {
+        case (props, owners) =>
+          val owner = props.ownerScope match {
             case RepositoryOwner.UserSelf => currentUser.headOption
             case RepositoryOwner.Organization(slug) =>
               owners.collectFirst {
                 case res @ OwnerItem(_, _, `slug`) => res
               }
           }
-          $.modState(
+          val resCB = owner.map(o => props.cb(Owner(o.id, o.kind))).getOrElse(Callback.empty)
+          resCB >> $.modState(
             _.copy(
               owner = owner,
               searchText = owner.map(_.title)
