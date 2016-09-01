@@ -22,7 +22,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.circe.Encoder
 import io.fcomb.server.CirceSupport._
-import io.fcomb.utils.Hash
 import scala.collection.immutable
 
 object CommonDirectives {
@@ -39,7 +38,7 @@ object CommonDirectives {
     completeWithStatus(StatusCodes.Accepted)
 
   def completeWithEtag[T](status: StatusCode, item: T)(implicit encoder: Encoder[T]): Route = {
-    val etagHash = Hash.xxhash(item.toString()).toHexString
+    val etagHash = item.hashCode.toHexString
     optionalHeaderValueByType[`If-None-Match`](()) {
       case Some(`If-None-Match`(EntityTagRange.Default(Seq(EntityTag(`etagHash`, _))))) =>
         complete(notModified)

@@ -32,7 +32,6 @@ import io.fcomb.server.CirceSupport._
 import io.circe.Encoder
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.json.models.Formats._
-import io.fcomb.utils.Hash
 import scala.compat.java8.OptionConverters._
 import scala.collection.immutable
 
@@ -71,7 +70,7 @@ object PaginationDirectives {
   // TODO: add Link: <api?limit=&offset=>; rel="next", <api?limit=&offset=>; rel="last"
   def completePagination[T](label: String, pd: PaginationData[T])(
       implicit encoder: Encoder[T]): Route = {
-    val etagHash = Hash.xxhash(pd.toString()).toHexString
+    val etagHash = pd.etagHash
     optionalHeaderValueByType[`If-None-Match`](()) {
       case Some(`If-None-Match`(EntityTagRange.Default(Seq(EntityTag(`etagHash`, _))))) =>
         complete(notModified)

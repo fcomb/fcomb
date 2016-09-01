@@ -48,7 +48,10 @@ final case class PaginationData[T](
     total: Int,
     offset: Long,
     limit: Long
-)
+) {
+  def etagHash =
+    (31L * (31L * (31L * data.hashCode + total) + offset) + limit).toHexString
+}
 
 final case class Pagination(
     sort: List[(String, SortOrder)],

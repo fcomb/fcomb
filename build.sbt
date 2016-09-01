@@ -20,7 +20,7 @@ lazy val akkaHttpCirceVersion = "1.9.0"
 lazy val akkaVersion          = "2.4.9"
 lazy val bouncyCastleVersion  = "1.54"
 lazy val catsVersion          = "0.7.0"
-lazy val circeVersion         = "0.5.0-M3"
+lazy val circeVersion         = "0.5.0"
 lazy val commonsVersion       = "1.10"
 lazy val enumeratumVersion    = "1.4.12"
 lazy val guavaVersion         = "19.0"
@@ -108,8 +108,7 @@ lazy val utils = project
     libraryDependencies ++= Seq(
       "com.typesafe"      % "config"       % "1.3.0",
       "com.github.kxbmap" %% "configs"     % "0.4.2",
-      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-      "net.jpountz.lz4"   % "lz4"          % "1.3.0"
+      "com.typesafe.akka" %% "akka-stream" % akkaVersion
     ))
   .enablePlugins(AutomateHeaderPlugin)
 
