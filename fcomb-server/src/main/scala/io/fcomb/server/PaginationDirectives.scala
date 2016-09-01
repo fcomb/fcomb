@@ -18,12 +18,21 @@ package io.fcomb.server
 
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.{ContentRange, StatusCodes, HttpRequest}
-import akka.http.scaladsl.model.headers.{`Content-Range`, Range, RangeUnits}
+import akka.http.scaladsl.model.{ContentRange, StatusCodes, HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.headers.{
+  `Content-Range`,
+  ETag,
+  EntityTag,
+  EntityTagRange,
+  `If-None-Match`,
+  Range,
+  RangeUnits
+}
 import io.fcomb.server.CirceSupport._
 import io.circe.Encoder
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.json.models.Formats._
+import io.fcomb.utils.Hash
 import scala.compat.java8.OptionConverters._
 import scala.collection.immutable
 
@@ -60,19 +69,29 @@ object PaginationDirectives {
   }
 
   // TODO: add Link: <api?limit=&offset=>; rel="next", <api?limit=&offset=>; rel="last"
-  def completePagination[T](label: String, pd: PaginationData[T])(implicit encoder: Encoder[T]) = {
-    val position = pd.data.length + pd.offset - 1L
-    val (status, headers) =
-      if (pd.offset == 0L && position < pd.total) (StatusCodes.OK, immutable.Seq.empty)
-      else if (pd.total != 0 && pd.offset >= pd.total)
-        (StatusCodes.RequestedRangeNotSatisfiable, immutable.Seq.empty)
-      else {
-        val range = ContentRange(pd.offset, position, pd.total.toLong)
-        val xs    = immutable.Seq(`Content-Range`(RangeUnits.Other(label), range))
-        (StatusCodes.PartialContent, xs)
-      }
-    respondWithHeaders(headers) {
-      complete((status, pd))
+  def completePagination[T](label: String, pd: PaginationData[T])(
+      implicit encoder: Encoder[T]): Route = {
+    val etagHash = Hash.xxhash(pd.toString()).toHexString
+    optionalHeaderValueByType[`If-None-Match`](()) {
+      case Some(`If-None-Match`(EntityTagRange.Default(Seq(EntityTag(`etagHash`, _))))) =>
+        complete(notModified)
+      case _ =>
+        val position = pd.data.length + pd.offset - 1L
+        val etag     = ETag(etagHash, false)
+        val (status, headers) =
+          if (pd.offset == 0L && position < pd.total) (StatusCodes.OK, immutable.Seq(etag))
+          else if (pd.total != 0 && pd.offset >= pd.total)
+            (StatusCodes.RequestedRangeNotSatisfiable, immutable.Seq(etag))
+          else {
+            val range = ContentRange(pd.offset, position, pd.total.toLong)
+            val xs    = immutable.Seq(etag, `Content-Range`(RangeUnits.Other(label), range))
+            (StatusCodes.PartialContent, xs)
+          }
+        respondWithHeaders(headers) {
+          complete((status, pd))
+        }
     }
   }
+
+  private val notModified = HttpResponse(StatusCodes.NotModified)
 }

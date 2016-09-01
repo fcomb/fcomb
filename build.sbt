@@ -108,7 +108,8 @@ lazy val utils = project
     libraryDependencies ++= Seq(
       "com.typesafe"      % "config"       % "1.3.0",
       "com.github.kxbmap" %% "configs"     % "0.4.2",
-      "com.typesafe.akka" %% "akka-stream" % akkaVersion
+      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+      "net.jpountz.lz4"   % "lz4"          % "1.3.0"
     ))
   .enablePlugins(AutomateHeaderPlugin)
 
