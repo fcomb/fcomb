@@ -35,115 +35,75 @@ object OwnerComponent {
                          isDisabled: Boolean,
                          cb: Owner => Callback)
   final case class OwnerItem(id: Int, kind: OwnerKind, title: String)
-  final case class State(owner: Option[OwnerItem],
-                         owners: Seq[OwnerItem],
-                         searchText: Option[String],
-                         data: js.Array[String])
+  final case class State(owner: Option[OwnerItem], owners: Seq[OwnerItem], data: js.Array[String])
 
   final class Backend($ : BackendScope[Props, State]) {
-    private lazy val currentUser = AppCircuit.currentUser.map { u =>
-      Seq(OwnerItem(u.id, OwnerKind.User, u.username))
-    }.getOrElse(Seq.empty)
+    private lazy val currentUser = AppCircuit.currentUser
+      .map(u => Seq(OwnerItem(u.id, OwnerKind.User, u.username)))
+      .getOrElse(Seq.empty)
 
-    private def getSuggestions(q: String): Callback = {
+    def fetchOwners(): Callback = {
+      val params = Map(
+        "role"  -> "admin",
+        "limit" -> "256"
+      )
       for {
         props <- $.props
         _ <- Callback.future {
-          val name = q.trim match {
-            case s if s.nonEmpty => s"$s*"
-            case _               => ""
-          }
-          val params = Map(
-            "name"  -> name,
-            "role"  -> "admin",
-            "limit" -> "256"
-          )
           Rpc
             .call[PaginationData[OrganizationResponse]](RpcMethod.GET,
                                                         Resource.userSelfOrganizations,
                                                         params)
             .map {
               case Xor.Right(res) =>
-                val owners = currentUser ++ res.data.map { o =>
-                  OwnerItem(o.id, OwnerKind.Organization, o.name)
+                val orgs   = res.data.map(o => OwnerItem(o.id, OwnerKind.Organization, o.name))
+                val owners = currentUser ++ orgs
+                val data   = js.Array(owners.map(_.title): _*)
+                val owner = props.ownerScope match {
+                  case RepositoryOwner.UserSelf => currentUser.headOption
+                  case RepositoryOwner.Organization(slug)                    =>
+                    owners.collectFirst { case res @ OwnerItem(_, _, `slug`) => res }
                 }
-                val data = js.Array(owners.map(_.title): _*)
-                $.modState(
-                  _.copy(
-                    owners = owners,
-                    data = data
-                  ))
+                owner.map(o => props.cb(Owner(o.id, o.kind))).getOrElse(Callback.empty) >>
+                  $.modState(
+                    _.copy(
+                      owner = owner,
+                      owners = owners,
+                      data = data
+                    ))
               case Xor.Left(e) => Callback.warn(e)
             }
         }
       } yield ()
     }
 
-    private def setDefaultOwner(): Callback = {
+    private def onChange(e: ReactEventI, idx: Int, owner: OwnerItem): Callback = {
       (for {
-        props  <- $.props
         owners <- $.state.map(_.owners)
-      } yield (props, owners)).flatMap {
-        case (props, owners) =>
-          val owner = props.ownerScope match {
-            case RepositoryOwner.UserSelf => currentUser.headOption
-            case RepositoryOwner.Organization(slug) =>
-              owners.collectFirst {
-                case res @ OwnerItem(_, _, `slug`) => res
-              }
-          }
-          val resCB = owner.map(o => props.cb(Owner(o.id, o.kind))).getOrElse(Callback.empty)
-          resCB >> $.modState(
-            _.copy(
-              owner = owner,
-              searchText = owner.map(_.title)
-            ))
+        cb     <- $.props.map(_.cb)
+      } yield (owners, cb)).flatMap {
+        case (owners, cb) =>
+          $.modState(_.copy(owner = Some(owner))) >> cb(Owner(owner.id, owner.kind))
       }
     }
-
-    def fetchDefaultOwners(): Callback =
-      getSuggestions("") >> setDefaultOwner()
-
-    private def onNewRequest(chosen: Value, idx: js.UndefOr[Int], ds: js.Array[String]): Callback = {
-      idx.toOption match {
-        case Some(index) =>
-          (for {
-            owners <- $.state.map(_.owners)
-            cb     <- $.props.map(_.cb)
-          } yield (owners, cb)).flatMap {
-            case (owners, cb) =>
-              owners.lift(index) match {
-                case Some(owner) if chosen == owner.title =>
-                  $.modState(_.copy(owner = Some(owner))) >> cb(Owner(owner.id, owner.kind))
-                case _ => Callback.warn(s"Unknown owner: $chosen")
-              }
-          }
-        case _ => Callback.warn("Empty index")
-      }
-    }
-
-    private def onUpdateInput(search: SearchText, ds: js.Array[Value]): Callback =
-      getSuggestions(search)
 
     def render(props: Props, state: State) = {
-      MuiAutoComplete(
+      val owners = state.owners.map(o =>
+        MuiMenuItem[OwnerItem](key = o.title, value = o, primaryText = o.title)())
+      MuiSelectField[OwnerItem](
         floatingLabelText = "Owner",
-        filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
         disabled = props.isDisabled,
-        dataSource = state.data,
-        searchText = state.searchText.orUndefined,
-        openOnFocus = true,
-        onNewRequest = onNewRequest _,
-        onUpdateInput = onUpdateInput _
-      )()
+        value = state.owner.orUndefined,
+        onChange = onChange _
+      )(owners)
     }
   }
 
   private val component =
     ReactComponentB[Props]("Owner")
-      .initialState(State(None, Seq.empty, None, js.Array()))
+      .initialState(State(None, Seq.empty, js.Array()))
       .renderBackend[Backend]
-      .componentWillMount(_.backend.fetchDefaultOwners())
+      .componentWillMount(_.backend.fetchOwners())
       .build
 
   def apply(ownerScope: RepositoryOwnerScope, isDisabled: Boolean, cb: Owner => Callback) =
