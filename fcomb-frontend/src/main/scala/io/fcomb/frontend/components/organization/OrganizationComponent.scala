@@ -17,6 +17,8 @@
 package io.fcomb.frontend.components.organization
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.repository.{RepositoriesComponent, RepositoryOwner}
@@ -43,17 +45,21 @@ object OrganizationComponent {
       }
     }
 
+    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+      $.props.flatMap(_.ctl.set(route))
+
     def render(props: Props, state: State) = {
       <.section(
         <.h2(s"Organization ${props.name}"),
         <.ul(
           <.li(props.ctl.link(DashboardRoute.OrganizationGroups(props.name))("Groups")),
-          <.li(
-            props.ctl.link(DashboardRoute.NewOrganizationRepository(props.name))(
-              "New repository")),
           <.li(props.ctl.link(DashboardRoute.OrganizationSettings(props.name))("Settings"))
         ),
-        RepositoriesComponent.apply(props.ctl, RepositoryOwner.Organization(props.name))
+        <.div(<.h1("Repositories"),
+            MuiFloatingActionButton(onTouchTap = setRoute(DashboardRoute.NewOrganizationRepository(props.name)) _)(
+              ContentAdd()()),
+          <.section(
+            RepositoriesComponent.apply(props.ctl, RepositoryOwner.Organization(props.name))))
       )
     }
   }

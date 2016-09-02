@@ -32,6 +32,7 @@ import scala.scalajs.js.JSConverters._
 
 object OwnerComponent {
   final case class Props(ownerScope: RepositoryOwnerScope,
+                         isAdminRoleOnly: Boolean,
                          isDisabled: Boolean,
                          cb: Owner => Callback)
   final case class OwnerItem(id: Int, kind: OwnerKind, title: String)
@@ -45,13 +46,14 @@ object OwnerComponent {
     private val limit = 256
 
     def fetchOwners(): Callback = {
-      val params = Map(
-        "role"  -> "admin",
-        "limit" -> limit.toString()
-      )
       for {
         props <- $.props
         _ <- Callback.future {
+          val role = if (props.isAdminRoleOnly) "admin" else ""
+          val params = Map(
+            "role"  -> role,
+            "limit" -> limit.toString()
+          ).filter(_._2.nonEmpty)
           Rpc
             .call[PaginationData[OrganizationResponse]](RpcMethod.GET,
                                                         Resource.userSelfOrganizations,
@@ -108,6 +110,9 @@ object OwnerComponent {
       .componentWillMount(_.backend.fetchOwners())
       .build
 
-  def apply(ownerScope: RepositoryOwnerScope, isDisabled: Boolean, cb: Owner => Callback) =
-    component.apply(Props(ownerScope, isDisabled, cb))
+  def apply(ownerScope: RepositoryOwnerScope,
+            isAdminRoleOnly: Boolean,
+            isDisabled: Boolean,
+            cb: Owner => Callback) =
+    component.apply(Props(ownerScope, isAdminRoleOnly, isDisabled, cb))
 }

@@ -18,7 +18,6 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import chandu0101.scalajs.react.components.materialui._
-import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
@@ -35,50 +34,39 @@ object RepositoriesComponent {
   final case class State(repositories: Seq[RepositoryResponse])
 
   final class Backend($ : BackendScope[Props, State]) {
-    val urlCB = $.props.map(_.owner).map {
-      case RepositoryOwner.UserSelf         => Resource.userSelfRepositories
-      case RepositoryOwner.User(id)         => Resource.userRepositories(id)
-      case RepositoryOwner.Organization(id) => Resource.organizationRepositories(id)
-    }
-
-    def getRepositories() = {
-      for {
-        url <- urlCB
-        _ <- Callback.future {
-          Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url).map {
-            case Xor.Right(pd) =>
-              $.modState(_.copy(pd.data))
-            case Xor.Left(e) => Callback.warn(e)
-          }
+    def getRepositories(owner: RepositoryOwner) = {
+      val url = owner match {
+        case RepositoryOwner.UserSelf         => Resource.userSelfRepositories
+        case RepositoryOwner.User(id)         => Resource.userRepositories(id)
+        case RepositoryOwner.Organization(id) => Resource.organizationRepositories(id)
+      }
+      Callback.future {
+        Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url).map {
+          case Xor.Right(pd) =>
+            $.modState(_.copy(pd.data))
+          case Xor.Left(e) => Callback.warn(e)
         }
-      } yield ()
+      }
     }
 
     def renderRepository(ctl: RouterCtl[DashboardRoute], repository: RepositoryResponse) = {
-      <.li(ctl.link(DashboardRoute.Repository(repository.slug))(repository.slug))
-    }
-
-    def renderRepositories(ctl: RouterCtl[DashboardRoute], repositories: Seq[RepositoryResponse]) = {
-      if (repositories.isEmpty) <.span("No repositories. Create one!")
-      else <.ul(repositories.map(renderRepository(ctl, _)))
+      <.li(ctl.link(DashboardRoute.Repository(repository.slug))(repository.name))
     }
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
     def render(props: Props, state: State) = {
-      <.div(<.h1("Repositories"),
-            MuiFloatingActionButton(onTouchTap = setRoute(DashboardRoute.NewRepository) _)(
-              ContentAdd()()),
-            <.br,
-            renderRepositories(props.ctl, state.repositories))
+      if (state.repositories.isEmpty) <.span("No repositories. Create one!")
+      else <.ul(state.repositories.map(renderRepository(props.ctl, _)))
     }
   }
 
   private val component = ReactComponentB[Props]("Repositories")
     .initialState(State(Seq.empty))
     .renderBackend[Backend]
-    .componentWillMount(_.backend.getRepositories())
+    .componentWillMount($ => $.backend.getRepositories($.props.owner))
+    .componentWillReceiveProps(cb => cb.$.backend.getRepositories(cb.nextProps.owner))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], owner: RepositoryOwner) =

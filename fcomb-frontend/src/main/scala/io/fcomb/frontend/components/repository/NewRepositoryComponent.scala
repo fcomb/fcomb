@@ -104,7 +104,7 @@ object NewRepositoryComponent {
           ^.disabled := state.isFormDisabled,
           <.div(^.display.flex,
                 ^.flexDirection.column,
-                OwnerComponent.apply(props.ownerScope, state.isFormDisabled, updateOwner _),
+                OwnerComponent.apply(props.ownerScope, true, state.isFormDisabled, updateOwner _),
                 MuiTextField(floatingLabelText = "Name",
                              id = "name",
                              name = "name",

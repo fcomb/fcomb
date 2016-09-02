@@ -41,7 +41,7 @@ object RouterComponent {
     staticRoute(root, DashboardRoute.Root) ~> redirectToPage(DashboardRoute.Repositories)(
       Redirect.Replace) |
     staticRoute("repositories", DashboardRoute.Repositories) ~> renderR(
-      ctl => UserRepositoriesComponent.apply(ctl, None)) |
+      ctl => DashboardRepositoriesComponent.apply(ctl)) |
     staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~> renderR(
       ctl => UserNewRepositoryComponent.apply(ctl)) |
     dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~> dynRenderR((r, ctl) => RepositoryComponent.apply(ctl, r.name)) |
