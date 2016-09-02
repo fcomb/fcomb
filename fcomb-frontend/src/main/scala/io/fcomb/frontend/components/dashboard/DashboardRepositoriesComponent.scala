@@ -22,47 +22,54 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.components.repository.{
   RepositoriesComponent,
   RepositoryOwner,
-  OwnerComponent
+  OwnerComponent,
+  OwnerItem
 }
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.models.{Owner, OwnerKind}
+import io.fcomb.models.OwnerKind
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 
 object DashboardRepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
-  final case class State(owner: Option[Owner])
+  final case class State(ownerItem: Option[OwnerItem])
 
   final case class Backend($ : BackendScope[Props, State]) {
     def setDefaultOwner(): Callback = {
       AppCircuit.currentUser match {
-        case Some(p) => $.modState(_.copy(owner = Some(Owner(p.id, OwnerKind.User))))
-        case _       => Callback.empty
+        case Some(p) =>
+          val ownerItem = OwnerItem(p.id, OwnerKind.User, p.username)
+          $.modState(_.copy(ownerItem = Some(ownerItem)))
+        case _ => Callback.empty
       }
     }
 
-    def updateOwner(owner: Owner) =
-      $.modState(_.copy(owner = Some(owner)))
+    def updateOwnerItem(ownerItem: OwnerItem) =
+      $.modState(_.copy(ownerItem = Some(ownerItem)))
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
     def render(props: Props, state: State) = {
-      val repositoriesSection = state.owner match {
-        case Some(owner) =>
-          val ownerScope = owner.kind match {
+      val repositoriesSection = state.ownerItem match {
+        case Some(ownerItem) =>
+          val ownerScope = ownerItem.kind match {
             case OwnerKind.Organization =>
-              RepositoryOwner.Organization(owner.id.toString())
+              RepositoryOwner.Organization(ownerItem.slug)
             case OwnerKind.User => RepositoryOwner.UserSelf
           }
-          <.section(<.header(OwnerComponent.apply(ownerScope, false, false, updateOwner _)),
+          <.section(<.header(OwnerComponent.apply(ownerScope, false, false, updateOwnerItem _)),
                     <.article(RepositoriesComponent.apply(props.ctl, ownerScope)))
         case _ => EmptyTag
       }
+      val route = state.ownerItem match {
+        case Some(OwnerItem(id, OwnerKind.Organization, slug)) =>
+          DashboardRoute.NewOrganizationRepository(slug)
+        case _ => DashboardRoute.NewRepository
+      }
       <.div(<.h1("Repositories"),
-            MuiFloatingActionButton(onTouchTap = setRoute(DashboardRoute.NewRepository) _)(
-              ContentAdd()()),
+            MuiFloatingActionButton(onTouchTap = setRoute(route) _)(ContentAdd()()),
             repositoriesSection)
     }
   }

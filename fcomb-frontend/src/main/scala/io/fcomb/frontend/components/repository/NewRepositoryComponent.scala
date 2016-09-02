@@ -93,8 +93,8 @@ object NewRepositoryComponent {
       $.modState(_.copy(description = value))
     }
 
-    def updateOwner(owner: Owner) =
-      $.modState(_.copy(owner = Some(owner)))
+    def updateOwnerItem(ownerItem: OwnerItem) =
+      $.modState(_.copy(owner = Some(ownerItem.toOwner)))
 
     def render(props: Props, state: State) = {
       <.div(
@@ -104,7 +104,7 @@ object NewRepositoryComponent {
           ^.disabled := state.isFormDisabled,
           <.div(^.display.flex,
                 ^.flexDirection.column,
-                OwnerComponent.apply(props.ownerScope, true, state.isFormDisabled, updateOwner _),
+                OwnerComponent(props.ownerScope, true, state.isFormDisabled, updateOwnerItem _),
                 MuiTextField(floatingLabelText = "Name",
                              id = "name",
                              name = "name",

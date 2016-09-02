@@ -23,7 +23,7 @@ import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.json.rpc.Formats.decodeOrganizationResponse
 import io.fcomb.json.models.Formats.decodePaginationData
-import io.fcomb.models.{Owner, OwnerKind, PaginationData}
+import io.fcomb.models.{OwnerKind, PaginationData}
 import io.fcomb.rpc.OrganizationResponse
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -34,8 +34,7 @@ object OwnerComponent {
   final case class Props(ownerScope: RepositoryOwnerScope,
                          isAdminRoleOnly: Boolean,
                          isDisabled: Boolean,
-                         cb: Owner => Callback)
-  final case class OwnerItem(id: Int, kind: OwnerKind, title: String)
+                         cb: OwnerItem => Callback)
   final case class State(owner: Option[OwnerItem], owners: Seq[OwnerItem], data: js.Array[String])
 
   final class Backend($ : BackendScope[Props, State]) {
@@ -62,7 +61,7 @@ object OwnerComponent {
               case Xor.Right(res) =>
                 val orgs   = res.data.map(o => OwnerItem(o.id, OwnerKind.Organization, o.name))
                 val owners = currentUser ++ orgs
-                val data   = js.Array(owners.map(_.title): _*)
+                val data   = js.Array(owners.map(_.slug): _*)
                 val owner = props.ownerScope match {
                   case RepositoryOwner.UserSelf => currentUser.headOption
                   case RepositoryOwner.Organization(slug)                    =>
@@ -73,7 +72,7 @@ object OwnerComponent {
                     owner = owner,
                     owners = owners,
                     data = data
-                  )) >> owner.map(o => props.cb(Owner(o.id, o.kind))).getOrElse(Callback.empty)
+                  )) >> owner.map(props.cb(_)).getOrElse(Callback.empty)
               case Xor.Left(e) => Callback.warn(e)
             }
         }
@@ -86,13 +85,13 @@ object OwnerComponent {
         cb     <- $.props.map(_.cb)
       } yield (owners, cb)).flatMap {
         case (owners, cb) =>
-          $.modState(_.copy(owner = Some(owner))) >> cb(Owner(owner.id, owner.kind))
+          $.modState(_.copy(owner = Some(owner))) >> cb(owner)
       }
     }
 
     def render(props: Props, state: State) = {
       val owners = state.owners.map(o =>
-        MuiMenuItem[OwnerItem](key = o.title, value = o, primaryText = o.title)())
+        MuiMenuItem[OwnerItem](key = o.slug, value = o, primaryText = o.slug)())
       MuiSelectField[OwnerItem](
         floatingLabelText = "Owner",
         disabled = props.isDisabled,
@@ -113,6 +112,6 @@ object OwnerComponent {
   def apply(ownerScope: RepositoryOwnerScope,
             isAdminRoleOnly: Boolean,
             isDisabled: Boolean,
-            cb: Owner => Callback) =
+            cb: OwnerItem => Callback) =
     component.apply(Props(ownerScope, isAdminRoleOnly, isDisabled, cb))
 }
