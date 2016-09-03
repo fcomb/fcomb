@@ -24,7 +24,7 @@ lazy val circeVersion         = "0.5.0"
 lazy val commonsVersion       = "1.10"
 lazy val enumeratumVersion    = "1.4.12"
 lazy val guavaVersion         = "19.0"
-lazy val slickPgVersion       = "0.15.0-M1"
+lazy val slickPgVersion       = "0.15.0-M2"
 lazy val slickVersion         = "3.2.0-M1"
 
 lazy val commonSettings =
@@ -337,7 +337,7 @@ lazy val root = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion,
-      "com.lihaoyi"       % "ammonite-repl"           % "0.7.5" % "test" cross CrossVersion.full,
+      "com.lihaoyi"       % "ammonite-repl"           % "0.7.6" % "test" cross CrossVersion.full,
       "ch.qos.logback"    % "logback-classic"         % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",

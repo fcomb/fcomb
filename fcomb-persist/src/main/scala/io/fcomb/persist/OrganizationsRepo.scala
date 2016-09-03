@@ -116,12 +116,12 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
           }
         }
     }
-    q.subquery
+    q.sortBy(_._1.name).subquery
   }
 
   private lazy val availableByUserIdCompiled = Compiled {
     (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      availableByUserIdScopeDBIO(userId).sortBy(_._1.name).drop(offset).take(limit)
+      availableByUserIdScopeDBIO(userId).drop(offset).take(limit)
   }
 
   private lazy val availableByUserIdTotalCompiled = Compiled { (userId: Rep[Int]) =>
@@ -129,15 +129,12 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
   }
 
   private def availableByUserIdDBIO(userId: Int, p: Pagination) = {
-    if (p.filter.isEmpty) {
-      val orgs  = availableByUserIdCompiled((userId, p.offset, p.limit)).result
-      val total = availableByUserIdTotalCompiled(userId).result
-      (orgs, total)
-    } else {
+    if (p.filter.isEmpty)
+      (availableByUserIdCompiled((userId, p.offset, p.limit)).result,
+       availableByUserIdTotalCompiled(userId).result)
+    else {
       val scope = availableByUserIdScopeDBIO(userId, p.filter)
-      val orgs  = scope.sortBy(_._1.name).drop(p.offset).take(p.limit).result
-      val total = scope.length.result
-      (orgs, total)
+      (scope.drop(p.offset).take(p.limit).result, scope.length.result)
     }
   }
 
