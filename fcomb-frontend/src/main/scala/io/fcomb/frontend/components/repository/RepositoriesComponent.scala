@@ -52,7 +52,7 @@ object RepositoriesComponent {
       }
     }
 
-    lazy val visibilityColumnStyle = js.Dynamic.literal("width" -> "24px")
+    lazy val visibilityColumnStyle = js.Dictionary("width" -> "24px")
 
     def renderRepository(ctl: RouterCtl[DashboardRoute], repository: RepositoryResponse) = {
       val lastModifiedAt = repository.updatedAt.getOrElse(repository.createdAt)
