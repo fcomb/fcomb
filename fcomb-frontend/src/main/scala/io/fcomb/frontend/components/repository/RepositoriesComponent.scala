@@ -28,6 +28,7 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 
 object RepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], owner: RepositoryOwner)
@@ -49,16 +50,46 @@ object RepositoriesComponent {
       }
     }
 
+    lazy val visibilityColumnStyle = js.Dynamic.literal("width" -> "30px")
+
     def renderRepository(ctl: RouterCtl[DashboardRoute], repository: RepositoryResponse) = {
-      <.li(ctl.link(DashboardRoute.Repository(repository.slug))(repository.name))
+      val lastActivityAt = repository.updatedAt.getOrElse(repository.createdAt)
+      MuiTableRow()(
+        MuiTableRowColumn(style = visibilityColumnStyle)(),
+        MuiTableRowColumn()(ctl.link(DashboardRoute.Repository(repository.slug))(repository.name)),
+        MuiTableRowColumn()(lastActivityAt)
+      )
     }
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
+    lazy val colNames = MuiTableRow()(
+      MuiTableHeaderColumn(style = visibilityColumnStyle)(""),
+      MuiTableHeaderColumn()("Name"),
+      MuiTableHeaderColumn()("Last modified")
+    )
+
     def render(props: Props, state: State) = {
       if (state.repositories.isEmpty) <.span("No repositories. Create one!")
-      else <.ul(state.repositories.map(renderRepository(props.ctl, _)))
+      else
+        <.article(
+          MuiTable(
+            selectable = false,
+            multiSelectable = false
+          )(
+            MuiTableHeader(
+              adjustForCheckbox = false,
+              displaySelectAll = false,
+              enableSelectAll = false
+            )(colNames),
+            MuiTableBody(
+              deselectOnClickaway = false,
+              displayRowCheckbox = false,
+              showRowHover = false,
+              stripedRows = false
+            )(state.repositories.map(renderRepository(props.ctl, _)))
+          ))
     }
   }
 
