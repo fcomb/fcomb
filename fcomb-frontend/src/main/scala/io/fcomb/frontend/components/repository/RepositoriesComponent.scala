@@ -18,6 +18,7 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import chandu0101.scalajs.react.components.materialui._
+import io.fcomb.frontend.components.TimeAgoComponent
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
@@ -65,7 +66,7 @@ object RepositoriesComponent {
         ),
         MuiTableRowColumn(key = "name")(
           ctl.link(DashboardRoute.Repository(repository.slug))(repository.name)),
-        MuiTableRowColumn(key = "lastModifiedAt")(lastModifiedAt)
+        MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt))
       )
     }
 
