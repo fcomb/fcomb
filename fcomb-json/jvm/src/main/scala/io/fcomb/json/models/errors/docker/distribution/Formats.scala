@@ -22,19 +22,19 @@ import io.circe.{Encoder, Decoder}
 import io.fcomb.models.errors.docker.distribution._
 
 object Formats {
-  implicit final val encodeDistributionErrorCode: Encoder[DistributionErrorCode] =
+  final implicit val encodeDistributionErrorCode: Encoder[DistributionErrorCode] =
     Circe.encoder(DistributionErrorCode)
 
-  implicit final val encodeDistributionError: Encoder[DistributionError] =
+  final implicit val encodeDistributionError: Encoder[DistributionError] =
     Encoder.forProduct2("code", "message")(e => (e.code.entryName, e.message))
 
-  implicit final val encodeDistributionErrorResponse: Encoder[DistributionErrorResponse] =
+  final implicit val encodeDistributionErrorResponse: Encoder[DistributionErrorResponse] =
     deriveEncoder
 
-  implicit final val decodeDistributionErrorCode: Decoder[DistributionErrorCode] =
+  final implicit val decodeDistributionErrorCode: Decoder[DistributionErrorCode] =
     Circe.decoder(DistributionErrorCode)
 
-  implicit final val decodeDistributionError: Decoder[DistributionError] = {
+  final implicit val decodeDistributionError: Decoder[DistributionError] = {
     Decoder.instance { c =>
       for {
         code    <- c.get[DistributionErrorCode]("code")
@@ -63,6 +63,6 @@ object Formats {
     }
   }
 
-  implicit final val decodeDistributionErrorResponse: Decoder[DistributionErrorResponse] =
+  final implicit val decodeDistributionErrorResponse: Decoder[DistributionErrorResponse] =
     deriveDecoder
 }

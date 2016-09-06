@@ -42,7 +42,7 @@ object CompatibleFormats {
     indent = ""
   )
 
-  implicit final val encodeSchemaV1ContainerConfig: Encoder[SchemaV1.ContainerConfig] =
+  final implicit val encodeSchemaV1ContainerConfig: Encoder[SchemaV1.ContainerConfig] =
     Encoder.forProduct22("Hostname",
                          "Domainname",
                          "User",
@@ -81,17 +81,17 @@ object CompatibleFormats {
                          "Size",
                          "throwaway")(SchemaV1.Config.unapply(_).get)
 
-  implicit final val encodeSchemaV1LayerContainerConfig: Encoder[SchemaV1.LayerContainerConfig] =
+  final implicit val encodeSchemaV1LayerContainerConfig: Encoder[SchemaV1.LayerContainerConfig] =
     Encoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.unapply(_).get)
 
   final val encodeSchemaV1Layer: Encoder[SchemaV1.Layer] = Encoder
     .forProduct7("id", "parent", "comment", "created", "container_config", "author", "throwaway")(
       SchemaV1.Layer.unapply(_).get)
 
-  implicit final val encodeSchemaV1FsLayer: Encoder[SchemaV1.FsLayer] =
+  final implicit val encodeSchemaV1FsLayer: Encoder[SchemaV1.FsLayer] =
     Encoder.forProduct1("blobSum")(SchemaV1.FsLayer.unapply(_).get)
 
-  implicit final val encodeSchemaV1Compatibility = new Encoder[SchemaV1.Compatibility] {
+  final implicit val encodeSchemaV1Compatibility = new Encoder[SchemaV1.Compatibility] {
     def apply(compatibility: SchemaV1.Compatibility) = {
       val layerJson = compatibility match {
         case c: SchemaV1.Config => encodeSchemaV1Config.apply(c)
@@ -103,12 +103,12 @@ object CompatibleFormats {
     }
   }
 
-  implicit final val encodeSignatureHeader: Encoder[SchemaV1.SignatureHeader] = deriveEncoder
+  final implicit val encodeSignatureHeader: Encoder[SchemaV1.SignatureHeader] = deriveEncoder
 
-  implicit final val encodeSchemaV1Signature: Encoder[SchemaV1.Signature] =
+  final implicit val encodeSchemaV1Signature: Encoder[SchemaV1.Signature] =
     Encoder.forProduct3("header", "signature", "protected")(SchemaV1.Signature.unapply(_).get)
 
-  implicit final val encodeSchemaV1Manifest: Encoder[SchemaV1.Manifest] =
+  final implicit val encodeSchemaV1Manifest: Encoder[SchemaV1.Manifest] =
     Encoder.forProduct7("name",
                         "tag",
                         "fsLayers",
@@ -117,12 +117,12 @@ object CompatibleFormats {
                         "signatures",
                         "schemaVersion")(SchemaV1.Manifest.unapply(_).get)
 
-  implicit final val encodeSchemaV1Protected: Encoder[SchemaV1.Protected] =
+  final implicit val encodeSchemaV1Protected: Encoder[SchemaV1.Protected] =
     Encoder.forProduct3("formatLength", "formatTail", "time")(SchemaV1.Protected.unapply(_).get)
 
-  implicit final val decodeDistributionErrorCode = Circe.decoder(DistributionErrorCode)
+  final implicit val decodeDistributionErrorCode = Circe.decoder(DistributionErrorCode)
 
-  implicit final def decodeCanBuildFromWithNull[A, C[_]](
+  final implicit def decodeCanBuildFromWithNull[A, C[_]](
       implicit d: Decoder[A],
       cbf: CanBuildFrom[Nothing, A, C[A]]
   ): Decoder[C[A]] = new Decoder[C[A]] {
@@ -132,7 +132,7 @@ object CompatibleFormats {
     }
   }
 
-  implicit final def decodeMapLikeWithNull[M[K, +V] <: Map[K, V], K, V](
+  final implicit def decodeMapLikeWithNull[M[K, +V] <: Map[K, V], K, V](
       implicit dk: KeyDecoder[K],
       dv: Decoder[V],
       cbf: CanBuildFrom[Nothing, (K, V), M[K, V]]
@@ -143,14 +143,14 @@ object CompatibleFormats {
     }
   }
 
-  implicit final val decodeSchemaV1LayerContainerConfig: Decoder[SchemaV1.LayerContainerConfig] =
+  final implicit val decodeSchemaV1LayerContainerConfig: Decoder[SchemaV1.LayerContainerConfig] =
     Decoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.apply)
 
   final val decodeSchemaV1Layer = Decoder
     .forProduct7("id", "parent", "comment", "created", "container_config", "author", "throwaway")(
       SchemaV1.Layer.apply)
 
-  implicit final val decodeSchemaV1LayerFromV1Compatibility: Decoder[SchemaV1.Layer] =
+  final implicit val decodeSchemaV1LayerFromV1Compatibility: Decoder[SchemaV1.Layer] =
     Decoder.instance { c =>
       c.get[String]("v1Compatibility").flatMap { cs =>
         parse(cs).map(_.hcursor) match {
@@ -160,7 +160,7 @@ object CompatibleFormats {
       }
     }
 
-  implicit final val decodeSchemaV1ContainerConfig: Decoder[SchemaV1.ContainerConfig] =
+  final implicit val decodeSchemaV1ContainerConfig: Decoder[SchemaV1.ContainerConfig] =
     Decoder.forProduct22("Hostname",
                          "Domainname",
                          "User",
@@ -199,7 +199,7 @@ object CompatibleFormats {
                          "Size",
                          "throwaway")(SchemaV1.Config.apply)
 
-  implicit final val decodeSchemaV1ConfigFromV1Compatibility: Decoder[SchemaV1.Config] =
+  final implicit val decodeSchemaV1ConfigFromV1Compatibility: Decoder[SchemaV1.Config] =
     Decoder.instance { c =>
       c.get[String]("v1Compatibility").flatMap { cs =>
         parse(cs).map(_.hcursor) match {
@@ -209,7 +209,7 @@ object CompatibleFormats {
       }
     }
 
-  implicit final val decodeSchemaV1CompatibilityList: Decoder[List[SchemaV1.Compatibility]] =
+  final implicit val decodeSchemaV1CompatibilityList: Decoder[List[SchemaV1.Compatibility]] =
     Decoder.instance { c =>
       c.focus.asArray match {
         case Some(configJson :: xsJson) =>
@@ -227,20 +227,20 @@ object CompatibleFormats {
       }
     }
 
-  implicit final val decodeSchemaV1SignatureHeader: Decoder[SchemaV1.SignatureHeader] =
+  final implicit val decodeSchemaV1SignatureHeader: Decoder[SchemaV1.SignatureHeader] =
     deriveDecoder
 
-  implicit final val decodeSchemaV1Signature: Decoder[SchemaV1.Signature] = deriveDecoder
+  final implicit val decodeSchemaV1Signature: Decoder[SchemaV1.Signature] = deriveDecoder
 
-  implicit final val decodeSchemaV1FsLayer: Decoder[SchemaV1.FsLayer] = deriveDecoder
+  final implicit val decodeSchemaV1FsLayer: Decoder[SchemaV1.FsLayer] = deriveDecoder
 
-  implicit final val decodeSchemaV1Manifest: Decoder[SchemaV1.Manifest] = deriveDecoder
+  final implicit val decodeSchemaV1Manifest: Decoder[SchemaV1.Manifest] = deriveDecoder
 
-  implicit final val decodeSchemaV2Descriptor: Decoder[SchemaV2.Descriptor] = deriveDecoder
+  final implicit val decodeSchemaV2Descriptor: Decoder[SchemaV2.Descriptor] = deriveDecoder
 
-  implicit final val decodeSchemaV2Manifest: Decoder[SchemaV2.Manifest] = deriveDecoder
+  final implicit val decodeSchemaV2Manifest: Decoder[SchemaV2.Manifest] = deriveDecoder
 
-  implicit final val decodeSchemaManifest: Decoder[SchemaManifest] = Decoder.instance { c =>
+  final implicit val decodeSchemaManifest: Decoder[SchemaManifest] = Decoder.instance { c =>
     c.get[Int]("schemaVersion").flatMap {
       case 1 => decodeSchemaV1Manifest.apply(c)
       case 2 => decodeSchemaV2Manifest.apply(c)
@@ -248,16 +248,16 @@ object CompatibleFormats {
     }
   }
 
-  implicit final val decodeSchemaV1Protected: Decoder[SchemaV1.Protected] =
+  final implicit val decodeSchemaV1Protected: Decoder[SchemaV1.Protected] =
     Decoder.forProduct3("formatLength", "formatTail", "time")(SchemaV1.Protected.apply)
 
-  implicit final val decodeSchemaV2ImageRootFs: Decoder[SchemaV2.ImageRootFs] =
+  final implicit val decodeSchemaV2ImageRootFs: Decoder[SchemaV2.ImageRootFs] =
     Decoder.forProduct3("type", "diff_ids", "base_layer")(SchemaV2.ImageRootFs.apply)
 
-  implicit final val decodeSchemaV2ImageHistory: Decoder[SchemaV2.ImageHistory] =
+  final implicit val decodeSchemaV2ImageHistory: Decoder[SchemaV2.ImageHistory] =
     Decoder.forProduct5("created", "author", "created_by", "comment", "empty_layer")(
       SchemaV2.ImageHistory.apply)
 
-  implicit final val decodeSchemaV2ImageConfig: Decoder[SchemaV2.ImageConfig] =
+  final implicit val decodeSchemaV2ImageConfig: Decoder[SchemaV2.ImageConfig] =
     Decoder.forProduct3("rootfs", "history", "architecture")(SchemaV2.ImageConfig.apply)
 }

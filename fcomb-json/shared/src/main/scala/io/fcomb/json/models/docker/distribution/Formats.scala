@@ -22,17 +22,17 @@ import io.circe.{Encoder, Decoder}
 import io.fcomb.models.docker.distribution._
 
 object Formats {
-  implicit final val encodeImageVisibilityKind: Encoder[ImageVisibilityKind] =
+  final implicit val encodeImageVisibilityKind: Encoder[ImageVisibilityKind] =
     Circe.encoder(ImageVisibilityKind)
 
-  implicit final val encodeDistributionImageCatalog: Encoder[DistributionImageCatalog] =
+  final implicit val encodeDistributionImageCatalog: Encoder[DistributionImageCatalog] =
     deriveEncoder
-  implicit final val encodeImageTagsResponse: Encoder[ImageTagsResponse] = deriveEncoder
+  final implicit val encodeImageTagsResponse: Encoder[ImageTagsResponse] = deriveEncoder
 
-  implicit final val decodeImageVisibilityKind: Decoder[ImageVisibilityKind] =
+  final implicit val decodeImageVisibilityKind: Decoder[ImageVisibilityKind] =
     Circe.decoder(ImageVisibilityKind)
 
-  implicit final val decodeDistributionImageCatalog: Decoder[DistributionImageCatalog] =
+  final implicit val decodeDistributionImageCatalog: Decoder[DistributionImageCatalog] =
     deriveDecoder
-  implicit final val decodeImageTagsResponse: Decoder[ImageTagsResponse] = deriveDecoder
+  final implicit val decodeImageTagsResponse: Decoder[ImageTagsResponse] = deriveDecoder
 }

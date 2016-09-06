@@ -21,9 +21,9 @@ import io.circe.{Encoder, Decoder}
 import io.fcomb.models.errors.{ErrorMessage, FailureResponse}
 
 object Formats {
-  implicit final val encodeErrorMessage: Encoder[ErrorMessage]       = deriveEncoder
-  implicit final val encodeFailureResponse: Encoder[FailureResponse] = deriveEncoder
+  final implicit val encodeErrorMessage: Encoder[ErrorMessage]       = deriveEncoder
+  final implicit val encodeFailureResponse: Encoder[FailureResponse] = deriveEncoder
 
-  implicit final val decodeErrorMessage: Decoder[ErrorMessage]       = deriveDecoder
-  implicit final val decodeFailureResponse: Decoder[FailureResponse] = deriveDecoder
+  final implicit val decodeErrorMessage: Decoder[ErrorMessage]       = deriveDecoder
+  final implicit val decodeFailureResponse: Decoder[FailureResponse] = deriveDecoder
 }

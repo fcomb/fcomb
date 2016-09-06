@@ -21,11 +21,11 @@ import io.circe.{Encoder, Decoder}
 import io.fcomb.models.acl._
 
 object Formats {
-  implicit final val encodeAction: Encoder[Action]         = Circe.encoder(Action)
-  implicit final val encodeRole: Encoder[Role]             = Circe.encoder(Role)
-  implicit final val encodeMemberKind: Encoder[MemberKind] = Circe.encoder(MemberKind)
+  final implicit val encodeAction: Encoder[Action]         = Circe.encoder(Action)
+  final implicit val encodeRole: Encoder[Role]             = Circe.encoder(Role)
+  final implicit val encodeMemberKind: Encoder[MemberKind] = Circe.encoder(MemberKind)
 
-  implicit final val decodeAction: Decoder[Action]         = Circe.decoder(Action)
-  implicit final val decodeRole: Decoder[Role]             = Circe.decoder(Role)
-  implicit final val decodeMemberKind: Decoder[MemberKind] = Circe.decoder(MemberKind)
+  final implicit val decodeAction: Decoder[Action]         = Circe.decoder(Action)
+  final implicit val decodeRole: Decoder[Role]             = Circe.decoder(Role)
+  final implicit val decodeMemberKind: Decoder[MemberKind] = Circe.decoder(MemberKind)
 }

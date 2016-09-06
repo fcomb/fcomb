@@ -23,6 +23,7 @@ import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.PaginationData
+import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -50,14 +51,21 @@ object RepositoriesComponent {
       }
     }
 
-    lazy val visibilityColumnStyle = js.Dynamic.literal("width" -> "30px")
+    lazy val visibilityColumnStyle = js.Dynamic.literal("width" -> "24px")
 
     def renderRepository(ctl: RouterCtl[DashboardRoute], repository: RepositoryResponse) = {
-      val lastActivityAt = repository.updatedAt.getOrElse(repository.createdAt)
-      MuiTableRow()(
-        MuiTableRowColumn(style = visibilityColumnStyle)(),
-        MuiTableRowColumn()(ctl.link(DashboardRoute.Repository(repository.slug))(repository.name)),
-        MuiTableRowColumn()(lastActivityAt)
+      val lastModifiedAt = repository.updatedAt.getOrElse(repository.createdAt)
+      val icon = repository.visibilityKind match {
+        case ImageVisibilityKind.Public  => Mui.SvgIcons.ActionLockOpen
+        case ImageVisibilityKind.Private => Mui.SvgIcons.ActionLock
+      }
+      MuiTableRow(key = repository.id.toString)(
+        MuiTableRowColumn(style = visibilityColumnStyle, key = "visibilityKind")(
+          <.span(^.title := repository.visibilityKind.toString, icon()())
+        ),
+        MuiTableRowColumn(key = "name")(
+          ctl.link(DashboardRoute.Repository(repository.slug))(repository.name)),
+        MuiTableRowColumn(key = "lastModifiedAt")(lastModifiedAt)
       )
     }
 
@@ -65,29 +73,28 @@ object RepositoriesComponent {
       $.props.flatMap(_.ctl.set(route))
 
     lazy val colNames = MuiTableRow()(
-      MuiTableHeaderColumn(style = visibilityColumnStyle)(""),
-      MuiTableHeaderColumn()("Name"),
-      MuiTableHeaderColumn()("Last modified")
+      MuiTableHeaderColumn(style = visibilityColumnStyle, key = "visibilityKind")("Visible"),
+      MuiTableHeaderColumn(key = "name")("Name"),
+      MuiTableHeaderColumn(key = "lastModifiedAt")("Last modified")
     )
 
     def render(props: Props, state: State) = {
       if (state.repositories.isEmpty) <.span("No repositories. Create one!")
       else
         <.article(
-          MuiTable(
-            selectable = false,
-            multiSelectable = false
-          )(
+          MuiTable(selectable = false, multiSelectable = false)(
             MuiTableHeader(
               adjustForCheckbox = false,
               displaySelectAll = false,
-              enableSelectAll = false
+              enableSelectAll = false,
+              key = "header"
             )(colNames),
             MuiTableBody(
               deselectOnClickaway = false,
               displayRowCheckbox = false,
               showRowHover = false,
-              stripedRows = false
+              stripedRows = false,
+              key = "body"
             )(state.repositories.map(renderRepository(props.ctl, _)))
           ))
     }

@@ -24,19 +24,19 @@ import io.fcomb.models.acl.MemberKind
 import io.fcomb.rpc.acl._
 
 object Formats {
-  implicit final val encodePermissionUserMemberResponse: Encoder[PermissionUserMemberResponse] =
+  final implicit val encodePermissionUserMemberResponse: Encoder[PermissionUserMemberResponse] =
     Encoder.forProduct5("id", "kind", "isOwner", "username", "fullName")(r =>
       (r.id, r.kind: MemberKind, r.isOwner, r.username, r.fullName))
-  implicit final val encodePermissionGroupMemberResponse: Encoder[PermissionGroupMemberResponse] =
+  final implicit val encodePermissionGroupMemberResponse: Encoder[PermissionGroupMemberResponse] =
     Encoder.forProduct3("id", "kind", "name")(r => (r.id, r.kind: MemberKind, r.name))
-  implicit final val encodePermissionMemberResponse: Encoder[PermissionMemberResponse] =
+  final implicit val encodePermissionMemberResponse: Encoder[PermissionMemberResponse] =
     new Encoder[PermissionMemberResponse] {
       def apply(res: PermissionMemberResponse) = res match {
         case r: PermissionUserMemberResponse  => encodePermissionUserMemberResponse.apply(r)
         case r: PermissionGroupMemberResponse => encodePermissionGroupMemberResponse.apply(r)
       }
     }
-  implicit final val encodePermissionResponse: Encoder[PermissionResponse] = deriveEncoder
+  final implicit val encodePermissionResponse: Encoder[PermissionResponse] = deriveEncoder
   private final val encodePermissionUserIdRequest: Encoder[PermissionUserIdRequest] =
     Encoder.forProduct2("id", "kind")(r => (r.id, r.kind: MemberKind))
   private final val encodePermissionUsernameRequest: Encoder[PermissionUsernameRequest] =
@@ -45,7 +45,7 @@ object Formats {
     Encoder.forProduct2("id", "kind")(r => (r.id, r.kind: MemberKind))
   private final val encodePermissionGroupNameRequest: Encoder[PermissionGroupNameRequest] =
     Encoder.forProduct2("name", "kind")(r => (r.name, r.kind: MemberKind))
-  implicit final val encodePermissionMemberRequest = new Encoder[PermissionMemberRequest] {
+  final implicit val encodePermissionMemberRequest = new Encoder[PermissionMemberRequest] {
     def apply(req: PermissionMemberRequest) = req match {
       case r: PermissionUserIdRequest    => encodePermissionUserIdRequest.apply(r)
       case r: PermissionUsernameRequest  => encodePermissionUsernameRequest.apply(r)
@@ -53,14 +53,14 @@ object Formats {
       case r: PermissionGroupNameRequest => encodePermissionGroupNameRequest.apply(r)
     }
   }
-  implicit final val encodePermissionPermissionCreateRequest: Encoder[PermissionCreateRequest] =
+  final implicit val encodePermissionPermissionCreateRequest: Encoder[PermissionCreateRequest] =
     deriveEncoder
 
-  implicit final val decodePermissionUserMemberResponse: Decoder[PermissionUserMemberResponse] =
+  final implicit val decodePermissionUserMemberResponse: Decoder[PermissionUserMemberResponse] =
     deriveDecoder
-  implicit final val decodePermissionGroupMemberResponse: Decoder[PermissionGroupMemberResponse] =
+  final implicit val decodePermissionGroupMemberResponse: Decoder[PermissionGroupMemberResponse] =
     deriveDecoder
-  implicit final val decodePermissionMemberResponse: Decoder[PermissionMemberResponse] =
+  final implicit val decodePermissionMemberResponse: Decoder[PermissionMemberResponse] =
     Decoder.instance { c =>
       c.get[MemberKind]("kind").flatMap {
         case MemberKind.User  => decodePermissionUserMemberResponse.apply(c)
@@ -68,8 +68,8 @@ object Formats {
       }
     }
 
-  implicit final val decodePermissionResponse: Decoder[PermissionResponse] = deriveDecoder
-  implicit final val decodePermissionMemberRequest: Decoder[PermissionMemberRequest] =
+  final implicit val decodePermissionResponse: Decoder[PermissionResponse] = deriveDecoder
+  final implicit val decodePermissionMemberRequest: Decoder[PermissionMemberRequest] =
     Decoder.instance { c =>
       val id = c.downField("id")
       c.get[MemberKind]("kind").flatMap {
@@ -89,6 +89,6 @@ object Formats {
           else Xor.Left(DecodingFailure("You should pass 'id' or 'name' field", c.history))
       }
     }
-  implicit final val decodePermissionPermissionCreateRequest: Decoder[PermissionCreateRequest] =
+  final implicit val decodePermissionPermissionCreateRequest: Decoder[PermissionCreateRequest] =
     deriveDecoder
 }

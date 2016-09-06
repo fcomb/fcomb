@@ -24,17 +24,17 @@ import io.fcomb.json.models.acl.Formats._
 import io.fcomb.json.models.docker.distribution.Formats._
 
 object Formats {
-  implicit final val encodeRepositoryResponse: Encoder[RepositoryResponse]       = deriveEncoder
-  implicit final val encodeRepositoryTagResponse: Encoder[RepositoryTagResponse] = deriveEncoder
-  implicit final val encodeImageCreateRequest: Encoder[ImageCreateRequest]       = deriveEncoder
-  implicit final val encodeImageUpdateRequest: Encoder[ImageUpdateRequest]       = deriveEncoder
-  implicit final val encodeImageWebhookRequest: Encoder[ImageWebhookRequest]     = deriveEncoder
-  implicit final val encodeImageWebhookResponse: Encoder[ImageWebhookResponse]   = deriveEncoder
+  final implicit val encodeRepositoryResponse: Encoder[RepositoryResponse]       = deriveEncoder
+  final implicit val encodeRepositoryTagResponse: Encoder[RepositoryTagResponse] = deriveEncoder
+  final implicit val encodeImageCreateRequest: Encoder[ImageCreateRequest]       = deriveEncoder
+  final implicit val encodeImageUpdateRequest: Encoder[ImageUpdateRequest]       = deriveEncoder
+  final implicit val encodeImageWebhookRequest: Encoder[ImageWebhookRequest]     = deriveEncoder
+  final implicit val encodeImageWebhookResponse: Encoder[ImageWebhookResponse]   = deriveEncoder
 
-  implicit final val decodeRepositoryResponse: Decoder[RepositoryResponse]       = deriveDecoder
-  implicit final val decodeRepositoryTagResponse: Decoder[RepositoryTagResponse] = deriveDecoder
-  implicit final val decodeImageCreateRequest: Decoder[ImageCreateRequest]       = deriveDecoder
-  implicit final val decodeImageUpdateRequest: Decoder[ImageUpdateRequest]       = deriveDecoder
-  implicit final val decodeImageWebhookRequest: Decoder[ImageWebhookRequest]     = deriveDecoder
-  implicit final val decodeImageWebhookResponse: Decoder[ImageWebhookResponse]   = deriveDecoder
+  final implicit val decodeRepositoryResponse: Decoder[RepositoryResponse]       = deriveDecoder
+  final implicit val decodeRepositoryTagResponse: Decoder[RepositoryTagResponse] = deriveDecoder
+  final implicit val decodeImageCreateRequest: Decoder[ImageCreateRequest]       = deriveDecoder
+  final implicit val decodeImageUpdateRequest: Decoder[ImageUpdateRequest]       = deriveDecoder
+  final implicit val decodeImageWebhookRequest: Decoder[ImageWebhookRequest]     = deriveDecoder
+  final implicit val decodeImageWebhookResponse: Decoder[ImageWebhookResponse]   = deriveDecoder
 }

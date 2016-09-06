@@ -27,6 +27,6 @@ object CirceSupport extends akkahttpcirce.CirceSupport {
     indent = ""
   )
 
-  implicit final def printer(json: Json): String =
+  final implicit def printer(json: Json): String =
     compactPrinter.pretty(json)
 }

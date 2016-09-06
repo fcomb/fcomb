@@ -21,13 +21,13 @@ import java.util.UUID
 import slick.jdbc.SetParameter
 
 object Implicits {
-  implicit final val setUuid: SetParameter[UUID] = {
+  final implicit val setUuid: SetParameter[UUID] = {
     SetParameter { (u, pp) =>
       pp.setObject(u, JDBCType.BINARY.getVendorTypeNumber)
     }
   }
 
-  implicit final val seqUuid: SetParameter[Seq[UUID]] = setParameterSeq[UUID]
+  final implicit val seqUuid: SetParameter[Seq[UUID]] = setParameterSeq[UUID]
 
   private def setParameterSeq[T](implicit pconv: SetParameter[T]): SetParameter[Seq[T]] = {
     SetParameter { (s, pp) =>

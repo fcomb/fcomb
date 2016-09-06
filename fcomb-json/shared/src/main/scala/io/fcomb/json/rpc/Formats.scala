@@ -23,45 +23,45 @@ import io.fcomb.json.models.acl.Formats._
 import io.fcomb.rpc._
 
 object Formats {
-  implicit final val encodeSessionCreateRequest: Encoder[SessionCreateRequest] = deriveEncoder
-  implicit final val encodeUserProfileResponse: Encoder[UserProfileResponse]   = deriveEncoder
-  implicit final val encodeUserSignUpRequest: Encoder[UserSignUpRequest]       = deriveEncoder
-  implicit final val encodeUserUpdateRequest: Encoder[UserUpdateRequest]       = deriveEncoder
-  implicit final val encodeOrganizationCreateRequest: Encoder[OrganizationCreateRequest] =
+  final implicit val encodeSessionCreateRequest: Encoder[SessionCreateRequest] = deriveEncoder
+  final implicit val encodeUserProfileResponse: Encoder[UserProfileResponse]   = deriveEncoder
+  final implicit val encodeUserSignUpRequest: Encoder[UserSignUpRequest]       = deriveEncoder
+  final implicit val encodeUserUpdateRequest: Encoder[UserUpdateRequest]       = deriveEncoder
+  final implicit val encodeOrganizationCreateRequest: Encoder[OrganizationCreateRequest] =
     deriveEncoder
-  // implicit final val encodeOrganizationUpdateRequest: Encoder[OrganizationUpdateRequest] =
+  // final implicit val encodeOrganizationUpdateRequest: Encoder[OrganizationUpdateRequest] =
   //   deriveEncoder
-  implicit final val encodeOrganizationResponse: Encoder[OrganizationResponse] = deriveEncoder
-  implicit final val encodeOrganizationGroupRequest: Encoder[OrganizationGroupRequest] =
+  final implicit val encodeOrganizationResponse: Encoder[OrganizationResponse] = deriveEncoder
+  final implicit val encodeOrganizationGroupRequest: Encoder[OrganizationGroupRequest] =
     deriveEncoder
-  implicit final val encodeOrganizationGroupResponse: Encoder[OrganizationGroupResponse] =
+  final implicit val encodeOrganizationGroupResponse: Encoder[OrganizationGroupResponse] =
     deriveEncoder
-  implicit final val encodeMemberUserIdRequest: Encoder[MemberUserIdRequest]     = deriveEncoder
-  implicit final val encodeMemberUsernameRequest: Encoder[MemberUsernameRequest] = deriveEncoder
-  implicit final val encodeMemberUserRequest = new Encoder[MemberUserRequest] {
+  final implicit val encodeMemberUserIdRequest: Encoder[MemberUserIdRequest]     = deriveEncoder
+  final implicit val encodeMemberUsernameRequest: Encoder[MemberUsernameRequest] = deriveEncoder
+  final implicit val encodeMemberUserRequest = new Encoder[MemberUserRequest] {
     def apply(req: MemberUserRequest) = req match {
       case r: MemberUserIdRequest   => encodeMemberUserIdRequest.apply(r)
       case r: MemberUsernameRequest => encodeMemberUsernameRequest.apply(r)
     }
   }
-  implicit final def encodeDataResponse[T](
+  final implicit def encodeDataResponse[T](
       implicit encoder: Encoder[T]): Encoder[DataResponse[T]] =
     deriveEncoder
 
-  implicit final val decodeSessionCreateRequest: Decoder[SessionCreateRequest] = deriveDecoder
-  implicit final val decodeUserProfileResponse: Decoder[UserProfileResponse]   = deriveDecoder
-  implicit final val decodeUserSignUpRequest: Decoder[UserSignUpRequest]       = deriveDecoder
-  implicit final val decodeUserUpdateRequest: Decoder[UserUpdateRequest]       = deriveDecoder
-  implicit final val decodeOrganizationCreateRequest: Decoder[OrganizationCreateRequest] =
+  final implicit val decodeSessionCreateRequest: Decoder[SessionCreateRequest] = deriveDecoder
+  final implicit val decodeUserProfileResponse: Decoder[UserProfileResponse]   = deriveDecoder
+  final implicit val decodeUserSignUpRequest: Decoder[UserSignUpRequest]       = deriveDecoder
+  final implicit val decodeUserUpdateRequest: Decoder[UserUpdateRequest]       = deriveDecoder
+  final implicit val decodeOrganizationCreateRequest: Decoder[OrganizationCreateRequest] =
     deriveDecoder
-  // implicit final val decodeOrganizationOrganizationUpdateRequest: Decoder[
+  // final implicit val decodeOrganizationOrganizationUpdateRequest: Decoder[
   //   OrganizationUpdateRequest]                                                 = deriveDecoder
-  implicit final val decodeOrganizationResponse: Decoder[OrganizationResponse] = deriveDecoder
-  implicit final val decodeOrganizationGroupRequest: Decoder[OrganizationGroupRequest] =
+  final implicit val decodeOrganizationResponse: Decoder[OrganizationResponse] = deriveDecoder
+  final implicit val decodeOrganizationGroupRequest: Decoder[OrganizationGroupRequest] =
     deriveDecoder
-  implicit final val decodeOrganizationGroupResponse: Decoder[OrganizationGroupResponse] =
+  final implicit val decodeOrganizationGroupResponse: Decoder[OrganizationGroupResponse] =
     deriveDecoder
-  implicit final val decodeMemberUserRequest: Decoder[MemberUserRequest] = Decoder.instance { c =>
+  final implicit val decodeMemberUserRequest: Decoder[MemberUserRequest] = Decoder.instance { c =>
     val id       = c.downField("id")
     val username = c.downField("username")
     if (id.succeeded && !username.succeeded) {
@@ -70,7 +70,7 @@ object Formats {
       Decoder[String].apply(username.any).map(MemberUsernameRequest)
     } else Xor.Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
   }
-  implicit final def decodeDataResponse[T](
+  final implicit def decodeDataResponse[T](
       implicit decoder: Decoder[T]): Decoder[DataResponse[T]] =
     deriveDecoder
 }
