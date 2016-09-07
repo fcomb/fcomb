@@ -70,6 +70,7 @@ class ImageBlobUploadsHandlerSpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     BlobFileUtils.getBlobFilePath(bsDigest).delete()
+    ()
   }
 
   "The image blob upload handler" should {

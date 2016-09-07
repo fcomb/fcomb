@@ -16,18 +16,18 @@
 
 package io.fcomb.crypto
 
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.codec.binary.Base32
 import org.apache.commons.codec.digest.DigestUtils
 import org.jose4j.jca.ProviderContext
 import org.jose4j.jwk.{EllipticCurveJsonWebKey, EcJwkGenerator, JsonWebKey}
 import org.jose4j.jws.EcdsaUsingShaAlgorithm
 import org.jose4j.keys.EllipticCurves
-import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.collection.immutable
 import java.security.PublicKey
 
-object Jws {
+object Jws extends LazyLogging {
   def verify(algorithm: String,
              params: immutable.Map[String, String],
              payload: String,
@@ -78,8 +78,6 @@ object Jws {
     }
     b32.grouped(4).mkString(":")
   }
-
-  private lazy val logger = LoggerFactory.getLogger(getClass)
 
   private val ctx = new ProviderContext()
 }

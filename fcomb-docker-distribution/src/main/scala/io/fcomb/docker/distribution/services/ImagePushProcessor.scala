@@ -25,22 +25,20 @@ import akka.stream.{Materializer, ClosedShape}
 import akka.util.Timeout
 import akka.util.{ByteString, Timeout}
 import cats.data.Xor
+import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.services.Exceptions._
 import io.fcomb.utils.StringUtils
 import java.io.File
 import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.util.UUID
-import org.slf4j.LoggerFactory
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Success, Failure}
 
 sealed trait EntityMessage
 
-trait ProcessorClustedSharding[Id] {
-  lazy val logger = LoggerFactory.getLogger(getClass)
-
+trait ProcessorClustedSharding[Id] extends LazyLogging {
   val extractEntityId: ShardRegion.ExtractEntityId = {
     case EntityEnvelope(id, payload) => (id.toString, payload)
   }

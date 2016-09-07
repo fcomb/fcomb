@@ -20,20 +20,19 @@ import akka.actor._
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import cats.data.Xor
+import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.persist.docker.distribution.{BlobFilesRepo, ImageBlobsRepo}
 import io.fcomb.utils.Config.docker.distribution.gc
 import java.time.OffsetDateTime
 import java.util.UUID
-import org.slf4j.LoggerFactory
 import scala.collection.mutable
 import scala.util.Failure
 
-object GarbageCollectorService {
+object GarbageCollectorService extends LazyLogging {
   val actorName = "garbage-collector"
 
   private var actorRef: ActorRef = _
-  private lazy val logger        = LoggerFactory.getLogger(getClass)
 
   def start()(implicit system: ActorSystem, mat: Materializer): ActorRef = {
     if (actorRef eq null) {

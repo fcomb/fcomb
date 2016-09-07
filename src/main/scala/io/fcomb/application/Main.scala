@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.Db
 import io.fcomb.application.server.Frontend
 import io.fcomb.docker.distribution.server.{Api => DockerApi}
@@ -11,14 +12,11 @@ import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlob
 import io.fcomb.server.Api
 import io.fcomb.services.{EmailService, EventService}
 import io.fcomb.utils.Config
-import org.slf4j.LoggerFactory
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-object Main extends App {
-  private val logger = LoggerFactory.getLogger(this.getClass)
-
+object Main extends App with LazyLogging {
   implicit val sys = ActorSystem(Config.actorSystemName, Config.config)
   implicit val mat = ActorMaterializer()
   import sys.dispatcher

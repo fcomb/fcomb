@@ -22,21 +22,20 @@ import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, HttpEntity}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
+import com.typesafe.scalalogging.LazyLogging
 import io.circe.Encoder
 import io.fcomb.models.EventDetails
 import io.fcomb.models.docker.distribution.Image
 import io.fcomb.persist.EventsRepo
 import io.fcomb.persist.docker.distribution.ImageWebhooksRepo
 import io.fcomb.json.models.Formats._
-import org.slf4j.LoggerFactory
 
-object EventService {
+object EventService extends LazyLogging {
   import EventServiceMessages._
 
   val actorName = "event-service"
 
   private var actorRef: ActorRef = _
-  private lazy val logger        = LoggerFactory.getLogger(getClass)
 
   def start()(implicit system: ActorSystem, mat: Materializer): ActorRef = {
     if (actorRef eq null) {

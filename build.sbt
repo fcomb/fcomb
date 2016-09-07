@@ -39,8 +39,9 @@ lazy val commonSettings =
         Resolver.bintrayRepo("etaty", "maven")
       ),
       libraryDependencies ++= Seq(
-        "com.chuusai"   %% "shapeless" % "2.3.2",
-        "org.typelevel" %% "cats"      % catsVersion
+        "com.chuusai"                %% "shapeless"     % "2.3.2",
+        "org.typelevel"              %% "cats"          % catsVersion,
+        "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0"
       ),
       scalacOptions ++= Seq(
         "-encoding",

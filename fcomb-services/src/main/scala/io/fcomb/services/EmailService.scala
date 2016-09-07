@@ -18,16 +18,15 @@ package io.fcomb.services
 
 import akka.actor._
 import akka.stream.Materializer
+import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.templates.HtmlTemplate
 import io.fcomb.utils.Config.{smtp => config}
 import org.apache.commons.mail._
-import org.slf4j.LoggerFactory
 
-object EmailService {
+object EmailService extends LazyLogging {
   val actorName = "email-service"
 
   private var actorRef: ActorRef = _
-  private lazy val logger        = LoggerFactory.getLogger(getClass)
 
   // todo - Pinned Dispatcher?
   def start()(implicit system: ActorSystem, mat: Materializer): ActorRef = {

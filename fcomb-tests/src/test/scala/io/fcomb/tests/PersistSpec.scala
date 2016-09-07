@@ -19,15 +19,13 @@ package io.fcomb.tests
 import io.fcomb.Db
 import io.fcomb.persist.UsersRepo
 import io.fcomb.persist.docker.distribution._
+import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
-import org.slf4j.LoggerFactory
 
-private[this] object PersistSpec {
-  lazy val logger = LoggerFactory.getLogger(getClass)
-
+private[this] object PersistSpec extends LazyLogging {
   lazy val initDbOnlyOnce = {
     logger.info("Clean db schema")
     val conn = Db.db.createSession().conn
@@ -52,9 +50,8 @@ private[this] object PersistSpec {
     tables.map(t => s"TRUNCATE ${t.baseTableRow.tableName} CASCADE").mkString(";\n")
 }
 
-trait PersistSpec extends BeforeAndAfterAll with BeforeAndAfterEach { this: Suite =>
-  lazy val logger = LoggerFactory.getLogger(getClass)
-
+trait PersistSpec extends BeforeAndAfterAll with BeforeAndAfterEach with LazyLogging {
+  this: Suite =>
   override def beforeAll(): Unit = {
     super.beforeAll()
     PersistSpec.initDbOnlyOnce
@@ -67,5 +64,6 @@ trait PersistSpec extends BeforeAndAfterAll with BeforeAndAfterEach { this: Suit
     val st   = conn.prepareStatement(PersistSpec.truncateQuery)
     try st.executeUpdate()
     finally conn.close()
+    ()
   }
 }
