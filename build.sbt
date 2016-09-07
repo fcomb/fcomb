@@ -3,7 +3,7 @@ import de.heikoseeberger.sbtheader.license.Apache2_0
 import scala.concurrent.duration._
 
 lazy val akkaHttpCirceVersion = "1.9.0"
-lazy val akkaVersion          = "2.4.9"
+lazy val akkaVersion          = "2.4.10"
 lazy val bouncyCastleVersion  = "1.55"
 lazy val catsVersion          = "0.7.2"
 lazy val circeVersion         = "0.5.1"
@@ -155,7 +155,7 @@ lazy val persist = project
   .settings(libraryDependencies ++= Seq(
     "commons-codec"       % "commons-codec"        % commonsVersion,
     "io.fcomb"            %% "db-migration"        % "0.3.1",
-    "org.postgresql"      % "postgresql"           % "9.4.1209" exclude ("org.slf4j", "slf4j-simple"),
+    "org.postgresql"      % "postgresql"           % "9.4.1210" exclude ("org.slf4j", "slf4j-simple"),
     "com.typesafe.akka"   %% "akka-http-core"      % akkaVersion,
     "com.typesafe.slick"  %% "slick"               % slickVersion,
     "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),

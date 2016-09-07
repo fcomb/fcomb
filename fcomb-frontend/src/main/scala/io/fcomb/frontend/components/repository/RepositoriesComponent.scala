@@ -74,7 +74,7 @@ object RepositoriesComponent {
       $.props.flatMap(_.ctl.set(route))
 
     lazy val colNames = MuiTableRow()(
-      MuiTableHeaderColumn(style = visibilityColumnStyle, key = "visibilityKind")("Visible"),
+      MuiTableHeaderColumn(style = visibilityColumnStyle, key = "visibilityKind")("Visibility"),
       MuiTableHeaderColumn(key = "name")("Name"),
       MuiTableHeaderColumn(key = "lastModifiedAt")("Last modified")
     )
