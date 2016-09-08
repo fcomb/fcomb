@@ -59,18 +59,20 @@ object DashboardRepositoriesComponent {
               RepositoryOwner.Organization(ownerItem.slug)
             case OwnerKind.User => RepositoryOwner.UserSelf
           }
-          <.section(<.header(OwnerComponent.apply(ownerScope, false, false, updateOwnerItem _)),
-                    <.article(RepositoriesComponent.apply(props.ctl, ownerScope)))
-        case _ => EmptyTag
+          Seq(MuiCardActions(key = "actions")(
+                OwnerComponent.apply(ownerScope, false, false, updateOwnerItem _)),
+              RepositoriesComponent.apply(props.ctl, ownerScope))
+        case _ => Seq.empty
       }
       val route = state.ownerItem match {
         case Some(OwnerItem(id, OwnerKind.Organization, slug)) =>
           DashboardRoute.NewOrganizationRepository(slug)
         case _ => DashboardRoute.NewRepository
       }
-      <.div(<.h1("Repositories"),
-            MuiFloatingActionButton(onTouchTap = setRoute(route) _)(ContentAdd()()),
-            repositoriesSection)
+      MuiCard()(
+        MuiCardTitle(key = "title")(<.h1("Repositories")),
+        MuiFloatingActionButton(key = "actions", onTouchTap = setRoute(route) _)(ContentAdd()()),
+        repositoriesSection)
     }
   }
 

@@ -90,10 +90,12 @@ object OwnerComponent {
     }
 
     def render(props: Props, state: State) = {
-      val owners = state.owners.map(o =>
-        MuiMenuItem[OwnerItem](key = o.slug, value = o, primaryText = o.slug)())
+      val owners = state.owners.groupBy(_.kind).flatMap {
+        case (kind, xs) =>
+          MuiSubheader(key = kind.value)(s"${kind.entryName}s".capitalize) +:
+            xs.map(o => MuiMenuItem[OwnerItem](key = o.slug, value = o, primaryText = o.slug)())
+      }
       MuiSelectField[OwnerItem](
-        floatingLabelText = "Owner",
         disabled = props.isDisabled,
         value = state.owner.orUndefined,
         maxHeight = limit + 1,

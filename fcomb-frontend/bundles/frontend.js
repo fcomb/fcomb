@@ -1,4 +1,5 @@
 require('normalize.css');
+require('bootstrap-grid');
 require('roboto-npm-webfont');
 
 window.ReactDOM = require('react-dom');

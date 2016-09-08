@@ -82,7 +82,7 @@ object RepositoriesComponent {
     def render(props: Props, state: State) = {
       if (state.repositories.isEmpty) <.span("No repositories. Create one!")
       else
-        <.article(
+        <.section(
           MuiTable(selectable = false, multiSelectable = false)(
             MuiTableHeader(
               adjustForCheckbox = false,
