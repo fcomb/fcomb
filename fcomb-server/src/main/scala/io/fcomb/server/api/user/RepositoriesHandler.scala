@@ -41,6 +41,19 @@ object RepositoriesHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         extractPagination { pg =>
+          val res = ImagesRepo.paginateByUser(user.getId(), pg)
+          onSuccess(res) { p =>
+            completePagination(ImagesRepo.label, p)
+          }
+        }
+      }
+    }
+  }
+
+  def available = {
+    extractExecutionContext { implicit ec =>
+      authenticateUser { user =>
+        extractPagination { pg =>
           val res = ImagesRepo.paginateAvailableByUserId(user.getId(), pg)
           onSuccess(res) { p =>
             completePagination(ImagesRepo.label, p)
@@ -72,9 +85,12 @@ object RepositoriesHandler {
 
   val routes: Route = {
     // format: OFF
-    path(servicePath) {
-      get(index) ~
-      post(create)
+    pathPrefix(servicePath) {
+      pathEnd {
+        get(index) ~
+        post(create)
+      } ~
+      path("available")(get(available))
     }
     // format: ON
   }

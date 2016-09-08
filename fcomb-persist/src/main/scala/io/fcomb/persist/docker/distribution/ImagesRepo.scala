@@ -173,9 +173,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   }
 
   private def availableByUserOwnerDBIO(userId: Rep[Int]) = {
-    table.filter { t =>
-      t.ownerId === userId && t.ownerKind === (OwnerKind.User: OwnerKind)
-    }.map(t => (t, (Action.Manage: Rep[Action]).asColumnOf[Action]))
+    table
+      .filter(t => t.ownerId === userId && t.ownerKind === (OwnerKind.User: OwnerKind))
+      .map(t => (t, (Action.Manage: Rep[Action]).asColumnOf[Action]))
   }
 
   private def availableByUserPermissionsDBIO(userId: Rep[Int]) = {
@@ -439,6 +439,24 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     })
   }
 
+  private lazy val findByUserOwnerCompiled = Compiled {
+    (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
+      availableByUserOwnerDBIO(userId).sortBy(_._1.name).drop(offset).take(limit)
+  }
+
+  private lazy val findByUserOwnerTotalCompiled = Compiled { userId: Rep[Int] =>
+    availableByUserOwnerDBIO(userId).length
+  }
+
+  def paginateByUser(userId: Int, p: Pagination)(
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
+    db.run(for {
+      images <- findByUserOwnerCompiled((userId, p.offset, p.limit)).result
+      total  <- findByUserOwnerTotalCompiled(userId).result
+      data = images.map((ImageHelpers.responseFrom _).tupled)
+    } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
+  }
+
   private def availableByOrganizationAndUserDBIO(orgId: Rep[Int], userId: Rep[Int]) = {
     organizationAdminsScope.filter {
       case ((_, ogt), ogut) =>
@@ -493,11 +511,8 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     })
   }
 
-  def updateVisibility(id: Int, visibilityKind: ImageVisibilityKind): Future[_] = {
-    db.run {
-      table.filter(_.id === id).map(_.visibilityKind).update(visibilityKind)
-    }
-  }
+  def updateVisibility(id: Int, visibilityKind: ImageVisibilityKind): Future[_] =
+    db.run(table.filter(_.id === id).map(_.visibilityKind).update(visibilityKind))
 
   def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
     for {
