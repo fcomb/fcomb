@@ -17,10 +17,11 @@
 package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.components.TimeAgoComponent
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.components.TimeAgoComponent
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.PaginationData
@@ -53,6 +54,7 @@ object RepositoriesComponent {
     }
 
     lazy val visibilityColumnStyle = js.Dictionary("width" -> "24px")
+    lazy val menuColumnStyle       = js.Dictionary("width" -> "24px")
 
     def renderRepository(ctl: RouterCtl[DashboardRoute], repository: RepositoryResponse) = {
       val lastModifiedAt = repository.updatedAt.getOrElse(repository.createdAt)
@@ -60,13 +62,19 @@ object RepositoriesComponent {
         case ImageVisibilityKind.Public  => Mui.SvgIcons.ActionLockOpen
         case ImageVisibilityKind.Private => Mui.SvgIcons.ActionLock
       }
+      val menuBtn = MuiIconButton()(Mui.SvgIcons.NavigationMoreVert()())
+      val actions = Seq(MuiMenuItem(primaryText = "Open", key = "open")())
       MuiTableRow(key = repository.id.toString)(
         MuiTableRowColumn(style = visibilityColumnStyle, key = "visibilityKind")(
-          <.span(^.title := repository.visibilityKind.toString, icon()())
+          <.span(^.title := repository.visibilityKind.toString,
+                 icon(color = Mui.Styles.LightRawTheme.palette.primary3Color)())
         ),
         MuiTableRowColumn(key = "name")(
           ctl.link(DashboardRoute.Repository(repository.slug))(repository.name)),
-        MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt))
+        MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt)),
+        MuiTableRowColumn(style = menuColumnStyle, key = "menu")(
+          MuiIconMenu(iconButtonElement = menuBtn)(actions)
+        )
       )
     }
 
@@ -76,28 +84,32 @@ object RepositoriesComponent {
     lazy val colNames = MuiTableRow()(
       MuiTableHeaderColumn(style = visibilityColumnStyle, key = "visibilityKind")("Visibility"),
       MuiTableHeaderColumn(key = "name")("Name"),
-      MuiTableHeaderColumn(key = "lastModifiedAt")("Last modified")
+      MuiTableHeaderColumn(key = "lastModifiedAt")("Last modified"),
+      MuiTableHeaderColumn(style = menuColumnStyle, key = "menu")()
     )
 
     def render(props: Props, state: State) = {
-      if (state.repositories.isEmpty) <.span("No repositories. Create one!")
-      else
-        <.section(
-          MuiTable(selectable = false, multiSelectable = false)(
-            MuiTableHeader(
-              adjustForCheckbox = false,
-              displaySelectAll = false,
-              enableSelectAll = false,
-              key = "header"
-            )(colNames),
-            MuiTableBody(
-              deselectOnClickaway = false,
-              displayRowCheckbox = false,
-              showRowHover = false,
-              stripedRows = false,
-              key = "body"
-            )(state.repositories.map(renderRepository(props.ctl, _)))
-          ))
+      val rows =
+        if (state.repositories.isEmpty)
+          Seq(
+            MuiTableRow(rowNumber = 4, key = "empty")(
+              MuiTableRowColumn()("There are no repositories to show")))
+        else state.repositories.map(renderRepository(props.ctl, _))
+      MuiTable(selectable = false, multiSelectable = false)(
+        MuiTableHeader(
+          adjustForCheckbox = false,
+          displaySelectAll = false,
+          enableSelectAll = false,
+          key = "header"
+        )(colNames),
+        MuiTableBody(
+          deselectOnClickaway = false,
+          displayRowCheckbox = false,
+          showRowHover = false,
+          stripedRows = false,
+          key = "body"
+        )(rows)
+      )
     }
   }
 

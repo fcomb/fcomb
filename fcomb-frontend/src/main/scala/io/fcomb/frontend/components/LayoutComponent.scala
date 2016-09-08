@@ -19,10 +19,12 @@ package io.fcomb.frontend.components
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.styles.Global
 import io.fcomb.frontend.{DashboardRoute, Route}
+import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router._
 import japgolly.scalajs.react.vdom.prefix_<^._
-import japgolly.scalajs.react._
+import scalacss.ScalaCssReact._
 
 object LayoutComponent {
   final case class Props(ctl: RouterCtl[Route], res: Resolution[Route])
@@ -60,7 +62,6 @@ object LayoutComponent {
                 MuiAppBar(title = "fcomb registry",
                           onLeftIconButtonTouchTap = openDrawer _,
                           showMenuIconButton = true)()),
-              <.section(body),
               MuiDrawer(docked = false, open = state.isOpen, onRequestChange = closeDrawer _)(
                 MuiMenuItem(key = "repos",
                             primaryText = "Repositories",
@@ -68,7 +69,12 @@ object LayoutComponent {
                 MuiMenuItem(key = "orgs",
                             primaryText = "Organizations",
                             onTouchTap = setRoute(DashboardRoute.Organizations) _)()
-              )))
+              ),
+              <.main(^.`class` := "container", body),
+              <.footer(
+                Global.footer,
+                "© 2016 ",
+                <.a(^.href := "https://github.com/fcomb/fcomb", ^.target := "_blank", "fcomb"))))
     }
   }
 

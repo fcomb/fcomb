@@ -96,6 +96,7 @@ object OwnerComponent {
             xs.map(o => MuiMenuItem[OwnerItem](key = o.slug, value = o, primaryText = o.slug)())
       }
       MuiSelectField[OwnerItem](
+        floatingLabelText = "Namespace",
         disabled = props.isDisabled,
         value = state.owner.orUndefined,
         maxHeight = limit + 1,

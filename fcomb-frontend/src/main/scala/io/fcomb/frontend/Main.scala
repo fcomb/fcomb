@@ -25,7 +25,7 @@ import org.scalajs.dom.document
 import scala.scalajs.js.JSApp
 import scalacss.Defaults._
 import scalacss.ScalaCssReact._
-import scalacss.mutable.GlobalRegistry
+import scalacss.internal.mutable.GlobalRegistry
 
 object Main extends JSApp {
   def main(): Unit = {

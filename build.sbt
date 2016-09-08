@@ -286,7 +286,7 @@ lazy val frontend = project
     },
     packageBin in Compile <<= (packageBin in Compile).dependsOn(frontendBundleBuild),
     libraryDependencies ++= Seq(
-      "com.github.japgolly.scalacss" %%% "ext-react"              % "0.4.1",
+      "com.github.japgolly.scalacss" %%% "ext-react"              % "0.5.0",
       "com.github.japgolly.scalajs-react" %%% "extra"             % "0.11.1",
       "com.github.chandu0101.scalajs-react-components" %%% "core" % "0.5.0",
       "org.scala-js" %%% "scalajs-dom"                            % "0.9.1",

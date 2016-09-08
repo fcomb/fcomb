@@ -28,7 +28,7 @@ object Global extends StyleSheet.Inline {
   val app = style(display.flex,
                   flexDirection.column,
                   listStyle := "none",
-                  fontFamily := "Roboto, sans-serif",
+                  fontFamily :=! "Roboto, sans-serif",
                   padding.`0`)
 
   val menuItem = styleF.bool(
@@ -41,4 +41,12 @@ object Global extends StyleSheet.Inline {
     ))
 
   val content = style(display.flex, padding(30.px), flexDirection.column, alignItems.center)
+
+  val footer = style(textAlign.center,
+                     paddingTop(24.px),
+                     paddingBottom(12.px),
+                     position.absolute,
+                     // bottom(0.px),
+                     right(0.px),
+                     left(0.px))
 }
