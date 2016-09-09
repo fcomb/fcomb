@@ -22,7 +22,7 @@ import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.components.TimeAgoComponent
+import io.fcomb.frontend.components.{TimeAgoComponent, LayoutComponent}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
@@ -76,7 +76,7 @@ object RepositoriesComponent {
       MuiTableRow(key = repository.id.toString)(
         MuiTableRowColumn(style = visibilityColumnStyle, key = "visibilityKind")(
           <.span(^.title := repository.visibilityKind.toString,
-                 icon(color = Mui.Styles.LightRawTheme.palette.primary3Color)())
+                 icon(color = LayoutComponent.style.palette.primary3Color)())
         ),
         MuiTableRowColumn(key = "name")(
           ctl.link(DashboardRoute.Repository(repository.slug))(name)),

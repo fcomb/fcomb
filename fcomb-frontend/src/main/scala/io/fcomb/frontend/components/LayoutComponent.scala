@@ -73,6 +73,7 @@ object LayoutComponent {
               <.main(^.`class` := "container", body),
               <.footer(Global.footer,
                        <.a(Global.footerLink,
+                           Seq(^.color := style.palette.primary3Color.toString),
                            ^.href := "https://github.com/fcomb/fcomb",
                            ^.target := "_blank",
                            "© 2016 fcomb"))))
@@ -91,7 +92,9 @@ object LayoutComponent {
 
   private val sessionConn = AppCircuit.connect(_.session)
 
-  private val theme = Mui.Styles.getMuiTheme(Mui.Styles.LightRawTheme)
+  val style = Mui.Styles.LightRawTheme
+
+  private val theme = Mui.Styles.getMuiTheme(style)
 
   private val component =
     ReactComponentB[Props]("Layout").initialState(State(false)).renderBackend[Backend].build

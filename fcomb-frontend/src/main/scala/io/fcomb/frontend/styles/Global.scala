@@ -31,5 +31,5 @@ object Global extends StyleSheet.Inline {
                      right(0.px),
                      left(0.px))
 
-  val footerLink = style(textDecoration := "none", color :=! "#999", fontSize(13.px))
+  val footerLink = style(textDecoration := "none", fontSize(13.px))
 }
