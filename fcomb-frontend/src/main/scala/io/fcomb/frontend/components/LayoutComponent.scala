@@ -71,10 +71,11 @@ object LayoutComponent {
                             onTouchTap = setRoute(DashboardRoute.Organizations) _)()
               ),
               <.main(^.`class` := "container", body),
-              <.footer(
-                Global.footer,
-                "© 2016 ",
-                <.a(^.href := "https://github.com/fcomb/fcomb", ^.target := "_blank", "fcomb"))))
+              <.footer(Global.footer,
+                       <.a(Global.footerLink,
+                           ^.href := "https://github.com/fcomb/fcomb",
+                           ^.target := "_blank",
+                           "© 2016 fcomb"))))
     }
   }
 

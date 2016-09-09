@@ -21,26 +21,7 @@ import scalacss.Defaults._
 object Global extends StyleSheet.Inline {
   import dsl._
 
-  val button = style(
-    addClassNames("btn", "btn-default")
-  )
-
-  val app = style(display.flex,
-                  flexDirection.column,
-                  listStyle := "none",
-                  fontFamily :=! "Roboto, sans-serif",
-                  padding.`0`)
-
-  val menuItem = styleF.bool(
-    selected =>
-      styleS(
-        lineHeight(48.px),
-        padding :=! "0 25px",
-        cursor.pointer,
-        textDecoration := "none"
-    ))
-
-  val content = style(display.flex, padding(30.px), flexDirection.column, alignItems.center)
+  val app = style(fontFamily :=! "Roboto, sans-serif")
 
   val footer = style(textAlign.center,
                      paddingTop(24.px),
@@ -49,4 +30,6 @@ object Global extends StyleSheet.Inline {
                      // bottom(0.px),
                      right(0.px),
                      left(0.px))
+
+  val footerLink = style(textDecoration := "none", color :=! "#999", fontSize(13.px))
 }
