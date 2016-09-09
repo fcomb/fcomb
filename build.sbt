@@ -2,16 +2,15 @@ import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 import scala.concurrent.duration._
 
-lazy val akkaHttpCirceVersion = "1.9.0"
-lazy val akkaVersion          = "2.4.10"
-lazy val bouncyCastleVersion  = "1.55"
-lazy val catsVersion          = "0.7.2"
-lazy val circeVersion         = "0.5.1"
-lazy val commonsVersion       = "1.10"
-lazy val enumeratumVersion    = "1.4.14"
-lazy val guavaVersion         = "19.0"
-lazy val slickPgVersion       = "0.15.0-M2"
-lazy val slickVersion         = "3.2.0-M1"
+lazy val akkaVersion         = "2.4.10"
+lazy val bouncyCastleVersion = "1.55"
+lazy val catsVersion         = "0.7.2"
+lazy val circeVersion        = "0.5.1"
+lazy val commonsVersion      = "1.10"
+lazy val enumeratumVersion   = "1.4.14"
+lazy val guavaVersion        = "19.0"
+lazy val slickPgVersion      = "0.15.0-M2"
+lazy val slickVersion        = "3.2.0-M1"
 
 lazy val buildSettings = Seq(
   organization := "io.fcomb",
@@ -219,7 +218,7 @@ lazy val services = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka"  %% "akka-distributed-data-experimental" % akkaVersion,
       "com.typesafe.akka"  %% "akka-http-core"                     % akkaVersion,
-      "de.heikoseeberger"  %% "akka-http-circe"                    % akkaHttpCirceVersion,
+      "de.heikoseeberger"  %% "akka-http-circe"                    % "1.10.0",
       "org.apache.commons" % "commons-email"                       % "1.4"
     ))
   .enablePlugins(AutomateHeaderPlugin)
