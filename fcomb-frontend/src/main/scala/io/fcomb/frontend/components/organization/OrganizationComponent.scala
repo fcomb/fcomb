@@ -21,7 +21,7 @@ import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.components.repository.{RepositoriesComponent, RepositoryOwner}
+import io.fcomb.frontend.components.repository.{RepositoriesComponent, Namespace}
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.rpc.OrganizationResponse
 import japgolly.scalajs.react._
@@ -59,7 +59,7 @@ object OrganizationComponent {
             MuiFloatingActionButton(onTouchTap = setRoute(DashboardRoute.NewOrganizationRepository(props.name)) _)(
               ContentAdd()()),
           <.section(
-            RepositoriesComponent.apply(props.ctl, RepositoryOwner.Organization(props.name))))
+            RepositoriesComponent.apply(props.ctl, Namespace.Organization(props.name))))
       )
     }
   }

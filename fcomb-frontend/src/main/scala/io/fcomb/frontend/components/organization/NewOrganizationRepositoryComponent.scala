@@ -17,16 +17,21 @@
 package io.fcomb.frontend.components.organization
 
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.repository.{NewRepositoryComponent, RepositoryOwner}
+import io.fcomb.frontend.components.repository.{NewRepositoryComponent, Namespace}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 
 object NewOrganizationRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], name: String)
 
-  private val component = ReactComponentB[Props]("NewOrganizationRepository").render_P { props =>
-    NewRepositoryComponent.apply(props.ctl, RepositoryOwner.Organization(props.name))
-  }.build
+  final class Backend($ : BackendScope[Props, Unit]) {
+    def render(props: Props) = {
+      NewRepositoryComponent.apply(props.ctl, Namespace.Organization(props.name))
+    }
+  }
+
+  private val component =
+    ReactComponentB[Props]("NewOrganizationRepository").renderBackend[Backend].build
 
   def apply(ctl: RouterCtl[DashboardRoute], name: String) =
     component.apply(Props(ctl, name))

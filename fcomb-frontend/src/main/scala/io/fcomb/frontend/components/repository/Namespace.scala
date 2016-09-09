@@ -16,8 +16,31 @@
 
 package io.fcomb.frontend.components.repository
 
+import cats.Eq
 import io.fcomb.models.{Owner, OwnerKind}
 
-final case class OwnerItem(id: Int, kind: OwnerKind, slug: String) {
-  def toOwner = Owner(id, kind)
+sealed trait Namespace
+
+sealed trait OwnerNamespace extends Namespace {
+  val id: Option[Int]
+  val slug: String
+
+  def groupTitle: String
+  def toOwner: Option[Owner]
+}
+
+object Namespace {
+  final case object All extends Namespace
+
+  final case class User(slug: String, id: Option[Int] = None) extends OwnerNamespace {
+    def toOwner    = id.map(Owner(_, OwnerKind.User))
+    def groupTitle = "Users"
+  }
+
+  final case class Organization(slug: String, id: Option[Int] = None) extends OwnerNamespace {
+    def toOwner    = id.map(Owner(_, OwnerKind.Organization))
+    def groupTitle = "Organizations"
+  }
+
+  implicit val valueEq: Eq[Namespace] = Eq.fromUniversalEquals
 }

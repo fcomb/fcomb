@@ -17,16 +17,28 @@
 package io.fcomb.frontend.components.dashboard
 
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.repository.{NewRepositoryComponent, RepositoryOwner}
+import io.fcomb.frontend.components.repository.{NewRepositoryComponent, Namespace}
+import io.fcomb.frontend.dispatcher.AppCircuit
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
+import japgolly.scalajs.react.vdom.prefix_<^._
 
 object UserNewRepositoryComponent {
+  final case class Props(ctl: RouterCtl[DashboardRoute])
+
+  final class Backend($ : BackendScope[Props, Unit]) {
+    def render(props: Props): ReactElement = {
+      AppCircuit.currentUser match {
+        case Some(user) =>
+          NewRepositoryComponent.apply(props.ctl, Namespace.User(user.username, Some(user.id)))
+        case _ => <.div()
+      }
+    }
+  }
+
   private val component =
-    ReactComponentB[RouterCtl[DashboardRoute]]("UserNewRepository").render_P { ctl =>
-      NewRepositoryComponent.apply(ctl, RepositoryOwner.UserSelf)
-    }.build
+    ReactComponentB[Props]("UserNewRepository").renderBackend[Backend].build
 
   def apply(ctl: RouterCtl[DashboardRoute]) =
-    component.apply(ctl)
+    component.apply(Props(ctl))
 }

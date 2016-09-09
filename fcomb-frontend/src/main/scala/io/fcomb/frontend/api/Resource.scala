@@ -49,9 +49,10 @@ object Resource {
   val users  = prefix + "/users"
   val signUp = users + "/sign_up"
 
-  val userSelf              = prefix + "/user"
-  val userSelfRepositories  = userSelf + "/repositories"
-  val userSelfOrganizations = userSelf + "/organizations"
+  val userSelf                      = prefix + "/user"
+  val userSelfRepositories          = userSelf + "/repositories"
+  val userSelfRepositoriesAvailable = userSelf + "/repositories/available"
+  val userSelfOrganizations         = userSelf + "/organizations"
 
   def user(slug: String)             = users + s"/$slug"
   def userRepositories(slug: String) = user(slug) + "/repositories"

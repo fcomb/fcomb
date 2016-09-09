@@ -21,51 +21,50 @@ import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.components.repository.{
   RepositoriesComponent,
-  RepositoryOwner,
-  OwnerComponent,
-  OwnerItem
+  NamespaceComponent,
+  Namespace
 }
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.models.OwnerKind
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 
 object DashboardRepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
-  final case class State(ownerItem: Option[OwnerItem])
+  final case class State(namespace: Option[Namespace])
 
   final case class Backend($ : BackendScope[Props, State]) {
     def setDefaultOwner(): Callback = {
       AppCircuit.currentUser match {
         case Some(p) =>
-          val ownerItem = OwnerItem(p.id, OwnerKind.User, p.username)
-          $.modState(_.copy(ownerItem = Some(ownerItem)))
+          val namespace = Namespace.User(p.username, Some(p.id))
+          $.modState(_.copy(namespace = Some(namespace)))
         case _ => Callback.empty
       }
     }
 
-    def updateOwnerItem(ownerItem: OwnerItem) =
-      $.modState(_.copy(ownerItem = Some(ownerItem)))
+    def updateNamespace(namespace: Namespace) =
+      $.modState(_.copy(namespace = Some(namespace)))
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
     def render(props: Props, state: State) = {
-      val repositoriesSection = state.ownerItem match {
-        case Some(ownerItem) =>
-          val ownerScope = ownerItem.kind match {
-            case OwnerKind.Organization =>
-              RepositoryOwner.Organization(ownerItem.slug)
-            case OwnerKind.User => RepositoryOwner.UserSelf
-          }
-          MuiCard()(MuiCardTitle(key = "title")(
-                      OwnerComponent.apply(ownerScope, false, false, updateOwnerItem _)),
-                    MuiCardText(key = "repos")(RepositoriesComponent.apply(props.ctl, ownerScope)))
+      val repositoriesSection = state.namespace match {
+        case Some(namespace) =>
+          MuiCard()(
+            MuiCardTitle(key = "title")(
+              NamespaceComponent(namespace,
+                                 isAdminRoleOnly = false,
+                                 isAllNamespace = true,
+                                 isDisabled = false,
+                                 updateNamespace _)),
+            MuiCardMedia(key = "repos")(RepositoriesComponent(props.ctl, namespace))
+          )
         case _ => MuiCircularProgress(key = "progress")()
       }
-      val route = state.ownerItem match {
-        case Some(OwnerItem(id, OwnerKind.Organization, slug)) =>
+      val route = state.namespace match {
+        case Some(Namespace.Organization(slug, _)) =>
           DashboardRoute.NewOrganizationRepository(slug)
         case _ => DashboardRoute.NewRepository
       }

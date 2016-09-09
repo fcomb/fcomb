@@ -17,11 +17,13 @@
 package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
+import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.TimeAgoComponent
+import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.PaginationData
@@ -34,15 +36,19 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 
 object RepositoriesComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], owner: RepositoryOwner)
+  final case class Props(ctl: RouterCtl[DashboardRoute], namespace: Namespace)
   final case class State(repositories: Seq[RepositoryResponse])
 
   final class Backend($ : BackendScope[Props, State]) {
-    def getRepositories(owner: RepositoryOwner) = {
-      val url = owner match {
-        case RepositoryOwner.UserSelf         => Resource.userSelfRepositories
-        case RepositoryOwner.User(id)         => Resource.userRepositories(id)
-        case RepositoryOwner.Organization(id) => Resource.organizationRepositories(id)
+    private lazy val currentUser = AppCircuit.currentUser
+
+    def getRepositories(namespace: Namespace) = {
+      val url = namespace match {
+        case Namespace.All => Resource.userSelfRepositoriesAvailable
+        case Namespace.User(slug, _) =>
+          if (currentUser.exists(_.username == slug)) Resource.userSelfRepositories
+          else Resource.userRepositories(slug)
+        case Namespace.Organization(slug, _) => Resource.organizationRepositories(slug)
       }
       Callback.future {
         Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url).map {
@@ -56,7 +62,9 @@ object RepositoriesComponent {
     lazy val visibilityColumnStyle = js.Dictionary("width" -> "24px")
     lazy val menuColumnStyle       = js.Dictionary("width" -> "24px")
 
-    def renderRepository(ctl: RouterCtl[DashboardRoute], repository: RepositoryResponse) = {
+    def renderRepository(ctl: RouterCtl[DashboardRoute],
+                         repository: RepositoryResponse,
+                         showNamespace: Boolean) = {
       val lastModifiedAt = repository.updatedAt.getOrElse(repository.createdAt)
       val icon = repository.visibilityKind match {
         case ImageVisibilityKind.Public  => Mui.SvgIcons.ActionLockOpen
@@ -64,13 +72,14 @@ object RepositoriesComponent {
       }
       val menuBtn = MuiIconButton()(Mui.SvgIcons.NavigationMoreVert()())
       val actions = Seq(MuiMenuItem(primaryText = "Open", key = "open")())
+      val name    = if (showNamespace) repository.slug else repository.name
       MuiTableRow(key = repository.id.toString)(
         MuiTableRowColumn(style = visibilityColumnStyle, key = "visibilityKind")(
           <.span(^.title := repository.visibilityKind.toString,
                  icon(color = Mui.Styles.LightRawTheme.palette.primary3Color)())
         ),
         MuiTableRowColumn(key = "name")(
-          ctl.link(DashboardRoute.Repository(repository.slug))(repository.name)),
+          ctl.link(DashboardRoute.Repository(repository.slug))(name)),
         MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt)),
         MuiTableRowColumn(style = menuColumnStyle, key = "menu")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)
@@ -89,12 +98,13 @@ object RepositoriesComponent {
     )
 
     def render(props: Props, state: State) = {
+      val showNamespace = props.namespace === Namespace.All
       val rows =
         if (state.repositories.isEmpty)
           Seq(
             MuiTableRow(rowNumber = 4, key = "empty")(
               MuiTableRowColumn()("There are no repositories to show")))
-        else state.repositories.map(renderRepository(props.ctl, _))
+        else state.repositories.map(renderRepository(props.ctl, _, showNamespace))
       MuiTable(selectable = false, multiSelectable = false)(
         MuiTableHeader(
           adjustForCheckbox = false,
@@ -116,10 +126,10 @@ object RepositoriesComponent {
   private val component = ReactComponentB[Props]("Repositories")
     .initialState(State(Seq.empty))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getRepositories($.props.owner))
-    .componentWillReceiveProps(cb => cb.$.backend.getRepositories(cb.nextProps.owner))
+    .componentWillMount($ => $.backend.getRepositories($.props.namespace))
+    .componentWillReceiveProps(cb => cb.$.backend.getRepositories(cb.nextProps.namespace))
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], owner: RepositoryOwner) =
-    component.apply(Props(ctl, owner))
+  def apply(ctl: RouterCtl[DashboardRoute], namespace: Namespace) =
+    component.apply(Props(ctl, namespace))
 }

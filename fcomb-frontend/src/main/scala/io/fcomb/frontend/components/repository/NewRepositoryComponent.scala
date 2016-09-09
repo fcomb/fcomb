@@ -34,7 +34,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js.JSConverters._
 
 object NewRepositoryComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], ownerScope: RepositoryOwnerScope)
+  final case class Props(ctl: RouterCtl[DashboardRoute], namespace: OwnerNamespace)
   final case class State(owner: Option[Owner],
                          name: String,
                          visibilityKind: ImageVisibilityKind,
@@ -93,8 +93,12 @@ object NewRepositoryComponent {
       $.modState(_.copy(description = value))
     }
 
-    def updateOwnerItem(ownerItem: OwnerItem) =
-      $.modState(_.copy(owner = Some(ownerItem.toOwner)))
+    def updateNamespace(namespace: Namespace) = {
+      namespace match {
+        case on: OwnerNamespace => $.modState(_.copy(owner = on.toOwner))
+        case _ => Callback.empty
+      }
+    }
 
     def render(props: Props, state: State) = {
       <.div(
@@ -104,7 +108,11 @@ object NewRepositoryComponent {
           ^.disabled := state.isFormDisabled,
           <.div(^.display.flex,
                 ^.flexDirection.column,
-                OwnerComponent(props.ownerScope, true, state.isFormDisabled, updateOwnerItem _),
+                NamespaceComponent(props.namespace,
+                                  isAdminRoleOnly = true,
+                                  isAllNamespace = false,
+                                  isDisabled = state.isFormDisabled,
+                                  updateNamespace _),
                 MuiTextField(floatingLabelText = "Name",
                              id = "name",
                              name = "name",
@@ -150,6 +158,6 @@ object NewRepositoryComponent {
     .renderBackend[Backend]
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], ownerScope: RepositoryOwnerScope) =
-    component(Props(ctl, ownerScope))
+  def apply(ctl: RouterCtl[DashboardRoute], namespace: OwnerNamespace) =
+    component(Props(ctl, namespace))
 }
