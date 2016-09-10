@@ -80,6 +80,8 @@ object LayoutComponent {
     }
   }
 
+  val style = Mui.Styles.LightRawTheme
+
   private val signInRedirectComponent = ReactComponentB[RouterCtl[Route]]("SignInRedirect")
     .render_P(_ => <.div("Unauthorized"))
     .componentWillMount(_.props.set(Route.SignIn).delayMs(1).void)
@@ -91,8 +93,6 @@ object LayoutComponent {
     .build
 
   private val sessionConn = AppCircuit.connect(_.session)
-
-  val style = Mui.Styles.LightRawTheme
 
   private val theme = Mui.Styles.getMuiTheme(style)
 

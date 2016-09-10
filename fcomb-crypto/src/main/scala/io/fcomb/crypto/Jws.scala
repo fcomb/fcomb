@@ -57,6 +57,7 @@ object Jws extends LazyLogging {
     jwk.setKeyId(keyId(jwk.getPublicKey))
     jwk
   }
+
   lazy val defaultEcJwkParams: immutable.Map[String, String] = defaultEcJwk
     .toParams(JsonWebKey.OutputControlLevel.PUBLIC_ONLY)
     .asScala

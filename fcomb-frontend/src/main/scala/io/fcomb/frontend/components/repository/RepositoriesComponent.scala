@@ -22,8 +22,9 @@ import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.components.{TimeAgoComponent, LayoutComponent}
+import io.fcomb.frontend.components.{TimeAgoComponent, ToolbarPaginationComponent, LayoutComponent}
 import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.utils.PaginationUtils
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.PaginationData
@@ -37,12 +38,17 @@ import scala.scalajs.js
 
 object RepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], namespace: Namespace)
-  final case class State(repositories: Seq[RepositoryResponse])
+  final case class State(repositories: Seq[RepositoryResponse], page: Int, total: Int)
 
   final class Backend($ : BackendScope[Props, State]) {
     private lazy val currentUser = AppCircuit.currentUser
 
-    def getRepositories(namespace: Namespace) = {
+    val limit = 25
+
+    def updatePage(page: Int): Callback =
+      $.modState(_.copy(page = page)) >> $.props.flatMap(p => getRepositories(p.namespace, page))
+
+    def getRepositories(namespace: Namespace, page: Int) = {
       val url = namespace match {
         case Namespace.All => Resource.userSelfRepositoriesAvailable
         case Namespace.User(slug, _) =>
@@ -50,10 +56,16 @@ object RepositoriesComponent {
           else Resource.userRepositories(slug)
         case Namespace.Organization(slug, _) => Resource.organizationRepositories(slug)
       }
+      val params = PaginationUtils.getParams(page, limit)
       Callback.future {
-        Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url).map {
+        Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url, params).map {
           case Xor.Right(pd) =>
-            $.modState(_.copy(pd.data))
+            $.modState(
+              _.copy(
+                repositories = pd.data,
+                page = pd.getPage,
+                total = pd.total
+              ))
           case Xor.Left(e) => Callback.warn(e)
         }
       }
@@ -102,32 +114,33 @@ object RepositoriesComponent {
       val rows =
         if (state.repositories.isEmpty)
           Seq(
-            MuiTableRow(rowNumber = 4, key = "empty")(
+            MuiTableRow(rowNumber = 4, key = "row")(
               MuiTableRowColumn()("There are no repositories to show")))
         else state.repositories.map(renderRepository(props.ctl, _, showNamespace))
-      MuiTable(selectable = false, multiSelectable = false)(
-        MuiTableHeader(
-          adjustForCheckbox = false,
-          displaySelectAll = false,
-          enableSelectAll = false,
-          key = "header"
-        )(colNames),
-        MuiTableBody(
-          deselectOnClickaway = false,
-          displayRowCheckbox = false,
-          showRowHover = false,
-          stripedRows = false,
-          key = "body"
-        )(rows)
-      )
+
+      <.section(MuiTable(selectable = false, multiSelectable = false)(
+                  MuiTableHeader(
+                    adjustForCheckbox = false,
+                    displaySelectAll = false,
+                    enableSelectAll = false,
+                    key = "header"
+                  )(colNames),
+                  MuiTableBody(
+                    deselectOnClickaway = false,
+                    displayRowCheckbox = false,
+                    showRowHover = false,
+                    stripedRows = false,
+                    key = "body"
+                  )(rows)
+                ),
+                ToolbarPaginationComponent(state.page, limit, state.total, updatePage _))
     }
   }
 
   private val component = ReactComponentB[Props]("Repositories")
-    .initialState(State(Seq.empty))
+    .initialState(State(Seq.empty, 1, 0))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getRepositories($.props.namespace))
-    .componentWillReceiveProps(cb => cb.$.backend.getRepositories(cb.nextProps.namespace))
+    .componentWillReceiveProps(cb => cb.$.backend.getRepositories(cb.nextProps.namespace, 1))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], namespace: Namespace) =

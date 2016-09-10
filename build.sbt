@@ -162,7 +162,7 @@ lazy val persist = project
     "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
-    "com.zaxxer"          % "HikariCP"             % "2.4.7"
+    "com.zaxxer"          % "HikariCP"             % "2.5.0"
   ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validations)
@@ -197,7 +197,7 @@ lazy val crypto = project
       "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
       "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
       "io.circe"          %% "circe-parser"  % circeVersion,
-      "com.pauldijou"     %% "jwt-circe"     % "0.8.0"
+      "com.pauldijou"     %% "jwt-circe"     % "0.8.1"
     ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM, jsonJVM)
@@ -257,7 +257,7 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaVersion % "test",
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
       "org.scalacheck"     %% "scalacheck"        % "1.13.2" % "test",
-      "org.specs2"         %% "specs2-core"       % "3.8.4" % "test",
+      "org.specs2"         %% "specs2-core"       % "3.8.5" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.0" % "test",
       "com.ironcorelabs"   %% "cats-scalatest"    % "1.4.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),

@@ -48,8 +48,8 @@ object AuthService {
 
   def getToken(): Option[String] = {
     Try(window.localStorage.getItem(sessionKey)) match {
-      case Success(s) if !s.eq(null) && s.nonEmpty => Some(s)
-      case _                                       => None
+      case Success(s) if s != null && s.nonEmpty => Some(s)
+      case _                                     => None
     }
   }
 
