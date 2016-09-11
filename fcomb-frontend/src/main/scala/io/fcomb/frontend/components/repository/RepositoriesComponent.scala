@@ -73,6 +73,11 @@ object RepositoriesComponent {
 
     lazy val visibilityColumnStyle = js.Dictionary("width" -> "24px")
     lazy val menuColumnStyle       = js.Dictionary("width" -> "24px")
+    lazy val linkStyle =
+      Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
+
+    def setRepositoryRoute(slug: String)(e: ReactEventH): Callback =
+      $.props.flatMap(_.ctl.set(DashboardRoute.Repository(slug)))
 
     def renderRepository(ctl: RouterCtl[DashboardRoute],
                          repository: RepositoryResponse,
@@ -82,16 +87,21 @@ object RepositoriesComponent {
         case ImageVisibilityKind.Public  => Mui.SvgIcons.ActionLockOpen
         case ImageVisibilityKind.Private => Mui.SvgIcons.ActionLock
       }
-      val menuBtn = MuiIconButton()(Mui.SvgIcons.NavigationMoreVert()())
-      val actions = Seq(MuiMenuItem(primaryText = "Open", key = "open")())
-      val name    = if (showNamespace) repository.slug else repository.name
+      val menuBtn =
+        MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
+      val actions = Seq(
+        MuiMenuItem(primaryText = "Open",
+                    key = "open",
+                    onTouchTap = setRepositoryRoute(repository.slug) _)())
+      val name   = if (showNamespace) repository.slug else repository.name
+      val target = DashboardRoute.Repository(repository.slug)
       MuiTableRow(key = repository.id.toString)(
         MuiTableRowColumn(style = visibilityColumnStyle, key = "visibilityKind")(
           <.span(^.title := repository.visibilityKind.toString,
                  icon(color = LayoutComponent.style.palette.primary3Color)())
         ),
         MuiTableRowColumn(key = "name")(
-          ctl.link(DashboardRoute.Repository(repository.slug))(name)),
+          <.a(linkStyle, ^.href := ctl.urlFor(target).value, ctl.setOnLinkClick(target))(name)),
         MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt)),
         MuiTableRowColumn(style = menuColumnStyle, key = "menu")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)

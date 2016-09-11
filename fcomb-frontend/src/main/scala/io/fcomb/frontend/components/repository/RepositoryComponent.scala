@@ -47,9 +47,8 @@ object RepositoryComponent {
       }
     }
 
-    def selectAllText(e: ReactEventI): Callback = {
+    def selectAllText(e: ReactEventI): Callback =
       e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
-    }
 
     def formDescription(description: String)(e: ReactEventH): Callback = {
       e.preventDefaultCB >>

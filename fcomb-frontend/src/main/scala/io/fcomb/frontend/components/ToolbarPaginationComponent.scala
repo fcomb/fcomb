@@ -29,6 +29,8 @@ object ToolbarPaginationComponent {
     def paginate(page: Int)(e: ReactTouchEventH): Callback =
       $.props.flatMap(_.cb(page))
 
+    val color = Mui.Styles.colors.lightBlack
+
     def render(props: Props): ReactElement = {
       if (props.limit >= props.total) <.div()
       else {
@@ -38,19 +40,20 @@ object ToolbarPaginationComponent {
           MuiToolbarGroup(firstChild = true, key = "right")(),
           MuiToolbarGroup(lastChild = true, key = "left")(
             MuiIconButton(disabled = page == 1, onTouchTap = paginate(1) _, key = "first")(
-              Mui.SvgIcons.NavigationFirstPage()()),
+              Mui.SvgIcons.NavigationFirstPage(color = color)()),
             MuiIconButton(disabled = page == 1, onTouchTap = paginate(page - 1) _, key = "prev")(
-              Mui.SvgIcons.NavigationChevronLeft()()),
+              Mui.SvgIcons.NavigationChevronLeft(color = color)()),
             MuiToolbarTitle(style = js.Dictionary("paddingRight" -> "0",
                                                   "lineHeight"   -> "48px",
-                                                  "fontSize"     -> "1em"),
+                                                  "fontSize"     -> "1em",
+                                                  "color"        -> color.toString),
                             key = "page",
                             text = s"${props.page} of ${pages}")(),
             MuiIconButton(disabled = page == pages,
                           onTouchTap = paginate(page + 1) _,
-                          key = "next")(Mui.SvgIcons.NavigationChevronRight()()),
+                          key = "next")(Mui.SvgIcons.NavigationChevronRight(color = color)()),
             MuiIconButton(disabled = page == pages, onTouchTap = paginate(pages) _, key = "last")(
-              Mui.SvgIcons.NavigationLastPage()())
+              Mui.SvgIcons.NavigationLastPage(color = color)())
           )
         )
       }
