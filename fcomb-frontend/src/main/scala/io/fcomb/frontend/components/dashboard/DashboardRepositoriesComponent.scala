@@ -70,8 +70,7 @@ object DashboardRepositoriesComponent {
           DashboardRoute.NewOrganizationRepository(slug)
         case _ => DashboardRoute.NewRepository
       }
-      <.section(<.h1("Repositories"),
-                <.div(Global.floatActionButton,
+      <.section(<.div(Global.floatActionButton,
                       ^.title := "New repository",
                       MuiFloatingActionButton(secondary = true, onTouchTap = setRoute(route) _)(
                         ContentAdd()())),

@@ -59,7 +59,7 @@ object LayoutComponent {
       }
       MuiMuiThemeProvider(muiTheme = theme)(
         <.div(<.header(
-                MuiAppBar(title = "fcomb registry",
+                MuiAppBar(title = props.res.page.title,
                           onLeftIconButtonTouchTap = openDrawer _,
                           showMenuIconButton = true)()),
               MuiDrawer(docked = false, open = state.isOpen, onRequestChange = closeDrawer _)(
@@ -70,7 +70,7 @@ object LayoutComponent {
                             primaryText = "Organizations",
                             onTouchTap = setRoute(DashboardRoute.Organizations) _)()
               ),
-              <.main(^.`class` := "container", body),
+              <.main(Global.main, ^.`class` := "container", body),
               <.footer(Global.footer,
                        <.a(Global.footerLink,
                            Seq(^.color := style.palette.primary3Color.toString),

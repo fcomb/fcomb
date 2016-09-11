@@ -16,32 +16,67 @@
 
 package io.fcomb.frontend
 
-sealed trait Route
-
-object Route {
-  final case class Dashboard(route: DashboardRoute) extends Route
-  final case object SignIn                          extends Route
-  final case object SignUp                          extends Route
-  final case object SignOut                         extends Route
+sealed trait Route {
+  def title: String
 }
 
-sealed trait DashboardRoute
+object Route {
+  final case class Dashboard(route: DashboardRoute) extends Route {
+    def title = route.title
+  }
+
+  final case object SignIn extends Route {
+    def title = "Sign In"
+  }
+
+  final case object SignUp extends Route {
+    def title = "Sign Up"
+  }
+
+  final case object SignOut extends Route {
+    def title = "Sign Out"
+  }
+}
+
+sealed trait DashboardRoute {
+  def title: String
+}
 
 object DashboardRoute {
-  final case object Root extends DashboardRoute
+  final case object Root extends DashboardRoute {
+    def title = "Dashboard"
+  }
 
-  final case object Repositories                    extends DashboardRoute
-  final case object NewRepository                   extends DashboardRoute
-  final case class Repository(name: String)         extends DashboardRoute
-  final case class RepositoryTags(name: String)     extends DashboardRoute
-  final case class RepositorySettings(name: String) extends DashboardRoute
+  final case object Repositories extends DashboardRoute {
+    def title = "Repositories"
+  }
+  final case object NewRepository extends DashboardRoute {
+    def title = Repositories.title
+  }
+  sealed trait RepositoryRoute extends DashboardRoute {
+    val name: String
 
-  final case object Organizations                                   extends DashboardRoute
-  final case object NewOrganization                                 extends DashboardRoute
-  final case class Organization(name: String)                       extends DashboardRoute
-  final case class OrganizationSettings(name: String)               extends DashboardRoute
-  final case class OrganizationGroups(orgName: String)              extends DashboardRoute
-  final case class NewOrganizationGroup(orgName: String)            extends DashboardRoute
-  final case class OrganizationGroup(orgName: String, name: String) extends DashboardRoute
-  final case class NewOrganizationRepository(orgName: String)       extends DashboardRoute
+    def title = s"${Repositories.title} – $name"
+  }
+  final case class Repository(name: String)         extends RepositoryRoute
+  final case class RepositoryTags(name: String)     extends RepositoryRoute
+  final case class RepositorySettings(name: String) extends RepositoryRoute
+
+  final case object Organizations extends DashboardRoute {
+    def title = "Organizations"
+  }
+  final case object NewOrganization extends DashboardRoute {
+    def title = Organizations.title
+  }
+  sealed trait OrganizationRoute extends DashboardRoute {
+    val orgName: String
+
+    def title = s"${Organizations.title} – $orgName"
+  }
+  final case class Organization(orgName: String)                    extends OrganizationRoute
+  final case class OrganizationSettings(orgName: String)            extends OrganizationRoute
+  final case class OrganizationGroups(orgName: String)              extends OrganizationRoute
+  final case class NewOrganizationGroup(orgName: String)            extends OrganizationRoute
+  final case class OrganizationGroup(orgName: String, name: String) extends OrganizationRoute
+  final case class NewOrganizationRepository(orgName: String)       extends OrganizationRoute
 }

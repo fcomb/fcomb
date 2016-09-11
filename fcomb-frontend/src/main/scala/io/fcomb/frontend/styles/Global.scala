@@ -32,6 +32,8 @@ object Global extends StyleSheet.Inline {
     transition := "transform .3s cubic-bezier(.4,0,.2,1),-webkit-transform .3s cubic-bezier(.4,0,.2,1)",
     zIndex(21))
 
+  val main = style(paddingTop(48.px))
+
   val footer = style(textAlign.center,
                      paddingTop(24.px),
                      paddingBottom(12.px),
