@@ -57,10 +57,7 @@ object ToolbarPaginationComponent {
     }
   }
 
-  private val component = ReactComponentB[Props]("ToolbarPagination")
-  // .initialState(State(""))
-    .renderBackend[Backend]
-    .build
+  private val component = ReactComponentB[Props]("ToolbarPagination").renderBackend[Backend].build
 
   def apply(page: Int, limit: Int, total: Int, cb: Int => Callback) =
     component(new Props(page, limit, total, cb))

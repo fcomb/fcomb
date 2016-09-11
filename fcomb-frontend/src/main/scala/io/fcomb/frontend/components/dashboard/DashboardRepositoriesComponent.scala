@@ -25,9 +25,11 @@ import io.fcomb.frontend.components.repository.{
   Namespace
 }
 import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.styles.Global
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import scalacss.ScalaCssReact._
 
 object DashboardRepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
@@ -69,7 +71,10 @@ object DashboardRepositoriesComponent {
         case _ => DashboardRoute.NewRepository
       }
       <.section(<.h1("Repositories"),
-                MuiFloatingActionButton(onTouchTap = setRoute(route) _)(ContentAdd()()),
+                <.div(Global.floatActionButton,
+                      ^.title := "New repository",
+                      MuiFloatingActionButton(secondary = true, onTouchTap = setRoute(route) _)(
+                        ContentAdd()())),
                 repositoriesSection)
     }
   }

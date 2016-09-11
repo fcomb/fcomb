@@ -21,7 +21,16 @@ import scalacss.Defaults._
 object Global extends StyleSheet.Inline {
   import dsl._
 
-  val app = style(fontFamily :=! "Roboto, sans-serif")
+  val body = style(backgroundColor :=! "#eee", fontFamily :=! "Roboto, sans-serif")
+
+  val floatActionButton = style(
+    transform := "translateY(0)!important",
+    backfaceVisibility.hidden,
+    position.fixed,
+    right(16.px),
+    bottom(24.px),
+    transition := "transform .3s cubic-bezier(.4,0,.2,1),-webkit-transform .3s cubic-bezier(.4,0,.2,1)",
+    zIndex(21))
 
   val footer = style(textAlign.center,
                      paddingTop(24.px),
