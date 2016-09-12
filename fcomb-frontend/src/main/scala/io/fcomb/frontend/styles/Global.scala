@@ -21,7 +21,7 @@ import scalacss.Defaults._
 object Global extends StyleSheet.Inline {
   import dsl._
 
-  val body = style(backgroundColor :=! "#eee", fontFamily :=! "Roboto, sans-serif")
+  val body = style(backgroundColor(c"#eee"), fontFamily :=! "Roboto, sans-serif")
 
   val floatActionButton = style(
     transform := "translateY(0)!important",
@@ -33,6 +33,10 @@ object Global extends StyleSheet.Inline {
     zIndex(21))
 
   val main = style(paddingTop(48.px))
+
+  val lightBlack = rgba(0, 0, 0, 0.87)
+
+  val sortedColumn = style(color(lightBlack), textDecoration := "none")
 
   val footer = style(textAlign.center,
                      paddingTop(24.px),

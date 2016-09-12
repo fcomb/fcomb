@@ -92,7 +92,7 @@ object NamespaceComponent {
     }
 
     lazy val allMenuItem = Seq(
-      MuiMenuItem[Namespace](key = "all", value = Namespace.All, primaryText = "All available")(),
+      MuiMenuItem[Namespace](key = "all", value = Namespace.All, primaryText = "All")(),
       MuiDivider(key = "divider")())
 
     def render(props: Props, state: State) = {
@@ -106,7 +106,7 @@ object NamespaceComponent {
               .map(o => MuiMenuItem[Namespace](key = o.slug, value = o, primaryText = o.slug)())
       }
       MuiSelectField[Namespace](
-        floatingLabelText = "Namespace",
+        floatingLabelText = "User or organization",
         disabled = props.isDisabled,
         value = state.namespace.orUndefined,
         maxHeight = limit + prefixCount,

@@ -16,18 +16,18 @@
 
 package io.fcomb.tests
 
-import io.fcomb.utils.Random
 import akka.actor._
 import akka.cluster.Cluster
-import akka.testkit._
-import akka.stream._
-import akka.stream.scaladsl._
-import akka.http.scaladsl._
 import akka.http.scaladsl.server._
+import akka.http.scaladsl._
+import akka.stream.scaladsl._
+import akka.stream._
+import akka.testkit._
 import akka.util.ByteString
+import io.fcomb.utils.Random
 import org.scalatest._
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 trait SpecHelpers {
   def getFixture(path: String) = {
