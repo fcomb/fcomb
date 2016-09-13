@@ -16,33 +16,32 @@
 
 package io.fcomb.docker.distribution.server.api
 
-import akka.http.scaladsl.marshalling.Marshal
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import cats.data.Validated
-import io.fcomb.server.CirceSupport._
+import io.fcomb.docker.distribution.server.AuthenticationDirectives._
+import io.fcomb.docker.distribution.server.CommonDirectives._
 import io.fcomb.docker.distribution.server.headers._
+import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.json.models.errors.Formats._
-import io.fcomb.json.models.errors.docker.distribution.Formats._
-import io.fcomb.models.User
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution.{ImageBlobState, Reference}
+import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.models.errors._
-import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
+import io.fcomb.models.User
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
-import io.fcomb.docker.distribution.server.AuthenticationDirectives._
+import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
-import io.fcomb.docker.distribution.server.ImageDirectives._
 import java.util.UUID
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.ExecutionContext
 
 object ImageBlobUploadsHandler {
-  def createBlob(imageName: String)(implicit req: HttpRequest): Route =
+  def createBlob(imageName: String)(implicit req: HttpRequest): Route = {
     authenticateUserBasic { user =>
       parameters('mount.?, 'from.?, 'digest.?) { (mountOpt, fromOpt, digestOpt) =>
         extractExecutionContext { implicit ec =>
@@ -57,6 +56,7 @@ object ImageBlobUploadsHandler {
         }
       }
     }
+  }
 
   private def createImageBlobUpload(user: User, imageName: String)(
       implicit ec: ExecutionContext,
@@ -106,7 +106,7 @@ object ImageBlobUploadsHandler {
   }
 
   private def createImageBlob(user: User, imageName: String, sha256Digest: String)(
-      implicit req: HttpRequest): Route =
+      implicit req: HttpRequest): Route = {
     extractMaterializer { implicit mat =>
       imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
         import mat.executionContext
@@ -132,20 +132,15 @@ object ImageBlobUploadsHandler {
               }
             } else {
               onSuccess(ImageBlobsRepo.destroy(uuid)) { _ =>
-                complete(
-                  (
-                    StatusCodes.BadRequest,
-                    DistributionErrorResponse.from(DistributionError.DigestInvalid())
-                  ))
+                completeError(DistributionError.digestInvalid)
               }
             }
         }
       }
     }
+  }
 
-  def uploadBlobChunk(imageName: String, uuid: UUID)(
-      implicit req: HttpRequest
-  ) =
+  def uploadBlobChunk(imageName: String, uuid: UUID)(implicit req: HttpRequest) = {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[`Content-Range`]() { rangeOpt =>
@@ -163,20 +158,11 @@ object ImageBlobUploadsHandler {
                   case (Some(from), Some(to)) => to >= from
                   case _                      => true
                 }
-                if (!isRangeValid) {
-                  complete(
-                    (
-                      StatusCodes.BadRequest,
-                      DistributionErrorResponse.from(DistributionError.Unknown("Range is invalid"))
-                    ))
-                } else if (rangeFrom.exists(_ != blob.length)) {
-                  complete(
-                    (
-                      StatusCodes.BadRequest,
-                      DistributionErrorResponse.from(
-                        DistributionError.Unknown("Range start not satisfy a blob file length"))
-                    ))
-                } else {
+                if (!isRangeValid) completeError(DistributionError.unknown("Range is invalid"))
+                else if (rangeFrom.exists(_ != blob.length))
+                  completeError(
+                    DistributionError.unknown("Range start not satisfy a blob file length"))
+                else {
                   val data = (rangeFrom, rangeTo) match {
                     case (Some(from), Some(to)) =>
                       req.entity.dataBytes.take(to - from + 1)
@@ -201,19 +187,15 @@ object ImageBlobUploadsHandler {
                     }
                   }
                 }
-              case _ =>
-                complete(
-                  (
-                    StatusCodes.NotFound,
-                    DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
-                  ))
+              case _ => completeError(DistributionError.blobUploadInvalid)
             }
           }
         }
       }
     }
+  }
 
-  def uploadComplete(imageName: String, uuid: UUID)(implicit req: HttpRequest) =
+  def uploadComplete(imageName: String, uuid: UUID)(implicit req: HttpRequest) = {
     authenticateUserBasic { user =>
       parameters('digest) { sha256Digest =>
         extractMaterializer { implicit mat =>
@@ -224,39 +206,31 @@ object ImageBlobUploadsHandler {
                 onSuccess(BlobFileUtils.uploadBlobChunk(uuid, req.entity.dataBytes)) {
                   case (length, digest) =>
                     val totalLength = blob.length + length
-                    complete {
-                      if (digest == Reference.getDigest(sha256Digest)) {
-                        val headers = immutable.Seq(
-                          Location(s"/v2/$imageName/blobs/$sha256Digest"),
-                          `Docker-Upload-Uuid`(uuid),
-                          `Docker-Content-Digest`("sha256", digest)
-                        )
-                        for {
-                          _ <- BlobFileUtils.rename(uuid, digest)
-                          _ <- ImageBlobsRepo.completeUploadOrDelete(uuid,
-                                                                     blob.imageId,
-                                                                     totalLength,
-                                                                     digest)
-                        } yield HttpResponse(StatusCodes.Created, headers)
-                      } else {
-                        val e = DistributionErrorResponse.from(DistributionError.DigestInvalid())
-                        Marshal(StatusCodes.BadRequest -> e).to[HttpResponse]
-                      }
-                    }
+                    if (digest == Reference.getDigest(sha256Digest)) {
+                      val headers = immutable.Seq(
+                        Location(s"/v2/$imageName/blobs/$sha256Digest"),
+                        `Docker-Upload-Uuid`(uuid),
+                        `Docker-Content-Digest`("sha256", digest)
+                      )
+                      val fut = for {
+                        _ <- BlobFileUtils.rename(uuid, digest)
+                        _ <- ImageBlobsRepo.completeUploadOrDelete(uuid,
+                                                                   blob.imageId,
+                                                                   totalLength,
+                                                                   digest)
+                      } yield HttpResponse(StatusCodes.Created, headers)
+                      onSuccess(fut)(complete(_))
+                    } else completeError(DistributionError.digestInvalid)
                 }
-              case _ =>
-                complete(
-                  (
-                    StatusCodes.NotFound,
-                    DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
-                  ))
+              case _ => completeError(DistributionError.blobUploadInvalid)
             }
           }
         }
       }
     }
+  }
 
-  def destroyBlobUpload(imageName: String, uuid: UUID) =
+  def destroyBlobUpload(imageName: String, uuid: UUID) = {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
@@ -267,16 +241,12 @@ object ImageBlobUploadsHandler {
                 _ <- BlobFileUtils.destroyUploadBlob(blob.getId())
                 _ <- ImageBlobsRepo.destroy(uuid)
               } yield HttpResponse(StatusCodes.NoContent))
-            case _ =>
-              complete(
-                (
-                  StatusCodes.NotFound,
-                  DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
-                ))
+            case _ => completeError(DistributionError.blobUploadInvalid)
           }
         }
       }
     }
+  }
 
   private def rangeHeader(from: Long, length: Long) = {
     val to = if (from < length) length - 1 else from

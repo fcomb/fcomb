@@ -31,7 +31,6 @@ import io.fcomb.models.docker.distribution.SchemaV1.{Manifest => ManifestV1, _}
 import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest => ManifestV2}
 import io.fcomb.models.docker.distribution.{Image, ImageManifest, Reference}
 import io.fcomb.models.errors.docker.distribution.DistributionError
-import io.fcomb.models.errors.docker.distribution.DistributionError._
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
 import io.fcomb.utils.StringUtils
 import java.time.OffsetDateTime
@@ -54,9 +53,10 @@ object SchemaV1 {
             EventService
               .pushRepoEvent(image, imageManifest.getId(), reference.value, createdByUserId)
             Xor.Right(digest)
-          case Validated.Invalid(e) => Xor.left(Unknown(e.map(_.message).mkString(";")))
+          case Validated.Invalid(e) =>
+            Xor.left(DistributionError.unknown(e.map(_.message).mkString(";")))
         }
-      case Xor.Left(e) => FastFuture.successful(Xor.Left(Unknown(e.message)))
+      case Xor.Left(e) => FastFuture.successful(Xor.Left(DistributionError.unknown(e.message)))
     }
   }
 
@@ -66,7 +66,8 @@ object SchemaV1 {
       case Xor.Right(Some(json)) =>
         val manifestJson = json.remove("signatures").asJson
         val original     = indentPrint(rawManifest, manifestJson)
-        if (manifest.signatures.isEmpty) Xor.Left(Unknown("signatures cannot be empty"))
+        if (manifest.signatures.isEmpty)
+          Xor.Left(DistributionError.unknown("signatures cannot be empty"))
         else {
           val rightAcc = Xor.right[DistributionError, (String, String)](("", ""))
           manifest.signatures.foldLeft(rightAcc) {
@@ -83,15 +84,17 @@ object SchemaV1 {
                     val (alg, jwk)     = (signature.header.alg, signature.header.jwk)
                     if (Jws.verify(alg, jwk, payload, signatureBytes))
                       Xor.Right((original, DigestUtils.sha256Hex(formatted)))
-                    else Xor.Left(ManifestUnverified())
+                    else Xor.Left(DistributionError.manifestUnverified)
                   } else
-                    Xor.Left(ManifestInvalid("formatted length does not match with fortmatLength"))
-                case Xor.Left(e) => Xor.Left(Unknown(e.show))
+                    Xor.Left(
+                      DistributionError.manifestInvalid(
+                        "formatted length does not match with fortmatLength"))
+                case Xor.Left(e) => Xor.Left(DistributionError.unknown(e.show))
               })
           }
         }
-      case Xor.Right(None) => Xor.Left(ManifestInvalid())
-      case Xor.Left(e)     => Xor.Left(Unknown(e.show))
+      case Xor.Right(None) => Xor.Left(DistributionError.manifestInvalid())
+      case Xor.Left(e)     => Xor.Left(DistributionError.unknown(e.show))
     }
   }
 

@@ -25,8 +25,7 @@ object Formats {
   final implicit val encodeDistributionErrorCode: Encoder[DistributionErrorCode] =
     Circe.encoder(DistributionErrorCode)
 
-  final implicit val encodeDistributionError: Encoder[DistributionError] =
-    Encoder.forProduct2("code", "message")(e => (e.code.entryName, e.message))
+  final implicit val encodeDistributionError: Encoder[DistributionError] = deriveEncoder
 
   final implicit val encodeDistributionErrorResponse: Encoder[DistributionErrorResponse] =
     deriveEncoder
@@ -34,34 +33,7 @@ object Formats {
   final implicit val decodeDistributionErrorCode: Decoder[DistributionErrorCode] =
     Circe.decoder(DistributionErrorCode)
 
-  final implicit val decodeDistributionError: Decoder[DistributionError] = {
-    Decoder.instance { c =>
-      for {
-        code    <- c.get[DistributionErrorCode]("code")
-        message <- c.get[String]("message")
-        // detail  <- c.get[Option[DistributionErrorDetail]]("detail")
-      } yield {
-        code match {
-          case DistributionErrorCode.DigestInvalid =>
-            DistributionError.DigestInvalid(message)
-          case DistributionErrorCode.Unknown =>
-            DistributionError.Unknown(message)
-          case DistributionErrorCode.NameInvalid =>
-            DistributionError.NameInvalid(message)
-          case DistributionErrorCode.ManifestInvalid =>
-            DistributionError.ManifestInvalid(message)
-          case DistributionErrorCode.ManifestUnknown =>
-            DistributionError.ManifestUnknown(message)
-          case DistributionErrorCode.BlobUploadInvalid =>
-            DistributionError.BlobUploadInvalid(message)
-          case DistributionErrorCode.NameUnknown =>
-            DistributionError.NameUnknown(message)
-          case DistributionErrorCode.Unauthorized =>
-            DistributionError.Unauthorized(message)
-        }
-      }
-    }
-  }
+  final implicit val decodeDistributionError: Decoder[DistributionError] = deriveDecoder
 
   final implicit val decodeDistributionErrorResponse: Decoder[DistributionErrorResponse] =
     deriveDecoder

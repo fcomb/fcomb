@@ -18,6 +18,8 @@ package io.fcomb.models.errors
 
 import io.fcomb.models.common.{Enum, EnumItem}
 
+// TODO: rewrite all
+
 final case class InternalException(message: String) extends DtCemException {
   def toErrorMessage() = ErrorMessage(message)
 }

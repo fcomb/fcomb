@@ -16,25 +16,23 @@
 
 package io.fcomb.docker.distribution.server.api
 
-import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.util.FastFuture, FastFuture._
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import cats.data.Xor
 import io.fcomb.docker.distribution.server.AuthenticationDirectives._
+import io.fcomb.docker.distribution.server.CommonDirectives._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
-import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
-import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
+import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
-import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
@@ -42,7 +40,7 @@ import scala.concurrent.duration._
 import scala.util.{Right, Left}
 
 object ImageBlobsHandler {
-  def showBlob(imageName: String, digest: String) =
+  def showBlob(imageName: String, digest: String) = {
     tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
         imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
@@ -66,12 +64,11 @@ object ImageBlobsHandler {
         }
       }
     }
+  }
 
   private val emptyTarSource = Source.single(ByteString(ImageManifest.emptyTar))
 
-  def downloadBlob(imageName: String, digest: String)(
-      implicit req: HttpRequest
-  ) =
+  def downloadBlob(imageName: String, digest: String)(implicit req: HttpRequest) = {
     tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
         imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
@@ -128,39 +125,30 @@ object ImageBlobsHandler {
         }
       }
     }
+  }
 
-  def destroyBlob(imageName: String, digest: String) =
+  def destroyBlob(imageName: String, digest: String) = {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
           import mat.executionContext
           onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
             case Some(blob) if blob.isUploaded =>
-              val res = ImageBlobsRepo.tryDestroy(blob.getId()).flatMap {
+              onSuccess(ImageBlobsRepo.tryDestroy(blob.getId())) {
                 case Xor.Right(_) =>
-                  ImageBlobsRepo
-                    .existByDigest(digest)
-                    .flatMap { exist =>
-                      if (exist) FastFuture.successful(())
-                      else BlobFileUtils.destroyUploadBlob(blob.getId())
-                    }
-                    .fast
-                    .map(_ => HttpResponse(StatusCodes.NoContent))
-                case Xor.Left(msg) =>
-                  val e = DistributionErrorResponse.from(DistributionError.Unknown(msg))
-                  Marshal(StatusCodes.InternalServerError -> e).to[HttpResponse]
+                  val fut = ImageBlobsRepo.existByDigest(digest).flatMap { exist =>
+                    if (exist) FastFuture.successful(())
+                    else BlobFileUtils.destroyUploadBlob(blob.getId())
+                  }
+                  onSuccess(fut)(completeNoContent())
+                case Xor.Left(msg) => completeError(DistributionError.unknown(msg))
               }
-              complete(res)
-            case _ =>
-              complete(
-                (
-                  StatusCodes.NotFound,
-                  DistributionErrorResponse.from(DistributionError.BlobUploadInvalid())
-                ))
+            case _ => completeError(DistributionError.blobUploadInvalid)
           }
         }
       }
     }
+  }
 
   private val cacheHeader = `Cache-Control`(CacheDirectives.`max-age`(365.days.toSeconds))
 

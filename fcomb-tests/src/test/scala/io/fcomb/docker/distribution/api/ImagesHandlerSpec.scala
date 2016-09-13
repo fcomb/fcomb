@@ -17,7 +17,7 @@
 package io.fcomb.docker.distribution.server.api
 
 import akka.actor.PoisonPill
-import akka.http.scaladsl._, model._
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
@@ -185,11 +185,11 @@ class ImagesHandlerSpec
         s"/v2/$imageSlug/manifests/sha256:$digest",
         HttpEntity(`application/json`, manifestV1)
       ) ~> addCredentials(credentials) ~> route ~> check {
-        status shouldEqual StatusCodes.BadRequest
+        status shouldEqual StatusCodes.InternalServerError
         val msg =
           s"Unknown blobs: sha256:09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"
         val resp = responseAs[DistributionErrorResponse]
-        resp.errors.head shouldEqual DistributionError.Unknown(msg)
+        resp.errors.head shouldEqual DistributionError.unknown(msg)
       }
     }
 
@@ -245,10 +245,10 @@ class ImagesHandlerSpec
         s"/v2/$imageSlug/manifests/sha256:$digest",
         HttpEntity(`application/json`, manifestV2)
       ) ~> addCredentials(credentials) ~> route ~> check {
-        status shouldEqual StatusCodes.BadRequest
+        status shouldEqual StatusCodes.InternalServerError
         val msg  = s"Config blob `sha256:$configBlobDigest` not found"
         val resp = responseAs[DistributionErrorResponse]
-        resp.errors.head shouldEqual DistributionError.Unknown(msg)
+        resp.errors.head shouldEqual DistributionError.unknown(msg)
       }
 
       val configBlob = Fixtures.await(for {
@@ -266,11 +266,11 @@ class ImagesHandlerSpec
         s"/v2/$imageSlug/manifests/sha256:$digest",
         HttpEntity(`application/json`, manifestV2)
       ) ~> addCredentials(credentials) ~> route ~> check {
-        status shouldEqual StatusCodes.BadRequest
+        status shouldEqual StatusCodes.InternalServerError
         val msg =
           "Unknown blobs: sha256:d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"
         val resp = responseAs[DistributionErrorResponse]
-        resp.errors.head shouldEqual DistributionError.Unknown(msg)
+        resp.errors.head shouldEqual DistributionError.unknown(msg)
       }
     }
 

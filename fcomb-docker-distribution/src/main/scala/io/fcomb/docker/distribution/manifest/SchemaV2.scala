@@ -20,14 +20,13 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl.{FileIO, Sink}
 import cats.data.{Validated, Xor}
+import io.fcomb.docker.distribution.utils.BlobFileUtils
+import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.docker.distribution.SchemaV2.{Manifest => ManifestV2}
 import io.fcomb.models.docker.distribution.{Image, Reference}
-import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.errors.docker.distribution.DistributionError
-import DistributionError._
-import io.fcomb.services.EventService
 import io.fcomb.persist.docker.distribution.{ImageBlobsRepo, ImageManifestsRepo}
-import io.fcomb.docker.distribution.utils.BlobFileUtils
+import io.fcomb.services.EventService
 import io.fcomb.utils.Units._
 import org.apache.commons.codec.digest.DigestUtils
 import scala.concurrent.{ExecutionContext, Future}
@@ -85,7 +84,7 @@ object SchemaV2 {
   }
 
   private def unknowError(msg: String) =
-    Xor.left[DistributionError, String](Unknown(msg))
+    Xor.left[DistributionError, String](DistributionError.unknown(msg))
 
   private def getImageConfig(configFile: java.io.File)(implicit mat: Materializer) =
     FileIO.fromPath(configFile.toPath).map(_.utf8String).runWith(Sink.head)

@@ -17,14 +17,15 @@
 package io.fcomb.docker.distribution.server.api
 
 import akka.actor.PoisonPill
-import akka.http.scaladsl._, model._
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.utils.BlobFileUtils
@@ -41,8 +42,6 @@ import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
-import io.fcomb.docker.distribution.server.Api
-import akka.http.scaladsl.testkit.RouteTestTimeout
 
 class ImageBlobUploadsHandlerSpec
     extends WordSpec
@@ -74,7 +73,7 @@ class ImageBlobUploadsHandlerSpec
   }
 
   "The image blob upload handler" should {
-    "return a uuid for POST request to the start upload path" in {
+    "return an uuid for POST request to the start upload path" in {
       val imageSlug = Fixtures.await(for {
         user  <- UsersRepoFixture.create()
         image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
@@ -132,7 +131,7 @@ class ImageBlobUploadsHandlerSpec
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.BadRequest
         val resp = responseAs[DistributionErrorResponse]
-        resp shouldEqual DistributionErrorResponse(Seq(DistributionError.DigestInvalid()))
+        resp shouldEqual DistributionErrorResponse(Seq(DistributionError.digestInvalid))
       }
     }
 

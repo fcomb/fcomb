@@ -16,25 +16,23 @@
 
 package io.fcomb.docker.distribution.server
 
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import cats.data.Xor
 import cats.syntax.eq._
-import io.fcomb.server.CirceSupport._
+import io.fcomb.docker.distribution.server.CommonDirectives._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
-import io.fcomb.json.models.errors.docker.distribution.Formats._
 
 object ImageDirectives {
   def imageByNameWithAcl(name: String, userId: Int, action: Action): Directive1[Image] = {
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlugWithAcl(Slug.Name(name), userId, action)).flatMap {
         case Xor.Right(Some((image, _))) => provide(image)
-        case _                           => complete(nameUnknownError)
+        case _                           => nameUnknownError()
       }
     }
   }
@@ -51,13 +49,11 @@ object ImageDirectives {
       onSuccess(ImagesRepo.findBySlug(Slug.Name(name))).flatMap {
         case Some(image) if image.visibilityKind === ImageVisibilityKind.Public =>
           provide(image)
-        case _ => complete(nameUnknownError)
+        case _ => nameUnknownError()
       }
     }
   }
 
-  private val nameUnknownError = (
-    StatusCodes.NotFound,
-    DistributionErrorResponse.from(DistributionError.NameUnknown())
-  )
+  private def nameUnknownError[T](): Directive1[T] =
+    Directive(_ => completeError(DistributionError.nameUnknown))
 }

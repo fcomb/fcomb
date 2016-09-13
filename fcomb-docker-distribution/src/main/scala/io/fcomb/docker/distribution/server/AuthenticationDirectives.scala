@@ -17,15 +17,13 @@
 package io.fcomb.docker.distribution.server
 
 import akka.http.scaladsl.model.headers.{BasicHttpCredentials, HttpChallenges, `WWW-Authenticate`}
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.docker.distribution.server.Api.defaultHeaders
-import io.fcomb.models.errors.docker.distribution.{DistributionErrorResponse, DistributionError}
+import io.fcomb.docker.distribution.server.CommonDirectives._
 import io.fcomb.models.User
+import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.UsersRepo
-import io.fcomb.server.CirceSupport._
 import io.fcomb.utils.Config.docker.distribution.realm
 
 object AuthenticationDirectives {
@@ -47,12 +45,10 @@ object AuthenticationDirectives {
   }
 
   private def unauthorizedError[T](): Directive1[T] = {
-    respondWithHeaders(defaultAuthenticateHeaders).tflatMap { _ =>
-      complete(
-        (
-          StatusCodes.Unauthorized,
-          DistributionErrorResponse.from(DistributionError.Unauthorized())
-        ))
+    Directive { _ =>
+      respondWithHeaders(defaultAuthenticateHeaders) {
+        completeError(DistributionError.unauthorized)
+      }
     }
   }
 

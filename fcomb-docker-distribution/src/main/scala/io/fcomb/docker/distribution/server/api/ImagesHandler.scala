@@ -32,21 +32,21 @@ import io.fcomb.docker.distribution.server.ContentTypes.{
   `application/vnd.docker.distribution.manifest.v2+json`
 }
 import io.fcomb.docker.distribution.server.AuthenticationDirectives._
+import io.fcomb.docker.distribution.server.CommonDirectives._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.MediaTypes
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.json.models.docker.distribution.Formats._
-import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
-import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrorResponse}
+import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImagesRepo}
 import io.fcomb.server.CirceSupport._
 import scala.collection.immutable
 
 object ImagesHandler {
-  def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
+  def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) = {
     tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[Accept]() { acceptOpt =>
@@ -75,17 +75,13 @@ object ImagesHandler {
                 respondWithHeaders(headers) {
                   complete(HttpEntity(ct, ByteString(manifest)))
                 }
-              case _ =>
-                complete(
-                  (
-                    StatusCodes.NotFound,
-                    DistributionErrorResponse.from(DistributionError.ManifestUnknown())
-                  ))
+              case _ => completeError(DistributionError.manifestUnknown)
             }
           }
         }
       }
     }
+  }
 
   private def acceptIsAManifestV2(header: Accept) = {
     header.mediaRanges.exists { r =>
@@ -94,7 +90,7 @@ object ImagesHandler {
     }
   }
 
-  def uploadManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
+  def uploadManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) = {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         val userId = user.getId()
@@ -127,8 +123,7 @@ object ImagesHandler {
                     respondWithHeaders(headers) {
                       complete((StatusCodes.Created, HttpEntity.Empty))
                     }
-                  case Xor.Left(e) =>
-                    complete((StatusCodes.BadRequest, DistributionErrorResponse.from(e)))
+                  case Xor.Left(e) => completeError(e)
                 }
               }
             }
@@ -136,16 +131,18 @@ object ImagesHandler {
         }
       }
     }
+  }
 
-  private def respondWithContentType(contentType: ContentType): Directive0 =
+  private def respondWithContentType(contentType: ContentType): Directive0 = {
     mapRequest { req =>
       req.copy(
         entity = req.entity.withContentType(contentType),
         headers = req.headers.filterNot(_.isInstanceOf[Accept])
       )
     }
+  }
 
-  def destroyManifest(imageName: String, reference: Reference) =
+  def destroyManifest(imageName: String, reference: Reference) = {
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
@@ -154,25 +151,16 @@ object ImagesHandler {
             case Reference.Digest(digest) =>
               onSuccess(ImageManifestsRepo.destroy(image.getId(), digest)) { res =>
                 if (res) complete(HttpResponse(StatusCodes.Accepted))
-                else
-                  complete(
-                    (
-                      StatusCodes.NotFound,
-                      DistributionErrorResponse.from(DistributionError.ManifestUnknown())
-                    ))
+                else completeError(DistributionError.manifestUnknown)
               }
-            case _ =>
-              complete(
-                (
-                  StatusCodes.NotFound,
-                  DistributionErrorResponse.from(DistributionError.ManifestInvalid())
-                ))
+            case _ => completeError(DistributionError.manifestInvalid())
           }
         }
       }
     }
+  }
 
-  def tags(imageName: String) =
+  def tags(imageName: String) = {
     tryAuthenticateUserBasic { userOpt =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
@@ -191,8 +179,9 @@ object ImagesHandler {
         }
       }
     }
+  }
 
-  def catalog =
+  def catalog = {
     authenticateUserBasic { user =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
@@ -209,4 +198,5 @@ object ImagesHandler {
         }
       }
     }
+  }
 }
