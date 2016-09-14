@@ -36,7 +36,7 @@ import io.fcomb.persist.{
   UsersRepo
 }
 import io.fcomb.rpc.acl._
-import io.fcomb.validations.{ValidationResult, ValidationResultUnit}
+import io.fcomb.validation.{ValidationResult, ValidationResultUnit}
 import java.time.OffsetDateTime
 import scala.concurrent.{Future, ExecutionContext}
 import slick.jdbc.TransactionIsolation

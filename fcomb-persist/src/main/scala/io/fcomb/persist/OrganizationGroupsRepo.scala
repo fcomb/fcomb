@@ -26,7 +26,7 @@ import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.helpers.OrganizationGroupHelpers
 import io.fcomb.rpc.{OrganizationGroupRequest, OrganizationGroupResponse}
-import io.fcomb.validations._
+import io.fcomb.validation._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation

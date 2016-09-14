@@ -23,8 +23,8 @@ import cats.instances.all._
 import io.fcomb.Db._
 import io.fcomb.FcombPostgresProfile.IntoInsertActionComposer
 import io.fcomb.FcombPostgresProfile.api._
-import io.fcomb.validations.{DBIOT, ValidationResult, ValidationResultUnit}
-import io.fcomb.{models, validations}
+import io.fcomb.validation.{DBIOT, ValidationResult, ValidationResultUnit}
+import io.fcomb.{models, validation}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
@@ -35,7 +35,7 @@ trait PersistTypes[T] {
   type ValidationDBIOResult = DBIOT[ValidationResultUnit]
 
   def validationError[E](columnName: String, error: String): ValidationResult[E] =
-    validations.validationErrors(columnName -> error)
+    validation.validationErrors(columnName -> error)
 
   def validationErrorAsDBIO[E](columnName: String, error: String): DBIOT[ValidationResult[E]] =
     DBIO.successful(validationError(columnName, error))
@@ -59,7 +59,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 
   val table: TableQuery[Q]
 
-  val validationsOpt = Option.empty[T => Future[ValidationResult[_]]]
+  val validationOpt = Option.empty[T => Future[ValidationResult[_]]]
 
   // private def recoverPersistExceptions(
   //   f: Future[ValidationModel]

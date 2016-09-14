@@ -40,7 +40,7 @@ import io.fcomb.rpc.docker.distribution.{
   RepositoryResponse
 }
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
-import io.fcomb.validations._
+import io.fcomb.validation._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation

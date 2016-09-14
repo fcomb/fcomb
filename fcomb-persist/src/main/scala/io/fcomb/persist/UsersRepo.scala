@@ -32,7 +32,7 @@ import io.fcomb.rpc.{
   UserUpdateRequest
 }
 import io.fcomb.rpc.acl.PermissionUserMemberResponse
-import io.fcomb.validations._
+import io.fcomb.validation._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 

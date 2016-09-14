@@ -25,7 +25,7 @@ import io.fcomb.persist.UsersRepo
 import io.fcomb.services.EmailService
 import io.fcomb.templates
 import io.fcomb.utils.Config
-import io.fcomb.validations.ValidationResultUnit
+import io.fcomb.validation.ValidationResultUnit
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 

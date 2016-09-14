@@ -1,6 +1,5 @@
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
-import scala.concurrent.duration._
 
 lazy val akkaVersion         = "2.4.10"
 lazy val bouncyCastleVersion = "1.55"
@@ -138,9 +137,9 @@ lazy val rpc = crossProject
 lazy val rpcJVM = rpc.jvm
 lazy val rpcJS  = rpc.js
 
-lazy val validations = project
-  .in(file("fcomb-validations"))
-  .settings(moduleName := "validations")
+lazy val validation = project
+  .in(file("fcomb-validation"))
+  .settings(moduleName := "validation")
   .settings(allSettings: _*)
   .settings(libraryDependencies ++= Seq(
     "com.typesafe.slick" %% "slick" % slickVersion // TODO: move DBIO validation into persist module
@@ -165,7 +164,7 @@ lazy val persist = project
     "com.zaxxer"          % "HikariCP"             % "2.5.0"
   ))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validations)
+  .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
 
 lazy val json = crossProject
   .in(file("fcomb-json"))
@@ -233,7 +232,7 @@ lazy val server = project
       "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion
     ))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(persist, utils, jsonJVM, validations, services)
+  .dependsOn(persist, utils, jsonJVM, validation, services)
 
 lazy val dockerDistribution = project
   .in(file("fcomb-docker-distribution"))

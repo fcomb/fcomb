@@ -25,7 +25,7 @@ import cats.instances.all._
 import slick.jdbc.PostgresProfile.api._
 import slick.lifted.AppliedCompiledFunction
 
-package object validations {
+package object validation {
   type DBIOT[T] = DBIOAction[T, NoStream, Effect.Read]
 
   type PlainValidationT[T]  = Validated[String, T]
@@ -56,7 +56,7 @@ package object validations {
   type ValidationResult[T]  = Validated[ValidationErrors, T]
   type ValidationResultUnit = ValidationResult[Unit]
 
-  def successResult[E](res: E): validations.ValidationResult[E] =
+  def successResult[E](res: E): validation.ValidationResult[E] =
     Validated.Valid(res)
 
   def validationErrors[M](errors: (String, String)*): ValidationResult[M] =

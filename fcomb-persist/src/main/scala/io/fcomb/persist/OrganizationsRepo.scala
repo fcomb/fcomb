@@ -32,7 +32,7 @@ import io.fcomb.rpc.acl.{
 }
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationResponse}
-import io.fcomb.validations._
+import io.fcomb.validation._
 import java.time.OffsetDateTime
 import scala.concurrent.{Future, ExecutionContext}
 import scala.collection.immutable
