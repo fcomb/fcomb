@@ -33,9 +33,9 @@ import io.fcomb.docker.distribution.server.ContentTypes.{
 }
 import io.fcomb.docker.distribution.server.AuthenticationDirectives._
 import io.fcomb.docker.distribution.server.CommonDirectives._
-import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.MediaTypes
+import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.json.models.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
@@ -43,6 +43,7 @@ import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImagesRepo}
 import io.fcomb.server.CirceSupport._
+import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 
 object ImagesHandler {
@@ -69,7 +70,7 @@ object ImagesHandler {
                     }
                 }
                 val headers = immutable.Seq(
-                  ETag(s"${ImageManifest.sha256Prefix}${im.digest}"),
+                  ETag(im.sha256Digest),
                   `Docker-Content-Digest`("sha256", im.digest)
                 )
                 respondWithHeaders(headers) {
@@ -150,7 +151,7 @@ object ImagesHandler {
           reference match {
             case Reference.Digest(digest) =>
               onSuccess(ImageManifestsRepo.destroy(image.getId(), digest)) { res =>
-                if (res) complete(HttpResponse(StatusCodes.Accepted))
+                if (res) completeAccepted()
                 else completeError(DistributionError.manifestUnknown)
               }
             case _ => completeError(DistributionError.manifestInvalid())

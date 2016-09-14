@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.dashboard
 
-import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
@@ -30,14 +29,11 @@ import io.fcomb.frontend.styles.Global
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import scala.scalajs.js
 import scalacss.ScalaCssReact._
 
 object DashboardRepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
-  final case class State(namespace: Option[Namespace],
-                         isSearchActive: Boolean,
-                         searchQuery: String)
+  final case class State(namespace: Option[Namespace])
 
   final case class Backend($ : BackendScope[Props, State]) {
     def setDefaultOwner(): Callback = {
@@ -55,35 +51,16 @@ object DashboardRepositoriesComponent {
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
-    def openSearch(e: ReactTouchEventH) =
-      $.modState(_.copy(isSearchActive = true, searchQuery = ""))
-
-    def closeSearch(e: ReactTouchEventH) =
-      $.modState(_.copy(isSearchActive = false))
-
-    lazy val searchButtonStyle =
-      js.Dictionary("position" -> "absolute", "right" -> "8px", "top" -> "16px")
-
     def render(props: Props, state: State) = {
       val repositoriesSection = state.namespace match {
         case Some(namespace) =>
-          val header: Seq[ReactElement] =
-            if (state.isSearchActive)
-              Seq(MuiTextField(hintText = "Name of repository to search", fullWidth = true)(),
-                  <.div(^.style := searchButtonStyle,
-                        MuiIconButton(onTouchTap = closeSearch _)(
-                          Mui.SvgIcons.ContentClear(color = Mui.Styles.colors.lightBlack)())))
-            else
-              Seq(NamespaceComponent(namespace,
-                                     isAdminRoleOnly = false,
-                                     isAllNamespace = true,
-                                     isDisabled = false,
-                                     updateNamespace _),
-                  <.div(^.style := searchButtonStyle,
-                        MuiIconButton(onTouchTap = openSearch _)(
-                          Mui.SvgIcons.ActionSearch(color = Mui.Styles.colors.lightBlack)())))
           MuiCard()(
-            MuiCardTitle(key = "title")(header),
+            MuiCardTitle(key = "title")(
+              NamespaceComponent(namespace,
+                                 isAdminRoleOnly = false,
+                                 isAllNamespace = true,
+                                 isDisabled = false,
+                                 updateNamespace _)),
             MuiCardMedia(key = "repos")(RepositoriesComponent(props.ctl, namespace))
           )
         case _ => MuiCircularProgress(key = "progress")()
@@ -102,7 +79,7 @@ object DashboardRepositoriesComponent {
   }
 
   private val component = ReactComponentB[Props]("DashboardRepositories")
-    .initialState(State(None, false, ""))
+    .initialState(State(None))
     .renderBackend[Backend]
     .componentWillMount(_.backend.setDefaultOwner())
     .build

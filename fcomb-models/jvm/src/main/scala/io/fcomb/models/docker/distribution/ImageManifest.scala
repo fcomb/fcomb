@@ -45,6 +45,9 @@ final case class ImageManifest(
 
   def getSchemaV2JsonBlob() =
     schemaV2Details.map(_.jsonBlob).getOrElse(throw new EmptySchemaV2JsonBlobException)
+
+  def sha256Digest =
+    s"${ImageManifest.sha256Prefix}$digest"
 }
 
 object ImageManifest {
