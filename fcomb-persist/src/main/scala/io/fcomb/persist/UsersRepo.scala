@@ -20,7 +20,7 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.User
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.acl.PermissionsRepo

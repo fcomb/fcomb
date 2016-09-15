@@ -322,7 +322,8 @@ lazy val javaRunOptions = Seq(
   "-XX:ParallelGCThreads=20",
   "-XX:ConcGCThreads=5",
   "-XX:InitiatingHeapOccupancyPercent=70",
-  "-XX:-UseBiasedLocking"
+  "-XX:-UseBiasedLocking",
+  "-XX:ReservedCodeCacheSize=256m"
 )
 
 lazy val root = project

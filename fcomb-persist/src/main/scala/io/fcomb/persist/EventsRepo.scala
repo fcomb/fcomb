@@ -20,8 +20,8 @@ import cats.data.Xor
 import io.circe.Json
 import io.circe.syntax._
 import io.fcomb.Db.db
-import io.fcomb.FcombPostgresProfile.api._
-import io.fcomb.FcombPostgresProfile.createJdbcMapping
+import io.fcomb.PostgresProfile.api._
+import io.fcomb.PostgresProfile.createJdbcMapping
 import io.fcomb.json.models.Formats._
 import io.fcomb.models.{Event, EventDetails, EventKind}
 import java.time.OffsetDateTime

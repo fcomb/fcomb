@@ -16,7 +16,7 @@
 
 package io.fcomb.persist.docker.distribution
 
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.docker.distribution.ImageManifestLayer
 import io.fcomb.persist._
 import java.util.UUID

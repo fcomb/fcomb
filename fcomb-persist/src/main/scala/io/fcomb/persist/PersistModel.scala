@@ -21,8 +21,8 @@ import cats.data.Validated
 import cats.syntax.cartesian._
 import cats.instances.all._
 import io.fcomb.Db._
-import io.fcomb.FcombPostgresProfile.IntoInsertActionComposer
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.IntoInsertActionComposer
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.validation.{DBIOT, ValidationResult, ValidationResultUnit}
 import io.fcomb.{models, validation}
 import java.util.UUID

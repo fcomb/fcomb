@@ -19,7 +19,7 @@ package io.fcomb.persist.docker.distribution
 import akka.stream.scaladsl.Source
 import cats.data.Validated
 import io.fcomb.Db._
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.docker.distribution.ImageWebhook
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist.{PersistModelWithAutoIntPk, PersistTableWithAutoIntPk}

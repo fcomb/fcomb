@@ -23,14 +23,6 @@ import io.fcomb.server.api._
 import io.fcomb.server.headers._
 
 object Api {
-  private val pongJsonResponse = HttpResponse(
-    status = StatusCodes.OK,
-    entity = HttpEntity(
-      ContentTypes.`application/json`,
-      """{"pong":true}"""
-    )
-  )
-
   def routes(): Route = {
     // format: OFF
     pathPrefix(apiVersion) {
@@ -40,11 +32,11 @@ object Api {
           OrganizationsHandler.routes ~
           UserHandler.routes ~
           UsersHandler.routes ~
-          SessionsHandler.routes ~
-          path("ping")(complete(pongJsonResponse))
+          SessionsHandler.routes
         }
       }
-    }
+    } ~
+    path("health")(complete(HttpResponse(StatusCodes.OK)))
     // format: ON
   }
 

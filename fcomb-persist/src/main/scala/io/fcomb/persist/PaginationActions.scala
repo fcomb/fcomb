@@ -16,7 +16,7 @@
 
 package io.fcomb.persist
 
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.{Pagination, SortOrder}
 import scala.util.control.NoStackTrace
 import slick.ast.Ordering

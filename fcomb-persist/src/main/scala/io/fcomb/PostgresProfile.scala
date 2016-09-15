@@ -24,7 +24,7 @@ import scala.reflect.ClassTag
 import slick.ast.FieldSymbol
 import slick.jdbc.JdbcType
 
-trait FcombPostgresProfile
+trait PostgresProfile
     extends ExPostgresProfile
     with PgArraySupport
     with PgCirceJsonSupport
@@ -37,7 +37,7 @@ trait FcombPostgresProfile
     with PgDateSupport
     with PgDate2Support {
 
-  override val pgjson = "json"
+  override val pgjson = "jsonb"
 
   def createJdbcMapping[T <: EnumItem](
       sqlEnumTypeName: String,
@@ -87,4 +87,4 @@ trait FcombPostgresProfile
   with RangeImplicits with HStoreImplicits with SearchImplicits with SearchAssistants
 }
 
-object FcombPostgresProfile extends FcombPostgresProfile
+object PostgresProfile extends PostgresProfile

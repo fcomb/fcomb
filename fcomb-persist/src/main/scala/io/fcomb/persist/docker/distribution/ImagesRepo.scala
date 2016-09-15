@@ -20,7 +20,7 @@ import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Xor
 import cats.syntax.eq._
 import io.fcomb.Db.db
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}

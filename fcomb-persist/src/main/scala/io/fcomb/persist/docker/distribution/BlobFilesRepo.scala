@@ -19,7 +19,7 @@ package io.fcomb.persist.docker.distribution
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.scaladsl.Source
 import io.fcomb.Db.db
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.docker.distribution.{BlobFile, BlobFileState}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.Implicits._

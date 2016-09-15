@@ -18,7 +18,7 @@ package io.fcomb.persist
 
 import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.Db.db
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.acl.{Role, MemberKind}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{Organization, Pagination, PaginationData}

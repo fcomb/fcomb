@@ -16,7 +16,7 @@
 
 package io.fcomb.persist
 
-import io.fcomb.FcombPostgresProfile._
+import io.fcomb.PostgresProfile._
 import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.docker.distribution.{BlobFileState, ImageBlobState, ImageVisibilityKind}
 import io.fcomb.models.{ApplicationState, OwnerKind}

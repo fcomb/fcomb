@@ -18,7 +18,7 @@ package io.fcomb.persist
 
 import cats.data.Validated
 import io.fcomb.Db.db
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{Pagination, PaginationData, OrganizationGroupUser}
 import io.fcomb.rpc.{MemberUserRequest, UserProfileResponse}

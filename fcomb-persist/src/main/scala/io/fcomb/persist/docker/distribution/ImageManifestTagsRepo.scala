@@ -17,7 +17,7 @@
 package io.fcomb.persist.docker.distribution
 
 import io.fcomb.Db.db
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.docker.distribution.ImageManifestTag
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist._

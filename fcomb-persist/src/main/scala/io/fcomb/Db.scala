@@ -18,7 +18,7 @@ package io.fcomb
 
 import io.fcomb.db.Migration
 import io.fcomb.utils.Config
-import io.fcomb.FcombPostgresProfile.api.Database
+import io.fcomb.PostgresProfile.api.Database
 import scala.concurrent.ExecutionContext
 
 object Db {

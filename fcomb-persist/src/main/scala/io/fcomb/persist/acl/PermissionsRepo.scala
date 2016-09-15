@@ -19,7 +19,7 @@ package io.fcomb.persist.acl
 import cats.data.Validated
 import cats.syntax.eq._
 import io.fcomb.Db.db
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.OrganizationGroup
 import io.fcomb.models.acl._
 import io.fcomb.models.common.Slug

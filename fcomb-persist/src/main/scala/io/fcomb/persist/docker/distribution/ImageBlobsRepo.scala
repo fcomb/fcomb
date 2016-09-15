@@ -18,7 +18,7 @@ package io.fcomb.persist.docker.distribution
 
 import cats.data.Xor
 import io.fcomb.Db.db
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.OwnerKind
 import io.fcomb.models.docker.distribution.ImageManifest.{emptyTarSha256Digest, emptyTar}
 import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob, BlobFileState}

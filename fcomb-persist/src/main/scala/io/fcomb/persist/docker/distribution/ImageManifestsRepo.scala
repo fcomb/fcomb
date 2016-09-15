@@ -19,7 +19,7 @@ package io.fcomb.persist.docker.distribution
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import io.fcomb.Db.db
-import io.fcomb.FcombPostgresProfile.api._
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.persist._
 import java.time.OffsetDateTime

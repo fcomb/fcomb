@@ -30,7 +30,8 @@ object Main extends App with LazyLogging {
 
   val interface = Config.config.getString("rest-api.interface")
   val port      = Config.config.getInt("rest-api.port")
-  val routes    = Api.routes() ~ DockerApi.routes() ~ Frontend.routes()
+
+  val routes = Api.routes() ~ DockerApi.routes() ~ Frontend.routes()
 
   (for {
     _ <- Db.migrate()
