@@ -349,6 +349,7 @@ lazy val root = project
     packageName in Universal := "dist",
     scriptClasspath ~= (cp => "../config" +: cp),
     javaOptions in (Test, run) ++= javaRunOptions,
+    mappings in Universal ~= (_.filterNot(_._2.contains("sjs"))),
     parallelExecution := true,
     fork in run := true,
     fork in reStart := true
