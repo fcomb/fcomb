@@ -39,7 +39,7 @@ lazy val commonSettings =
       libraryDependencies ++= Seq(
         "com.chuusai"                %% "shapeless"     % "2.3.2",
         "org.typelevel"              %% "cats"          % catsVersion,
-        "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0"
+        "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
       ),
       scalacOptions ++= Seq(
         "-encoding",
@@ -337,7 +337,7 @@ lazy val root = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion,
-      "com.lihaoyi"       % "ammonite-repl"           % "0.7.6" % "test" cross CrossVersion.full,
+      "com.lihaoyi"       % "ammonite-repl"           % "0.7.7" % "test" cross CrossVersion.full,
       "ch.qos.logback"    % "logback-classic"         % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",

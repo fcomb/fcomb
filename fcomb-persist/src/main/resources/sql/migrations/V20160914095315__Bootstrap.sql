@@ -1,12 +1,15 @@
 CREATE EXTENSION "uuid-ossp";
 CREATE EXTENSION "citext";
 
+CREATE TYPE user_role AS ENUM ('admin', 'developer');
+
 CREATE TABLE users (
   id serial PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   email citext NOT NULL,
   full_name varchar(255),
   password_hash varchar(255) NOT NULL,
+  role user_role not null,
   updated_at TIMESTAMP WITH TIME ZONE,
   username citext NOT NULL
 );

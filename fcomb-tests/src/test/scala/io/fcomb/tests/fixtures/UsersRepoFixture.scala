@@ -17,7 +17,7 @@
 package io.fcomb.tests.fixtures
 
 import cats.data.Validated
-import io.fcomb.models.User
+import io.fcomb.models.{User, UserRole}
 import io.fcomb.persist.UsersRepo
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -32,14 +32,16 @@ object UsersRepoFixture {
       email: String = email,
       username: String = username,
       password: String = password,
-      fullName: Option[String] = fullName
+      fullName: Option[String] = fullName,
+      role: UserRole = UserRole.Developer
   ): Future[User] = {
     for {
       Validated.Valid(user) <- UsersRepo.create(
         email = email,
         username = username,
         password = password,
-        fullName = fullName
+        fullName = fullName,
+        role = role
       )
     } yield user
   }

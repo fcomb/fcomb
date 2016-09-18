@@ -16,21 +16,13 @@
 
 package io.fcomb.models
 
-import com.github.t3hnar.bcrypt._
-import java.time.OffsetDateTime
+import io.fcomb.models.common.{Enum, EnumItem}
 
-final case class User(
-    id: Option[Int],
-    email: String,
-    username: String,
-    fullName: Option[String],
-    passwordHash: String,
-    role: UserRole,
-    createdAt: OffsetDateTime,
-    updatedAt: Option[OffsetDateTime]
-) extends ModelWithAutoIntPk {
-  def withId(id: Int) = this.copy(id = Some(id))
+sealed trait UserRole extends EnumItem
 
-  def isValidPassword(password: String) =
-    password.isBcrypted(passwordHash)
+object UserRole extends Enum[UserRole] {
+  case object Admin     extends UserRole
+  case object Developer extends UserRole
+
+  val values = findValues
 }

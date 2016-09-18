@@ -21,7 +21,8 @@ import cats.data.Validated
 import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
 import io.fcomb.PostgresProfile.api._
-import io.fcomb.models.User
+import io.fcomb.PostgresProfile.createJdbcMapping
+import io.fcomb.models.{User, UserRole}
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.{
@@ -36,16 +37,22 @@ import io.fcomb.validation._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWithAutoIntPk {
+object UserTableImplicits {
+  implicit val userRoleColumnType = createJdbcMapping("user_role", UserRole)
+}
+import UserTableImplicits._
+
+final class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTableWithAutoIntPk {
   def email        = column[String]("email")
   def username     = column[String]("username")
   def fullName     = column[Option[String]]("full_name")
   def passwordHash = column[String]("password_hash")
+  def role         = column[UserRole]("role")
   def createdAt    = column[OffsetDateTime]("created_at")
   def updatedAt    = column[Option[OffsetDateTime]]("updated_at")
 
   def * =
-    (id.?, email, username, fullName, passwordHash, createdAt, updatedAt) <>
+    (id.?, email, username, fullName, passwordHash, role, createdAt, updatedAt) <>
       ((User.apply _).tupled, User.unapply)
 }
 
@@ -56,7 +63,8 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       email: String,
       username: String,
       fullName: Option[String],
-      password: String
+      password: String,
+      role: UserRole
   )(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val timeAt = OffsetDateTime.now()
     val user = mapModel(
@@ -66,6 +74,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
         username = username,
         fullName = fullName,
         passwordHash = password.bcrypt(generateSalt),
+        role = role,
         createdAt = timeAt,
         updatedAt = None
       ))
@@ -83,7 +92,8 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       email = req.email,
       username = req.username,
       fullName = fullName,
-      password = req.password
+      password = req.password,
+      role = UserRole.Developer
     )
   }
 
@@ -251,10 +261,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       "password" -> List(lengthRange(password, 6, 50))
     )
 
-  def userValidation(
-      user: User,
-      passwordOpt: Option[String]
-  )(implicit ec: ExecutionContext) = {
+  def userValidation(user: User, passwordOpt: Option[String])(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(
       "username" -> List(
         lengthRange(user.username, 1, 255),

@@ -24,6 +24,7 @@ import io.fcomb.models._, EventDetails._
 object Formats {
   final implicit val encodeOwnerKind: Encoder[OwnerKind] = Circe.encoder(OwnerKind)
   final implicit val encodeEventKind: Encoder[EventKind] = Circe.encoder(EventKind)
+  final implicit val encodeUserRole: Encoder[UserRole]   = Circe.encoder(UserRole)
 
   final implicit val encodeOwner: Encoder[Owner]     = deriveEncoder
   final implicit val encodeSession: Encoder[Session] = deriveEncoder
