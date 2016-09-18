@@ -16,6 +16,7 @@
 
 package io.fcomb.models
 
+import cats.syntax.eq._
 import com.github.t3hnar.bcrypt._
 import java.time.OffsetDateTime
 
@@ -33,4 +34,7 @@ final case class User(
 
   def isValidPassword(password: String) =
     password.isBcrypted(passwordHash)
+
+  def isAdmin =
+    role === UserRole.Admin
 }
