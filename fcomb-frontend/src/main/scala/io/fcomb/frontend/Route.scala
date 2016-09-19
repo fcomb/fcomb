@@ -26,11 +26,11 @@ object Route {
   }
 
   final case object SignIn extends Route {
-    def title = "Sign In"
+    def title = "Login"
   }
 
   final case object SignUp extends Route {
-    def title = "Sign Up"
+    def title = "Registration"
   }
 
   final case object SignOut extends Route {

@@ -152,16 +152,16 @@ lazy val persist = project
   .settings(moduleName := "persist")
   .settings(allSettings: _*)
   .settings(libraryDependencies ++= Seq(
-    "commons-codec"       % "commons-codec"        % commonsVersion,
-    "io.fcomb"            %% "db-migration"        % "0.3.1",
-    "org.postgresql"      % "postgresql"           % "9.4.1211" exclude ("org.slf4j", "slf4j-simple"),
-    "com.typesafe.akka"   %% "akka-http-core"      % akkaVersion,
-    "com.typesafe.slick"  %% "slick"               % slickVersion,
-    "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
-    "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
-    "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
-    "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
-    "com.zaxxer"          % "HikariCP"             % "2.5.0"
+    "commons-codec"       % "commons-codec"           % commonsVersion,
+    "io.fcomb"            %% "db-migration"           % "0.3.1",
+    "org.postgresql"      % "postgresql"              % "9.4.1211" exclude ("org.slf4j", "slf4j-simple"),
+    "com.typesafe.akka"   %% "akka-http-experimental" % akkaVersion,
+    "com.typesafe.slick"  %% "slick"                  % slickVersion,
+    "com.typesafe.slick"  %% "slick-hikaricp"         % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
+    "com.github.tminglei" %% "slick-pg"               % slickPgVersion,
+    "com.github.tminglei" %% "slick-pg_date2"         % slickPgVersion,
+    "com.github.tminglei" %% "slick-pg_circe-json"    % slickPgVersion,
+    "com.zaxxer"          % "HikariCP"                % "2.5.0"
   ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
@@ -229,7 +229,7 @@ lazy val server = project
   .settings(allSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion
+      "com.typesafe.akka" %% "akka-http-core" % akkaVersion
     ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(persist, utils, jsonJVM, validation, services)
@@ -335,10 +335,10 @@ lazy val root = project
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
-      "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion,
-      "com.lihaoyi"       % "ammonite-repl"           % "0.7.7" % "test" cross CrossVersion.full,
-      "ch.qos.logback"    % "logback-classic"         % "1.1.7"
+      "com.typesafe.akka" %% "akka-http-core" % akkaVersion,
+      "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
+      "com.lihaoyi"       % "ammonite-repl"   % "0.7.7" % "test" cross CrossVersion.full,
+      "ch.qos.logback"    % "logback-classic" % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",
     aggregate in reStart := false,
