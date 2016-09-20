@@ -49,25 +49,26 @@ object NewRepositoryComponent {
           case Some(owner) if !state.isFormDisabled =>
             $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
               val url = owner match {
-                case Owner(_, OwnerKind.User)          => Resource.userSelfRepositories
-                case Owner(id, OwnerKind.Organization) => Resource.organizationRepositories(id.toString)
+                case Owner(_, OwnerKind.User) => Resource.userSelfRepositories
+                case Owner(id, OwnerKind.Organization) =>
+                  Resource.organizationRepositories(id.toString)
               }
               Callback.future {
                 val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
                 Rpc
                   .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
                   .map {
-                  case Xor.Right(repository) =>
-                    props.ctl.set(DashboardRoute.Repository(repository.slug))
-                  case Xor.Left(errs) =>
-                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
-                }
+                    case Xor.Right(repository) =>
+                      props.ctl.set(DashboardRoute.Repository(repository.slug))
+                    case Xor.Left(errs) =>
+                      $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
+                  }
                   .recover {
-                  case _ => $.setState(state.copy(isFormDisabled = false))
-                }
+                    case _ => $.setState(state.copy(isFormDisabled = false))
+                  }
               }
             }
-          case _ =>Callback.empty
+          case _ => Callback.empty
         }
       }
     }
@@ -96,59 +97,66 @@ object NewRepositoryComponent {
     def updateNamespace(namespace: Namespace) = {
       namespace match {
         case on: OwnerNamespace => $.modState(_.copy(owner = on.toOwner))
-        case _ => Callback.empty
+        case _                  => Callback.empty
       }
     }
 
     def render(props: Props, state: State) = {
-      <.div(
-        <.h2("New repository"),
-        <.form(
-          ^.onSubmit ==> handleOnSubmit(props),
-          ^.disabled := state.isFormDisabled,
-          <.div(^.display.flex,
-                ^.flexDirection.column,
-                NamespaceComponent(props.namespace,
-                                  isAdminRoleOnly = true,
-                                  isAllNamespace = false,
-                                  isDisabled = state.isFormDisabled,
-                                  updateNamespace _),
-                MuiTextField(floatingLabelText = "Name",
-                             id = "name",
-                             name = "name",
-                             disabled = state.isFormDisabled,
-                             errorText = state.errors.get("name"),
-                             value = state.name,
-                             onChange = updateName _)(),
-                MuiTextField(floatingLabelText = "Description",
-                             id = "description",
-                             name = "description",
-                             multiLine = true,
-                             disabled = state.isFormDisabled,
-                             errorText = state.errors.get("description"),
-                             value = state.description.orUndefined,
-                             onChange = updateDescription _)(),
-                <.label(^.`for` := "visibilityKind", "Visibility"),
-                MuiRadioButtonGroup(name = "visibilityKind",
-                                    defaultSelected = state.visibilityKind.value,
-                                    onChange = updateVisibilityKind _)(
-                  MuiRadioButton(
-                    key = "public",
-                    value = ImageVisibilityKind.Public.value,
-                    label = "Public",
-                    disabled = state.isFormDisabled
-                  )(),
-                  MuiRadioButton(
-                    key = "private",
-                    value = ImageVisibilityKind.Private.value,
-                    label = "Private",
-                    disabled = state.isFormDisabled
-                  )()
-                ),
-                MuiRaisedButton(`type` = "submit",
-                                primary = true,
-                                label = "Create",
-                                disabled = state.isFormDisabled || state.owner.isEmpty)()))
+      MuiCard()(
+        MuiCardTitle(key = "title")(<.h2("New repository")),
+        MuiCardText(key = "form")(
+          <.form(^.onSubmit ==> handleOnSubmit(props),
+                 ^.disabled := state.isFormDisabled,
+                 NamespaceComponent(props.namespace,
+                                    isAdminRoleOnly = true,
+                                    isAllNamespace = false,
+                                    isDisabled = state.isFormDisabled,
+                                    updateNamespace _),
+                 MuiTextField(floatingLabelText = "Name",
+                              id = "name",
+                              name = "name",
+                              disabled = state.isFormDisabled,
+                              errorText = state.errors.get("name"),
+                              value = state.name,
+                              onChange = updateName _)(),
+                 MuiTextField(floatingLabelText = "Description (Markdown)",
+                              id = "description",
+                              name = "description",
+                              multiLine = true,
+                              fullWidth = true,
+                              rows = 3,
+                              disabled = state.isFormDisabled,
+                              errorText = state.errors.get("description"),
+                              value = state.description.orUndefined,
+                              onChange = updateDescription _)(),
+                 <.label(^.`for` := "visibilityKind", "Visibility"),
+                 MuiRadioButtonGroup(name = "visibilityKind",
+                                     defaultSelected = state.visibilityKind.value,
+                                     onChange = updateVisibilityKind _)(
+                   MuiRadioButton(
+                     key = "public",
+                     value = ImageVisibilityKind.Public.value,
+                     label = "Public",
+                     disabled = state.isFormDisabled
+                   )(),
+                   MuiRadioButton(
+                     key = "private",
+                     value = ImageVisibilityKind.Private.value,
+                     label = "Private",
+                     disabled = state.isFormDisabled
+                   )()
+                 ))),
+        MuiCardActions(key = "actions")(
+          MuiRaisedButton(`type` = "button",
+                          primary = false,
+                          label = "Cancel",
+                          disabled = state.isFormDisabled,
+                          key = "cancel")(),
+          MuiRaisedButton(`type` = "submit",
+                          primary = true,
+                          label = "Create",
+                          disabled = state.isFormDisabled || state.owner.isEmpty,
+                          key = "submit")())
       )
     }
   }

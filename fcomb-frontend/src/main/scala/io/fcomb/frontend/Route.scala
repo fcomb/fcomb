@@ -51,7 +51,7 @@ object DashboardRoute {
     def title = "Repositories"
   }
   final case object NewRepository extends DashboardRoute {
-    def title = Repositories.title
+    def title = s"${Repositories.title} – New"
   }
   sealed trait RepositoryRoute extends DashboardRoute {
     val name: String
@@ -66,7 +66,7 @@ object DashboardRoute {
     def title = "Organizations"
   }
   final case object NewOrganization extends DashboardRoute {
-    def title = Organizations.title
+    def title = s"${Organizations.title} – New"
   }
   sealed trait OrganizationRoute extends DashboardRoute {
     val orgName: String
