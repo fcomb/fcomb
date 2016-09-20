@@ -4,7 +4,7 @@ import de.heikoseeberger.sbtheader.license.Apache2_0
 lazy val akkaVersion         = "2.4.10"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.7.2"
-lazy val circeVersion        = "0.5.1"
+lazy val circeVersion        = "0.5.2"
 lazy val commonsVersion      = "1.10"
 lazy val enumeratumVersion   = "1.4.14"
 lazy val guavaVersion        = "19.0"
@@ -161,7 +161,7 @@ lazy val persist = project
     "com.github.tminglei" %% "slick-pg"               % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_date2"         % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json"    % slickPgVersion,
-    "com.zaxxer"          % "HikariCP"                % "2.5.0"
+    "com.zaxxer"          % "HikariCP"                % "2.5.1"
   ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
