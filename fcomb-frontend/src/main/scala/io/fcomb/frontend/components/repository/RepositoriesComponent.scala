@@ -24,7 +24,6 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.{TimeAgoComponent, ToolbarPaginationComponent, LayoutComponent}
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.frontend.styles.Global
 import io.fcomb.frontend.utils.PaginationUtils
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
@@ -36,7 +35,6 @@ import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
-import scalacss.ScalaCssReact._
 
 object RepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], namespace: Namespace)
@@ -116,15 +114,7 @@ object RepositoriesComponent {
 
     lazy val colNames = MuiTableRow()(
       MuiTableHeaderColumn(style = visibilityColumnStyle, key = "visibilityKind")("Visibility"),
-      MuiTableHeaderColumn(key = "name")(
-        <.a(Global.sortedColumn,
-            ^.href := "#",
-            Mui.SvgIcons.NavigationArrowDownward(
-              style = js.Dictionary("width"         -> "12px",
-                                    "height"        -> "12px",
-                                    "paddingRight"  -> "8px",
-                                    "verticalAlign" -> "middle"))(),
-            <.span("Name"))()),
+      MuiTableHeaderColumn(key = "name")("Name"),
       MuiTableHeaderColumn(key = "lastModifiedAt")("Last modified"),
       MuiTableHeaderColumn(style = menuColumnStyle, key = "menu")()
     )

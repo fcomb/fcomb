@@ -21,18 +21,18 @@
     "json-loader": "^0.5.4",
     "node-libs-browser": "^1.0.0",
     "raw-loader": "^0.5.1",
-    "react-hot-loader": "^3.0.0-beta.3",
+    "react-hot-loader": "^3.0.0-beta.4",
     "style-loader": "^0.13.1",
     "url-loader": "^0.5.7",
     "webpack": "^1.13.2",
-    "webpack-dev-server": "^1.15.1"
+    "webpack-dev-server": "^1.16.1"
   },
   "dependencies": {
     "bootstrap-grid": "^2.0.1",
     "material-ui": "^v0.15.4",
-    "react": "^15.3.1",
+    "react": "^15.3.2",
     "react-copy-to-clipboard": "^4.2.3",
-    "react-dom": "^15.3.1",
+    "react-dom": "^15.3.2",
     "react-markdown": "^2.4.2",
     "react-tap-event-plugin": "^1.0.0",
     "roboto-npm-webfont": "^0.0.2",
