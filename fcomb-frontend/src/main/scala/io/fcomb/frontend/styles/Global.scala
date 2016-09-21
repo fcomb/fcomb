@@ -38,6 +38,14 @@ object Global extends StyleSheet.Inline {
 
   val sortedColumn = style(color(lightBlack), textDecoration := "none")
 
+  val formTitleBlock = style(padding(0.px),
+                             position.relative,
+                             borderBottom :=! "1px solid #eee",
+                             boxSizing.borderBox,
+                             margin(0.px))
+
+  val formTitle = style(fontWeight :=! "400", margin(0.px), fontSize(20.px))
+
   val footer = style(textAlign.center,
                      paddingTop(24.px),
                      paddingBottom(12.px),

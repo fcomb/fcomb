@@ -23,15 +23,17 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
+import io.fcomb.frontend.styles.Global
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.{Owner, OwnerKind}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
+import io.fcomb.models.{Owner, OwnerKind}
 import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js.JSConverters._
+import scalacss.ScalaCssReact._
 
 object NewRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], namespace: OwnerNamespace)
@@ -103,32 +105,43 @@ object NewRepositoryComponent {
 
     def render(props: Props, state: State) = {
       MuiCard()(
-        MuiCardTitle(key = "title")(<.h2("New repository")),
-        MuiCardText(key = "form")(
-          <.form(^.onSubmit ==> handleOnSubmit(props),
-                 ^.disabled := state.isFormDisabled,
+        <.div(Global.formTitleBlock,
+          MuiCardTitle(key = "title")(<.h1(Global.formTitle, "New repository"))),
+        <.form(^.onSubmit ==> handleOnSubmit(props),
+               ^.disabled := state.isFormDisabled,
+          MuiCardText(key = "form")(
+            <.div(^.`class` := "container-fluid",
+              <.div(^.`class` := "row",
+                <.div(^.`class` := "col-xs-6",
                  NamespaceComponent(props.namespace,
                                     isAdminRoleOnly = true,
                                     isAllNamespace = false,
                                     isDisabled = state.isFormDisabled,
-                                    updateNamespace _),
+                   updateNamespace _))),
+              <.div(^.`class` := "row",
+                                <.div(^.`class` := "col-xs-6",
                  MuiTextField(floatingLabelText = "Name",
                               id = "name",
                               name = "name",
                               disabled = state.isFormDisabled,
                               errorText = state.errors.get("name"),
                               value = state.name,
-                              onChange = updateName _)(),
+                   onChange = updateName _)())),
+              <.div(^.`class` := "row",
+                                <.div(^.`class` := "col-xs-6",
                  MuiTextField(floatingLabelText = "Description (Markdown)",
                               id = "description",
                               name = "description",
                               multiLine = true,
                               fullWidth = true,
                               rows = 3,
+                              rowsMax = 15,
                               disabled = state.isFormDisabled,
                               errorText = state.errors.get("description"),
                               value = state.description.orUndefined,
-                              onChange = updateDescription _)(),
+                   onChange = updateDescription _)())),
+              <.div(^.`class` := "row",
+                                <.div(^.`class` := "col-xs-6",
                  <.label(^.`for` := "visibilityKind", "Visibility"),
                  MuiRadioButtonGroup(name = "visibilityKind",
                                      defaultSelected = state.visibilityKind.value,
@@ -145,18 +158,19 @@ object NewRepositoryComponent {
                      label = "Private",
                      disabled = state.isFormDisabled
                    )()
-                 ))),
-        MuiCardActions(key = "actions")(
-          MuiRaisedButton(`type` = "button",
-                          primary = false,
-                          label = "Cancel",
-                          disabled = state.isFormDisabled,
-                          key = "cancel")(),
-          MuiRaisedButton(`type` = "submit",
-                          primary = true,
-                          label = "Create",
-                          disabled = state.isFormDisabled || state.owner.isEmpty,
-                          key = "submit")())
+                 ))))),
+          // TODO: "create another one" checkbox
+               MuiCardActions(key = "actions")(
+                 MuiRaisedButton(`type` = "button",
+                                 primary = false,
+                                 label = "Cancel",
+                                 disabled = state.isFormDisabled,
+                                 key = "cancel")(),
+                 MuiRaisedButton(`type` = "submit",
+                                 primary = true,
+                                 label = "Create",
+                                 disabled = state.isFormDisabled || state.owner.isEmpty,
+                                 key = "submit")()))
       )
     }
   }
