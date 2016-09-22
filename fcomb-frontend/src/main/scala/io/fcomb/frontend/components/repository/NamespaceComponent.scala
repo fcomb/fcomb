@@ -35,7 +35,8 @@ object NamespaceComponent {
                          isAdminRoleOnly: Boolean,
                          isAllNamespace: Boolean,
                          isDisabled: Boolean,
-                         cb: Namespace => Callback)
+                         cb: Namespace => Callback,
+                         fullWidth: Boolean)
   final case class State(namespace: Option[Namespace],
                          namespaces: Seq[OwnerNamespace],
                          data: js.Array[String])
@@ -107,6 +108,7 @@ object NamespaceComponent {
       }
       MuiSelectField[Namespace](
         floatingLabelText = "User or organization",
+        fullWidth = props.fullWidth,
         disabled = props.isDisabled,
         value = state.namespace.orUndefined,
         maxHeight = limit + prefixCount,
@@ -126,6 +128,7 @@ object NamespaceComponent {
             isAdminRoleOnly: Boolean,
             isAllNamespace: Boolean,
             isDisabled: Boolean,
-            cb: Namespace => Callback) =
-    component.apply(Props(namespace, isAdminRoleOnly, isAllNamespace, isDisabled, cb))
+            cb: Namespace => Callback,
+            fullWidth: Boolean = false) =
+    component.apply(Props(namespace, isAdminRoleOnly, isAllNamespace, isDisabled, cb, fullWidth))
 }
