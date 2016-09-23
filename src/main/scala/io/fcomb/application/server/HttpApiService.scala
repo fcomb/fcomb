@@ -9,8 +9,8 @@ import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.server.CirceSupport._
-import io.fcomb.json.models.errors.Formats._
-import io.fcomb.models.errors._
+import io.fcomb.json.model.errors.Formats._
+import io.fcomb.model.errors._
 
 class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer)
     extends LazyLogging {

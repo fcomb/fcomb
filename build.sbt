@@ -141,9 +141,11 @@ lazy val validation = project
   .in(file("fcomb-validation"))
   .settings(moduleName := "validation")
   .settings(allSettings: _*)
-  .settings(libraryDependencies ++= Seq(
-    "com.typesafe.slick" %% "slick" % slickVersion // TODO: move DBIO validation into persist module
-  ))
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.slick" %% "slick"     % slickVersion,
+      "org.typelevel"      %% "cats-free" % catsVersion
+    ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM)
 

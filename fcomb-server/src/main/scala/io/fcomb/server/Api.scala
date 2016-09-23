@@ -23,7 +23,7 @@ import io.fcomb.server.api._
 import io.fcomb.server.headers._
 
 object Api {
-  def routes(): Route = {
+  val routes: Route = {
     // format: OFF
     pathPrefix(apiVersion) {
       redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {

@@ -38,7 +38,7 @@ object Global extends StyleSheet.Inline {
 
   val sortedColumn = style(color(lightBlack), textDecoration := "none")
 
-  val helpBloc = style(color(c"#888"))
+  val helpBlock = style(color(c"#888"))
 
   val formTitleBlock = style(padding(0.px),
                              position.relative,
