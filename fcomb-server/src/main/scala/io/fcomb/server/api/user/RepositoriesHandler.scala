@@ -16,20 +16,21 @@
 
 package io.fcomb.server.api.user
 
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
-import io.fcomb.server.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
-import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.api.apiVersion
+import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CirceSupport._
+import io.fcomb.server.ErrorDirectives._
+import io.fcomb.server.PaginationDirectives._
 import scala.collection.immutable
 
 object RepositoriesHandler {
@@ -75,8 +76,7 @@ object RepositoriesHandler {
               respondWithHeaders(headers) {
                 complete((StatusCodes.Created, res))
               }
-            case Validated.Invalid(e) =>
-              ??? // TODO
+            case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }

@@ -33,6 +33,7 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scalacss.ScalaCssReact._
 
@@ -109,93 +110,128 @@ object NewRepositoryComponent {
     lazy val linkStyle =
       Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
 
-    def render(props: Props, state: State) = {
-      MuiCard()(
-        <.div(App.formTitleBlock,
-          MuiCardTitle(key = "title")(<.h1(App.formTitle, "New repository"))),
-        <.form(^.onSubmit ==> handleOnSubmit(props),
-               ^.disabled := state.isFormDisabled,
-          MuiCardText(key = "form")(
-              <.div(^.`class` := "row",
-                <.div(^.`class` := "col-xs-6",
-                  NamespaceComponent(props.namespace,
-                                     isAdminRoleOnly = true,
-                                     isAllNamespace = false,
-                                     isDisabled = state.isFormDisabled,
-                                     cb = updateNamespace _,
-                                     fullWidth = true)),
-                <.div(helpBlockClass,
-                  <.label(^.`for` := "namespace" , "An account which will be the owner of repository."))),
-              <.div(^.`class` := "row",
-                                <.div(^.`class` := "col-xs-6",
-                 MuiTextField(floatingLabelText = "Name",
-                              id = "name",
-                              name = "name",
-                              disabled = state.isFormDisabled,
-                   errorText = state.errors.get("name"),
-                   fullWidth = true,
-                              value = state.name,
-                   onChange = updateName _)()),
-                <.div(helpBlockClass,
-                  <.label(^.`for` := "name", "Enter a name for repository that will be used by docker or rkt."))),
-              <.div(^.`class` := "row",
-                                <.div(^.`class` := "col-xs-6",
-                 MuiTextField(floatingLabelText = "Description",
-                              id = "description",
-                              name = "description",
-                              multiLine = true,
-                              fullWidth = true,
-                              rows = 3,
-                              rowsMax = 15,
-                              disabled = state.isFormDisabled,
-                              errorText = state.errors.get("description"),
-                              value = state.description.orUndefined,
-                   onChange = updateDescription _)()),
-                <.div(helpBlockClass,
-                  <.label(^.`for` := "description",
-                    "You can describe this repository in ",
-                    <.a(linkStyle,
-                        ^.href := "https://daringfireball.net/projects/markdown/syntax",
-                        ^.target := "_blank",
-                        "Markdown"),
-                    "."))),
-              <.div(^.`class` := "row",
-                                <.div(^.`class` := "col-xs-6",
-                 MuiRadioButtonGroup(name = "visibilityKind",
-                                     defaultSelected = state.visibilityKind.value,
-                                     onChange = updateVisibilityKind _)(
-                   MuiRadioButton(
-                     key = "public",
-                     value = ImageVisibilityKind.Public.value,
-                     label = "Public",
-                     disabled = state.isFormDisabled
-                   )(),
-                   MuiRadioButton(
-                     key = "private",
-                     value = ImageVisibilityKind.Private.value,
-                     label = "Private",
-                     disabled = state.isFormDisabled
-                   )()
-                 )))),
-          // TODO: "create another one" checkbox
-               MuiCardActions(key = "actions")(
-                 MuiRaisedButton(`type` = "button",
-                                 primary = false,
-                                 label = "Cancel",
-                                 key = "cancel")(),
-                 MuiRaisedButton(`type` = "submit",
-                                 primary = true,
-                                 label = "Create",
-                                 disabled = state.isFormDisabled || state.owner.isEmpty,
-                                 key = "submit")()))
-      )
+    lazy val helpBlockPadding = js.Dictionary("paddingTop" -> "48px")
+
+    lazy val paddingTop = js.Dictionary("paddingTop" -> "12px")
+
+    def renderNamespace(props: Props, state: State) =
+      <.div(
+        ^.`class` := "row",
+        ^.key := "namespaceRow",
+        <.div(^.`class` := "col-xs-6",
+              NamespaceComponent(props.namespace,
+                                 isAdminRoleOnly = true,
+                                 isAllNamespace = false,
+                                 isDisabled = state.isFormDisabled,
+                                 cb = updateNamespace _,
+                                 fullWidth = true)),
+        <.div(
+          helpBlockClass,
+          ^.style := helpBlockPadding,
+          <.label(^.`for` := "namespace", "An account which will be the owner of repository.")))
+
+    def renderName(state: State) =
+      <.div(^.`class` := "row",
+            ^.key := "nameRow",
+            <.div(^.`class` := "col-xs-6",
+                  MuiTextField(floatingLabelText = "Name",
+                               id = "name",
+                               name = "name",
+                               disabled = state.isFormDisabled,
+                               errorText = state.errors.get("name"),
+                               fullWidth = true,
+                               value = state.name,
+                               onChange = updateName _)()),
+            <.div(helpBlockClass,
+                  ^.style := helpBlockPadding,
+                  <.label(^.`for` := "name",
+                          "Enter a name for repository that will be used by docker or rkt.")))
+
+    def renderDescription(state: State) = {
+      val link = <.a(linkStyle,
+                     ^.href := "https://daringfireball.net/projects/markdown/syntax",
+                     ^.target := "_blank",
+                     "Markdown")
+      <.div(
+        ^.`class` := "row",
+        ^.key := "descriptionRow",
+        <.div(^.`class` := "col-xs-6",
+              MuiTextField(floatingLabelText = "Description",
+                           id = "description",
+                           name = "description",
+                           multiLine = true,
+                           fullWidth = true,
+                           rowsMax = 15,
+                           disabled = state.isFormDisabled,
+                           errorText = state.errors.get("description"),
+                           value = state.description.orUndefined,
+                           onChange = updateDescription _)()),
+        <.div(
+          helpBlockClass,
+          ^.style := helpBlockPadding,
+          <.label(^.`for` := "description", "You can describe this repository in ", link, ".")))
     }
+
+    def renderVisiblity(state: State) = {
+      val label = <.label(
+        ^.`for` := "visibilityKind",
+        "Repository visibility for others: it can be public to everyone to read and pull or private accessible only to the owner.")
+      <.div(^.`class` := "row",
+            ^.style := paddingTop,
+            ^.key := "visibilityRow",
+            <.div(^.`class` := "col-xs-6",
+                  MuiRadioButtonGroup(name = "visibilityKind",
+                                      defaultSelected = state.visibilityKind.value,
+                                      onChange = updateVisibilityKind _)(
+                    MuiRadioButton(
+                      key = "public",
+                      value = ImageVisibilityKind.Public.value,
+                      label = "Public",
+                      disabled = state.isFormDisabled
+                    )(),
+                    MuiRadioButton(
+                      style = paddingTop,
+                      key = "private",
+                      value = ImageVisibilityKind.Private.value,
+                      label = "Private",
+                      disabled = state.isFormDisabled
+                    )()
+                  )),
+            <.div(helpBlockClass, label))
+    }
+
+    def renderActions(state: State) = {
+      val createIsDisabled = state.isFormDisabled || state.owner.isEmpty
+      <.div(^.`class` := "row",
+            ^.style := paddingTop,
+            ^.key := "actionsRow",
+            <.div(^.`class` := "col-xs-12",
+                  MuiRaisedButton(`type` = "submit",
+                                  primary = true,
+                                  label = "Create",
+                                  disabled = createIsDisabled,
+                                  key = "submit")()))
+    }
+
+    def render(props: Props, state: State) =
+      MuiCard()(<.div(^.key := "header",
+                      App.formTitleBlock,
+                      MuiCardTitle(key = "title")(<.h1(App.formTitle, "New repository"))),
+                <.form(^.onSubmit ==> handleOnSubmit(props),
+                       ^.disabled := state.isFormDisabled,
+                       ^.key := "form",
+                       MuiCardText(key = "form")(renderNamespace(props, state),
+                                                 renderName(state),
+                                                 renderDescription(state),
+                                                 renderVisiblity(state),
+                                                 renderActions(state))))
   }
 
-  private val component = ReactComponentB[Props]("NewRepository")
-    .initialState(State(None, "", ImageVisibilityKind.Private, None, Map.empty, false))
-    .renderBackend[Backend]
-    .build
+  private val component =
+    ReactComponentB[Props]("NewRepository")
+      .initialState(State(None, "", ImageVisibilityKind.Private, None, Map.empty, false))
+      .renderBackend[Backend]
+      .build
 
   def apply(ctl: RouterCtl[DashboardRoute], namespace: OwnerNamespace) =
     component(Props(ctl, namespace))

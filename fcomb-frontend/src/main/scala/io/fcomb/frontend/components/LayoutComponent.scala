@@ -57,6 +57,11 @@ object LayoutComponent {
             else dashboardRedirectComponent.apply(props.ctl)
         }
       }
+      val copyrightLink = <.a(App.footerLink,
+                              Seq(^.color := style.palette.primary3Color.toString),
+                              ^.href := "https://github.com/fcomb/fcomb",
+                              ^.target := "_blank",
+                              "© 2016 fcomb")
       MuiMuiThemeProvider(muiTheme = theme)(
         <.div(<.header(
                 MuiAppBar(title = props.res.page.title,
@@ -71,12 +76,7 @@ object LayoutComponent {
                             onTouchTap = setRoute(DashboardRoute.Organizations) _)()
               ),
               <.main(App.main, ^.`class` := "container", body),
-              <.footer(App.footer,
-                       <.a(App.footerLink,
-                           Seq(^.color := style.palette.primary3Color.toString),
-                           ^.href := "https://github.com/fcomb/fcomb",
-                           ^.target := "_blank",
-                           "© 2016 fcomb"))))
+              <.footer(App.footer, copyrightLink)))
     }
   }
 
