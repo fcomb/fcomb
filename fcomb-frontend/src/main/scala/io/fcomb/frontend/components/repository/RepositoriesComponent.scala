@@ -71,8 +71,8 @@ object RepositoriesComponent {
       }
     }
 
-    lazy val visibilityColumnStyle = js.Dictionary("width" -> "24px")
-    lazy val menuColumnStyle       = js.Dictionary("width" -> "24px")
+    lazy val visibilityColumnStyle = js.Dictionary("width" -> "64px")
+    lazy val menuColumnStyle       = js.Dictionary("width" -> "48px", "padding" -> "0px")
     lazy val linkStyle =
       Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
 
