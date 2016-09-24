@@ -42,7 +42,7 @@ class ImageBlobsHandlerSpec
     with ScalaFutures
     with PersistSpec
     with ActorClusterSpec {
-  val route            = Api.routes()
+  val route            = Api.routes
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)

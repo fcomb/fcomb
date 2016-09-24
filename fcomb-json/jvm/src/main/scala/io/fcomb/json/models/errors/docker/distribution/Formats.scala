@@ -27,7 +27,7 @@ object Formats {
 
   final implicit val encodeDistributionError: Encoder[DistributionError] = deriveEncoder
 
-  final implicit val encodeDistributionErrorResponse: Encoder[DistributionErrorResponse] =
+  final implicit val encodeDistributionErrors: Encoder[DistributionErrors] =
     deriveEncoder
 
   final implicit val decodeDistributionErrorCode: Decoder[DistributionErrorCode] =
@@ -35,6 +35,6 @@ object Formats {
 
   final implicit val decodeDistributionError: Decoder[DistributionError] = deriveDecoder
 
-  final implicit val decodeDistributionErrorResponse: Decoder[DistributionErrorResponse] =
+  final implicit val decodeDistributionErrors: Decoder[DistributionErrors] =
     deriveDecoder
 }

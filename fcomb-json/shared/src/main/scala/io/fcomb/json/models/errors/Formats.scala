@@ -16,14 +16,19 @@
 
 package io.fcomb.json.models.errors
 
+import enumeratum.Circe
 import io.circe.generic.semiauto._
 import io.circe.{Encoder, Decoder}
-import io.fcomb.models.errors.{ErrorMessage, FailureResponse}
+import io.fcomb.models.errors.{Error, Errors, ErrorCode}
 
 object Formats {
-  final implicit val encodeErrorMessage: Encoder[ErrorMessage]       = deriveEncoder
-  final implicit val encodeFailureResponse: Encoder[FailureResponse] = deriveEncoder
+  final implicit val encodeErrorCode: Encoder[ErrorCode] = Circe.encoder(ErrorCode)
 
-  final implicit val decodeErrorMessage: Decoder[ErrorMessage]       = deriveDecoder
-  final implicit val decodeFailureResponse: Decoder[FailureResponse] = deriveDecoder
+  final implicit val encodeError: Encoder[Error]   = deriveEncoder
+  final implicit val encodeErrors: Encoder[Errors] = deriveEncoder
+
+  final implicit val decodeErrorCode: Decoder[ErrorCode] = Circe.decoder(ErrorCode)
+
+  final implicit val decodeError: Decoder[Error]   = deriveDecoder
+  final implicit val decodeErrors: Decoder[Errors] = deriveDecoder
 }

@@ -93,10 +93,10 @@ object ImageManifestTagsRepo
 
   private def sortByPF(q: (Rep[String], Rep[String], Rep[Long], Rep[OffsetDateTime]))
     : PartialFunction[String, Rep[_]] = {
-    case "tag"               => q._1
-    case "imageSha256Digest" => q._2
-    case "length"            => q._3
-    case "updatedAt"         => q._4
+    case "tag"       => q._1
+    case "digest"    => q._2
+    case "length"    => q._3
+    case "updatedAt" => q._4
   }
 
   private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {

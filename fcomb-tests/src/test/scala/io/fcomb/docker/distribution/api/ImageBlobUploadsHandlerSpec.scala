@@ -53,7 +53,7 @@ class ImageBlobUploadsHandlerSpec
     with FutureSpec {
   implicit val routeTimeout = RouteTestTimeout(5.seconds)
 
-  val route            = Api.routes()
+  val route            = Api.routes
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)
@@ -130,8 +130,8 @@ class ImageBlobUploadsHandlerSpec
         HttpEntity(`application/octet-stream`, bs)
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.BadRequest
-        val resp = responseAs[DistributionErrorResponse]
-        resp shouldEqual DistributionErrorResponse(Seq(DistributionError.digestInvalid))
+        val resp = responseAs[DistributionErrors]
+        resp shouldEqual DistributionErrors(Seq(DistributionError.digestInvalid))
       }
     }
 

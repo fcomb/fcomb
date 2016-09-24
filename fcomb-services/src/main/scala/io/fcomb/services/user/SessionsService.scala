@@ -19,7 +19,7 @@ package io.fcomb.services.user
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Xor
 import io.fcomb.crypto.Jwt
-import io.fcomb.models.errors.{FailureResponse, ValidationException}
+import io.fcomb.models.errors.Errors
 import io.fcomb.models.{Session, User}
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.SessionCreateRequest
@@ -29,14 +29,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object SessionsService {
   private val invalidEmailOrPassword = Xor.Left(
-    FailureResponse.fromExceptions(
+    Errors(
       Seq(
-        ValidationException("email", "invalid"),
-        ValidationException("password", "invalid")
+        Errors.validation("email", "invalid"),
+        Errors.validation("password", "invalid")
       )))
 
   def create(req: SessionCreateRequest)(
-      implicit ec: ExecutionContext): Future[Xor[FailureResponse, Session]] = {
+      implicit ec: ExecutionContext): Future[Xor[Errors, Session]] = {
     UsersRepo.findByEmail(req.email).fast.map {
       case Some(user) if user.isValidPassword(req.password) =>
         val timeNow = Instant.now()

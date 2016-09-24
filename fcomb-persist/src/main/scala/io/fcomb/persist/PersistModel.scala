@@ -73,41 +73,33 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
   )(implicit ec: ExecutionContext): Future[B] =
     db.run(q.transactionally.withTransactionIsolation(isolation))
 
-  protected def validate(
-      t: (ValidationResultUnit, ValidationDBIOResult)
-  )(implicit ec: ExecutionContext): ValidationDBIOResult =
+  protected def validate(t: (ValidationResultUnit, ValidationDBIOResult))(
+      implicit ec: ExecutionContext): ValidationDBIOResult =
     for {
       plainRes <- DBIO.successful(t._1)
       dbioRes  <- t._2
     } yield plainRes *> dbioRes
 
-  protected def validate(item: T)(
-      implicit ec: ExecutionContext
-  ): ValidationDBIOResult =
+  protected def validate(item: T)(implicit ec: ExecutionContext): ValidationDBIOResult =
     DBIO.successful(Validated.Valid(()))
 
   protected def validateThenApply(result: ValidationDBIOResult)(
-      f: => DBIOAction[T, NoStream, Effect.All]
-  )(
+      f: => DBIOAction[T, NoStream, Effect.All])(
       implicit ec: ExecutionContext,
       m: Manifest[T]
   ): Future[ValidationModel] =
     validateThenApplyVM(result)(f.map(Validated.Valid(_)))
 
   protected def validateThenApplyDBIO(result: ValidationDBIOResult)(
-      f: => DBIOAction[T, NoStream, Effect.All]
-  )(
+      f: => DBIOAction[T, NoStream, Effect.All])(
       implicit ec: ExecutionContext,
-      m: Manifest[T]
-  ): DBIOAction[ValidationModel, NoStream, Effect.All] =
+      m: Manifest[T]): DBIOAction[ValidationModel, NoStream, Effect.All] =
     validateThenApplyVMDBIO(result)(f.map(Validated.Valid(_)))
 
   protected def validateThenApplyVMDBIO(result: ValidationDBIOResult)(
-      f: => DBIOAction[ValidationModel, NoStream, Effect.All]
-  )(
+      f: => DBIOAction[ValidationModel, NoStream, Effect.All])(
       implicit ec: ExecutionContext,
-      m: Manifest[T]
-  ): DBIOAction[ValidationModel, NoStream, Effect.All] = {
+      m: Manifest[T]): DBIOAction[ValidationModel, NoStream, Effect.All] = {
     result.flatMap {
       case Validated.Valid(_)       => f
       case e @ Validated.Invalid(_) => DBIO.successful(e)

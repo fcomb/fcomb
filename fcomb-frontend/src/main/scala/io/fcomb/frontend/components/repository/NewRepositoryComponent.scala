@@ -110,7 +110,6 @@ object NewRepositoryComponent {
         <.form(^.onSubmit ==> handleOnSubmit(props),
                ^.disabled := state.isFormDisabled,
           MuiCardText(key = "form")(
-            <.div(^.`class` := "container-fluid",
               <.div(^.`class` := "row",
                 <.div(^.`class` := "col-xs-6",
                   NamespaceComponent(props.namespace,
@@ -163,7 +162,7 @@ object NewRepositoryComponent {
                      label = "Private",
                      disabled = state.isFormDisabled
                    )()
-                 ))))),
+                 )))),
           // TODO: "create another one" checkbox
                MuiCardActions(key = "actions")(
                  MuiRaisedButton(`type` = "submit",

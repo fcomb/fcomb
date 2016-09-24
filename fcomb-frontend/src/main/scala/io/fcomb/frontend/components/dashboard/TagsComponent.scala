@@ -61,13 +61,12 @@ object TagsComponent {
 
     def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
       // <.li(ctl.link(DashboardRoute.Repository(props.repositoryName, tag.tag))(tag.tag))
-      <.tr(
-        <.td(tag.tag),
-        <.td(TimeAgoComponent.apply(tag.updatedAt)),
-        <.td(SizeInBytesComponent.apply(tag.length)),
-        <.td(^.title := tag.imageSha256Digest,
-             tag.imageSha256Digest.take(digestLength),
-             CopyToClipboardComponent.apply(tag.imageSha256Digest, js.undefined, <.span("Copy"))))
+      <.tr(<.td(tag.tag),
+           <.td(TimeAgoComponent.apply(tag.updatedAt)),
+           <.td(SizeInBytesComponent.apply(tag.length)),
+           <.td(^.title := tag.digest,
+                tag.digest.take(digestLength),
+                CopyToClipboardComponent.apply(tag.digest, js.undefined, <.span("Copy"))))
     }
 
     def changeSortOrder(column: String)(e: ReactEventH): Callback = {
@@ -99,7 +98,7 @@ object TagsComponent {
                   <.tr(renderHeader("Tag", "tag", state),
                        renderHeader("Last modified", "updatedAt", state),
                        renderHeader("Size", "length", state),
-                       renderHeader("Image", "imageSha256Digest", state))),
+                       renderHeader("Image", "digest", state))),
                 <.tbody(state.tags.map(renderTagRow(props, _))))
       }
     }

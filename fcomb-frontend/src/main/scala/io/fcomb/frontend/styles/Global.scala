@@ -21,7 +21,11 @@ import scalacss.Defaults._
 object Global extends StyleSheet.Inline {
   import dsl._
 
-  val body = style(backgroundColor(c"#eee"), fontFamily :=! "Roboto, sans-serif")
+  val body = style(
+    backgroundColor(c"#eee"),
+    fontFamily :=! "Roboto, sans-serif",
+    boxSizing.borderBox
+  )
 
   val floatActionButton = style(
     transform := "translateY(0)!important",

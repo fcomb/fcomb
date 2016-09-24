@@ -8,9 +8,9 @@ import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.Db
 import io.fcomb.application.server.Frontend
 import io.fcomb.docker.distribution.server.{Api => DockerApi}
-import io.fcomb.docker.distribution.service.{GarbageCollectorService, ImageBlobPushProcessor}
+import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
 import io.fcomb.server.Api
-import io.fcomb.service.{EmailService, EventService}
+import io.fcomb.services.{EmailService, EventService}
 import io.fcomb.utils.Config
 import scala.concurrent.Await
 import scala.concurrent.duration._

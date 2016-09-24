@@ -53,8 +53,8 @@ object SchemaV1 {
             EventService
               .pushRepoEvent(image, imageManifest.getId(), reference.value, createdByUserId)
             Xor.Right(digest)
-          case Validated.Invalid(e) =>
-            Xor.left(DistributionError.unknown(e.map(_.message).mkString(";")))
+          case Validated.Invalid(errs) =>
+            Xor.left(DistributionError.unknown(errs.map(_.message).mkString(";")))
         }
       case Xor.Left(e) => FastFuture.successful(Xor.Left(DistributionError.unknown(e.message)))
     }

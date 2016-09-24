@@ -18,7 +18,6 @@ package io.fcomb.models.errors.docker.distribution
 
 import enumeratum.EnumEntry
 import io.fcomb.models.common.{Enum, EnumItem}
-import io.fcomb.models.errors.{Error, ErrorResponse}
 
 sealed trait DistributionErrorCode extends EnumItem with EnumEntry.Uppercase
 
@@ -47,7 +46,7 @@ import DistributionErrorCode._
 final case class DistributionError(
     code: DistributionErrorCode,
     message: String
-) extends Error
+)
 
 object DistributionError {
   val blobUnknown = DistributionError(BlobUnknown, "blob unknown to registry")
@@ -76,11 +75,9 @@ object DistributionError {
   val unsupported = DistributionError(Unsupported, "The operation is unsupported.")
 }
 
-final case class DistributionErrorResponse(
-    errors: Seq[DistributionError]
-) extends ErrorResponse
+final case class DistributionErrors(errors: Seq[DistributionError])
 
-object DistributionErrorResponse {
-  def from(error: DistributionError): DistributionErrorResponse =
-    DistributionErrorResponse(Seq(error))
+object DistributionErrors {
+  def from(error: DistributionError): DistributionErrors =
+    DistributionErrors(Seq(error))
 }

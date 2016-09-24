@@ -26,15 +26,13 @@ import io.fcomb.docker.distribution.server.CommonDirectives._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
-import io.fcomb.json.models.errors.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution.{ImageBlobState, Reference}
 import io.fcomb.models.errors.docker.distribution.DistributionError
-import io.fcomb.models.errors._
 import io.fcomb.models.User
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
-import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.ErrorDirectives._
 import java.util.UUID
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
@@ -75,8 +73,7 @@ object ImageBlobUploadsHandler {
           respondWithHeaders(headers) {
             completeWithStatus(StatusCodes.Accepted)
           }
-        case Validated.Invalid(e) =>
-          complete((StatusCodes.Accepted, FailureResponse.fromExceptions(e)))
+        case Validated.Invalid(errs) => completeErrors(errs)
       }
     }
   }

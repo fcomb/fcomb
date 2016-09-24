@@ -39,7 +39,7 @@ import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.json.models.docker.distribution.Formats._
 import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
-import io.fcomb.models.errors.docker.distribution.{DistributionErrorResponse, DistributionError}
+import io.fcomb.models.errors.docker.distribution.{DistributionErrors, DistributionError}
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
 import io.fcomb.services.EventService
 import io.fcomb.tests._
@@ -57,7 +57,7 @@ class ImagesHandlerSpec
     with ScalaFutures
     with PersistSpec
     with ActorClusterSpec {
-  val route            = Api.routes()
+  val route            = Api.routes
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)
@@ -188,7 +188,7 @@ class ImagesHandlerSpec
         status shouldEqual StatusCodes.InternalServerError
         val msg =
           s"Unknown blobs: sha256:09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"
-        val resp = responseAs[DistributionErrorResponse]
+        val resp = responseAs[DistributionErrors]
         resp.errors.head shouldEqual DistributionError.unknown(msg)
       }
     }
@@ -247,7 +247,7 @@ class ImagesHandlerSpec
       ) ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.InternalServerError
         val msg  = s"Config blob `sha256:$configBlobDigest` not found"
-        val resp = responseAs[DistributionErrorResponse]
+        val resp = responseAs[DistributionErrors]
         resp.errors.head shouldEqual DistributionError.unknown(msg)
       }
 
@@ -269,7 +269,7 @@ class ImagesHandlerSpec
         status shouldEqual StatusCodes.InternalServerError
         val msg =
           "Unknown blobs: sha256:d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"
-        val resp = responseAs[DistributionErrorResponse]
+        val resp = responseAs[DistributionErrors]
         resp.errors.head shouldEqual DistributionError.unknown(msg)
       }
     }

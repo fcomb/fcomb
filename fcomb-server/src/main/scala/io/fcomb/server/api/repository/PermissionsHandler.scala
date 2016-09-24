@@ -26,7 +26,7 @@ import io.fcomb.json.rpc.Formats.encodeDataResponse
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.common.Slug
-import io.fcomb.models.errors.{FailureResponse, UnknownEnumItemException}
+import io.fcomb.models.errors.Errors
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.DataResponse
 import io.fcomb.rpc.acl.PermissionCreateRequest
@@ -116,9 +116,7 @@ object PermissionsHandler {
     MemberKind.withNameOption(kind) match {
       case Some(memberKind) => provide(memberKind)
       case None =>
-        complete(
-          (StatusCodes.BadRequest,
-           FailureResponse.fromException(UnknownEnumItemException(kind, MemberKind))))
+        complete((StatusCodes.BadRequest, Errors.from(Errors.unknownEnumItem(kind, MemberKind))))
     }
   }
 }

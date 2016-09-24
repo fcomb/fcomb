@@ -16,14 +16,12 @@
 
 package io.fcomb
 
-import io.fcomb.models.errors.ValidationException
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.matching.Regex
 import cats.data.{XorT, Validated}
-import cats.syntax.cartesian._
 import cats.instances.all._
+import cats.syntax.cartesian._
+import io.fcomb.models.errors.{Error, Errors}
+import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.PostgresProfile.api._
-import slick.lifted.AppliedCompiledFunction
 
 package object validation {
   type DBIOT[T] = DBIOAction[T, NoStream, Effect.Read]
@@ -38,9 +36,8 @@ package object validation {
 
   type DBIOActionValidator = DBIOAction[Boolean, NoStream, Effect.Read]
 
-  def eitherT[R](fut: Future[ValidationResult[R]])(
-      implicit ec: ExecutionContext
-  ) = XorT(fut.map(_.toXor))
+  def eitherT[R](fut: Future[ValidationResult[R]])(implicit ec: ExecutionContext) =
+    XorT(fut.map(_.toXor))
 
   def plainValidation(validations: Seq[PlainValidation]): PlainValidation =
     validations.foldLeft[PlainValidation](Validated.valid[String, Unit](()))(_ <* _)
@@ -51,8 +48,8 @@ package object validation {
   def dbioValidation(validations: Seq[DBIOValidation])(implicit ec: ExecutionContext) =
     DBIO.sequence(validations).map(plainValidation)
 
-  type ColumnValidation     = Validated[ValidationException, Unit]
-  type ValidationErrors     = List[ValidationException]
+  type ColumnValidation     = Validated[Error, Unit]
+  type ValidationErrors     = List[Error]
   type ValidationResult[T]  = Validated[ValidationErrors, T]
   type ValidationResultUnit = ValidationResult[Unit]
 
@@ -60,109 +57,51 @@ package object validation {
     Validated.Valid(res)
 
   def validationErrors[M](errors: (String, String)*): ValidationResult[M] =
-    Validated.Invalid(errors.map {
-      case (param, msg) => ValidationException(param, msg)
-    }.toList)
+    Validated.Invalid(errors.map { case (column, msg) => Errors.validation(msg, column) }.toList)
 
   def validateColumn(column: String, validation: PlainValidation): ColumnValidation =
     validation match {
       case Validated.Valid(_)     => Validated.Valid(())
-      case Validated.Invalid(msg) => Validated.Invalid(ValidationException(column, msg))
+      case Validated.Invalid(msg) => Validated.Invalid(Errors.validation(column, msg))
     }
 
   def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResultUnit =
-    validations.foldLeft(List.empty[ValidationException]) { (acc, v) =>
-      v match {
-        case Validated.Valid(_)   => acc
-        case Validated.Invalid(e) => e :: acc
-      }
+    validations.foldLeft(List.empty[Error]) {
+      case (acc, Validated.Valid(_))   => acc
+      case (acc, Validated.Invalid(e)) => e :: acc
     } match {
       case Nil => Validated.Valid(())
       case xs  => Validated.Invalid(xs)
     }
 
   def validatePlain(result: (String, List[PlainValidation])*): ValidationResultUnit =
-    result.foldLeft(List.empty[ValidationException]) {
+    result.foldLeft(List.empty[Error]) {
       case (m, (c, v)) =>
         plainValidation(v) match {
           case Validated.Valid(_)     => m
-          case Validated.Invalid(msg) => ValidationException(c, msg) :: m
+          case Validated.Invalid(msg) => Errors.validation(c, msg) :: m
         }
     } match {
       case Nil => Validated.Valid(())
       case xs  => Validated.Invalid(xs)
     }
 
-  def validateDBIO(
-      result: (String, List[DBIOValidation])*
-  )(
-      implicit ec: ExecutionContext
-  ): DBIOT[ValidationResultUnit] = {
+  def validateDBIO(result: (String, List[DBIOValidation])*)(
+      implicit ec: ExecutionContext): DBIOT[ValidationResultUnit] = {
     val emptyList =
-      DBIO.successful(List.empty[ValidationException]).asInstanceOf[DBIOT[ValidationErrors]]
+      DBIO.successful(List.empty[Error]).asInstanceOf[DBIOT[ValidationErrors]]
     result
       .foldLeft(emptyList) {
         case (m, (c, v)) =>
           dbioValidation(v).flatMap {
             case Validated.Valid(_)     => m
-            case Validated.Invalid(msg) => m.map(ValidationException(c, msg) :: _)
+            case Validated.Invalid(msg) => m.map(Errors.validation(c, msg) :: _)
           }
       }
       .map {
         case Nil => Validated.Valid(())
         case xs  => Validated.Invalid(xs)
       }
-  }
-
-  object Validations {
-    def present(value: String): PlainValidation =
-      if (value.isEmpty) Validated.Invalid("is empty")
-      else Validated.Valid(())
-
-    val emailRegEx =
-      """\A([a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+)@([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*)\z""".r
-
-    def email(value: String): PlainValidation =
-      if (emailRegEx.findFirstIn(value).isDefined) Validated.Valid(())
-      else Validated.Invalid("invalid email format")
-
-    def matches(value: String, regex: Regex, errorMessage: String) =
-      if (regex.findFirstIn(value).isDefined) Validated.Valid(())
-      else Validated.Invalid(errorMessage)
-
-    def unique(action: AppliedCompiledFunction[_, Rep[Boolean], Boolean])(
-        implicit ec: ExecutionContext): DBIOValidation = {
-      action.result.map { isUnique =>
-        if (isUnique) Validated.Invalid("not unique")
-        else Validated.Valid(())
-      }
-    }
-
-    val uuidRegEx = """(?i)\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z""".r
-
-    def uuid(value: String): PlainValidation =
-      if (uuidRegEx.findFirstIn(value).isDefined) Validated.Valid(())
-      else Validated.Invalid("invalid UUID format")
-
-    def notUuid(value: String): PlainValidation =
-      if (uuidRegEx.findFirstIn(value).isDefined)
-        Validated.Invalid("cannot be an UUID format")
-      else Validated.Valid(())
-
-    def lengthRange(value: String, from: Int, to: Int): PlainValidation = {
-      if (value.length >= from && value.length <= to) Validated.Valid(())
-      else Validated.Invalid(s"length is less than $from or greater than $to")
-    }
-
-    def maxLength(value: String, to: Int): PlainValidation = {
-      if (value.length <= to) Validated.Valid(())
-      else Validated.Invalid(s"length is greater than $to")
-    }
-
-    def minLength(value: String, from: Int): PlainValidation = {
-      if (value.length >= from) Validated.Valid(())
-      else Validated.Invalid(s"length is less than $from")
-    }
   }
 
   implicit class ValidationResultMethods[T](val result: ValidationResult[T]) extends AnyVal {

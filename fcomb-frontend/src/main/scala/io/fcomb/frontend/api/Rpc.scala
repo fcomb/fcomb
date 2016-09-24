@@ -21,8 +21,8 @@ import io.circe.scalajs.decodeJs
 import io.circe.{Encoder, Decoder}
 import io.fcomb.frontend.dispatcher.actions.LogOut
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.models.errors.{FailureResponse, ErrorMessage}
-import io.fcomb.json.models.errors.Formats.decodeFailureResponse
+import io.fcomb.models.errors.{Errors, Error}
+import io.fcomb.json.models.errors.Formats.decodeErrors
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.ext.AjaxException
 import org.scalajs.dom.window
@@ -47,7 +47,7 @@ object Rpc {
                      headers: Map[String, String] = Map.empty,
                      timeout: Int = 0)(implicit ec: ExecutionContext,
                                        encoder: Encoder[T],
-                                       decoder: Decoder[U]): Future[Xor[Seq[ErrorMessage], U]] = {
+                                       decoder: Decoder[U]): Future[Xor[Seq[Error], U]] = {
     val hm        = if (headers.isEmpty) defaultHeaders else headers ++ defaultHeaders
     val reqBody   = encoder.apply(req).noSpaces
     val urlParams = queryParams.map { case (k, v) => s"$k=$v" }.mkString("&")
@@ -61,18 +61,17 @@ object Rpc {
       .recover {
         case AjaxException(res) =>
           if (res.status == 401) unauthorized()
-          else decode[FailureResponse](res.responseText).flatMap(res => Xor.Left(res.errors))
+          else decode[Errors](res.responseText).flatMap(res => Xor.Left(res.errors))
         case e =>
           window.console.error(s"${e.toString}: ${e.getMessage}")
-          Xor.Left(Seq(ErrorMessage("Unknown error")))
+          Xor.Left(Seq(Errors.unknown()))
       }
   }
 
-  private def decode[U](responseText: String)(
-      implicit dec: Decoder[U]): Xor[Seq[ErrorMessage], U] = {
+  private def decode[U](responseText: String)(implicit dec: Decoder[U]): Xor[Seq[Error], U] = {
     val body = if (responseText.nonEmpty) responseText else "null"
     val json = JSON.parse(body)
-    decodeJs[U](json).leftMap(_ => Seq(ErrorMessage("Deserialization error")))
+    decodeJs[U](json).leftMap(_ => Seq(Errors.deserialization()))
   }
 
   def call[U](method: RpcMethod,
@@ -80,13 +79,13 @@ object Rpc {
               queryParams: Map[String, String] = Map.empty,
               headers: Map[String, String] = Map.empty,
               timeout: Int = 0)(implicit ec: ExecutionContext,
-                                decoder: Decoder[U]): Future[Xor[Seq[ErrorMessage], U]] = {
+                                decoder: Decoder[U]): Future[Xor[Seq[Error], U]] = {
     callWith[Unit, U](method, url, (), queryParams, headers, timeout)
   }
 
-  private def unauthorized[U](): Xor[Seq[ErrorMessage], U] = {
+  private def unauthorized[U](): Xor[Seq[Error], U] = {
     AppCircuit.dispatch(LogOut)
-    Xor.Left(Seq(ErrorMessage("Unauthorized")))
+    Xor.Left(Seq(Errors.unauthorized))
   }
 
   private val contentTypeHeader = Map("Content-Type" -> "application/json")

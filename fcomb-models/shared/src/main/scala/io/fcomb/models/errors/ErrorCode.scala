@@ -21,5 +21,11 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait ErrorCode extends EnumItem
 
 object ErrorCode extends Enum[ErrorCode] {
+  final case object Validation      extends ErrorCode
+  final case object Internal        extends ErrorCode
+  final case object Deserialization extends ErrorCode
+  final case object Session         extends ErrorCode
+  final case object Securiy         extends ErrorCode
+
   val values = findValues
 }

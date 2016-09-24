@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package io.fcomb.models.errors
+package io.fcomb.validation
 
-sealed trait ErrorDetails
+import io.fcomb.models.errors.FcombException
 
-object ErrorDetails {}
+sealed trait DbException extends FcombException
+
+final case class RollbackException() extends DbException

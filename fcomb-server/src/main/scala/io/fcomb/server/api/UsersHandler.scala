@@ -23,10 +23,11 @@ import akka.http.scaladsl.server.Route
 import cats.data.Validated
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.Formats._
-import io.fcomb.models.errors.{FailureResponse, RegistrationIsDisabled}
+import io.fcomb.models.errors.Errors
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.UserSignUpRequest
 import io.fcomb.server.CirceSupport._
+import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.SlugPath
 import io.fcomb.utils.Config
 
@@ -38,14 +39,13 @@ object UsersHandler {
       extractExecutionContext { implicit ec =>
         entity(as[UserSignUpRequest]) { req =>
           onSuccess(UsersRepo.create(req)) {
-            case Validated.Valid(_) => complete(HttpResponse(StatusCodes.Created))
-            case Validated.Invalid(e) =>
-              complete((StatusCodes.BadRequest, FailureResponse.fromExceptions(e)))
+            case Validated.Valid(_)      => complete(HttpResponse(StatusCodes.Created))
+            case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }
     } else
-      complete((StatusCodes.Unauthorized, FailureResponse.fromException(RegistrationIsDisabled)))
+      complete((StatusCodes.Unauthorized, Errors.from(Errors.registrationIsDisabled)))
   }
 
   val routes: Route = {

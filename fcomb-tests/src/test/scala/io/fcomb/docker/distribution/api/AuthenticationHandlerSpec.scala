@@ -32,7 +32,7 @@ class AuthenticationHandlerSpec
     with Matchers
     with ScalatestRouteTest
     with PersistSpec {
-  val route       = Api.routes()
+  val route       = Api.routes
   val credentials = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
 
   "The authentication handler" should {

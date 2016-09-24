@@ -23,7 +23,7 @@ import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.json.models.Formats.decodeSession
 import io.fcomb.json.rpc.Formats.encodeSessionCreateRequest
 import io.fcomb.models.Session
-import io.fcomb.models.errors.ErrorMessage
+import io.fcomb.models.errors.Error
 import io.fcomb.rpc.SessionCreateRequest
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,7 +31,7 @@ import scala.util.{Try, Success}
 
 object AuthService {
   def authentication(email: String, password: String)(
-      implicit ec: ExecutionContext): Future[Xor[Seq[ErrorMessage], Unit]] = {
+      implicit ec: ExecutionContext): Future[Xor[Seq[Error], Unit]] = {
     val req = SessionCreateRequest(
       email = email.trim(),
       password = password.trim()

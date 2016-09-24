@@ -16,11 +16,18 @@
 
 package io.fcomb.server
 
+import akka.http.scaladsl.model.headers.{
+  ETag,
+  EntityTag,
+  EntityTagRange,
+  `If-None-Match`,
+  Location
+}
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{ETag, EntityTag, EntityTagRange, `If-None-Match`}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.circe.Encoder
+import io.fcomb.models.ModelWithPk
 import io.fcomb.server.CirceSupport._
 import scala.collection.immutable
 
@@ -48,6 +55,13 @@ object CommonDirectives {
           complete((status, item))
         }
     }
+  }
+
+  def completeCreated[T <: ModelWithPk](item: T, prefix: String)(
+      implicit encoder: Encoder[T]): Route = {
+    val uri     = prefix + item.getId().toString
+    val headers = immutable.Seq(Location(uri))
+    respondWithHeaders(headers)(complete((StatusCodes.Created, item)))
   }
 
   private val notModified = HttpResponse(StatusCodes.NotModified)

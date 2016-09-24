@@ -16,10 +16,10 @@
 
 package io.fcomb.frontend.components
 
-import io.fcomb.models.errors.ErrorMessage
+import io.fcomb.models.errors.Error
 
 object Helpers {
-  def foldErrors(errors: Seq[ErrorMessage]): Map[String, String] = {
+  def foldErrors(errors: Seq[Error]): Map[String, String] = {
     errors.foldLeft(Map.empty[String, String]) {
       case (m, err) =>
         val column = err.param.getOrElse("_")

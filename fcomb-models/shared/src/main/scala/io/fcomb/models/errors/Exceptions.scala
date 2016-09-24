@@ -18,9 +18,8 @@ package io.fcomb.models.errors
 
 import scala.util.control.NoStackTrace
 
-trait Error
+trait FcombException extends Throwable with NoStackTrace
 
-trait ErrorResponse // TODO: remove
-
-@SerialVersionUID(1L)
-final case class ThrowableError(error: Error) extends Throwable with NoStackTrace
+trait ErrorException extends FcombException {
+  val error: Error
+}
