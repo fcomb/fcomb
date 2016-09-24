@@ -19,7 +19,7 @@ package io.fcomb.frontend.components
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.frontend.styles.Global
+import io.fcomb.frontend.styles.App
 import io.fcomb.frontend.{DashboardRoute, Route}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router._
@@ -70,9 +70,9 @@ object LayoutComponent {
                             primaryText = "Organizations",
                             onTouchTap = setRoute(DashboardRoute.Organizations) _)()
               ),
-              <.main(Global.main, ^.`class` := "container", body),
-              <.footer(Global.footer,
-                       <.a(Global.footerLink,
+              <.main(App.main, ^.`class` := "container", body),
+              <.footer(App.footer,
+                       <.a(App.footerLink,
                            Seq(^.color := style.palette.primary3Color.toString),
                            ^.href := "https://github.com/fcomb/fcomb",
                            ^.target := "_blank",

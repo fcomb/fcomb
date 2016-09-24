@@ -23,7 +23,7 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.styles.Global
+import io.fcomb.frontend.styles.App
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.{Owner, OwnerKind}
@@ -105,8 +105,8 @@ object NewRepositoryComponent {
 
     def render(props: Props, state: State) = {
       MuiCard()(
-        <.div(Global.formTitleBlock,
-          MuiCardTitle(key = "title")(<.h1(Global.formTitle, "New repository"))),
+        <.div(App.formTitleBlock,
+          MuiCardTitle(key = "title")(<.h1(App.formTitle, "New repository"))),
         <.form(^.onSubmit ==> handleOnSubmit(props),
                ^.disabled := state.isFormDisabled,
           MuiCardText(key = "form")(
@@ -118,7 +118,7 @@ object NewRepositoryComponent {
                                      isDisabled = state.isFormDisabled,
                                      cb = updateNamespace _,
                     fullWidth = true)),
-                <.div(^.`class` := s"col-xs-6 ${Global.helpBlock.htmlClass}",
+                <.div(^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}",
                   "An account which will be the owner of repository.")),
               <.div(^.`class` := "row",
                                 <.div(^.`class` := "col-xs-6",
@@ -130,7 +130,7 @@ object NewRepositoryComponent {
                    fullWidth = true,
                               value = state.name,
                    onChange = updateName _)()),
-                <.div(^.`class` := s"col-xs-6 ${Global.helpBlock.htmlClass}",
+                <.div(^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}",
                   "Enter a name for repository that will be used by docker or rkt.")),
               <.div(^.`class` := "row",
                                 <.div(^.`class` := "col-xs-6",

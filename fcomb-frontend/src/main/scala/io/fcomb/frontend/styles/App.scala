@@ -18,13 +18,12 @@ package io.fcomb.frontend.styles
 
 import scalacss.Defaults._
 
-object Global extends StyleSheet.Inline {
+object App extends StyleSheet.Inline {
   import dsl._
 
   val body = style(
     backgroundColor(c"#eee"),
-    fontFamily :=! "Roboto, sans-serif",
-    boxSizing.borderBox
+    fontFamily :=! "Roboto, sans-serif"
   )
 
   val floatActionButton = style(

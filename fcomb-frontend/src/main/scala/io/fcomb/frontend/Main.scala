@@ -29,7 +29,7 @@ import scalacss.internal.mutable.GlobalRegistry
 
 object Main extends JSApp {
   def main(): Unit = {
-    GlobalRegistry.register(Global)
+    GlobalRegistry.register(App)
     GlobalRegistry.addToDocumentOnRegistration()
 
     AppCircuit.dispatch(Initialize)
