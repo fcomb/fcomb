@@ -16,8 +16,6 @@
 
 package io.fcomb.server.api.user
 
-import akka.http.scaladsl.model.headers.Location
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
@@ -29,9 +27,9 @@ import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.server.api.apiVersion
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
+import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.PaginationDirectives._
-import scala.collection.immutable
 
 object RepositoriesHandler {
   val servicePath = "repositories"
@@ -70,12 +68,8 @@ object RepositoriesHandler {
         entity(as[ImageCreateRequest]) { req =>
           onSuccess(ImagesRepo.create(req, user)) {
             case Validated.Valid(image) =>
-              val uri     = resourcePrefix + image.getId().toString
-              val headers = immutable.Seq(Location(uri))
-              val res     = ImageHelpers.responseFrom(image, Action.Manage)
-              respondWithHeaders(headers) {
-                complete((StatusCodes.Created, res))
-              }
+              val res = ImageHelpers.responseFrom(image, Action.Manage)
+              completeCreated(res, resourcePrefix)
             case Validated.Invalid(errs) => completeErrors(errs)
           }
         }

@@ -16,12 +16,12 @@
 
 package io.fcomb.rpc.docker.distribution
 
-import io.fcomb.models.Owner
+import io.fcomb.models.{Owner, ModelResponseWithIntPk}
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
 final case class RepositoryResponse(
-    id: Int,
+    id: Option[Int],
     name: String,
     slug: String,
     owner: Owner,
@@ -30,4 +30,4 @@ final case class RepositoryResponse(
     action: Action,
     createdAt: String,
     updatedAt: Option[String]
-)
+) extends ModelResponseWithIntPk

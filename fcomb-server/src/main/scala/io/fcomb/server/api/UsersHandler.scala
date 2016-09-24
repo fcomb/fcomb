@@ -16,7 +16,6 @@
 
 package io.fcomb.server.api
 
-import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -27,6 +26,7 @@ import io.fcomb.models.errors.Errors
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.UserSignUpRequest
 import io.fcomb.server.CirceSupport._
+import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.SlugPath
 import io.fcomb.utils.Config
@@ -39,7 +39,7 @@ object UsersHandler {
       extractExecutionContext { implicit ec =>
         entity(as[UserSignUpRequest]) { req =>
           onSuccess(UsersRepo.create(req)) {
-            case Validated.Valid(_)      => complete(HttpResponse(StatusCodes.Created))
+            case Validated.Valid(_)      => completeWithStatus(StatusCodes.Created)
             case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
