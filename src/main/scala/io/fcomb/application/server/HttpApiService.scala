@@ -55,10 +55,12 @@ class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer
     .handleAll[AuthorizationFailedRejection.type] { _ =>
       complete(HttpResponse(StatusCodes.Unauthorized))
     }
+    .handleAll[AuthorizationFailedRejection.type] { _ =>
+      complete(HttpResponse(StatusCodes.Forbidden))
+    }
     .handle {
-      case r =>
-        logger.error(r.toString)
-        handleRejection(r)
+      case r: MalformedRequestContentRejection => handleException(r.cause)
+      case r                                   => handleRejection(r)
     }
     .handleNotFound(completeNotFound())
     .result
