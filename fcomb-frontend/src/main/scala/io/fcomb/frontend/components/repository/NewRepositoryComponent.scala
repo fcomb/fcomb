@@ -23,6 +23,7 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
+import io.fcomb.frontend.components.LayoutComponent
 import io.fcomb.frontend.styles.App
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
@@ -103,6 +104,11 @@ object NewRepositoryComponent {
       }
     }
 
+    lazy val helpBlockClass = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
+
+    lazy val linkStyle =
+      Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
+
     def render(props: Props, state: State) = {
       MuiCard()(
         <.div(App.formTitleBlock,
@@ -117,9 +123,9 @@ object NewRepositoryComponent {
                                      isAllNamespace = false,
                                      isDisabled = state.isFormDisabled,
                                      cb = updateNamespace _,
-                    fullWidth = true)),
-                <.div(^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}",
-                  "An account which will be the owner of repository.")),
+                                     fullWidth = true)),
+                <.div(helpBlockClass,
+                  <.label(^.`for` := "namespace" , "An account which will be the owner of repository."))),
               <.div(^.`class` := "row",
                                 <.div(^.`class` := "col-xs-6",
                  MuiTextField(floatingLabelText = "Name",
@@ -130,11 +136,11 @@ object NewRepositoryComponent {
                    fullWidth = true,
                               value = state.name,
                    onChange = updateName _)()),
-                <.div(^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}",
-                  "Enter a name for repository that will be used by docker or rkt.")),
+                <.div(helpBlockClass,
+                  <.label(^.`for` := "name", "Enter a name for repository that will be used by docker or rkt."))),
               <.div(^.`class` := "row",
                                 <.div(^.`class` := "col-xs-6",
-                 MuiTextField(floatingLabelText = "Description (Markdown)",
+                 MuiTextField(floatingLabelText = "Description",
                               id = "description",
                               name = "description",
                               multiLine = true,
@@ -144,7 +150,15 @@ object NewRepositoryComponent {
                               disabled = state.isFormDisabled,
                               errorText = state.errors.get("description"),
                               value = state.description.orUndefined,
-                   onChange = updateDescription _)())),
+                   onChange = updateDescription _)()),
+                <.div(helpBlockClass,
+                  <.label(^.`for` := "description",
+                    "You can describe this repository in ",
+                    <.a(linkStyle,
+                        ^.href := "https://daringfireball.net/projects/markdown/syntax",
+                        ^.target := "_blank",
+                        "Markdown"),
+                    "."))),
               <.div(^.`class` := "row",
                                 <.div(^.`class` := "col-xs-6",
                  MuiRadioButtonGroup(name = "visibilityKind",
@@ -165,6 +179,10 @@ object NewRepositoryComponent {
                  )))),
           // TODO: "create another one" checkbox
                MuiCardActions(key = "actions")(
+                 MuiRaisedButton(`type` = "button",
+                                 primary = false,
+                                 label = "Cancel",
+                                 key = "cancel")(),
                  MuiRaisedButton(`type` = "submit",
                                  primary = true,
                                  label = "Create",

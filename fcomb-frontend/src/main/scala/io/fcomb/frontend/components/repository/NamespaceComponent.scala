@@ -112,7 +112,8 @@ object NamespaceComponent {
         disabled = props.isDisabled,
         value = state.namespace.orUndefined,
         maxHeight = limit + prefixCount,
-        onChange = onChange _
+        onChange = onChange _,
+        id = "namespace"
       )(namespaceItems)
     }
   }
