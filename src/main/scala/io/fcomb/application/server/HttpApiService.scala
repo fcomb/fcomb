@@ -30,8 +30,9 @@ class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer
         (StatusCodes.UnprocessableEntity, Errors.deserialization(f.message, Some(path)))
       case f: ParsingFailure =>
         (StatusCodes.UnprocessableEntity, Errors.deserialization(f.message))
-      case _ =>
-        (StatusCodes.InternalServerError, Errors.unknown(e.getMessage))
+      case f =>
+        logger.error(f.getMessage(), f.getCause())
+        (StatusCodes.InternalServerError, Errors.unknown(f.getMessage))
     }
 
   private def completeError(status: StatusCode, error: Error) =
@@ -40,32 +41,30 @@ class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer
   private def handleException(e: Throwable) =
     (completeError _).tupled(mapThrowable(e))
 
-  private def handleRejection(r: Rejection) = r match {
-    case _ => completeError(StatusCodes.BadRequest, Errors.unknown(r.toString))
-  }
+  private def exceptionHandler = ExceptionHandler { case e => handleException(e) }
 
-  private val exceptionHandler = ExceptionHandler {
-    case e =>
-      logger.error(e.getMessage(), e.getCause())
-      handleException(e)
-  }
+  private def rejectionHandler =
+    RejectionHandler
+      .newBuilder()
+      .handleAll[AuthorizationFailedRejection.type] { _ =>
+        completeWithStatus(StatusCodes.Unauthorized)
+      }
+      .handleAll[AuthorizationFailedRejection.type] { _ =>
+        completeWithStatus(StatusCodes.Forbidden)
+      }
+      .handle {
+        case r: MalformedRequestContentRejection => handleException(r.cause)
+        case r: RejectionWithOptionalCause =>
+          r.cause match {
+            case Some(e) => handleException(e)
+            case None    => completeError(StatusCodes.BadRequest, Errors.unknown(r.toString))
+          }
+        case r => completeError(StatusCodes.BadRequest, Errors.unknown(r.toString))
+      }
+      .handleNotFound(completeNotFound())
+      .result
 
-  private val rejectionHandler = RejectionHandler
-    .newBuilder()
-    .handleAll[AuthorizationFailedRejection.type] { _ =>
-      complete(HttpResponse(StatusCodes.Unauthorized))
-    }
-    .handleAll[AuthorizationFailedRejection.type] { _ =>
-      complete(HttpResponse(StatusCodes.Forbidden))
-    }
-    .handle {
-      case r: MalformedRequestContentRejection => handleException(r.cause)
-      case r                                   => handleRejection(r)
-    }
-    .handleNotFound(completeNotFound())
-    .result
-
-  private val handler =
+  private def handler =
     handleRejections(rejectionHandler) {
       handleExceptions(exceptionHandler)(routes)
     }

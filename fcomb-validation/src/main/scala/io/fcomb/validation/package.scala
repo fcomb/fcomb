@@ -62,7 +62,7 @@ package object validation {
   def validateColumn(column: String, validation: PlainValidation): ColumnValidation =
     validation match {
       case Validated.Valid(_)     => Validated.Valid(())
-      case Validated.Invalid(msg) => Validated.Invalid(Errors.validation(column, msg))
+      case Validated.Invalid(msg) => Validated.Invalid(Errors.validation(msg, column))
     }
 
   def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResultUnit =
@@ -79,7 +79,7 @@ package object validation {
       case (m, (c, v)) =>
         plainValidation(v) match {
           case Validated.Valid(_)     => m
-          case Validated.Invalid(msg) => Errors.validation(c, msg) :: m
+          case Validated.Invalid(msg) => Errors.validation(msg, c) :: m
         }
     } match {
       case Nil => Validated.Valid(())
@@ -95,7 +95,7 @@ package object validation {
         case (m, (c, v)) =>
           dbioValidation(v).flatMap {
             case Validated.Valid(_)     => m
-            case Validated.Invalid(msg) => m.map(Errors.validation(c, msg) :: _)
+            case Validated.Invalid(msg) => m.map(Errors.validation(msg, c) :: _)
           }
       }
       .map {

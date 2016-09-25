@@ -20,6 +20,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.server.api._
+import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.headers._
 
 object Api {
@@ -36,7 +37,7 @@ object Api {
         }
       }
     } ~
-    path("health")(complete(HttpResponse(StatusCodes.OK)))
+    path("health")(completeWithStatus(StatusCodes.OK))
     // format: ON
   }
 

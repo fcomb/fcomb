@@ -20,7 +20,7 @@ import cats.data.Xor
 import enumeratum.Circe
 import io.circe.generic.semiauto._
 import io.circe.java8.time._
-import io.circe.parser._
+import io.circe.jawn._
 import io.circe.{
   Decoder,
   Encoder,

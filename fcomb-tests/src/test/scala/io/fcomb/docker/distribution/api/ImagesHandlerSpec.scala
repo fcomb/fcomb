@@ -26,7 +26,7 @@ import akka.util.ByteString
 import cats.data.Xor
 import cats.scalatest.XorMatchers._
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
-import io.circe.parser._
+import io.circe.jawn._
 import io.circe.syntax._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
 import io.fcomb.docker.distribution.server.ContentTypes.{

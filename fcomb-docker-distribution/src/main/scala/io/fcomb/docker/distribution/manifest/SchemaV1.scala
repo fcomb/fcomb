@@ -21,7 +21,7 @@ import cats.data.{Validated, Xor}
 import cats.syntax.cartesian._
 import cats.syntax.show._
 import io.circe._
-import io.circe.parser._
+import io.circe.jawn._
 import io.circe.syntax._
 import io.fcomb.crypto.Jws
 import io.fcomb.services.EventService
@@ -98,11 +98,9 @@ object SchemaV1 {
     }
   }
 
-  def convertFromSchemaV2(
-      image: Image,
-      manifest: ManifestV2,
-      imageConfig: String
-  ): Xor[String, String] = {
+  def convertFromSchemaV2(image: Image,
+                          manifest: ManifestV2,
+                          imageConfig: String): Xor[String, String] = {
     (for {
       imgConfig <- decode[ImageConfig](imageConfig)
       config    <- decode[Config](imageConfig)(decodeSchemaV1Config)
@@ -176,9 +174,8 @@ object SchemaV1 {
     }
   }
 
-  def addSignature(manifestV1: String): String = {
+  def addSignature(manifestV1: String): String =
     signManifestV1(parseManifestV1(manifestV1))
-  }
 
   private def signManifestV1(manifest: JsonObject): String = {
     val formatted        = prettyPrint(manifest.asJson)

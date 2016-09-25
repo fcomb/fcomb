@@ -6,7 +6,7 @@ lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.7.2"
 lazy val circeVersion        = "0.5.2"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.4.14"
+lazy val enumeratumVersion   = "1.4.15"
 lazy val guavaVersion        = "19.0"
 lazy val slickPgVersion      = "0.15.0-M2"
 lazy val slickVersion        = "3.2.0-M1"
@@ -178,9 +178,11 @@ lazy val json = crossProject
       "io.circe" %%% "circe-parser"         % circeVersion,
       "io.circe" %%% "circe-generic"        % circeVersion
     ))
-  .jvmSettings(libraryDependencies ++= Seq(
-    "io.circe" %% "circe-java8" % circeVersion
-  ))
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-java8" % circeVersion,
+      "io.circe" %% "circe-jawn"  % circeVersion
+    ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(models, rpc)
 

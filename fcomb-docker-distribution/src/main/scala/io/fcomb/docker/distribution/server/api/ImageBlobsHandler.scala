@@ -60,6 +60,7 @@ object ImageBlobsHandler {
                   HttpEntity(contentType(blob.contentType), blob.length, Source.empty)
                 )
               )
+            case _ => completeNotFound()
           }
         }
       }

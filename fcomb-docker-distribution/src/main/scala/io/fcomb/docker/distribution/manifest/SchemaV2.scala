@@ -18,7 +18,7 @@ package io.fcomb.docker.distribution.manifest
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
-import akka.stream.scaladsl.{FileIO, Sink}
+import akka.stream.scaladsl.FileIO
 import cats.data.{Validated, Xor}
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
@@ -29,7 +29,7 @@ import io.fcomb.persist.docker.distribution.{ImageBlobsRepo, ImageManifestsRepo}
 import io.fcomb.services.EventService
 import io.fcomb.utils.Units._
 import org.apache.commons.codec.digest.DigestUtils
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 object SchemaV2 {
   def upsertAsImageManifest(
@@ -38,7 +38,8 @@ object SchemaV2 {
       manifest: ManifestV2,
       rawManifest: String,
       createdByUserId: Int
-  )(implicit ec: ExecutionContext, mat: Materializer): Future[Xor[DistributionError, String]] = {
+  )(implicit mat: Materializer): Future[Xor[DistributionError, String]] = {
+    import mat.executionContext
     val digest = DigestUtils.sha256Hex(rawManifest)
     ImageManifestsRepo.findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
@@ -47,8 +48,8 @@ object SchemaV2 {
         val configDigest = manifest.config.getDigest
         ImageBlobsRepo.findByImageIdAndDigest(image.getId(), configDigest).flatMap {
           case Some(configBlob) =>
-            if (configBlob.length > 1.MB)
-              FastFuture.successful(unknowError("Config JSON size is more than 1 MB"))
+            if (configBlob.length > 16.MB)
+              FastFuture.successful(unknowError("Config JSON size is more than 16 MB"))
             else {
               val configFile = BlobFileUtils.getBlobFilePath(configDigest)
               getImageConfig(configFile).flatMap { imageConfig =>
@@ -86,6 +87,14 @@ object SchemaV2 {
   private def unknowError(msg: String) =
     Xor.left[DistributionError, String](DistributionError.unknown(msg))
 
-  private def getImageConfig(configFile: java.io.File)(implicit mat: Materializer) =
-    FileIO.fromPath(configFile.toPath).map(_.utf8String).runWith(Sink.head)
+  private def getImageConfig(configFile: java.io.File)(
+      implicit mat: Materializer): Future[String] = {
+    import mat.executionContext
+    FileIO
+      .fromPath(configFile.toPath)
+      .map(_.utf8String)
+      .runFold(new StringBuffer)(_.append(_))
+      .fast
+      .map(_.toString)
+  }
 }

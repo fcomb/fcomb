@@ -17,15 +17,15 @@
 package io.fcomb.tests.fixtures.docker.distribution
 
 import cats.data.{Validated, Xor}
-import io.fcomb.models.docker.distribution._
-import io.fcomb.persist.docker.distribution._
+import io.circe.jawn._
 import io.fcomb.Db.db
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import io.circe.parser._
+import io.fcomb.models.docker.distribution._
+import io.fcomb.persist.docker.distribution._
 import org.apache.commons.codec.digest.DigestUtils
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object ImageManifestsRepoFixture {
   def createV1(
