@@ -59,7 +59,7 @@ object CommonDirectives {
 
   def completeCreated[T](item: T, prefix: String)(implicit encoder: Encoder[T],
                                                   idLens: IdLens[T]): Route = {
-    val uri     = prefix + idLens.getId(item)
+    val uri     = prefix + idLens.get(item)
     val headers = immutable.Seq(Location(uri))
     respondWithHeaders(headers)(complete((StatusCodes.Created, item)))
   }

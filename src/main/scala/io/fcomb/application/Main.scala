@@ -44,11 +44,8 @@ object Main extends App with LazyLogging {
       EmailService.start()
     case Failure(e) =>
       logger.error(e.getMessage(), e.getCause())
-      try {
-        sys.terminate()
-      } finally {
-        System.exit(-1)
-      }
+      try sys.terminate()
+      finally System.exit(-1)
   }
 
   Await.result(sys.whenTerminated, Duration.Inf)

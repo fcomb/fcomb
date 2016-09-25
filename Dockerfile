@@ -1,4 +1,4 @@
-FROM fcomb/jre8-sbt-alpine:v2.11_0.13
+FROM fcomb/jre8-sbt-alpine
 MAINTAINER Timothy Klim <fcomb@timothyklim.com>
 
 USER root

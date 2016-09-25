@@ -32,5 +32,5 @@ trait ResponseModelWithIntPk extends ResponseModelWithPk {
 
 object ResponseModelWithPk {
   final implicit val responseModelWithPkLens: IdLens[ResponseModelWithPk] =
-    new IdLens[ResponseModelWithPk] { def getId(item: ResponseModelWithPk) = item.id.toString() }
+    new IdLens[ResponseModelWithPk] { def get(item: ResponseModelWithPk) = item.id.toString() }
 }

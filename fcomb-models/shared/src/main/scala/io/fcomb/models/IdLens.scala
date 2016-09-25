@@ -17,5 +17,5 @@
 package io.fcomb.models
 
 trait IdLens[-T] {
-  def getId(item: T): String
+  def get(item: T): String
 }

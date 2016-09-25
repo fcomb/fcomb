@@ -46,5 +46,5 @@ trait ModelWithUuidPk extends ModelWithPk {
 
 object ModelWithPk {
   final implicit val modelWithPkLens: IdLens[ModelWithPk] =
-    new IdLens[ModelWithPk] { def getId(item) = item.getId().toString() }
+    new IdLens[ModelWithPk] { def get(item: ModelWithPk) = item.getId().toString() }
 }
