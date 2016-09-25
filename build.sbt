@@ -8,6 +8,7 @@ lazy val circeVersion        = "0.5.2"
 lazy val commonsVersion      = "1.10"
 lazy val enumeratumVersion   = "1.4.15"
 lazy val guavaVersion        = "19.0"
+lazy val jawnVersion         = "0.9.0"
 lazy val slickPgVersion      = "0.15.0-M2"
 lazy val slickVersion        = "3.2.0-M1"
 
@@ -180,8 +181,9 @@ lazy val json = crossProject
     ))
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-java8" % circeVersion,
-      "io.circe" %% "circe-jawn"  % circeVersion
+      "io.circe"       %% "circe-java8" % circeVersion,
+      "io.circe"       %% "circe-jawn"  % circeVersion,
+      "org.spire-math" %% "jawn-parser" % jawnVersion
     ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(models, rpc)

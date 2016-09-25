@@ -28,7 +28,7 @@ import io.fcomb.services.EventService
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest => ManifestV1, _}
-import io.fcomb.models.docker.distribution.SchemaV2.{ImageConfig, Manifest => ManifestV2}
+import io.fcomb.models.docker.distribution.SchemaV2.{Manifest => ManifestV2}
 import io.fcomb.models.docker.distribution.{Image, ImageManifest, Reference}
 import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
@@ -100,10 +100,10 @@ object SchemaV1 {
 
   def convertFromSchemaV2(image: Image,
                           manifest: ManifestV2,
-                          imageConfig: String): Xor[String, String] = {
+                          imageConfigJson: Json): Xor[String, String] = {
     (for {
-      imgConfig <- decode[ImageConfig](imageConfig)
-      config    <- decode[Config](imageConfig)(decodeSchemaV1Config)
+      imgConfig <- decodeSchemaV2ImageConfig.decodeJson(imageConfigJson)
+      config    <- decodeSchemaV1Config.decodeJson(imageConfigJson)
     } yield (imgConfig, config)) match {
       case Xor.Right((imgConfig, config)) =>
         if (imgConfig.history.isEmpty) Xor.Left("Image config history is empty")
