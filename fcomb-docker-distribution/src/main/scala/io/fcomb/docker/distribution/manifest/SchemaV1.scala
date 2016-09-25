@@ -174,8 +174,8 @@ object SchemaV1 {
     }
   }
 
-  def addSignature(manifestV1: String): String =
-    signManifestV1(parseManifestV1(manifestV1))
+  def addSignature(manifestV1: String): Xor[String, String] =
+    parseManifestV1(manifestV1).map(signManifestV1)
 
   private def signManifestV1(manifest: JsonObject): String = {
     val formatted        = prettyPrint(manifest.asJson)
@@ -192,23 +192,21 @@ object SchemaV1 {
     prettyPrint(manifestWithSignature.asJson)
   }
 
-  def addTagAndSignature(manifestV1: String, tag: String): String = {
-    val manifest        = parseManifestV1(manifestV1)
-    val manifestWithTag = manifest.add("tag", Json.fromString(tag))
-    signManifestV1(manifestWithTag)
-  }
+  def addTagAndSignature(manifestV1: String, tag: String): Xor[String, String] =
+    parseManifestV1(manifestV1).map { manifest =>
+      val manifestWithTag = manifest.add("tag", Json.fromString(tag))
+      signManifestV1(manifestWithTag)
+    }
 
-  // TODO: add Xor
-  private def parseManifestV1(manifestV1: String): JsonObject = {
+  private def parseManifestV1(manifestV1: String): Xor[String, JsonObject] =
     parse(manifestV1).map(_.asObject) match {
       case Xor.Right(opt) =>
         opt match {
-          case Some(manifest) => manifest
-          case _              => throw new IllegalArgumentException("Manifest V1 not a JSON object")
+          case Some(manifest) => Xor.Right(manifest)
+          case _              => Xor.Left("Manifest V1 not a JSON object")
         }
-      case Xor.Left(e) => throw new IllegalArgumentException(e.show)
+      case Xor.Left(e) => Xor.Left(e.show)
     }
-  }
 
   private val spaceCharSet = Set[Char]('\t', '\n', 0x0B, '\f', '\r', ' ', 0x85, 0xA0)
 

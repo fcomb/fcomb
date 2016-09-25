@@ -55,26 +55,25 @@ object ImagesHandler {
             import mat.executionContext
             onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId(), reference)) {
               case Some(im) =>
-                val (ct, manifest) = im.schemaVersion match {
-                  case 1 =>
-                    val jb = SchemaV1Manifest.addSignature(im.schemaV1JsonBlob)
-                    (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
-                  case _ =>
-                    reference match {
-                      case Reference.Tag(tag) if !acceptOpt.exists(acceptIsAManifestV2) =>
-                        val jb = SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag)
-                        (`application/vnd.docker.distribution.manifest.v1+prettyjws`, jb)
-                      case _ =>
-                        (`application/vnd.docker.distribution.manifest.v2+json`,
-                         im.getSchemaV2JsonBlob)
-                    }
-                }
                 val headers = immutable.Seq(
                   ETag(im.sha256Digest),
                   `Docker-Content-Digest`("sha256", im.digest)
                 )
                 respondWithHeaders(headers) {
-                  complete(HttpEntity(ct, ByteString(manifest)))
+                  im.schemaVersion match {
+                    case 1 =>
+                      completeSchemaV1Manifest(SchemaV1Manifest.addSignature(im.schemaV1JsonBlob))
+                    case _ =>
+                      reference match {
+                        case Reference.Tag(tag) if !acceptOpt.exists(acceptIsAManifestV2) =>
+                          completeSchemaV1Manifest(
+                            SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag))
+                        case _ =>
+                          val e = ByteString(im.getSchemaV2JsonBlob)
+                          complete(
+                            HttpEntity(`application/vnd.docker.distribution.manifest.v2+json`, e))
+                      }
+                  }
                 }
               case _ => completeError(DistributionError.manifestUnknown)
             }
@@ -83,6 +82,14 @@ object ImagesHandler {
       }
     }
   }
+
+  private def completeSchemaV1Manifest(m: Xor[String, String]): Route =
+    m match {
+      case Xor.Right(jb) =>
+        val e = ByteString(jb)
+        complete(HttpEntity(`application/vnd.docker.distribution.manifest.v1+prettyjws`, e))
+      case Xor.Left(e) => completeError(DistributionError.unknown(e))
+    }
 
   private def acceptIsAManifestV2(header: Accept) = {
     header.mediaRanges.exists { r =>
