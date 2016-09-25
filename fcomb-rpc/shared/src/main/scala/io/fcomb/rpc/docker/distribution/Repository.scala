@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package io.fcomb.rpc.docker.distribution
+package io.fcomb.rpc
+package docker.distribution
 
-import io.fcomb.models.{Owner, ModelResponseWithIntPk}
+import io.fcomb.models.Owner
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 
 final case class RepositoryResponse(
-    id: Option[Int],
+    id: Int,
     name: String,
     slug: String,
     owner: Owner,
@@ -30,4 +31,4 @@ final case class RepositoryResponse(
     action: Action,
     createdAt: String,
     updatedAt: Option[String]
-) extends ModelResponseWithIntPk
+) extends ResponseModelWithIntPk

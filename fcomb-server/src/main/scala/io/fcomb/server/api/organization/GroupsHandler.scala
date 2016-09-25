@@ -17,7 +17,6 @@
 package io.fcomb.server.api.organization
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
@@ -25,17 +24,18 @@ import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupsRepo
-import io.fcomb.rpc.OrganizationGroupRequest
 import io.fcomb.rpc.helpers.OrganizationGroupHelpers
+import io.fcomb.rpc.OrganizationGroupRequest
+import io.fcomb.rpc.ResponseModelWithPk._
+import io.fcomb.server.api.OrganizationsHandler
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.CirceSupport._
+import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.OrganizationGroupDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.SlugPath
-import io.fcomb.server.api.OrganizationsHandler
-import scala.collection.immutable
 
 object GroupsHandler {
   val servicePath = "groups"
@@ -63,14 +63,10 @@ object GroupsHandler {
           entity(as[OrganizationGroupRequest]) { req =>
             onSuccess(OrganizationGroupsRepo.create(org.getId(), req)) {
               case Validated.Valid(group) =>
-                val uri     = s"${resourcePrefix}/$slug/$servicePath/${org.getId()}"
-                val headers = immutable.Seq(Location(uri))
-                val res     = OrganizationGroupHelpers.responseFrom(group)
-                respondWithHeaders(headers) {
-                  complete((StatusCodes.Created, res))
-                }
-              case Validated.Invalid(e) =>
-                ??? // TODO
+                val prefix = s"${resourcePrefix}/$slug/$servicePath}"
+                val res    = OrganizationGroupHelpers.responseFrom(group)
+                completeCreated(res, prefix)
+              case Validated.Invalid(errs) => completeErrors(errs)
             }
           }
         }
@@ -98,8 +94,7 @@ object GroupsHandler {
               case Validated.Valid(updated) =>
                 val res = OrganizationGroupHelpers.responseFrom(updated)
                 complete((StatusCodes.Accepted, res))
-              case Validated.Invalid(e) =>
-                ??? // TODO
+              case Validated.Invalid(errs) => completeErrors(errs)
             }
           }
         }

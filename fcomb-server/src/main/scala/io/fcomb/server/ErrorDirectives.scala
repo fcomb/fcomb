@@ -23,7 +23,7 @@ import cats.data.Validated
 import io.circe.Encoder
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.models.errors.{Errors, Error}
-import io.fcomb.models.ModelWithPk
+import io.fcomb.models.IdLens
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.validation.ValidationResult
@@ -54,15 +54,16 @@ object ErrorDirectives {
       implicit encoder: Encoder[T]): Route =
     onSuccess(fut)(completeAsAccepted(_))
 
-  def completeAsCreated[T <: ModelWithPk](res: ValidationResult[T], prefix: String)(
-      implicit encoder: Encoder[T]): Route = {
+  def completeAsCreated[T](res: ValidationResult[T], prefix: String)(implicit encoder: Encoder[T],
+                                                                     idLens: IdLens[T]): Route = {
     res match {
       case Validated.Valid(rs)   => completeCreated(rs, prefix)
       case Validated.Invalid(xs) => completeErrors(xs)
     }
   }
 
-  def completeAsCreated[T <: ModelWithPk](fut: Future[ValidationResult[T]], prefix: String)(
-      implicit encoder: Encoder[T]): Route =
+  def completeAsCreated[T](fut: Future[ValidationResult[T]], prefix: String)(
+      implicit encoder: Encoder[T],
+      idLens: IdLens[T]): Route =
     onSuccess(fut)(completeAsCreated(_, prefix))
 }

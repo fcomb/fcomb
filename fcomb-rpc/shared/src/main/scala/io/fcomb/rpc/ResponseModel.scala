@@ -16,21 +16,21 @@
 
 package io.fcomb.rpc
 
-import io.fcomb.models.acl.Role
+import io.fcomb.models.IdLens
 
-final case class OrganizationCreateRequest(
-    name: String
-)
+sealed trait ResponseModelWithPk {
+  type Pk
 
-// final case class OrganizationUpdateRequest(
-//     name: String
-// )
+  val id: Pk
+}
 
-final case class OrganizationResponse(
-    id: Int,
-    name: String,
-    ownerUserId: Option[Int],
-    role: Option[Role],
-    createdAt: String,
-    updatedAt: Option[String]
-) extends ResponseModelWithIntPk
+trait ResponseModelWithIntPk extends ResponseModelWithPk {
+  type Pk = Int
+
+  val id: Int
+}
+
+object ResponseModelWithPk {
+  final implicit val responseModelWithPkLens: IdLens[ResponseModelWithPk] =
+    new IdLens[ResponseModelWithPk] { def getId(item: ResponseModelWithPk) = item.id.toString() }
+}

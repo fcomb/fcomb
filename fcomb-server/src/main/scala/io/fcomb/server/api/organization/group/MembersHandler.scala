@@ -19,15 +19,16 @@ package io.fcomb.server.api.organization.group
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
+import io.fcomb.json.rpc.Formats.{encodeUserProfileResponse, decodeMemberUserRequest}
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupUsersRepo
+import io.fcomb.rpc.MemberUserRequest
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationGroupDirectives._
 import io.fcomb.server.PaginationDirectives._
-import io.fcomb.rpc.MemberUserRequest
-import io.fcomb.json.rpc.Formats.{encodeUserProfileResponse, decodeMemberUserRequest}
 
 object MembersHandler {
   val servicePath = "members"
@@ -52,8 +53,8 @@ object MembersHandler {
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
           entity(as[MemberUserRequest]) { req =>
             onSuccess(OrganizationGroupUsersRepo.upsert(group.getId(), req)) {
-              case Validated.Valid(p)   => completeAccepted()
-              case Validated.Invalid(e) => ??? // TODO
+              case Validated.Valid(p)      => completeAccepted()
+              case Validated.Invalid(errs) => completeErrors(errs)
             }
           }
         }
@@ -66,8 +67,8 @@ object MembersHandler {
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
           onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), memberSlug)) {
-            case Validated.Valid(p)   => completeAccepted()
-            case Validated.Invalid(e) => ??? // TODO
+            case Validated.Valid(p)      => completeAccepted()
+            case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }

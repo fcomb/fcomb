@@ -44,6 +44,7 @@ trait ModelWithUuidPk extends ModelWithPk {
   type PkType = UUID
 }
 
-trait ModelResponseWithIntPk extends ModelWithIntPk
-
-trait ModelResponseWithUuidPk extends ModelWithUuidPk
+object ModelWithPk {
+  final implicit val modelWithPkLens: IdLens[ModelWithPk] =
+    new IdLens[ModelWithPk] { def getId(item) = item.getId().toString() }
+}

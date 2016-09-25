@@ -20,7 +20,6 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
-import io.fcomb.server.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
@@ -28,10 +27,12 @@ import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageUpdateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
-import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.CommonDirectives._
-import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.api.repository._
+import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CirceSupport._
+import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.ErrorDirectives._
+import io.fcomb.server.ImageDirectives._
 
 object RepositoriesHandler {
   val servicePath = "repositories"
@@ -57,8 +58,7 @@ object RepositoriesHandler {
                 case Validated.Valid(updated) =>
                   val res = ImageHelpers.responseFrom(updated, action)
                   complete((StatusCodes.Accepted, res))
-                case Validated.Invalid(e) =>
-                  ??? // TODO
+                case Validated.Invalid(errs) => completeErrors(errs)
               }
             }
         }

@@ -28,6 +28,7 @@ import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.CirceSupport._
+import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 
@@ -59,8 +60,7 @@ object WebhooksHandler {
               case Validated.Valid(webhook) =>
                 val res = ImageWebhookHelpers.responseFrom(webhook)
                 completeWithEtag(StatusCodes.OK, res)
-              case Validated.Invalid(e) =>
-                ??? // TODO
+              case Validated.Invalid(errs) => completeErrors(errs)
             }
           }
         }

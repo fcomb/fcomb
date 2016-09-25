@@ -14,23 +14,8 @@
  * limitations under the License.
  */
 
-package io.fcomb.rpc
+package io.fcomb.models
 
-import io.fcomb.models.acl.Role
-
-final case class OrganizationCreateRequest(
-    name: String
-)
-
-// final case class OrganizationUpdateRequest(
-//     name: String
-// )
-
-final case class OrganizationResponse(
-    id: Int,
-    name: String,
-    ownerUserId: Option[Int],
-    role: Option[Role],
-    createdAt: String,
-    updatedAt: Option[String]
-) extends ResponseModelWithIntPk
+trait IdLens[-T] {
+  def getId(item: T): String
+}

@@ -20,18 +20,19 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
 import cats.data.Validated
-import io.fcomb.server.CirceSupport._
 import io.fcomb.json.models.errors.Formats._
-import io.fcomb.json.rpc.Formats.encodeDataResponse
 import io.fcomb.json.rpc.acl.Formats._
+import io.fcomb.json.rpc.Formats.encodeDataResponse
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.errors.Errors
 import io.fcomb.persist.acl.PermissionsRepo
-import io.fcomb.rpc.DataResponse
 import io.fcomb.rpc.acl.PermissionCreateRequest
+import io.fcomb.rpc.DataResponse
 import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 
@@ -58,8 +59,8 @@ object PermissionsHandler {
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
           entity(as[PermissionCreateRequest]) { req =>
             onSuccess(PermissionsRepo.upsertByImage(image, req)) {
-              case Validated.Valid(p)   => complete((StatusCodes.Accepted, p))
-              case Validated.Invalid(e) => ??? // TODO
+              case Validated.Valid(p)      => complete((StatusCodes.Accepted, p))
+              case Validated.Invalid(errs) => completeErrors(errs)
             }
           }
         }
@@ -72,8 +73,8 @@ object PermissionsHandler {
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
           onSuccess(PermissionsRepo.destroyByImage(image, memberKind, memberSlug)) {
-            case Validated.Valid(p)   => completeAccepted()
-            case Validated.Invalid(e) => ??? // TODO
+            case Validated.Valid(p)      => completeAccepted()
+            case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }

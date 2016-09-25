@@ -23,7 +23,7 @@ import io.fcomb.rpc.docker.distribution.RepositoryResponse
 object ImageHelpers {
   def responseFrom(image: Image, action: Action): RepositoryResponse =
     RepositoryResponse(
-      id = image.id,
+      id = image.getId(),
       name = image.name,
       slug = image.slug,
       owner = image.owner,

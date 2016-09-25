@@ -17,7 +17,6 @@
 package io.fcomb.server.api
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.util.FastFuture._
@@ -26,14 +25,15 @@ import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationsRepo
-import io.fcomb.rpc.OrganizationCreateRequest
 import io.fcomb.rpc.helpers.OrganizationHelpers
+import io.fcomb.rpc.OrganizationCreateRequest
+import io.fcomb.rpc.ResponseModelWithPk._
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.SlugPath
-import scala.collection.immutable
 
 object OrganizationsHandler {
   val servicePath = "organizations"
@@ -46,15 +46,9 @@ object OrganizationsHandler {
         entity(as[OrganizationCreateRequest]) { req =>
           onSuccess(OrganizationsRepo.create(req, user.getId())) {
             case Validated.Valid(org) =>
-              val uri     = resourcePrefix + org.getId().toString
-              val headers = immutable.Seq(Location(uri))
-              val res     = OrganizationHelpers.responseFrom(org, Role.Admin)
-              respondWithHeaders(headers) {
-                complete((StatusCodes.Created, res))
-              }
-            case Validated.Invalid(e) =>
-              println(e)
-              ??? // TODO
+              val res = OrganizationHelpers.responseFrom(org, Role.Admin)
+              completeCreated(res, resourcePrefix)
+            case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }
@@ -87,8 +81,7 @@ object OrganizationsHandler {
   //             case Validated.Valid(updated) =>
   //               val res = OrganizationHelpers.responseFrom(updated, Role.Admin)
   //               complete((StatusCodes.Accepted, res))
-  //             case Validated.Invalid(e) =>
-  //               ??? // TODO
+  //             case Validated.Invalid(errs) => completeErrors(errs)
   //           }
   //         }
   //       }

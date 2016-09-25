@@ -29,4 +29,4 @@ final case class OrganizationGroupResponse(
     role: Role,
     createdAt: String,
     updatedAt: Option[String]
-)
+) extends ResponseModelWithIntPk
