@@ -32,7 +32,7 @@ class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer
         (StatusCodes.UnprocessableEntity, Errors.deserialization(f.message))
       case f =>
         logger.error(f.getMessage(), f.getCause())
-        (StatusCodes.InternalServerError, Errors.unknown(f.getMessage))
+        (StatusCodes.InternalServerError, Errors.internal(f.getMessage))
     }
 
   private def completeError(status: StatusCode, error: Error) =
@@ -57,9 +57,9 @@ class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer
         case r: RejectionWithOptionalCause =>
           r.cause match {
             case Some(e) => handleException(e)
-            case None    => completeError(StatusCodes.BadRequest, Errors.unknown(r.toString))
+            case None    => completeError(StatusCodes.BadRequest, Errors.internal(r.toString))
           }
-        case r => completeError(StatusCodes.BadRequest, Errors.unknown(r.toString))
+        case r => completeError(StatusCodes.BadRequest, Errors.internal(r.toString))
       }
       .handleNotFound(completeNotFound())
       .result

@@ -64,7 +64,7 @@ object Rpc {
           else decode[Errors](res.responseText).flatMap(res => Xor.Left(res.errors))
         case e =>
           window.console.error(s"${e.toString}: ${e.getMessage}")
-          Xor.Left(Seq(Errors.unknown()))
+          Xor.Left(Seq(Errors.unknown))
       }
   }
 

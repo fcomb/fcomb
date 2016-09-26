@@ -30,11 +30,12 @@ object Errors {
   val unauthorized = Error("Unauthorized", ErrorCode.Session)
   val registrationIsDisabled =
     Error("User registration is disabled by administrator", ErrorCode.Securiy)
+  val unknown = internal("Unknown error")
 
   def deserialization(msg: String = "Deserialization error", param: Option[String] = None) =
     Error(msg, ErrorCode.Deserialization, param)
 
-  def unknown(msg: String = "Unknown error") =
+  def internal(msg: String) =
     Error(msg, ErrorCode.Internal)
 
   def unknownEnumItem[T <: EnumItem](item: String, enum: Enum[T]) =

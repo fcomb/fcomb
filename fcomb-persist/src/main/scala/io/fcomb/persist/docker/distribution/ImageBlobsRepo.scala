@@ -56,8 +56,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   }
 
   def mount(fromImageId: Int, toImageId: Int, digest: String, userId: Int)(
-      implicit ec: ExecutionContext
-  ): Future[Option[ImageBlob]] =
+      implicit ec: ExecutionContext): Future[Option[ImageBlob]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
       findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption.flatMap {
         case Some(blob) =>
@@ -94,12 +93,11 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         uploadedAt = None
       ))
 
-  override def createDBIO(blob: ImageBlob)(implicit ec: ExecutionContext): ModelDBIO = {
+  override def createDBIO(blob: ImageBlob)(implicit ec: ExecutionContext): ModelDBIO =
     for {
       res <- tableWithPk += blob
       _   <- BlobFilesRepo.createDBIO(res.getId)
     } yield res
-  }
 
   private lazy val findByImageIdAndUuidCompiled = Compiled {
     (imageId: Rep[Int], uuid: Rep[UUID]) =>
@@ -127,11 +125,9 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     }
 
   def findIdsWithDigestByImageIdAndDigests(imageId: Int, digests: Set[String])(
-      implicit ec: ExecutionContext
-  ): Future[Seq[(UUID, Option[String], Long)]] =
-    db.run {
-      findByImageIdAndDigestsDBIO(imageId, digests).map(t => (t.id, t.digest, t.length)).result
-    }
+      implicit ec: ExecutionContext): Future[Seq[(UUID, Option[String], Long)]] =
+    db.run(
+      findByImageIdAndDigestsDBIO(imageId, digests).map(t => (t.id, t.digest, t.length)).result)
 
   def findByImageIdAndDigests(imageId: Int, digests: Set[String])(implicit ec: ExecutionContext) =
     db.run(findByImageIdAndDigestsDBIO(imageId, digests).result)
@@ -146,7 +142,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
 
   def completeUploadOrDelete(id: UUID, imageId: Int, length: Long, digest: String)(
       implicit ec: ExecutionContext): Future[BlobFileState] = {
-    runInTransaction(TransactionIsolation.ReadCommitted) {
+    runInTransaction(TransactionIsolation.Serializable) {
       existUploadedByImageIdAndDigestCompiled((imageId, digest, id)).result.flatMap { exists =>
         if (exists) {
           for {
@@ -173,24 +169,23 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   }
 
   def updateState(id: UUID, length: Long, digest: String, state: ImageBlobState)(
-      implicit ec: ExecutionContext
-  ) = db.run {
-    table
-      .filter(_.id === id)
-      .map(t => (t.state, t.length, t.digest))
-      .update((state, length, Some(digest)))
-  }
+      implicit ec: ExecutionContext) =
+    db.run {
+      table
+        .filter(_.id === id)
+        .map(t => (t.state, t.length, t.digest))
+        .update((state, length, Some(digest)))
+    }
 
-  override def destroy(id: UUID)(implicit ec: ExecutionContext): Future[Int] = {
+  override def destroy(id: UUID)(implicit ec: ExecutionContext): Future[Int] =
     db.run {
       for {
         res <- destroyDBIO(id)
         _   <- BlobFilesRepo.markOrDestroyDBIO(id)
       } yield res
     }
-  }
 
-  def duplicateDigestsByImageIdDBIO(imageId: Int) = {
+  def duplicateDigestsByImageIdDBIO(imageId: Int) =
     table
       .join(table)
       .on(_.digest === _.digest)
@@ -199,9 +194,8 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
           t.digest.nonEmpty && t.imageId === imageId && tt.imageId =!= imageId
       }
       .map(_._1.digest)
-  }
 
-  def duplicateDigestsByOrganizationIdDBIO(organizationId: Int) = {
+  def duplicateDigestsByOrganizationIdDBIO(organizationId: Int) =
     table
       .join(ImageBlobsRepo.table)
       .on(_.digest === _.digest)
@@ -221,9 +215,8 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       .map(_._1._1._1.digest)
       .distinct
       .subquery
-  }
 
-  def uniqueDigestsByOrganizationIdDBIO(organizationId: Int) = {
+  def uniqueDigestsByOrganizationIdDBIO(organizationId: Int) =
     table
       .join(ImagesRepo.table)
       .on(_.imageId === _.id)
@@ -236,12 +229,11 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       }
       .map(_._1.digest)
       .subquery
-  }
 
   def findIdsByImageIdDBIO(imageId: Int) =
     table.filter(_.imageId === imageId).map(_.id)
 
-  def findIdsWithEmptyDigestsByOrganizationIdDBIO(organizationId: Int) = {
+  def findIdsWithEmptyDigestsByOrganizationIdDBIO(organizationId: Int) =
     table
       .join(ImagesRepo.table)
       .on(_.imageId === _.id)
@@ -252,7 +244,6 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
             t.digest.isEmpty
       }
       .map(_._1.id)
-  }
 
   def destroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) = {
     for {
@@ -261,33 +252,29 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     } yield res
   }
 
-  def destroyOutdatedUploadsDBIO(until: Rep[OffsetDateTime]) = {
+  def destroyOutdatedUploadsDBIO(until: Rep[OffsetDateTime]) =
     table.filter { q =>
       q.createdAt <= until && q.state =!= (ImageBlobState.Uploaded: ImageBlobState)
     }
-  }
 
-  def findOutdatedUploadsIdDBIO(until: Rep[OffsetDateTime]) = {
+  def findOutdatedUploadsIdDBIO(until: Rep[OffsetDateTime]) =
     destroyOutdatedUploadsDBIO(until).map(_.id)
-  }
 
-  def destroyOutdatedUploads(until: OffsetDateTime)(implicit ec: ExecutionContext) = {
-    runInTransaction(TransactionIsolation.ReadCommitted) {
+  def destroyOutdatedUploads(until: OffsetDateTime)(implicit ec: ExecutionContext) =
+    runInTransaction(TransactionIsolation.Serializable) {
       for {
         _   <- BlobFilesRepo.markOutdatedUploadsDBIO(until)
         res <- destroyOutdatedUploadsDBIO(until).delete
       } yield res
     }
-  }
 
-  def destroyByOrganizationIdDBIO(organizationId: Int)(implicit ec: ExecutionContext) = {
+  def destroyByOrganizationIdDBIO(organizationId: Int)(implicit ec: ExecutionContext) =
     for {
       _ <- BlobFilesRepo.markOrDestroyByOrganizationIdDBIO(organizationId)
       res <- table
         .filter(_.imageId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)))
         .delete
     } yield res
-  }
 
   def findByIds(ids: List[UUID]) =
     db.run(table.filter(_.id.inSetBind(ids)).result)

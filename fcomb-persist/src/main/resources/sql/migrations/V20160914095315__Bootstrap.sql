@@ -116,7 +116,7 @@ CREATE TABLE dd_blob_files (
   retried_at timestamp with time zone
 );
 
-CREATE INDEX ON dd_blob_files (lower(digest));
+CREATE UNIQUE INDEX ON dd_blob_files (lower(digest));
 
 CREATE TABLE organizations (
   id serial primary key,

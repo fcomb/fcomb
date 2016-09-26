@@ -16,8 +16,12 @@
 
 package io.fcomb.validation
 
-import io.fcomb.models.errors.FcombException
+import io.fcomb.models.errors.{Error, FcombException}
 
-sealed trait DbException extends FcombException
+sealed trait DbException extends FcombException {
+  val error: Error
+}
 
-final case class RollbackException() extends DbException
+final case class RollbackException(error: Error) extends DbException
+
+final case class DBIOException(error: Error) extends DbException

@@ -101,7 +101,7 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
 
   def receive = idle
 
-  private def runDeleting() = {
+  private def runDeleting() =
     BlobFilesRepo
       .findDeleting()
       .mapAsyncUnordered(4) { bf =>
@@ -123,5 +123,4 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
         } yield ()
       }
       .runWith(Sink.ignore)
-  }
 }

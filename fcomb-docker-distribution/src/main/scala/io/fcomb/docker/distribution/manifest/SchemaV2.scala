@@ -30,6 +30,7 @@ import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageBlobsRepo, ImageManifestsRepo}
 import io.fcomb.services.EventService
 import io.fcomb.utils.Units._
+import java.io.File
 import jawn.{AsyncParser, Parser}
 import org.apache.commons.codec.digest.DigestUtils
 import scala.concurrent.Future
@@ -92,26 +93,25 @@ object SchemaV2 {
   private def unknowError(msg: String) =
     Xor.left[DistributionError, String](DistributionError.unknown(msg))
 
-  private def getImageConfig(configFile: java.io.File)(
+  private def getImageConfig(configFile: File)(
       implicit mat: Materializer): Future[Xor[String, Json]] = {
     import mat.executionContext
     val p = Parser.async[Json](mode = AsyncParser.SingleValue)
     FileIO
       .fromPath(configFile.toPath)
       .runFold(Xor.right[String, Option[Json]](None)) {
-        case (Xor.Right(opt), bs) =>
+        case (Xor.Right(None), bs) =>
           p.absorb(bs.asByteBuffer) match {
-            case Right(res) => Xor.Right(opt.orElse(res.headOption))
+            case Right(res) => Xor.Right(res.headOption)
             case Left(e)    => Xor.Left(e.msg)
           }
-        case (e @ Xor.Left(_), _) => e
+        case (res, _) => res
       }
       .fast
-      .map(_.flatMap { opt =>
-        Xor
-          .fromEither(p.finish)
-          .map(res => opt.orElse(res.headOption).getOrElse(Json.Null))
-          .leftMap(_.msg)
+      .map(_.flatMap {
+        case Some(res) => Xor.Right(res)
+        case _ =>
+          Xor.fromEither(p.finish).map(_.headOption.getOrElse(Json.Null)).leftMap(_.msg)
       })
   }
 }
