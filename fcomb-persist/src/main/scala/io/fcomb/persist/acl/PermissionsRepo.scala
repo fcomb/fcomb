@@ -344,14 +344,13 @@ object PermissionsRepo
   }
 
   def destroyByImage(image: Image, memberKind: MemberKind, slug: Slug)(
-      implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
+      implicit ec: ExecutionContext): Future[ValidationResultUnit] =
     runInTransaction(TransactionIsolation.Serializable) {
       memberKind match {
         case MemberKind.User  => destroyByUser(image, slug)
         case MemberKind.Group => destroyByGroup(image, slug)
       }
     }
-  }
 
   private def destroyByMemberAsValidated(imageId: Int, memberId: Int, memberKind: MemberKind)(
       implicit ec: ExecutionContext) = {

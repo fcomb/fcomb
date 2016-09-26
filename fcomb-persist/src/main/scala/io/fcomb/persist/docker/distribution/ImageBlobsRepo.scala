@@ -141,7 +141,7 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   }
 
   def completeUploadOrDelete(id: UUID, imageId: Int, length: Long, digest: String)(
-      implicit ec: ExecutionContext): Future[BlobFileState] = {
+      implicit ec: ExecutionContext): Future[BlobFileState] =
     runInTransaction(TransactionIsolation.Serializable) {
       existUploadedByImageIdAndDigestCompiled((imageId, digest, id)).result.flatMap { exists =>
         if (exists) {
@@ -166,7 +166,6 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         }
       }
     }
-  }
 
   def updateState(id: UUID, length: Long, digest: String, state: ImageBlobState)(
       implicit ec: ExecutionContext) =

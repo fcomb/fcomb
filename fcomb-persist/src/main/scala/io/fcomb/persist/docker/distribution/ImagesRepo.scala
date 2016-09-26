@@ -530,9 +530,8 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     } yield res
   }
 
-  override def destroy(id: Int)(implicit ec: ExecutionContext) = {
+  override def destroy(id: Int)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
-  }
 
   private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
     exceptIdFilter(id).filter(_.name === name.asColumnOfType[String]("citext")).exists

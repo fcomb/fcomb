@@ -228,9 +228,8 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     } yield res
   }
 
-  override def destroy(id: Int)(implicit ec: ExecutionContext) = {
+  override def destroy(id: Int)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
-  }
 
   private lazy val findSuggestionsCompiled = Compiled {
     (imageId: Rep[Int], orgId: Rep[Int], name: Rep[String], limit: ConstColumn[Long]) =>

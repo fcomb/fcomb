@@ -115,7 +115,7 @@ object OrganizationGroupUsersRepo
     }
   }
 
-  def destroy(groupId: Int, userSlug: Slug)(implicit ec: ExecutionContext) = {
+  def destroy(groupId: Int, userSlug: Slug)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable) {
       UsersRepo.findBySlugAsValidatedDBIO(userSlug).flatMap {
         case Validated.Valid(user) =>
@@ -126,7 +126,6 @@ object OrganizationGroupUsersRepo
         case res @ Validated.Invalid(_) => DBIO.successful(res)
       }
     }
-  }
 
   private lazy val notFound = validationError("member", "Not found")
 }

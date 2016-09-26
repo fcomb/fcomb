@@ -27,6 +27,7 @@ import io.fcomb.utils.Config.docker.distribution.gc
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.collection.mutable
+import scala.concurrent.duration._
 import scala.util.Failure
 
 object GarbageCollectorService extends LazyLogging {
@@ -104,14 +105,14 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
   private def runDeleting() =
     BlobFilesRepo
       .findDeleting()
-      .mapAsyncUnordered(4) { bf =>
+      .mapAsyncUnordered(8) { bf =>
         val fut = bf.digest match {
           case Some(digest) => BlobFileUtils.destroyBlob(digest)
           case _            => BlobFileUtils.destroyUploadBlob(bf.uuid)
         }
         fut.map(_ => Xor.Right(bf.uuid)).recover { case _ => Xor.Left(bf.uuid) }
       }
-      .grouped(256)
+      .groupedWithin(256, 1.second)
       .mapAsyncUnordered(1) { items =>
         val (successful, failed) = items.foldLeft((List.empty[UUID], List.empty[UUID])) {
           case ((sxs, fxs), Xor.Right(uuid)) => (uuid :: sxs, fxs)

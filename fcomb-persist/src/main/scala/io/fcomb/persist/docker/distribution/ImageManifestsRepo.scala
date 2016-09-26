@@ -249,7 +249,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
   override def create(manifest: ImageManifest)(
       implicit ec: ExecutionContext,
       m: Manifest[ImageManifest]
-  ): Future[ValidationModel] = {
+  ): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.Serializable)(
       createWithValidationDBIO(manifest).flatMap {
         case res @ Validated.Valid(im) =>
@@ -260,11 +260,9 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
         case res => DBIO.successful(res)
       }
     )
-  }
 
   def findByImageIdAndReference(imageId: Int, reference: Reference)(
-      implicit ec: ExecutionContext
-  ): Future[Option[ImageManifest]] = reference match {
+      implicit ec: ExecutionContext): Future[Option[ImageManifest]] = reference match {
     case Reference.Digest(dgst) => findByImageIdAndDigest(imageId, dgst)
     case Reference.Tag(tag)     => findByImageIdAndTag(imageId, tag)
   }

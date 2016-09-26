@@ -185,9 +185,8 @@ object OrganizationGroupsRepo
     }
   }
 
-  override def destroy(id: Int)(implicit ec: ExecutionContext) = {
+  override def destroy(id: Int)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
-  }
 
   lazy val cannotDeleteAdminGroup =
     validationErrorAsDBIO("group", "Cannot delete the last admin group")
