@@ -18,7 +18,7 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.json.rpc.docker.distribution.Formats.decodeRepositoryResponse
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
@@ -31,7 +31,7 @@ object RepositorySettingsComponent {
   final case class State(repository: Option[RepositoryResponse])
 
   class Backend($ : BackendScope[Props, State]) {
-    def getRepository(name: String): Callback = {
+    def getRepository(name: String): Callback =
       Callback.future {
         Rpc.call[RepositoryResponse](RpcMethod.GET, Resource.repository(name)).map {
           case Xor.Right(repository) =>
@@ -39,7 +39,6 @@ object RepositorySettingsComponent {
           case Xor.Left(e) => Callback.warn(e)
         }
       }
-    }
 
     def render(props: Props, state: State): ReactElement = {
       val components: Seq[TagMod] = state.repository match {

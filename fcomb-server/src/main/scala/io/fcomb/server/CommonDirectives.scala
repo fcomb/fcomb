@@ -17,10 +17,10 @@
 package io.fcomb.server
 
 import akka.http.scaladsl.model.headers.{
+  `If-None-Match`,
   ETag,
   EntityTag,
   EntityTagRange,
-  `If-None-Match`,
   Location
 }
 import akka.http.scaladsl.model._

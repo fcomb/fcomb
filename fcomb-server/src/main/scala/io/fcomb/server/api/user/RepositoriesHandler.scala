@@ -36,7 +36,7 @@ object RepositoriesHandler {
 
   lazy val resourcePrefix = s"/$apiVersion/${RepositoriesHandler.servicePath}/"
 
-  def index = {
+  def index =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         extractPagination { pg =>
@@ -47,9 +47,8 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
-  def available = {
+  def available =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         extractPagination { pg =>
@@ -60,9 +59,8 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
-  def create = {
+  def create =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         entity(as[ImageCreateRequest]) { req =>
@@ -75,7 +73,6 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
   val routes: Route = {
     // format: OFF

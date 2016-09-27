@@ -20,7 +20,7 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -32,7 +32,7 @@ object DeleteOrganizationComponent {
   final case class State(isOpen: Boolean, isValid: Boolean, isDisabled: Boolean)
 
   class Backend($ : BackendScope[Props, State]) {
-    def delete(e: ReactTouchEventH): Callback = {
+    def delete(e: ReactTouchEventH): Callback =
       $.state.flatMap { state =>
         if (state.isDisabled) Callback.empty
         else {
@@ -55,7 +55,6 @@ object DeleteOrganizationComponent {
           } yield ()
         }
       }
-    }
 
     def updateDisabled(isDisabled: Boolean): Callback =
       $.modState(_.copy(isDisabled = isDisabled))

@@ -34,7 +34,7 @@ import io.fcomb.utils.Config
 object UsersHandler {
   val servicePath = "users"
 
-  def signUp = {
+  def signUp =
     if (Config.security.isOpenSignUp) {
       extractExecutionContext { implicit ec =>
         entity(as[UserSignUpRequest]) { req =>
@@ -46,7 +46,6 @@ object UsersHandler {
       }
     } else
       complete((StatusCodes.Unauthorized, Errors.from(Errors.registrationIsDisabled)))
-  }
 
   val routes: Route = {
     // format: OFF

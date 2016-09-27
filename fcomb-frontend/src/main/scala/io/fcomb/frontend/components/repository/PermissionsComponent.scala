@@ -21,7 +21,7 @@ import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.models.Formats._
@@ -52,7 +52,7 @@ object PermissionsComponent {
     FormState(None, Action.Read, Map.empty, false)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def getPermissions(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
+    def getPermissions(name: String, sortColumn: String, sortOrder: SortOrder): Callback =
       Callback.future {
         val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
         Rpc
@@ -65,7 +65,6 @@ object PermissionsComponent {
             case Xor.Left(e) => Callback.warn(e)
           }
       }
-    }
 
     def updatePermission(repositoryName: String, name: String, kind: MemberKind)(e: ReactEventI) = {
       val action = Action.withName(e.target.value)
@@ -103,7 +102,7 @@ object PermissionsComponent {
                    actions))
     }
 
-    def deletePermission(repositoryName: String, name: String, kind: MemberKind)(e: ReactEventI) = {
+    def deletePermission(repositoryName: String, name: String, kind: MemberKind)(e: ReactEventI) =
       e.preventDefaultCB >>
         $.state.flatMap { state => // TODO: DRY
           $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
@@ -124,7 +123,6 @@ object PermissionsComponent {
                 }
             }
         }
-    }
 
     def renderOptionsCell(repositoryName: String, state: State, permission: PermissionResponse) = {
       val member = permission.member
@@ -137,13 +135,12 @@ object PermissionsComponent {
                    "Delete"))
     }
 
-    def renderPermissionRow(repositoryName: String, state: State, permission: PermissionResponse) = {
+    def renderPermissionRow(repositoryName: String, state: State, permission: PermissionResponse) =
       <.tr(<.td(permission.member.title),
            renderActionCell(repositoryName, state, permission),
            renderOptionsCell(repositoryName, state, permission))
-    }
 
-    def changeSortOrder(column: String)(e: ReactEventH): Callback = {
+    def changeSortOrder(column: String)(e: ReactEventH): Callback =
       for {
         _     <- e.preventDefaultCB
         name  <- $.props.map(_.repositoryName)
@@ -155,7 +152,6 @@ object PermissionsComponent {
         _ <- $.modState(_.copy(sortColumn = column, sortOrder = sortOrder))
         _ <- getPermissions(name, column, sortOrder)
       } yield ()
-    }
 
     def renderHeader(title: String, column: String, state: State) = {
       val header = if (state.sortColumn == column) {
@@ -165,7 +161,7 @@ object PermissionsComponent {
       <.th(<.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
     }
 
-    def renderPermissions(repositoryName: String, state: State) = {
+    def renderPermissions(repositoryName: String, state: State) =
       if (state.permissions.isEmpty) <.span("No permissions. Create one!")
       else {
         <.table(<.thead(
@@ -174,7 +170,6 @@ object PermissionsComponent {
                        <.th())),
                 <.tbody(state.permissions.map(renderPermissionRow(repositoryName, state, _))))
       }
-    }
 
     def updateFormDisabled(isFormDisabled: Boolean): Callback =
       $.modState(s => s.copy(form = s.form.copy(isFormDisabled = isFormDisabled)))
@@ -194,7 +189,7 @@ object PermissionsComponent {
         req)
     }
 
-    def add(props: Props): Callback = {
+    def add(props: Props): Callback =
       $.state.flatMap { state =>
         val fs = state.form
         fs.member match {
@@ -215,7 +210,6 @@ object PermissionsComponent {
           case _ => Callback.empty
         }
       }
-    }
 
     def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> add(props)
@@ -226,7 +220,7 @@ object PermissionsComponent {
     def updateAction(e: ReactEventI, idx: Int, action: Action): Callback =
       $.modState(s => s.copy(form = s.form.copy(action = action)))
 
-    def renderForm(props: Props, state: State) = {
+    def renderForm(props: Props, state: State) =
       <.form(^.onSubmit ==> handleOnSubmit(props),
              ^.disabled := state.form.isFormDisabled,
              <.div(^.display.flex,
@@ -245,14 +239,12 @@ object PermissionsComponent {
                                    primary = true,
                                    label = "Add",
                                    disabled = state.form.isFormDisabled)()))
-    }
 
-    def render(props: Props, state: State) = {
+    def render(props: Props, state: State) =
       <.div(<.h2("Permissions"),
             renderPermissions(props.repositoryName, state),
             <.hr,
             renderForm(props, state))
-    }
   }
 
   private val component = ReactComponentB[Props]("Permissions")

@@ -29,7 +29,7 @@ import io.fcomb.server.PaginationDirectives._
 object RepositoriesHandler {
   val servicePath = "repositories"
 
-  def index(slug: Slug) = {
+  def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { currentUserOpt =>
         onSuccess(UsersRepo.findBySlug(slug)) {
@@ -46,13 +46,11 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
-  def routes(slug: Slug): Route = {
+  def routes(slug: Slug): Route =
     // format: OFF
     path(servicePath) {
       get(index(slug))
     }
     // format: ON
-  }
 }

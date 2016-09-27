@@ -31,7 +31,7 @@ trait PaginationActions {
 
   protected def sortByQuery[E, U](scope: Query[E, U, Seq], p: Pagination)(
       f: E => PartialFunction[String, Rep[_]],
-      default: E => ColumnOrdered[_]) = {
+      default: E => ColumnOrdered[_]) =
     p.sort match {
       case Nil => scope.sortBy(default)
       case xs =>
@@ -47,5 +47,4 @@ trait PaginationActions {
             }
         }
     }
-  }
 }

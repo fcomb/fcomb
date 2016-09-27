@@ -39,7 +39,7 @@ import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.json.models.docker.distribution.Formats._
 import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
-import io.fcomb.models.errors.docker.distribution.{DistributionErrors, DistributionError}
+import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrors}
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
 import io.fcomb.services.EventService
 import io.fcomb.tests._

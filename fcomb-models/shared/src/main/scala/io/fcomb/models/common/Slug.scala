@@ -22,8 +22,7 @@ object Slug {
   final case class Id(id: Int)        extends Slug
   final case class Name(name: String) extends Slug
 
-  def parse(value: String): Slug = {
+  def parse(value: String): Slug =
     if (value.forall(Character.isDigit)) Id(value.toInt)
     else Name(value) // TODO: check format with \w+
-  }
 }

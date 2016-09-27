@@ -39,7 +39,7 @@ import io.fcomb.server.PaginationDirectives._
 object PermissionsHandler {
   val servicePath = "permissions"
 
-  def index(slug: Slug) = {
+  def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
@@ -51,9 +51,8 @@ object PermissionsHandler {
         }
       }
     }
-  }
 
-  def upsert(slug: Slug) = {
+  def upsert(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
@@ -66,9 +65,8 @@ object PermissionsHandler {
         }
       }
     }
-  }
 
-  def destroy(slug: Slug, memberKind: MemberKind, memberSlug: Slug) = {
+  def destroy(slug: Slug, memberKind: MemberKind, memberSlug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
@@ -79,9 +77,8 @@ object PermissionsHandler {
         }
       }
     }
-  }
 
-  def suggestions(slug: Slug) = {
+  def suggestions(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
@@ -93,9 +90,8 @@ object PermissionsHandler {
         }
       }
     }
-  }
 
-  def routes(slug: Slug): Route = {
+  def routes(slug: Slug): Route =
     // format: OFF
     pathPrefix(servicePath) {
       pathEnd {
@@ -111,13 +107,11 @@ object PermissionsHandler {
       }
     }
     // format: ON
-  }
 
-  private def extractMemberKind(kind: String): Directive1[MemberKind] = {
+  private def extractMemberKind(kind: String): Directive1[MemberKind] =
     MemberKind.withNameOption(kind) match {
       case Some(memberKind) => provide(memberKind)
       case None =>
         complete((StatusCodes.BadRequest, Errors.from(Errors.unknownEnumItem(kind, MemberKind))))
     }
-  }
 }

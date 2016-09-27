@@ -16,7 +16,7 @@
 
 package io.fcomb
 
-import cats.data.{XorT, Validated}
+import cats.data.{Validated, XorT}
 import cats.instances.all._
 import cats.syntax.cartesian._
 import io.fcomb.models.errors.{Error, Errors}

@@ -74,13 +74,12 @@ trait PostgresProfile
       sqlEnumTypeName: String,
       enumObject: Enum[T],
       quoteName: Boolean = false
-  )(implicit tag: ClassTag[T]): JdbcType[List[T]] = {
+  )(implicit tag: ClassTag[T]): JdbcType[List[T]] =
     new AdvancedArrayJdbcType[T](
       PgEnumSupportUtils.sqlName(sqlEnumTypeName, quoteName),
       fromString = s => SimpleArrayUtils.fromString(s1 => enumObject.withName(s1))(s).orNull,
       mkString = v => SimpleArrayUtils.mkString[T](_.value)(v)
     ).to(_.toList)
-  }
 
   override val api = new API with ArrayImplicits with DateTimeImplicits
   with Date2DateTimePlainImplicits with JsonImplicits with NetImplicits with LTreeImplicits

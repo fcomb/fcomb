@@ -62,21 +62,18 @@ object OrganizationGroupsRepo
     }.take(1)
   }
 
-  def findBySlugDBIO(orgId: Int, slug: Slug) = {
+  def findBySlugDBIO(orgId: Int, slug: Slug) =
     slug match {
       case Slug.Id(id)     => findByOrgIdAndIdCompiled((orgId, id))
       case Slug.Name(name) => findByOrgIdAndNameCompiled((orgId, name))
     }
-  }
 
   def findBySlug(orgId: Int, slug: Slug)(
-      implicit ec: ExecutionContext): Future[Option[OrganizationGroup]] = {
+      implicit ec: ExecutionContext): Future[Option[OrganizationGroup]] =
     db.run(findBySlugDBIO(orgId, slug).result.headOption)
-  }
 
-  private def findByOrgIdDBIO(orgId: Rep[Int]) = {
+  private def findByOrgIdDBIO(orgId: Rep[Int]) =
     table.filter(_.organizationId === orgId)
-  }
 
   private lazy val findByOrgIdCompiled = Compiled {
     (orgId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
@@ -87,30 +84,27 @@ object OrganizationGroupsRepo
     findByOrgIdDBIO(orgId).length
   }
 
-  def findByIdAsValidatedDBIO(orgId: Int, id: Int)(implicit ec: ExecutionContext) = {
+  def findByIdAsValidatedDBIO(orgId: Int, id: Int)(implicit ec: ExecutionContext) =
     findByOrgIdAndIdCompiled((orgId, id)).result.headOption.map {
       case Some(g) => Validated.Valid(g)
       case _       => validationError("member.id", "Not found")
     }
-  }
 
-  def findByNameAsValidatedDBIO(orgId: Int, name: String)(implicit ec: ExecutionContext) = {
+  def findByNameAsValidatedDBIO(orgId: Int, name: String)(implicit ec: ExecutionContext) =
     findByOrgIdAndNameCompiled((orgId, name)).result.headOption.map {
       case Some(g) => Validated.Valid(g)
       case _       => validationError("member.name", "Not found")
     }
-  }
 
   def findBySlugAsValidatedDBIO(orgId: Int, slug: Slug)(implicit ec: ExecutionContext)
-    : DBIOAction[ValidationResult[OrganizationGroup], NoStream, Effect.Read] = {
+    : DBIOAction[ValidationResult[OrganizationGroup], NoStream, Effect.Read] =
     slug match {
       case Slug.Id(id)     => findByIdAsValidatedDBIO(orgId, id)
       case Slug.Name(name) => findByNameAsValidatedDBIO(orgId, name)
     }
-  }
 
   def paginateByOrgId(orgId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[OrganizationGroupResponse]] = {
+      implicit ec: ExecutionContext): Future[PaginationData[OrganizationGroupResponse]] =
     db.run {
       for {
         groups <- findByOrgIdCompiled((orgId, p.offset, p.limit)).result
@@ -118,7 +112,6 @@ object OrganizationGroupsRepo
         data = groups.map(OrganizationGroupHelpers.responseFrom)
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
-  }
 
   def createAdminsDBIO(organizationId: Int, ownerUserId: Int)(implicit ec: ExecutionContext) = {
     val group = OrganizationGroup(
@@ -149,18 +142,17 @@ object OrganizationGroupsRepo
   }
 
   override def updateDBIO(group: OrganizationGroup)(implicit ec: ExecutionContext,
-                                                    m: Manifest[OrganizationGroup]) = {
+                                                    m: Manifest[OrganizationGroup]) =
     existAdminGroupApartFromDBIO(group.getId()).flatMap { exist =>
       if (exist) super.updateDBIO(group)
       else cannotUpdateAdminGroup
     }
-  }
 
   private lazy val cannotUpdateAdminGroup =
     validationErrorAsDBIO("group", "Cannot update the last admin group")
 
   def update(id: Int, req: OrganizationGroupRequest)(
-      implicit ec: ExecutionContext): Future[ValidationModel] = {
+      implicit ec: ExecutionContext): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
       existAdminGroupApartFromDBIO(id).flatMap { exist =>
         if (exist)
@@ -172,9 +164,8 @@ object OrganizationGroupsRepo
         else cannotUpdateAdminGroup
       }
     }
-  }
 
-  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
+  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) =
     existAdminGroupApartFromDBIO(id).flatMap { exist =>
       if (exist) {
         for {
@@ -183,7 +174,6 @@ object OrganizationGroupsRepo
         } yield res
       } else cannotDeleteAdminGroup
     }
-  }
 
   override def destroy(id: Int)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
@@ -191,15 +181,13 @@ object OrganizationGroupsRepo
   lazy val cannotDeleteAdminGroup =
     validationErrorAsDBIO("group", "Cannot delete the last admin group")
 
-  def findIdsByOrganizationIdDBIO(organizationId: Int) = {
+  def findIdsByOrganizationIdDBIO(organizationId: Int) =
     findByOrgIdDBIO(organizationId).map(_.id)
-  }
 
-  def destroyByOrganizationIdDBIO(organizationId: Int) = {
+  def destroyByOrganizationIdDBIO(organizationId: Int) =
     table.filter(_.organizationId === organizationId).delete
-  }
 
-  def existAdminGroupApartFromDBIO(groupId: Int): DBIOAction[Boolean, NoStream, Effect.Read] = {
+  def existAdminGroupApartFromDBIO(groupId: Int): DBIOAction[Boolean, NoStream, Effect.Read] =
     table
       .join(table)
       .on(_.organizationId === _.organizationId)
@@ -211,15 +199,13 @@ object OrganizationGroupsRepo
       }
       .exists
       .result
-  }
 
-  def findSuggestionsDBIO(imageId: Rep[Int], orgId: Rep[Int], name: Rep[String]) = {
+  def findSuggestionsDBIO(imageId: Rep[Int], orgId: Rep[Int], name: Rep[String]) =
     table.filter { t =>
       t.organizationId === orgId &&
       t.name.like(name.asColumnOfType[String]("citext")) &&
       !t.id.in(PermissionsRepo.findGroupMemberIdsByImageIdDBIO(imageId))
     }
-  }
 
   import Validations._
 

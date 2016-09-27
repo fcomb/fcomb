@@ -28,23 +28,21 @@ import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
 
 object ImageDirectives {
-  def imageByNameWithAcl(name: String, userId: Int, action: Action): Directive1[Image] = {
+  def imageByNameWithAcl(name: String, userId: Int, action: Action): Directive1[Image] =
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlugWithAcl(Slug.Name(name), userId, action)).flatMap {
         case Xor.Right(Some((image, _))) => provide(image)
         case _                           => nameUnknownError()
       }
     }
-  }
 
-  def imageByNameWithReadAcl(name: String, userIdOpt: Option[Int]): Directive1[Image] = {
+  def imageByNameWithReadAcl(name: String, userIdOpt: Option[Int]): Directive1[Image] =
     userIdOpt match {
       case Some(userId) => imageByNameWithAcl(name, userId, Action.Read)
       case _            => publicImageByName(name)
     }
-  }
 
-  private def publicImageByName(name: String): Directive1[Image] = {
+  private def publicImageByName(name: String): Directive1[Image] =
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlug(Slug.Name(name))).flatMap {
         case Some(image) if image.visibilityKind === ImageVisibilityKind.Public =>
@@ -52,7 +50,6 @@ object ImageDirectives {
         case _ => nameUnknownError()
       }
     }
-  }
 
   private def nameUnknownError[T](): Directive1[T] =
     Directive(_ => completeError(DistributionError.nameUnknown))

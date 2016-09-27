@@ -20,13 +20,13 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats.decodePaginationData
 import io.fcomb.models.PaginationData
-import io.fcomb.rpc.{OrganizationGroupResponse, MemberUsernameRequest, UserProfileResponse}
+import io.fcomb.rpc.{MemberUsernameRequest, OrganizationGroupResponse, UserProfileResponse}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -45,7 +45,7 @@ object GroupComponent {
     FormState("", Map.empty, false)
 
   class Backend($ : BackendScope[Props, State]) {
-    def getGroup(orgName: String, name: String) = {
+    def getGroup(orgName: String, name: String) =
       Callback.future {
         Rpc
           .call[OrganizationGroupResponse](RpcMethod.GET,
@@ -55,9 +55,8 @@ object GroupComponent {
             case Xor.Left(e)      => Callback.warn(e)
           }
       }
-    }
 
-    def getMembers(orgName: String, name: String) = {
+    def getMembers(orgName: String, name: String) =
       Callback.future {
         Rpc
           .call[PaginationData[UserProfileResponse]](
@@ -68,16 +67,14 @@ object GroupComponent {
             case Xor.Left(e)   => Callback.warn(e)
           }
       }
-    }
 
-    def getGroupWithMembers(orgName: String, name: String): Callback = {
+    def getGroupWithMembers(orgName: String, name: String): Callback =
       for {
         _ <- getGroup(orgName, name)
         _ <- getMembers(orgName, name)
       } yield ()
-    }
 
-    def renderGroup(groupOpt: Option[OrganizationGroupResponse]) = {
+    def renderGroup(groupOpt: Option[OrganizationGroupResponse]) =
       groupOpt match {
         case Some(group) =>
           <.div(
@@ -86,9 +83,8 @@ object GroupComponent {
           )
         case None => EmptyTag
       }
-    }
 
-    def deleteMember(orgName: String, name: String, username: String)(e: ReactEventI) = {
+    def deleteMember(orgName: String, name: String, username: String)(e: ReactEventI) =
       e.preventDefaultCB >>
         Callback.future {
           Rpc
@@ -99,29 +95,25 @@ object GroupComponent {
               case Xor.Left(e)  => ??? // TODO
             }
         }
-    }
 
-    def renderMember(orgName: String, name: String, member: UserProfileResponse) = {
+    def renderMember(orgName: String, name: String, member: UserProfileResponse) =
       <.tr(<.td(member.username),
            <.td(member.email),
            <.td(
              <.button(^.`type` := "button",
                       ^.onClick ==> deleteMember(orgName, name, member.username),
                       "Delete")))
-    }
 
-    def renderMembers(orgName: String, name: String, members: Seq[UserProfileResponse]) = {
+    def renderMembers(orgName: String, name: String, members: Seq[UserProfileResponse]) =
       if (members.isEmpty) <.span("No members. Create one!")
       else
         <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
                 <.tbody(members.map(renderMember(orgName, name, _))))
-    }
 
-    def updateFormDisabled(isFormDisabled: Boolean): Callback = {
+    def updateFormDisabled(isFormDisabled: Boolean): Callback =
       $.modState(s => s.copy(form = s.form.copy(isFormDisabled = isFormDisabled)))
-    }
 
-    def add(props: Props): Callback = {
+    def add(props: Props): Callback =
       $.state.flatMap { state =>
         val fs = state.form
         if (fs.isFormDisabled) Callback.empty
@@ -147,11 +139,9 @@ object GroupComponent {
             }
         }
       }
-    }
 
-    def handleOnSubmit(props: Props)(e: ReactEventH): Callback = {
+    def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> add(props)
-    }
 
     def updateUsername(e: ReactEventI): Callback = {
       val value = e.target.value
@@ -177,14 +167,13 @@ object GroupComponent {
                                    disabled = form.isFormDisabled)()))
     }
 
-    def render(props: Props, state: State) = {
+    def render(props: Props, state: State) =
       <.section(
         renderGroup(state.group),
         <.div(<.h3("Members"), renderMembers(props.orgName, props.name, state.members)),
         <.hr,
         renderForm(props, state)
       )
-    }
   }
 
   private val component = ReactComponentB[Props]("Group")

@@ -20,7 +20,7 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.materialui._
 import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.PaginationData
@@ -35,7 +35,7 @@ object OrganizationsComponent {
   final case class State(orgs: Seq[OrganizationResponse])
 
   final class Backend($ : BackendScope[Props, State]) {
-    def getOrgs() = {
+    def getOrgs() =
       Callback.future {
         Rpc
           .call[PaginationData[OrganizationResponse]](RpcMethod.GET,
@@ -46,27 +46,23 @@ object OrganizationsComponent {
             case Xor.Left(e) => Callback.warn(e)
           }
       }
-    }
 
-    def renderOrg(ctl: RouterCtl[DashboardRoute], org: OrganizationResponse) = {
+    def renderOrg(ctl: RouterCtl[DashboardRoute], org: OrganizationResponse) =
       <.li(ctl.link(DashboardRoute.Organization(org.name))(org.name))
-    }
 
-    def renderOrgs(ctl: RouterCtl[DashboardRoute], orgs: Seq[OrganizationResponse]) = {
+    def renderOrgs(ctl: RouterCtl[DashboardRoute], orgs: Seq[OrganizationResponse]) =
       if (orgs.isEmpty) <.span("No organizations. Create one!")
       else <.ul(orgs.map(renderOrg(ctl, _)))
-    }
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
-    def render(props: Props, state: State) = {
+    def render(props: Props, state: State) =
       <.div(<.h1("Organizations"),
             MuiFloatingActionButton(onTouchTap = setRoute(DashboardRoute.NewOrganization) _)(
               ContentAdd()()),
             <.br,
             renderOrgs(props.ctl, state.orgs))
-    }
   }
 
   private val component = ReactComponentB[Props]("Organizations")

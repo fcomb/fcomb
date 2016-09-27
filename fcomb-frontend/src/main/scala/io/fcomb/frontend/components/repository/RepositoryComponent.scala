@@ -18,10 +18,10 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.components.{MarkdownComponent, CopyToClipboardComponent}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.components.{CopyToClipboardComponent, MarkdownComponent}
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageUpdateRequest}
+import io.fcomb.rpc.docker.distribution.{ImageUpdateRequest, RepositoryResponse}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -37,7 +37,7 @@ object RepositoryComponent {
   final class Backend($ : BackendScope[Props, State]) {
     val descriptionRef = Ref[HTMLInputElement]("description")
 
-    def getRepository(name: String): Callback = {
+    def getRepository(name: String): Callback =
       Callback.future {
         Rpc.call[RepositoryResponse](RpcMethod.GET, Resource.repository(name)).map {
           case Xor.Right(repository) =>
@@ -45,18 +45,16 @@ object RepositoryComponent {
           case Xor.Left(e) => Callback.warn(e)
         }
       }
-    }
 
     def selectAllText(e: ReactEventI): Callback =
       e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
 
-    def formDescription(description: String)(e: ReactEventH): Callback = {
+    def formDescription(description: String)(e: ReactEventH): Callback =
       e.preventDefaultCB >>
         $.modState(_.copy(form = Some(FormState(description, false, false)))) >>
         CallbackTo(descriptionRef.apply($).map(_.setSelectionRange(0, 0))).delayMs(1).void
-    }
 
-    def updateRepositoryDescription(): Callback = {
+    def updateRepositoryDescription(): Callback =
       formState { fs =>
         if (fs.isFormDisabled) Callback.empty
         for {
@@ -80,34 +78,30 @@ object RepositoryComponent {
           }
         } yield ()
       }
-    }
 
-    def handleOnSubmit(e: ReactEventH): Callback = {
+    def handleOnSubmit(e: ReactEventH): Callback =
       e.preventDefaultCB >> updateRepositoryDescription
-    }
 
     def updateDescription(fs: FormState)(e: ReactEventI): Callback = {
       val value = e.target.value
       $.modState(_.copy(form = Some(fs.copy(description = value))))
     }
 
-    def formState(f: FormState => Callback): Callback = {
+    def formState(f: FormState => Callback): Callback =
       $.state.flatMap { state =>
         state.form match {
           case Some(fs) => f(fs)
           case None     => Callback.empty
         }
       }
-    }
 
-    def switchToPreview(isPreview: Boolean)(e: ReactEventH): Callback = {
+    def switchToPreview(isPreview: Boolean)(e: ReactEventH): Callback =
       e.preventDefaultCB >> formState { fs =>
         if (fs.isPreview == isPreview) Callback.empty
         else $.modState(_.copy(form = Some(fs.copy(isPreview = isPreview))))
       }
-    }
 
-    def renderDescriptionTextArea(fs: FormState) = {
+    def renderDescriptionTextArea(fs: FormState) =
       if (fs.isPreview) EmptyTag
       else
         <.textarea(^.ref := descriptionRef,
@@ -119,18 +113,15 @@ object RepositoryComponent {
                    ^.cols := 120,
                    ^.value := fs.description,
                    ^.onChange ==> updateDescription(fs))
-    }
 
-    def renderPreview(fs: FormState) = {
+    def renderPreview(fs: FormState) =
       if (fs.isPreview) <.article(MarkdownComponent.apply(fs.description))
       else EmptyTag
-    }
 
-    def cancel(e: ReactEventH): Callback = {
+    def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.modState(_.copy(form = None))
-    }
 
-    def renderDescription(state: State) = {
+    def renderDescription(state: State) =
       state.form match {
         case Some(fs) =>
           <.form(^.onSubmit ==> handleOnSubmit,
@@ -152,7 +143,6 @@ object RepositoryComponent {
             <.article(MarkdownComponent.apply(description))
           )
       }
-    }
 
     def render(props: Props, state: State) = {
       val dockerPullCommand = s"docker pull ${props.name}"

@@ -21,8 +21,8 @@ import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
-import io.fcomb.frontend.components.{TimeAgoComponent, ToolbarPaginationComponent, LayoutComponent}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.components.{LayoutComponent, TimeAgoComponent, ToolbarPaginationComponent}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.utils.PaginationUtils
 import io.fcomb.json.models.Formats._

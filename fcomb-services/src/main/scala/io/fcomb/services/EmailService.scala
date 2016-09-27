@@ -37,13 +37,11 @@ object EmailService extends LazyLogging {
     actorRef
   }
 
-  def sendTemplate(template: HtmlTemplate, email: String, fullName: Option[String]) = {
+  def sendTemplate(template: HtmlTemplate, email: String, fullName: Option[String]) =
     actorRef ! EmailMessage(template, email, fullName)
-  }
 
-  def props()(implicit mat: Materializer) = {
+  def props()(implicit mat: Materializer) =
     Props(new EmailServiceActor())
-  }
 }
 
 private[this] final case class EmailMessage(template: HtmlTemplate,
@@ -55,7 +53,7 @@ private[this] class EmailServiceActor(implicit mat: Materializer) extends Actor 
     case EmailMessage(template, email, fullName) => sendTemplate(template, email, fullName)
   }
 
-  private def sendTemplate(template: HtmlTemplate, email: String, fullName: Option[String]): Unit = {
+  private def sendTemplate(template: HtmlTemplate, email: String, fullName: Option[String]): Unit =
     try {
       val inst = emailInstance()
       inst.addTo(email, fullName.getOrElse(""))
@@ -67,7 +65,6 @@ private[this] class EmailServiceActor(implicit mat: Materializer) extends Actor 
       case e: EmailException =>
         log.error(e, e.getMessage)
     }
-  }
 
   private def emailInstance() = {
     val inst = new HtmlEmail()

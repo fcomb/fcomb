@@ -26,7 +26,7 @@ import io.fcomb.server.PaginationDirectives._
 object OrganizationsHandler {
   val servicePath = "organizations"
 
-  def index = {
+  def index =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         extractPagination { pg =>
@@ -36,7 +36,6 @@ object OrganizationsHandler {
         }
       }
     }
-  }
 
   val routes: Route = {
     // format: OFF

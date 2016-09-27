@@ -18,7 +18,7 @@ package io.fcomb.json.models
 
 import enumeratum.Circe
 import io.circe.generic.semiauto._
-import io.circe.{Encoder, Decoder}
+import io.circe.{Decoder, Encoder}
 import io.fcomb.models._, EventDetails._
 
 object Formats {

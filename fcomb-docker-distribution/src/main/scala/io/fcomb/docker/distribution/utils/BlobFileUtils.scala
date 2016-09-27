@@ -26,7 +26,7 @@ import io.fcomb.utils.Config
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.{blocking, ExecutionContext, Future}
 
 object BlobFileUtils {
   def getUploadFilePath(uuid: UUID): File =
@@ -46,12 +46,11 @@ object BlobFileUtils {
   private def imageFilePath(path: String, name: String): File =
     new File(s"${Config.docker.distribution.imageStorage}/$path/${name.take(2)}/${name.drop(2)}")
 
-  def getFile(blob: ImageBlob): File = {
+  def getFile(blob: ImageBlob): File =
     blob.digest match {
       case Some(digest) if blob.isUploaded => getBlobFilePath(digest)
       case _                               => getUploadFilePath(blob.getId())
     }
-  }
 
   def rename(file: File, digest: String)(implicit ec: ExecutionContext): Future[Unit] =
     Future(blocking {
@@ -84,17 +83,15 @@ object BlobFileUtils {
     StreamConverters.fromInputStream(() => bs, 8192)
   }
 
-  def destroyUploadBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] = {
+  def destroyUploadBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] =
     Future(blocking {
       getUploadFilePath(uuid).delete
       ()
     })
-  }
 
-  def destroyBlob(digest: String)(implicit ec: ExecutionContext): Future[Unit] = {
+  def destroyBlob(digest: String)(implicit ec: ExecutionContext): Future[Unit] =
     Future(blocking {
       getBlobFilePath(digest).delete
       ()
     })
-  }
 }

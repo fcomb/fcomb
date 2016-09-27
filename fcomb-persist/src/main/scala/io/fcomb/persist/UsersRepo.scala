@@ -26,8 +26,8 @@ import io.fcomb.models.{User, UserRole}
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.{
-  MemberUserRequest,
   MemberUserIdRequest,
+  MemberUserRequest,
   MemberUsernameRequest,
   UserSignUpRequest,
   UserUpdateRequest
@@ -114,7 +114,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
   }
 
   def updatePassword(userId: Int, password: String)(
-      implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
+      implicit ec: ExecutionContext): Future[ValidationResultUnit] =
     validatePassword(password) match {
       case Validated.Valid(_) =>
         val salt         = generateSalt
@@ -129,20 +129,18 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
         }
       case res => FastFuture.successful(res)
     }
-  }
 
   def changePassword(
       user: User,
       oldPassword: String,
       newPassword: String
-  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
+  )(implicit ec: ExecutionContext): Future[ValidationModel] =
     if (oldPassword == newPassword)
       validationErrorAsFuture("password", "can't be the same")
     else if (user.isValidPassword(oldPassword))
       updatePassword(user.getId(), newPassword).map(_ => Validated.Valid(user))
     else
       validationErrorAsFuture("password", "doesn't match")
-  }
 
   private lazy val findByEmailCompiled = Compiled { email: Rep[String] =>
     table.filter(_.email === email.asColumnOfType[String]("citext")).take(1)
@@ -155,20 +153,17 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     table.filter(_.username === username.asColumnOfType[String]("citext")).take(1)
   }
 
-  def findByUsernameDBIO(username: String) = {
+  def findByUsernameDBIO(username: String) =
     findByUsernameCompiled(username).result.headOption
-  }
 
-  def findBySlugDBIO(slug: Slug): DBIOAction[Option[User], NoStream, Effect.Read] = {
+  def findBySlugDBIO(slug: Slug): DBIOAction[Option[User], NoStream, Effect.Read] =
     slug match {
       case Slug.Id(id)     => findByIdDBIO(id)
       case Slug.Name(name) => findByUsernameDBIO(name)
     }
-  }
 
-  def findBySlug(slug: Slug) = {
+  def findBySlug(slug: Slug) =
     db.run(findBySlugDBIO(slug))
-  }
 
   def matchByUsernameAndPassword(username: String, password: String)(
       implicit ec: ExecutionContext
@@ -182,42 +177,37 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     }
   }
 
-  def findByIdAsValidatedDBIO(id: Int)(implicit ec: ExecutionContext) = {
+  def findByIdAsValidatedDBIO(id: Int)(implicit ec: ExecutionContext) =
     findByIdDBIO(id).map {
       case Some(u) => Validated.Valid(u)
       case _       => validationError("member.id", "Not found")
     }
-  }
 
-  def findByUsernameAsValidatedDBIO(username: String)(implicit ec: ExecutionContext) = {
+  def findByUsernameAsValidatedDBIO(username: String)(implicit ec: ExecutionContext) =
     findByUsernameDBIO(username).map {
       case Some(u) => Validated.Valid(u)
       case _       => validationError("member.username", "Not found")
     }
-  }
 
   def findByMemberRequestAsValidatedDBIO(req: MemberUserRequest)(
-      implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
+      implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] =
     req match {
       case MemberUserIdRequest(id)     => findByIdAsValidatedDBIO(id)
       case MemberUsernameRequest(name) => findByUsernameAsValidatedDBIO(name)
     }
-  }
 
   def findBySlugAsValidatedDBIO(slug: Slug)(
-      implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] = {
+      implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] =
     slug match {
       case Slug.Id(id)     => findByIdAsValidatedDBIO(id)
       case Slug.Name(name) => findByUsernameAsValidatedDBIO(name)
     }
-  }
 
-  def findSuggestionsDBIO(imageId: Rep[Int], username: Rep[String]) = {
+  def findSuggestionsDBIO(imageId: Rep[Int], username: Rep[String]) =
     table.filter { t =>
       t.username.like(username.asColumnOfType[String]("citext")) &&
       !t.id.in(PermissionsRepo.findUserMemberIdsByImageIdDBIO(imageId))
     }
-  }
 
   private lazy val findSuggestionsCompiled = Compiled {
     (imageId: Rep[Int], userOwnerId: Rep[Int], username: Rep[String], limit: ConstColumn[Long]) =>

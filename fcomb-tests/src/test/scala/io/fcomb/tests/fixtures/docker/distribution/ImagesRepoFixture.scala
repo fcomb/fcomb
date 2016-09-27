@@ -17,7 +17,7 @@
 package io.fcomb.tests.fixtures.docker.distribution
 
 import cats.data.Validated
-import io.fcomb.models.{OwnerKind, Owner, User}
+import io.fcomb.models.{Owner, OwnerKind, User}
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import scala.concurrent.ExecutionContext.Implicits.global

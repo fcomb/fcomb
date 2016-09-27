@@ -39,7 +39,7 @@ object RepositoriesHandler {
 
   lazy val resourcePrefix = s"/$apiVersion/${RepositoriesHandler.servicePath}/"
 
-  def index(slug: Slug) = {
+  def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
       organizationBySlug(slug) { org =>
         tryAuthenticateUser { userOpt =>
@@ -54,9 +54,8 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
-  def create(slug: Slug) = {
+  def create(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         val userId = user.getId()
@@ -72,14 +71,12 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
-  def routes(slug: Slug): Route = {
+  def routes(slug: Slug): Route =
     // format: OFF
     path(servicePath) {
       get(index(slug)) ~
       post(create(slug))
     }
     // format: ON
-  }
 }

@@ -17,7 +17,7 @@
 package io.fcomb.json.models.acl
 
 import enumeratum.Circe
-import io.circe.{Encoder, Decoder}
+import io.circe.{Decoder, Encoder}
 import io.fcomb.models.acl._
 
 object Formats {

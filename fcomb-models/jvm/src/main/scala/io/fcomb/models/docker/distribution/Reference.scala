@@ -31,10 +31,9 @@ object Reference {
     def value = s"${ImageManifest.sha256Prefix}$digest"
   }
 
-  def apply(s: String): Reference = {
+  def apply(s: String): Reference =
     if (isDigest(s)) Digest(getDigest(s))
     else Tag(s)
-  }
 
   def isDigest(s: String): Boolean =
     s.startsWith(ImageManifest.sha256Prefix)

@@ -36,7 +36,7 @@ object SessionsService {
       )))
 
   def create(req: SessionCreateRequest)(
-      implicit ec: ExecutionContext): Future[Xor[Errors, Session]] = {
+      implicit ec: ExecutionContext): Future[Xor[Errors, Session]] =
     UsersRepo.findByEmail(req.email).fast.map {
       case Some(user) if user.isValidPassword(req.password) =>
         val timeNow = Instant.now()
@@ -44,12 +44,10 @@ object SessionsService {
         Xor.Right(Session(jwt))
       case _ => invalidEmailOrPassword
     }
-  }
 
-  def find(token: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
+  def find(token: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     Jwt.decode(token, Config.jwt.secret) match {
       case Xor.Right(payload) => UsersRepo.findById(payload.id)
       case _                  => FastFuture.successful(None)
     }
-  }
 }

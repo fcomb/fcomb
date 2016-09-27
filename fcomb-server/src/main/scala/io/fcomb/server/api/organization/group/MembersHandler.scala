@@ -19,7 +19,7 @@ package io.fcomb.server.api.organization.group
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
-import io.fcomb.json.rpc.Formats.{encodeUserProfileResponse, decodeMemberUserRequest}
+import io.fcomb.json.rpc.Formats.{decodeMemberUserRequest, encodeUserProfileResponse}
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupUsersRepo
 import io.fcomb.rpc.MemberUserRequest
@@ -33,7 +33,7 @@ import io.fcomb.server.PaginationDirectives._
 object MembersHandler {
   val servicePath = "members"
 
-  def index(slug: Slug, groupSlug: Slug) = {
+  def index(slug: Slug, groupSlug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
@@ -45,9 +45,8 @@ object MembersHandler {
         }
       }
     }
-  }
 
-  def upsert(slug: Slug, groupSlug: Slug) = {
+  def upsert(slug: Slug, groupSlug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
@@ -60,9 +59,8 @@ object MembersHandler {
         }
       }
     }
-  }
 
-  def destroy(slug: Slug, groupSlug: Slug, memberSlug: Slug) = {
+  def destroy(slug: Slug, groupSlug: Slug, memberSlug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
@@ -73,9 +71,8 @@ object MembersHandler {
         }
       }
     }
-  }
 
-  def routes(slug: Slug, groupSlug: Slug): Route = {
+  def routes(slug: Slug, groupSlug: Slug): Route =
     // format: OFF
     pathPrefix(servicePath) {
       pathEnd {
@@ -88,5 +85,4 @@ object MembersHandler {
       }
     }
     // format: ON
-  }
 }

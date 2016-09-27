@@ -20,7 +20,7 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.rpc.Formats._
@@ -39,7 +39,7 @@ object NewGroupComponent {
                          isFormDisabled: Boolean)
 
   class Backend($ : BackendScope[Props, State]) {
-    def create(props: Props): Callback = {
+    def create(props: Props): Callback =
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
@@ -64,11 +64,9 @@ object NewGroupComponent {
           }
         }
       }
-    }
 
-    def handleOnSubmit(props: Props)(e: ReactEventH): Callback = {
+    def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> create(props)
-    }
 
     def updateName(e: ReactEventI): Callback = {
       val value = e.target.value
@@ -81,7 +79,7 @@ object NewGroupComponent {
     lazy val roles = Role.values.map(r =>
       MuiMenuItem[Role](key = r.value, value = r, primaryText = r.entryName)())
 
-    def render(props: Props, state: State) = {
+    def render(props: Props, state: State) =
       <.div(
         <.h2("New group"),
         <.form(^.onSubmit ==> handleOnSubmit(props),
@@ -105,7 +103,6 @@ object NewGroupComponent {
                                      label = "Create",
                                      disabled = state.isFormDisabled)()))
       )
-    }
   }
 
   private val component = ReactComponentB[Props]("NewGroup")

@@ -45,7 +45,7 @@ object SchemaV1 {
       manifest: ManifestV1,
       rawManifest: String,
       createdByUserId: Int
-  )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] = {
+  )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] =
     verify(manifest, rawManifest) match {
       case Xor.Right((schemaV1JsonBlob, digest)) =>
         ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).fast.map {
@@ -58,10 +58,9 @@ object SchemaV1 {
         }
       case Xor.Left(e) => FastFuture.successful(Xor.Left(DistributionError.unknown(e.message)))
     }
-  }
 
   /** Returns formatted manifest (without signatures) and its digest within [[cats.data.Xor]] */
-  def verify(manifest: ManifestV1, rawManifest: String): Xor[DistributionError, (String, String)] = {
+  def verify(manifest: ManifestV1, rawManifest: String): Xor[DistributionError, (String, String)] =
     parse(rawManifest).map(_.asObject) match {
       case Xor.Right(Some(json)) =>
         val manifestJson = json.remove("signatures").asJson
@@ -96,11 +95,10 @@ object SchemaV1 {
       case Xor.Right(None) => Xor.Left(DistributionError.manifestInvalid())
       case Xor.Left(e)     => Xor.Left(DistributionError.unknown(e.show))
     }
-  }
 
   def convertFromSchemaV2(image: Image,
                           manifest: ManifestV2,
-                          imageConfigJson: Json): Xor[String, String] = {
+                          imageConfigJson: Json): Xor[String, String] =
     (for {
       imgConfig <- decodeSchemaV2ImageConfig.decodeJson(imageConfigJson)
       config    <- decodeSchemaV1Config.decodeJson(imageConfigJson)
@@ -172,7 +170,6 @@ object SchemaV1 {
         }
       case Xor.Left(e) => Xor.Left(e.show)
     }
-  }
 
   def addSignature(manifestV1: String): Xor[String, String] =
     parseManifestV1(manifestV1).map(signManifestV1)

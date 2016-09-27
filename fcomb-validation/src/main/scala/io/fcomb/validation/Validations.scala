@@ -39,12 +39,11 @@ object Validations {
     else Validated.Invalid(errorMessage)
 
   def unique(action: AppliedCompiledFunction[_, Rep[Boolean], Boolean])(
-      implicit ec: ExecutionContext): DBIOValidation = {
+      implicit ec: ExecutionContext): DBIOValidation =
     action.result.map { isUnique =>
       if (isUnique) Validated.Invalid("not unique")
       else Validated.Valid(())
     }
-  }
 
   val uuidRegEx = """(?i)\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z""".r
 
@@ -57,18 +56,15 @@ object Validations {
       Validated.Invalid("cannot be an UUID format")
     else Validated.Valid(())
 
-  def lengthRange(value: String, from: Int, to: Int): PlainValidation = {
+  def lengthRange(value: String, from: Int, to: Int): PlainValidation =
     if (value.length >= from && value.length <= to) Validated.Valid(())
     else Validated.Invalid(s"length is less than $from or greater than $to")
-  }
 
-  def maxLength(value: String, to: Int): PlainValidation = {
+  def maxLength(value: String, to: Int): PlainValidation =
     if (value.length <= to) Validated.Valid(())
     else Validated.Invalid(s"length is greater than $to")
-  }
 
-  def minLength(value: String, from: Int): PlainValidation = {
+  def minLength(value: String, from: Int): PlainValidation =
     if (value.length >= from) Validated.Valid(())
     else Validated.Invalid(s"length is less than $from")
-  }
 }

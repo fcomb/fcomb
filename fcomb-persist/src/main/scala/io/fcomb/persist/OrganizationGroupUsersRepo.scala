@@ -20,9 +20,9 @@ import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.common.Slug
-import io.fcomb.models.{Pagination, PaginationData, OrganizationGroupUser}
+import io.fcomb.models.{OrganizationGroupUser, Pagination, PaginationData}
 import io.fcomb.rpc.{MemberUserRequest, UserProfileResponse}
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
 class OrganizationGroupUserTable(tag: Tag)
@@ -40,11 +40,10 @@ object OrganizationGroupUsersRepo
   val table = TableQuery[OrganizationGroupUserTable]
   val label = "members"
 
-  private def findByGroupIdScopeDBIO(groupId: Rep[Int]) = {
+  private def findByGroupIdScopeDBIO(groupId: Rep[Int]) =
     table.join(UsersRepo.table).on(_.userId === _.id).filter(_._1.groupId === groupId).map {
       case (_, u) => (u.id, u.email, u.username, u.fullName)
     }
-  }
 
   private lazy val findByGroupIdCompiled = Compiled {
     (groupId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
@@ -56,7 +55,7 @@ object OrganizationGroupUsersRepo
   }
 
   def paginateByGroupId(groupId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[UserProfileResponse]] = {
+      implicit ec: ExecutionContext): Future[PaginationData[UserProfileResponse]] =
     db.run {
       for {
         members <- findByGroupIdCompiled((groupId, p.offset, p.limit)).result
@@ -64,14 +63,12 @@ object OrganizationGroupUsersRepo
         data = members.map(UserProfileResponse.tupled)
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
-  }
 
-  def createDBIO(groupId: Int, userId: Int) = {
+  def createDBIO(groupId: Int, userId: Int) =
     table += OrganizationGroupUser(
       groupId = groupId,
       userId = userId
     )
-  }
 
   private lazy val existByGroupAndUserIdCompiled = Compiled {
     (groupId: Rep[Int], userId: Rep[Int]) =>
@@ -80,7 +77,7 @@ object OrganizationGroupUsersRepo
       }.exists
   }
 
-  def upsertDBIO(groupId: Int, req: MemberUserRequest)(implicit ec: ExecutionContext) = {
+  def upsertDBIO(groupId: Int, req: MemberUserRequest)(implicit ec: ExecutionContext) =
     UsersRepo.findByMemberRequestAsValidatedDBIO(req).flatMap {
       case Validated.Valid(user) =>
         val userId = user.getId()
@@ -96,24 +93,20 @@ object OrganizationGroupUsersRepo
         }
       case res @ Validated.Invalid(_) => DBIO.successful(res)
     }
-  }
 
-  def upsert(groupId: Int, req: MemberUserRequest)(implicit ec: ExecutionContext) = {
+  def upsert(groupId: Int, req: MemberUserRequest)(implicit ec: ExecutionContext) =
     db.run(upsertDBIO(groupId, req))
-  }
 
-  private def destroyDBIO(groupId: Int, userId: Int) = {
+  private def destroyDBIO(groupId: Int, userId: Int) =
     table.filter { t =>
       t.groupId === groupId && t.userId === userId
     }.delete
-  }
 
-  private def destroyAsValidatedDBIO(groupId: Int, userId: Int)(implicit ec: ExecutionContext) = {
+  private def destroyAsValidatedDBIO(groupId: Int, userId: Int)(implicit ec: ExecutionContext) =
     destroyDBIO(groupId, userId).map { res =>
       if (res == 0) notFound
       else Validated.Valid(())
     }
-  }
 
   def destroy(groupId: Int, userSlug: Slug)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable) {

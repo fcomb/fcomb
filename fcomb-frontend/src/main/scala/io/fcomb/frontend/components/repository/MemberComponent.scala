@@ -19,7 +19,7 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.json.rpc.Formats.decodeDataResponse
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.OwnerKind
@@ -41,7 +41,7 @@ object MemberComponent {
                          data: js.Array[String])
 
   final class Backend($ : BackendScope[Props, State]) {
-    private def getSuggestions(q: String): Callback = {
+    private def getSuggestions(q: String): Callback =
       for {
         props <- $.props
         _ <- Callback.future {
@@ -62,9 +62,8 @@ object MemberComponent {
             }
         }
       } yield ()
-    }
 
-    private def onNewRequest(chosen: Value, idx: js.UndefOr[Int], ds: js.Array[String]): Callback = {
+    private def onNewRequest(chosen: Value, idx: js.UndefOr[Int], ds: js.Array[String]): Callback =
       idx.toOption match {
         case Some(index) =>
           (for {
@@ -80,7 +79,6 @@ object MemberComponent {
           }
         case _ => Callback.warn("Empty index")
       }
-    }
 
     private def onUpdateInput(search: SearchText, ds: js.Array[Value]): Callback =
       getSuggestions(search)

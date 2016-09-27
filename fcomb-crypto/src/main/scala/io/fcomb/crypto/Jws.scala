@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.codec.binary.Base32
 import org.apache.commons.codec.digest.DigestUtils
 import org.jose4j.jca.ProviderContext
-import org.jose4j.jwk.{EllipticCurveJsonWebKey, EcJwkGenerator, JsonWebKey}
+import org.jose4j.jwk.{EcJwkGenerator, EllipticCurveJsonWebKey, JsonWebKey}
 import org.jose4j.jws.EcdsaUsingShaAlgorithm
 import org.jose4j.keys.EllipticCurves
 import scala.collection.JavaConverters._
@@ -31,7 +31,7 @@ object Jws extends LazyLogging {
   def verify(algorithm: String,
              params: immutable.Map[String, String],
              payload: String,
-             signatureBytes: Array[Byte]): Boolean = {
+             signatureBytes: Array[Byte]): Boolean =
     try {
       val jwk = JsonWebKey.Factory
         .newJwk(params.toMap[String, Object].asJava)
@@ -50,7 +50,6 @@ object Jws extends LazyLogging {
         logger.error(e.getMessage, e)
         false
     }
-  }
 
   private lazy val defaultEcJwk = {
     val jwk = EcJwkGenerator.generateJwk(EllipticCurves.P256)

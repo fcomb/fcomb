@@ -19,7 +19,7 @@ package io.fcomb.frontend.components
 import io.fcomb.models.errors.Error
 
 object Helpers {
-  def foldErrors(errors: Seq[Error]): Map[String, String] = {
+  def foldErrors(errors: Seq[Error]): Map[String, String] =
     errors.foldLeft(Map.empty[String, String]) {
       case (m, err) =>
         val column = err.param.getOrElse("_")
@@ -27,5 +27,4 @@ object Helpers {
         val value  = m.get(column).map(v => s"$v\n$msg").getOrElse(msg)
         m + ((column, value))
     }
-  }
 }

@@ -34,7 +34,7 @@ object AuthComponent {
       $.props.flatMap(_.ctl.set(route))
     }
 
-    def render(props: Props) = {
+    def render(props: Props) =
       MuiTabs[AuthTab](value = props.tab, onChange = onChange _)(
         MuiTab(key = "login", label = "Login", value = AuthTab.SignIn)(
           SignInComponent(props.ctl)
@@ -42,7 +42,6 @@ object AuthComponent {
         MuiTab(key = "registration", label = "Registration", value = AuthTab.SignUp)(
           SignUpComponent(props.ctl)
         ))
-    }
   }
 
   private val component = ReactComponentB[Props]("Auth").renderBackend[Backend].build

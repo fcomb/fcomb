@@ -41,7 +41,7 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
   val table = TableQuery[ImageWebhookTable]
   val label = "webhooks"
 
-  def paginateByImageId(imageId: Int, p: Pagination)(implicit ec: ExecutionContext) = {
+  def paginateByImageId(imageId: Int, p: Pagination)(implicit ec: ExecutionContext) =
     db.run {
       for {
         webhooks <- findByImageIdPageCompiled((imageId, p.offset, p.limit)).result
@@ -49,11 +49,9 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
         data = webhooks.map(ImageWebhookHelpers.responseFrom)
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
-  }
 
-  private def findByImageIdDBIO(imageId: Rep[Int]) = {
+  private def findByImageIdDBIO(imageId: Rep[Int]) =
     table.filter(_.imageId === imageId).sortBy(_.id)
-  }
 
   private lazy val findByImageIdCompiled = Compiled { imageId: Rep[Int] =>
     findByImageIdDBIO(imageId)
@@ -68,11 +66,10 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
     findByImageIdDBIO(imageId).length
   }
 
-  def findByImageIdAsStream(imageId: Int) = {
+  def findByImageIdAsStream(imageId: Int) =
     Source.fromPublisher(db.stream {
       findByImageIdCompiled(imageId).result
     })
-  }
 
   private lazy val findByImageIdAndUrlCompiled = Compiled {
     (imageId: Rep[Int], url: Rep[String]) =>

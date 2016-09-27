@@ -18,7 +18,7 @@ package io.fcomb.json.models.errors.docker.distribution
 
 import enumeratum.Circe
 import io.circe.generic.semiauto._
-import io.circe.{Encoder, Decoder}
+import io.circe.{Decoder, Encoder}
 import io.fcomb.models.errors.docker.distribution._
 
 object Formats {

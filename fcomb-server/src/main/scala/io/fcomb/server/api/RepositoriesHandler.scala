@@ -37,7 +37,7 @@ import io.fcomb.server.ImageDirectives._
 object RepositoriesHandler {
   val servicePath = "repositories"
 
-  def show(slug: Slug) = {
+  def show(slug: Slug) =
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { userOpt =>
         imageBySlugRead(slug, userOpt) { image =>
@@ -46,9 +46,8 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
-  def update(slug: Slug) = {
+  def update(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageWithActionBySlugWithAcl(slug, user.getId(), Action.Manage) {
@@ -64,9 +63,8 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
-  def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind) = {
+  def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
@@ -76,9 +74,8 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
-  def destroy(slug: Slug) = {
+  def destroy(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
@@ -88,7 +85,6 @@ object RepositoriesHandler {
         }
       }
     }
-  }
 
   val routes: Route = {
     // format: OFF
@@ -104,7 +100,7 @@ object RepositoriesHandler {
     // format: ON
   }
 
-  private def nestedRoutes(slug: Slug): Route = {
+  private def nestedRoutes(slug: Slug): Route =
     // format: OFF
     pathEnd {
       get(show(slug)) ~
@@ -119,5 +115,4 @@ object RepositoriesHandler {
     PermissionsHandler.routes(slug) ~
     WebhooksHandler.routes(slug)
     // format: ON
-  }
 }

@@ -17,7 +17,7 @@
 package io.fcomb.frontend.components.dashboard
 
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.repository.{NewRepositoryComponent, Namespace}
+import io.fcomb.frontend.components.repository.{Namespace, NewRepositoryComponent}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -27,13 +27,12 @@ object UserNewRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
 
   final class Backend($ : BackendScope[Props, Unit]) {
-    def render(props: Props): ReactElement = {
+    def render(props: Props): ReactElement =
       AppCircuit.currentUser match {
         case Some(user) =>
           NewRepositoryComponent.apply(props.ctl, Namespace.User(user.username, Some(user.id)))
         case _ => <.div()
       }
-    }
   }
 
   private val component =

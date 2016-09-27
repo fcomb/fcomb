@@ -16,7 +16,7 @@
 
 package io.fcomb.docker.distribution.server
 
-import akka.http.scaladsl.model.{MediaType, HttpCharsets}
+import akka.http.scaladsl.model.{HttpCharsets, MediaType}
 
 object MediaTypes {
   val `application/vnd.docker.distribution.manifest.v1+json` = MediaType

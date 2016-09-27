@@ -20,9 +20,9 @@ import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.components.repository.{
-  RepositoriesComponent,
+  Namespace,
   NamespaceComponent,
-  Namespace
+  RepositoriesComponent
 }
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.styles.App
@@ -36,14 +36,13 @@ object DashboardRepositoriesComponent {
   final case class State(namespace: Option[Namespace])
 
   final case class Backend($ : BackendScope[Props, State]) {
-    def setDefaultOwner(): Callback = {
+    def setDefaultOwner(): Callback =
       AppCircuit.currentUser match {
         case Some(p) =>
           val namespace = Namespace.User(p.username, Some(p.id))
           $.modState(_.copy(namespace = Some(namespace)))
         case _ => Callback.empty
       }
-    }
 
     def updateNamespace(namespace: Namespace) =
       $.modState(_.copy(namespace = Some(namespace)))

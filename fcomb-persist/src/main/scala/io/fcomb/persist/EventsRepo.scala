@@ -55,7 +55,7 @@ class EventTable(tag: Tag) extends Table[Event](tag, "dd_events") with PersistTa
 object EventsRepo extends PersistModelWithAutoIntPk[Event, EventTable] {
   val table = TableQuery[EventTable]
 
-  def createDBIO(details: EventDetails, createdByUserId: Int) = {
+  def createDBIO(details: EventDetails, createdByUserId: Int) =
     tableWithPk += Event(
       id = None,
       kind = details.kind,
@@ -63,11 +63,9 @@ object EventsRepo extends PersistModelWithAutoIntPk[Event, EventTable] {
       createdByUserId = createdByUserId,
       createdAt = OffsetDateTime.now
     )
-  }
 
-  def create(details: EventDetails, createdByUserId: Int) = {
+  def create(details: EventDetails, createdByUserId: Int) =
     db.run(createDBIO(details, createdByUserId))
-  }
 
   def createRepoEventDBIO(repoId: Int, name: String, slug: String, createdByUserId: Int) = {
     val details = EventDetails.CreateRepo(

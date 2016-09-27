@@ -50,10 +50,9 @@ object ResetPassword {
   }
 
   def set(token: String, password: String)(
-      implicit ec: ExecutionContext): Future[ValidationResultUnit] = {
+      implicit ec: ExecutionContext): Future[ValidationResultUnit] =
     Jwt.decode(token, Config.jwt.secret) match {
       case Xor.Right(payload) => UsersRepo.updatePassword(payload.id, password)
       case Xor.Left(msg)      => UsersRepo.validationErrorAsFuture("token", msg)
     }
-  }
 }

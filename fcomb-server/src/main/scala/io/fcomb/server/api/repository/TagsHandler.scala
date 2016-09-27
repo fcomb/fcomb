@@ -28,7 +28,7 @@ import io.fcomb.server.PaginationDirectives._
 object TagsHandler {
   val servicePath = "tags"
 
-  def index(slug: Slug) = {
+  def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { userOpt =>
         imageBySlugRead(slug, userOpt) { image =>
@@ -40,13 +40,11 @@ object TagsHandler {
         }
       }
     }
-  }
 
-  def routes(slug: Slug): Route = {
+  def routes(slug: Slug): Route =
     // format: OFF
     path(servicePath) {
       get(index(slug))
     }
     // format: ON
-  }
 }

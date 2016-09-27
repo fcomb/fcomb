@@ -32,7 +32,7 @@ object StringUtils {
   def normalizeEmail(email: String) =
     email.trim.toLowerCase
 
-  def equalSecure(s1: String, s2: String) = {
+  def equalSecure(s1: String, s2: String) =
     if (s1.length != s2.length) false
     else {
       val res = s1.zip(s2).foldLeft(0) {
@@ -40,7 +40,6 @@ object StringUtils {
       }
       res == 0
     }
-  }
 
   private val hex = "0123456789abcdef"
 

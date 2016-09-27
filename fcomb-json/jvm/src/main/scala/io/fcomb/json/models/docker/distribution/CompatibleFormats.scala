@@ -23,13 +23,13 @@ import io.circe.java8.time._
 import io.circe.jawn._
 import io.circe.{
   Decoder,
-  Encoder,
-  ParsingFailure,
   DecodingFailure,
-  Json,
-  Printer,
+  Encoder,
   HCursor,
-  KeyDecoder
+  Json,
+  KeyDecoder,
+  ParsingFailure,
+  Printer
 }
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
@@ -126,10 +126,9 @@ object CompatibleFormats {
       implicit d: Decoder[A],
       cbf: CanBuildFrom[Nothing, A, C[A]]
   ): Decoder[C[A]] = new Decoder[C[A]] {
-    final def apply(c: HCursor): Decoder.Result[C[A]] = {
+    final def apply(c: HCursor): Decoder.Result[C[A]] =
       if (c.focus.isNull) Xor.Right(cbf.apply.result)
       else Decoder.decodeCanBuildFrom(d, cbf).apply(c)
-    }
   }
 
   final implicit def decodeMapLikeWithNull[M[K, +V] <: Map[K, V], K, V](
@@ -137,10 +136,9 @@ object CompatibleFormats {
       dv: Decoder[V],
       cbf: CanBuildFrom[Nothing, (K, V), M[K, V]]
   ): Decoder[M[K, V]] = new Decoder[M[K, V]] {
-    final def apply(c: HCursor): Decoder.Result[M[K, V]] = {
+    final def apply(c: HCursor): Decoder.Result[M[K, V]] =
       if (c.focus.isNull) Xor.Right(cbf.apply.result)
       else Decoder.decodeMapLike(dk, dv, cbf).apply(c)
-    }
   }
 
   final implicit val decodeSchemaV1LayerContainerConfig: Decoder[SchemaV1.LayerContainerConfig] =

@@ -27,11 +27,10 @@ import io.fcomb.rpc.helpers.UserHelpers
 object UserHandler {
   val servicePath = "user"
 
-  def current = {
+  def current =
     authenticateUser { user =>
       completeWithEtag(StatusCodes.OK, UserHelpers.profileResponseFrom(user))
     }
-  }
 
   // def updateProfile(
   //   implicit

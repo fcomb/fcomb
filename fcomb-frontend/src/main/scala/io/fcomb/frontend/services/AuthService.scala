@@ -17,7 +17,7 @@
 package io.fcomb.frontend.services
 
 import cats.data.Xor
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.dispatcher.actions.Authenticated
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.json.models.Formats.decodeSession
@@ -27,7 +27,7 @@ import io.fcomb.models.errors.Error
 import io.fcomb.rpc.SessionCreateRequest
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Try, Success}
+import scala.util.{Success, Try}
 
 object AuthService {
   def authentication(email: String, password: String)(
@@ -42,20 +42,17 @@ object AuthService {
     }
   }
 
-  def setToken(token: String): Unit = {
+  def setToken(token: String): Unit =
     window.localStorage.setItem(sessionKey, token)
-  }
 
-  def getToken(): Option[String] = {
+  def getToken(): Option[String] =
     Try(window.localStorage.getItem(sessionKey)) match {
       case Success(s) if s != null && s.nonEmpty => Some(s)
       case _                                     => None
     }
-  }
 
-  def removeToken(): Unit = {
+  def removeToken(): Unit =
     window.localStorage.removeItem(sessionKey)
-  }
 
   private val sessionKey = "sessionToken"
 }

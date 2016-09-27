@@ -20,7 +20,7 @@ import cats.data.Xor
 import io.circe.jawn.{decode => jsonDecode}
 import io.circe.syntax._
 import io.fcomb.models.{SessionPayload, User}
-import io.fcomb.json.models.Formats.{encodeSessionPayloadUser, decodeSessionPayloadUser}
+import io.fcomb.json.models.Formats.{decodeSessionPayloadUser, encodeSessionPayloadUser}
 import java.time.Instant
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import scala.util.{Failure, Success}
@@ -42,12 +42,11 @@ object Jwt {
     encode(payload, secret, issuedAt, ttl)
   }
 
-  def decode(token: String, secret: String): Xor[String, SessionPayload.User] = {
+  def decode(token: String, secret: String): Xor[String, SessionPayload.User] =
     JwtCirce.decode(token, secret, Seq(algo)) match {
       case Success(jwtClaim) =>
         jsonDecode[SessionPayload.User](jwtClaim.content).leftMap(_ =>
           "failed to decode token's payload")
       case Failure(e) => Xor.Left("failed to decode token")
     }
-  }
 }

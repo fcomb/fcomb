@@ -20,7 +20,7 @@ import io.fcomb.models.OrganizationGroup
 import io.fcomb.rpc.OrganizationGroupResponse
 
 object OrganizationGroupHelpers {
-  def responseFrom(group: OrganizationGroup): OrganizationGroupResponse = {
+  def responseFrom(group: OrganizationGroup): OrganizationGroupResponse =
     OrganizationGroupResponse(
       id = group.getId(),
       name = group.name,
@@ -28,5 +28,4 @@ object OrganizationGroupHelpers {
       createdAt = group.createdAt.toString,
       updatedAt = group.updatedAt.map(_.toString)
     )
-  }
 }

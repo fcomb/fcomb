@@ -18,10 +18,10 @@ package io.fcomb.frontend.api
 
 import cats.data.Xor
 import io.circe.scalajs.decodeJs
-import io.circe.{Encoder, Decoder}
+import io.circe.{Decoder, Encoder}
 import io.fcomb.frontend.dispatcher.actions.LogOut
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.models.errors.{Errors, Error}
+import io.fcomb.models.errors.{Error, Errors}
 import io.fcomb.json.models.errors.Formats.decodeErrors
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.ext.AjaxException
@@ -79,9 +79,8 @@ object Rpc {
               queryParams: Map[String, String] = Map.empty,
               headers: Map[String, String] = Map.empty,
               timeout: Int = 0)(implicit ec: ExecutionContext,
-                                decoder: Decoder[U]): Future[Xor[Seq[Error], U]] = {
+                                decoder: Decoder[U]): Future[Xor[Seq[Error], U]] =
     callWith[Unit, U](method, url, (), queryParams, headers, timeout)
-  }
 
   private def unauthorized[U](): Xor[Seq[Error], U] = {
     AppCircuit.dispatch(LogOut)
@@ -90,11 +89,10 @@ object Rpc {
 
   private val contentTypeHeader = Map("Content-Type" -> "application/json")
 
-  private def defaultHeaders: Map[String, String] = {
+  private def defaultHeaders: Map[String, String] =
     AppCircuit.session match {
       case Some(sessionToken) =>
         contentTypeHeader + (("Authorization", s"Bearer $sessionToken"))
       case None => contentTypeHeader
     }
-  }
 }

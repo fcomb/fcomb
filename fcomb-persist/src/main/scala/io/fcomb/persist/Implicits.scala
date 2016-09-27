@@ -29,10 +29,9 @@ object Implicits {
 
   final implicit val seqUuid: SetParameter[Seq[UUID]] = setParameterSeq[UUID]
 
-  private def setParameterSeq[T](implicit pconv: SetParameter[T]): SetParameter[Seq[T]] = {
+  private def setParameterSeq[T](implicit pconv: SetParameter[T]): SetParameter[Seq[T]] =
     SetParameter { (s, pp) =>
       s.map(pconv.apply(_, pp))
       ()
     }
-  }
 }

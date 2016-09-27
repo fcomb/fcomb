@@ -17,7 +17,7 @@
 package io.fcomb.json.rpc.docker.distribution
 
 import io.circe.generic.semiauto._
-import io.circe.{Encoder, Decoder}
+import io.circe.{Decoder, Encoder}
 import io.fcomb.rpc.docker.distribution._
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.models.acl.Formats._

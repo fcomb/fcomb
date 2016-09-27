@@ -18,7 +18,7 @@ package io.fcomb.frontend.components.organization
 
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.PaginationData
@@ -33,7 +33,7 @@ object GroupsComponent {
   final case class State(groups: Seq[OrganizationGroupResponse])
 
   class Backend($ : BackendScope[Props, State]) {
-    def getGroups(orgName: String): Callback = {
+    def getGroups(orgName: String): Callback =
       Callback.future {
         Rpc
           .call[PaginationData[OrganizationGroupResponse]](RpcMethod.GET,
@@ -44,9 +44,8 @@ object GroupsComponent {
             case Xor.Left(e) => Callback.warn(e)
           }
       }
-    }
 
-    def deleteGroup(orgName: String, name: String)(e: ReactEventI) = {
+    def deleteGroup(orgName: String, name: String)(e: ReactEventI) =
       e.preventDefaultCB >>
         Callback.future {
           Rpc.call[Unit](RpcMethod.DELETE, Resource.organizationGroup(orgName, name)).map {
@@ -54,9 +53,8 @@ object GroupsComponent {
             case Xor.Left(e)  => ??? // TODO
           }
         }
-    }
 
-    def renderGroup(props: Props, group: OrganizationGroupResponse) = {
+    def renderGroup(props: Props, group: OrganizationGroupResponse) =
       <.tr(
         <.td(
           props.ctl.link(DashboardRoute.OrganizationGroup(props.orgName, group.name))(group.name)),
@@ -64,22 +62,19 @@ object GroupsComponent {
           <.button(^.`type` := "button",
                    ^.onClick ==> deleteGroup(props.orgName, group.name),
                    "Delete")))
-    }
 
-    def renderGroups(props: Props, groups: Seq[OrganizationGroupResponse]) = {
+    def renderGroups(props: Props, groups: Seq[OrganizationGroupResponse]) =
       if (groups.isEmpty) <.span("No groups. Create one!")
       else
         <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
                 <.tbody(groups.map(renderGroup(props, _))))
-    }
 
-    def render(props: Props, state: State) = {
+    def render(props: Props, state: State) =
       <.div(
         <.h2("Groups"),
         <.div(props.ctl.link(DashboardRoute.NewOrganizationGroup(props.orgName))("New group")),
         <.div(<.h3("Members"), renderGroups(props, state.groups))
       )
-    }
   }
 
   private val component = ReactComponentB[Props]("Groups")

@@ -25,12 +25,11 @@ object OrganizationSettingsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
 
   class Backend($ : BackendScope[Props, Unit]) {
-    def render(props: Props) = {
+    def render(props: Props) =
       <.section(
         <.h1("Settings"),
         DeleteOrganizationComponent.apply(props.ctl, props.orgName)
       )
-    }
   }
 
   private val component =

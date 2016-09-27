@@ -37,10 +37,10 @@ import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
-import scala.util.{Right, Left}
+import scala.util.{Left, Right}
 
 object ImageBlobsHandler {
-  def showBlob(imageName: String, digest: String) = {
+  def showBlob(imageName: String, digest: String) =
     tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
         imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
@@ -65,11 +65,10 @@ object ImageBlobsHandler {
         }
       }
     }
-  }
 
   private val emptyTarSource = Source.single(ByteString(ImageManifest.emptyTar))
 
-  def downloadBlob(imageName: String, digest: String)(implicit req: HttpRequest) = {
+  def downloadBlob(imageName: String, digest: String)(implicit req: HttpRequest) =
     tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
         imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
@@ -126,9 +125,8 @@ object ImageBlobsHandler {
         }
       }
     }
-  }
 
-  def destroyBlob(imageName: String, digest: String) = {
+  def destroyBlob(imageName: String, digest: String) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
@@ -149,7 +147,6 @@ object ImageBlobsHandler {
         }
       }
     }
-  }
 
   private val cacheHeader = `Cache-Control`(CacheDirectives.`max-age`(365.days.toSeconds))
 

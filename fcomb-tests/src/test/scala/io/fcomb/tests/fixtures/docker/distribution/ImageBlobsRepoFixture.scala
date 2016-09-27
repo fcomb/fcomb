@@ -26,7 +26,7 @@ import io.fcomb.docker.distribution.utils.BlobFileUtils
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.apache.commons.codec.digest.DigestUtils
-import akka.stream.scaladsl.{Source, FileIO}
+import akka.stream.scaladsl.{FileIO, Source}
 import akka.stream.Materializer
 
 object ImageBlobsRepoFixture {

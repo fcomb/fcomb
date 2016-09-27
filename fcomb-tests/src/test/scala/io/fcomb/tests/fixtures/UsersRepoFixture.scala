@@ -34,7 +34,7 @@ object UsersRepoFixture {
       password: String = password,
       fullName: Option[String] = fullName,
       role: UserRole = UserRole.Developer
-  ): Future[User] = {
+  ): Future[User] =
     for {
       Validated.Valid(user) <- UsersRepo.create(
         email = email,
@@ -44,5 +44,4 @@ object UsersRepoFixture {
         role = role
       )
     } yield user
-  }
 }

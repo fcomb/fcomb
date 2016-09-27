@@ -29,7 +29,7 @@ import io.fcomb.persist.docker.distribution.ImagesRepo
 object ImageDirectives {
   def imageWithActionBySlugWithAcl(slug: Slug,
                                    userId: Int,
-                                   action: Action): Directive1[(Image, Action)] = {
+                                   action: Action): Directive1[(Image, Action)] =
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlugWithAcl(slug, userId, action)).flatMap {
         case Xor.Right(Some(res @ (image, _))) => provide(res)
@@ -37,15 +37,13 @@ object ImageDirectives {
         case _                                 => complete(HttpResponse(StatusCodes.Forbidden))
       }
     }
-  }
 
-  def imageBySlugWithAcl(slug: Slug, userId: Int, action: Action): Directive1[Image] = {
+  def imageBySlugWithAcl(slug: Slug, userId: Int, action: Action): Directive1[Image] =
     imageWithActionBySlugWithAcl(slug, userId, action).flatMap {
       case (image, _) => provide(image)
     }
-  }
 
-  def imageBySlugRead(slug: Slug, userOpt: Option[User]): Directive1[Image] = {
+  def imageBySlugRead(slug: Slug, userOpt: Option[User]): Directive1[Image] =
     userOpt match {
       case Some(user) => imageBySlugWithAcl(slug, user.getId(), Action.Read)
       case _ =>
@@ -58,5 +56,4 @@ object ImageDirectives {
           }
         }
     }
-  }
 }

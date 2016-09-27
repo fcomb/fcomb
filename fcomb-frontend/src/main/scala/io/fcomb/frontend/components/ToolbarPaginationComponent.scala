@@ -31,7 +31,7 @@ object ToolbarPaginationComponent {
 
     val color = Mui.Styles.colors.lightBlack
 
-    def render(props: Props): ReactElement = {
+    def render(props: Props): ReactElement =
       if (props.limit >= props.total) <.div()
       else {
         val page  = props.page
@@ -57,7 +57,6 @@ object ToolbarPaginationComponent {
           )
         )
       }
-    }
   }
 
   private val component = ReactComponentB[Props]("ToolbarPagination").renderBackend[Backend].build

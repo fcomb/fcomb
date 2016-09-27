@@ -21,7 +21,7 @@ import akka.cluster.sharding._
 import akka.pattern.ask
 import akka.stream.Materializer
 import akka.stream.scaladsl._
-import akka.stream.{Materializer, ClosedShape}
+import akka.stream.{ClosedShape, Materializer}
 import akka.util.Timeout
 import akka.util.{ByteString, Timeout}
 import cats.data.Xor
@@ -34,7 +34,7 @@ import java.security.MessageDigest
 import java.util.UUID
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
 sealed trait EntityMessage
 
@@ -104,20 +104,18 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
   ) =
     startClustedSharding(props(timeout))
 
-  def props(timeout: Duration)(implicit mat: Materializer) = {
+  def props(timeout: Duration)(implicit mat: Materializer) =
     Props(new ImageBlobPushProcessor(timeout))
-  }
 
   def uploadChunk(blobId: UUID, source: Source[ByteString, Any], file: File)(
       implicit ec: ExecutionContext,
       mat: Materializer
-  ): Future[(Long, String)] = {
+  ): Future[(Long, String)] =
     for {
       Xor.Right(md)         <- begin(blobId)
       (length, chunkDigest) <- uploadChunkGraph(md, source, file).run()
       Xor.Right(fileDigest) <- commit(blobId, chunkDigest)
     } yield (length, StringUtils.hexify(fileDigest.digest))
-  }
 
   private def uploadChunkGraph(md: MessageDigest, source: Source[ByteString, Any], file: File) = {
     val fileOptions = Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
@@ -153,9 +151,8 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
   def begin(blobId: UUID)(
       implicit ec: ExecutionContext,
       timeout: Timeout = Timeout(30.seconds)
-  ): Future[Xor[String, MessageDigest]] = {
+  ): Future[Xor[String, MessageDigest]] =
     askRef[Xor[String, MessageDigest]](blobId, Begin, timeout)
-  }
 
   def commit(blobId: UUID, md: MessageDigest)(
       implicit ec: ExecutionContext,
@@ -199,9 +196,8 @@ trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor =>
     state
   }
 
-  def putState(state: S) = {
+  def putState(state: S) =
     this._state = state
-  }
 
   val stashReceive: Receive = {
     case Unstash =>
@@ -212,13 +208,11 @@ trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor =>
       stash()
   }
 
-  def becomeStashing() = {
+  def becomeStashing() =
     context.become(stashReceive, true)
-  }
 
-  def unstashReceive() = {
+  def unstashReceive() =
     self ! Unstash
-  }
 
   def putStateAsync(fut: Future[S]): Future[S] =
     putStateWithReceiveAsyncFunc(fut)(None)

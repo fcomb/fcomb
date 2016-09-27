@@ -17,7 +17,7 @@
 package io.fcomb.rpc.helpers
 
 import io.fcomb.models.User
-import io.fcomb.rpc.{UserResponse, UserProfileResponse}
+import io.fcomb.rpc.{UserProfileResponse, UserResponse}
 
 object UserHelpers {
   def profileResponseFrom(user: User): UserProfileResponse =

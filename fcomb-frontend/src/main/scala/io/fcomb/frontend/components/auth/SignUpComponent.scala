@@ -19,7 +19,7 @@ package io.fcomb.frontend.components.auth
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.services.AuthService
@@ -42,7 +42,7 @@ object SignUpComponent {
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[RouterCtl[Route], State]) {
-    def register(ctl: RouterCtl[Route]): Callback = {
+    def register(ctl: RouterCtl[Route]): Callback =
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
@@ -78,11 +78,9 @@ object SignUpComponent {
           }
         }
       }
-    }
 
-    def handleOnSubmit(ctl: RouterCtl[Route])(e: ReactEventH): Callback = {
+    def handleOnSubmit(ctl: RouterCtl[Route])(e: ReactEventH): Callback =
       e.preventDefaultCB >> register(ctl)
-    }
 
     def updateEmail(e: ReactEventI): Callback = {
       val value = e.target.value
@@ -104,7 +102,7 @@ object SignUpComponent {
       $.modState(_.copy(fullName = value))
     }
 
-    def render(ctl: RouterCtl[Route], state: State) = {
+    def render(ctl: RouterCtl[Route], state: State) =
       <.form(^.onSubmit ==> handleOnSubmit(ctl),
              ^.disabled := state.isFormDisabled,
              <.div(^.display.flex,
@@ -143,7 +141,6 @@ object SignUpComponent {
                                    primary = true,
                                    label = "Register",
                                    disabled = state.isFormDisabled)()))
-    }
   }
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignUp")

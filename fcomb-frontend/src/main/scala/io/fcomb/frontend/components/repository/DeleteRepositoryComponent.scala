@@ -20,7 +20,7 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -32,7 +32,7 @@ object DeleteRepositoryComponent {
   final case class State(isOpen: Boolean, isDisabled: Boolean)
 
   class Backend($ : BackendScope[Props, State]) {
-    def delete(e: ReactTouchEventH): Callback = {
+    def delete(e: ReactTouchEventH): Callback =
       (for {
         props <- $.props
         state <- $.state
@@ -53,7 +53,6 @@ object DeleteRepositoryComponent {
                 }
             }
       }
-    }
 
     def openDialog(e: ReactTouchEventH): Callback =
       $.modState(_.copy(isOpen = true))
@@ -75,7 +74,7 @@ object DeleteRepositoryComponent {
       MuiFlatButton(key = "delete", label = "Delete", primary = true, onTouchTap = delete _)()
     )
 
-    def render(props: Props, state: State) = {
+    def render(props: Props, state: State) =
       <.div(<.h2("Delete repository"),
             MuiDialog(
               title = "Are you sure you want to delete this?",
@@ -89,7 +88,6 @@ object DeleteRepositoryComponent {
                             label = "Delete",
                             disabled = state.isDisabled,
                             onTouchTap = openDialog _)())
-    }
   }
 
   private val component = ReactComponentB[Props]("DeleteRepository")

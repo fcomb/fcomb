@@ -34,10 +34,9 @@ class ImageManifestLayerTable(_tag: Tag)
 object ImageManifestLayersRepo extends PersistModel[ImageManifestLayer, ImageManifestLayerTable] {
   val table = TableQuery[ImageManifestLayerTable]
 
-  def insertLayersDBIO(imageManifestId: Int, layers: List[UUID]) = {
+  def insertLayersDBIO(imageManifestId: Int, layers: List[UUID]) =
     if (layers.isEmpty) DBIO.successful(())
     else table ++= layers.map(l => ImageManifestLayer(imageManifestId, l))
-  }
 
   lazy val isBlobLinkedCompiled = Compiled { id: Rep[UUID] =>
     table.filter(_.layerBlobId === id).exists

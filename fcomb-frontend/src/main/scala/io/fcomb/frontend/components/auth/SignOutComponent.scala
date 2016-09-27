@@ -17,7 +17,7 @@
 package io.fcomb.frontend.components.auth
 
 import io.fcomb.frontend.Route
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.dispatcher.actions.LogOut
 import japgolly.scalajs.react._
@@ -27,9 +27,8 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object SignOutComponent {
   class Backend($ : BackendScope[RouterCtl[Route], Unit]) {
-    def render(ctl: RouterCtl[Route]) = {
+    def render(ctl: RouterCtl[Route]) =
       <.h1("sign out...")
-    }
   }
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignOut")

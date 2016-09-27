@@ -19,7 +19,7 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.json.rpc.Formats.decodeOrganizationResponse
 import io.fcomb.json.models.Formats.decodePaginationData
@@ -49,7 +49,7 @@ object NamespaceComponent {
 
     private val limit = 256
 
-    def fetchNamespaces(): Callback = {
+    def fetchNamespaces(): Callback =
       for {
         props <- $.props
         _ <- Callback.future {
@@ -82,15 +82,13 @@ object NamespaceComponent {
             }
         }
       } yield ()
-    }
 
-    private def onChange(e: ReactEventI, idx: Int, namespace: Namespace): Callback = {
+    private def onChange(e: ReactEventI, idx: Int, namespace: Namespace): Callback =
       for {
         props <- $.props
         _     <- $.modState(_.copy(namespace = Some(namespace)))
         _     <- props.cb(namespace)
       } yield ()
-    }
 
     lazy val allMenuItem = Seq(
       MuiMenuItem[Namespace](key = "all", value = Namespace.All, primaryText = "All")(),

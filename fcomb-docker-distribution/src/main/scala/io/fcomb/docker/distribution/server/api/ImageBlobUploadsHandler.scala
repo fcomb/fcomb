@@ -39,7 +39,7 @@ import scala.compat.java8.OptionConverters._
 import scala.concurrent.ExecutionContext
 
 object ImageBlobUploadsHandler {
-  def createBlob(imageName: String)(implicit req: HttpRequest): Route = {
+  def createBlob(imageName: String)(implicit req: HttpRequest): Route =
     authenticateUserBasic { user =>
       parameters('mount.?, 'from.?, 'digest.?) { (mountOpt, fromOpt, digestOpt) =>
         extractExecutionContext { implicit ec =>
@@ -54,7 +54,6 @@ object ImageBlobUploadsHandler {
         }
       }
     }
-  }
 
   private def createImageBlobUpload(user: User, imageName: String)(
       implicit ec: ExecutionContext,
@@ -103,7 +102,7 @@ object ImageBlobUploadsHandler {
   }
 
   private def createImageBlob(user: User, imageName: String, sha256Digest: String)(
-      implicit req: HttpRequest): Route = {
+      implicit req: HttpRequest): Route =
     extractMaterializer { implicit mat =>
       imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
         import mat.executionContext
@@ -135,9 +134,8 @@ object ImageBlobUploadsHandler {
         }
       }
     }
-  }
 
-  def uploadBlobChunk(imageName: String, uuid: UUID)(implicit req: HttpRequest) = {
+  def uploadBlobChunk(imageName: String, uuid: UUID)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[`Content-Range`]() { rangeOpt =>
@@ -190,9 +188,8 @@ object ImageBlobUploadsHandler {
         }
       }
     }
-  }
 
-  def uploadComplete(imageName: String, uuid: UUID)(implicit req: HttpRequest) = {
+  def uploadComplete(imageName: String, uuid: UUID)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       parameters('digest) { sha256Digest =>
         extractMaterializer { implicit mat =>
@@ -225,9 +222,8 @@ object ImageBlobUploadsHandler {
         }
       }
     }
-  }
 
-  def destroyBlobUpload(imageName: String, uuid: UUID) = {
+  def destroyBlobUpload(imageName: String, uuid: UUID) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
@@ -243,7 +239,6 @@ object ImageBlobUploadsHandler {
         }
       }
     }
-  }
 
   private def rangeHeader(from: Long, length: Long) = {
     val to = if (from < length) length - 1 else from

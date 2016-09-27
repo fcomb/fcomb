@@ -29,7 +29,7 @@ object TimeAgoComponent {
   class Backend($ : BackendScope[Date, State]) {
     private var timer: timers.SetIntervalHandle = _
 
-    def updateDistance(): Callback = {
+    def updateDistance(): Callback =
       for {
         date  <- $.props
         state <- $.state
@@ -39,25 +39,21 @@ object TimeAgoComponent {
           else $.setState(State(newDistance))
         }
       } yield ()
-    }
 
-    def startTimer(): Callback = {
+    def startTimer(): Callback =
       stopTimer() >>
         CallbackTo {
           val interval = timers.setInterval(1.second)(updateDistance().runNow())
           timer = interval
         }
-    }
 
-    def stopTimer(): Callback = {
+    def stopTimer(): Callback =
       CallbackTo {
         if (timer != null) timers.clearInterval(timer)
       }
-    }
 
-    def render(date: Date, state: State) = {
+    def render(date: Date, state: State) =
       <.span(^.title := date.toISOString(), state.distance)
-    }
   }
 
   private val component = ReactComponentB[Date]("TimeAgo")

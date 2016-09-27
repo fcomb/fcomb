@@ -35,7 +35,7 @@ import io.fcomb.server.PaginationDirectives._
 object WebhooksHandler {
   val servicePath = "webhooks"
 
-  def index(slug: Slug) = {
+  def index(slug: Slug) =
     authenticateUser { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
@@ -48,9 +48,8 @@ object WebhooksHandler {
         }
       }
     }
-  }
 
-  def upsert(slug: Slug) = {
+  def upsert(slug: Slug) =
     authenticateUser { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
@@ -66,14 +65,12 @@ object WebhooksHandler {
         }
       }
     }
-  }
 
-  def routes(slug: Slug) = {
+  def routes(slug: Slug) =
     // format: OFF
     path(servicePath) {
       get(index(slug)) ~
       put(upsert(slug))
     }
     // format: ON
-  }
 }

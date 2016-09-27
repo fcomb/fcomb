@@ -18,7 +18,7 @@ package io.fcomb.json.rpc
 
 import cats.data.Xor
 import io.circe.generic.semiauto._
-import io.circe.{Encoder, Decoder, DecodingFailure}
+import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.fcomb.json.models.acl.Formats._
 import io.fcomb.rpc._
 

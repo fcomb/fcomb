@@ -22,7 +22,7 @@ import akka.http.scaladsl.server.Route
 import cats.data.Validated
 import io.circe.Encoder
 import io.fcomb.json.models.errors.Formats._
-import io.fcomb.models.errors.{Errors, Error}
+import io.fcomb.models.errors.{Error, Errors}
 import io.fcomb.models.IdLens
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
@@ -33,34 +33,31 @@ object ErrorDirectives {
   def completeErrors(xs: List[Error]): Route =
     complete((StatusCodes.BadRequest, Errors(xs)))
 
-  def completeErrorsOrNoContent[T](res: ValidationResult[T]): Route = {
+  def completeErrorsOrNoContent[T](res: ValidationResult[T]): Route =
     res match {
       case Validated.Valid(_)    => completeNoContent()
       case Validated.Invalid(xs) => completeErrors(xs)
     }
-  }
 
   def completeErrorsOrNoContent[T](fut: => Future[ValidationResult[T]]): Route =
     onSuccess(fut)(completeErrorsOrNoContent(_))
 
-  def completeAsAccepted[T](res: ValidationResult[T])(implicit encoder: Encoder[T]): Route = {
+  def completeAsAccepted[T](res: ValidationResult[T])(implicit encoder: Encoder[T]): Route =
     res match {
       case Validated.Valid(rs)   => complete((StatusCodes.Accepted, rs))
       case Validated.Invalid(xs) => completeErrors(xs)
     }
-  }
 
   def completeAsAccepted[T](fut: Future[ValidationResult[T]])(
       implicit encoder: Encoder[T]): Route =
     onSuccess(fut)(completeAsAccepted(_))
 
   def completeAsCreated[T](res: ValidationResult[T], prefix: String)(implicit encoder: Encoder[T],
-                                                                     idLens: IdLens[T]): Route = {
+                                                                     idLens: IdLens[T]): Route =
     res match {
       case Validated.Valid(rs)   => completeCreated(rs, prefix)
       case Validated.Invalid(xs) => completeErrors(xs)
     }
-  }
 
   def completeAsCreated[T](fut: Future[ValidationResult[T]], prefix: String)(
       implicit encoder: Encoder[T],

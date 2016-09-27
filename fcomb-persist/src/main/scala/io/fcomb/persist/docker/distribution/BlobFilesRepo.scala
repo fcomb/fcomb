@@ -95,7 +95,7 @@ object BlobFilesRepo {
   }
 
   def markOrDestroyDBIO(uuid: UUID)(
-      implicit ec: ExecutionContext): DBIOAction[Unit, NoStream, Effect.All] = {
+      implicit ec: ExecutionContext): DBIOAction[Unit, NoStream, Effect.All] =
     findByUuidCompiled(uuid).result.headOption.flatMap {
       case Some(bf) =>
         (bf.digest match {
@@ -107,7 +107,6 @@ object BlobFilesRepo {
         }.map(_ => ())
       case _ => DBIO.successful(())
     }
-  }
 
   def markOrDestroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) =
     table.filter { t =>
@@ -128,12 +127,11 @@ object BlobFilesRepo {
       .map(_.state)
       .update(BlobFileState.Deleting)
 
-  def destroy(uuids: Seq[UUID]) = {
+  def destroy(uuids: Seq[UUID]) =
     if (uuids.isEmpty) FastFuture.successful(())
     else db.run(table.filter(_.uuid.inSetBind(uuids)).delete)
-  }
 
-  def updateRetryCount(uuids: Seq[UUID]) = {
+  def updateRetryCount(uuids: Seq[UUID]) =
     if (uuids.isEmpty) FastFuture.successful(())
     else {
       val retriedAt     = Some(OffsetDateTime.now())
@@ -150,7 +148,6 @@ object BlobFilesRepo {
         """
       }
     }
-  }
 
   private lazy val findDeletingCompiled = Compiled {
     table.filter(_.state === (BlobFileState.Deleting: BlobFileState))

@@ -49,14 +49,12 @@ object AuthenticationDirectives {
     }
 
   private def tryFindByToken(token: String)(
-      implicit ec: ExecutionContext): Directive1[Option[User]] = {
+      implicit ec: ExecutionContext): Directive1[Option[User]] =
     onSuccess(SessionsService.find(token)).flatMap(provide)
-  }
 
-  private def findByToken(token: String)(implicit ec: ExecutionContext): Directive1[User] = {
+  private def findByToken(token: String)(implicit ec: ExecutionContext): Directive1[User] =
     onSuccess(SessionsService.find(token)).flatMap {
       case Some(user) => provide(user)
       case None       => reject(AuthorizationFailedRejection)
     }
-  }
 }

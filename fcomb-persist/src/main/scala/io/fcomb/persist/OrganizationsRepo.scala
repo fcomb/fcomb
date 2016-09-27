@@ -19,22 +19,22 @@ package io.fcomb.persist
 import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.Db.db
 import io.fcomb.PostgresProfile.api._
-import io.fcomb.models.acl.{Role, MemberKind}
+import io.fcomb.models.acl.{MemberKind, Role}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{Organization, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.acl.{
-  PermissionMemberResponse,
   PermissionGroupMemberResponse,
+  PermissionMemberResponse,
   PermissionUserMemberResponse
 }
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationResponse}
 import io.fcomb.validation._
 import java.time.OffsetDateTime
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.immutable
 import slick.jdbc.TransactionIsolation
 
@@ -59,16 +59,14 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     table.filter(_.name === name.asColumnOfType[String]("citext")).take(1)
   }
 
-  def findBySlugDBIO(slug: Slug) = {
+  def findBySlugDBIO(slug: Slug) =
     slug match {
       case Slug.Id(id)     => findByIdCompiled(id)
       case Slug.Name(name) => findByNameCompiled(name)
     }
-  }
 
-  def findBySlug(slug: Slug)(implicit ec: ExecutionContext): Future[Option[Organization]] = {
+  def findBySlug(slug: Slug)(implicit ec: ExecutionContext): Future[Option[Organization]] =
     db.run(findBySlugDBIO(slug).result.headOption)
-  }
 
   def groupsScope =
     table
@@ -86,15 +84,13 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
             .Else(3)
       }
 
-  private def availableByUserOwnerDBIO(userId: Rep[Int]) = {
+  private def availableByUserOwnerDBIO(userId: Rep[Int]) =
     table.filter(_.ownerUserId === userId).map(t => (t, (Role.Admin: Rep[Role]).asColumnOf[Role]))
-  }
 
-  private def availableByUserGroupsDBIO(userId: Rep[Int]) = {
+  private def availableByUserGroupsDBIO(userId: Rep[Int]) =
     groupsScope.filter {
       case (_, ogut)           => ogut.userId === userId
     }.map { case ((t, ogt), _) => (t, ogt.role) }.subquery
-  }
 
   private type AvailableScopeQuery =
     Query[(OrganizationTable, Rep[Role]), (Organization, Role), Seq]
@@ -128,7 +124,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     availableByUserIdScopeDBIO(userId).length
   }
 
-  private def availableByUserIdDBIO(userId: Int, p: Pagination) = {
+  private def availableByUserIdDBIO(userId: Int, p: Pagination) =
     if (p.filter.isEmpty)
       (availableByUserIdCompiled((userId, p.offset, p.limit)).result,
        availableByUserIdTotalCompiled(userId).result)
@@ -136,7 +132,6 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
       val scope = availableByUserIdScopeDBIO(userId, p.filter)
       (scope.drop(p.offset).take(p.limit).result, scope.length.result)
     }
-  }
 
   def paginateAvailableByUserId(userId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[OrganizationResponse]] = {
@@ -156,7 +151,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     }.map(_._1._2.role).take(1)
   }
 
-  def findWithRoleBySlugDBIO(slug: Slug, userId: Int)(implicit ec: ExecutionContext) = {
+  def findWithRoleBySlugDBIO(slug: Slug, userId: Int)(implicit ec: ExecutionContext) =
     for {
       orgOpt <- findBySlugDBIO(slug).result.headOption
       res <- orgOpt match {
@@ -166,23 +161,19 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
         case _ => DBIO.successful(None)
       }
     } yield res
-  }
 
-  def findWithRoleBySlug(slug: Slug, userId: Int)(implicit ec: ExecutionContext) = {
+  def findWithRoleBySlug(slug: Slug, userId: Int)(implicit ec: ExecutionContext) =
     db.run(findWithRoleBySlugDBIO(slug, userId))
-  }
 
-  def findBySlugWithAclDBIO(slug: Slug, userId: Int, role: Role)(implicit ec: ExecutionContext) = {
+  def findBySlugWithAclDBIO(slug: Slug, userId: Int, role: Role)(implicit ec: ExecutionContext) =
     findWithRoleBySlugDBIO(slug, userId).map {
       case Some((org, Some(userRole))) if userRole.has(role) => Some(org)
       case _                                                 => None
     }
-  }
 
   def findBySlugWithAcl(slug: Slug, userId: Int, role: Role)(
-      implicit ec: ExecutionContext): Future[Option[Organization]] = {
+      implicit ec: ExecutionContext): Future[Option[Organization]] =
     db.run(findBySlugWithAclDBIO(slug, userId, role))
-  }
 
   private lazy val isAdminCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
     groupsScope.filter {
@@ -191,12 +182,11 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     }.exists
   }
 
-  def isAdminDBIO(id: Int, userId: Int) = {
+  def isAdminDBIO(id: Int, userId: Int) =
     isAdminCompiled((id, userId)).result
-  }
 
   def create(req: OrganizationCreateRequest, userId: Int)(
-      implicit ec: ExecutionContext): Future[ValidationModel] = {
+      implicit ec: ExecutionContext): Future[ValidationModel] =
     create(
       Organization(
         id = None,
@@ -205,28 +195,25 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
         createdAt = OffsetDateTime.now,
         updatedAt = None
       ))
-  }
 
-  override def createDBIO(item: Organization)(implicit ec: ExecutionContext): ModelDBIO = {
+  override def createDBIO(item: Organization)(implicit ec: ExecutionContext): ModelDBIO =
     for {
       res <- super.createDBIO(item)
       _   <- OrganizationGroupsRepo.createAdminsDBIO(res.getId(), item.ownerUserId)
     } yield res
-  }
 
   // def update(id: Int, req: OrganizationUpdateRequest)(
   //     implicit ec: ExecutionContext): Future[ValidationModel] = {
   //   update(id)(_.copy(name = req.name))
   // }
 
-  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) = {
+  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) =
     for {
       _   <- PermissionsRepo.destroyByOrganizationIdDBIO(id)
       _   <- OrganizationGroupsRepo.destroyByOrganizationIdDBIO(id)
       _   <- ImagesRepo.destroyByOrganizationIdDBIO(id)
       res <- super.destroyDBIO(id)
     } yield res
-  }
 
   override def destroy(id: Int)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))

@@ -18,13 +18,13 @@ package io.fcomb.server
 
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.{ContentRange, StatusCodes, HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.{ContentRange, HttpRequest, HttpResponse, StatusCodes}
 import akka.http.scaladsl.model.headers.{
   `Content-Range`,
+  `If-None-Match`,
   ETag,
   EntityTag,
   EntityTagRange,
-  `If-None-Match`,
   Range,
   RangeUnits
 }
@@ -36,7 +36,7 @@ import scala.compat.java8.OptionConverters._
 import scala.collection.immutable
 
 object PaginationDirectives {
-  def extractPagination: Directive1[Pagination] = {
+  def extractPagination: Directive1[Pagination] =
     extractRequest.flatMap { req =>
       optionalHeaderValueByType[Range](()).flatMap {
         case Some(Range(_, range +: _)) =>
@@ -55,9 +55,8 @@ object PaginationDirectives {
           }
       }
     }
-  }
 
-  private def parseFilter(req: HttpRequest): immutable.Map[String, String] = {
+  private def parseFilter(req: HttpRequest): immutable.Map[String, String] =
     req.uri
       .query()
       .filterNot {
@@ -65,7 +64,6 @@ object PaginationDirectives {
         case (_, value)                                      => value.isEmpty
       }
       .toMap
-  }
 
   // TODO: add Link: <api?limit=&offset=>; rel="next", <api?limit=&offset=>; rel="last"
   def completePagination[T](label: String, pd: PaginationData[T])(

@@ -18,8 +18,8 @@ package io.fcomb.json.models.errors
 
 import enumeratum.Circe
 import io.circe.generic.semiauto._
-import io.circe.{Encoder, Decoder}
-import io.fcomb.models.errors.{Error, Errors, ErrorCode}
+import io.circe.{Decoder, Encoder}
+import io.fcomb.models.errors.{Error, ErrorCode, Errors}
 
 object Formats {
   final implicit val encodeErrorCode: Encoder[ErrorCode] = Circe.encoder(ErrorCode)

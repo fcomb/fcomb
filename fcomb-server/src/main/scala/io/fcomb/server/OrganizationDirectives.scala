@@ -25,23 +25,20 @@ import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationsRepo
 
 object OrganizationDirectives {
-  def organizationBySlugWithAcl(slug: Slug, userId: Int, role: Role): Directive1[Organization] = {
+  def organizationBySlugWithAcl(slug: Slug, userId: Int, role: Role): Directive1[Organization] =
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(OrganizationsRepo.findBySlugWithAcl(slug, userId, role))
         .flatMap(provideOrganization)
     }
-  }
 
-  def organizationBySlug(slug: Slug): Directive1[Organization] = {
+  def organizationBySlug(slug: Slug): Directive1[Organization] =
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(OrganizationsRepo.findBySlug(slug)).flatMap(provideOrganization)
     }
-  }
 
-  private def provideOrganization(orgOpt: Option[Organization]): Directive1[Organization] = {
+  private def provideOrganization(orgOpt: Option[Organization]): Directive1[Organization] =
     orgOpt match {
       case Some(org) => provide(org)
       case _         => complete(HttpResponse(StatusCodes.NotFound))
     }
-  }
 }

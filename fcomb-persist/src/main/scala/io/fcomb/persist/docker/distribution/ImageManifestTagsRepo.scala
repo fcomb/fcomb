@@ -23,7 +23,7 @@ import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist._
 import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
 import java.time.OffsetDateTime
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 
 class ImageManifestTagTable(_tag: Tag)
     extends Table[ImageManifestTag](_tag, "dd_image_manifest_tags") {
@@ -70,7 +70,7 @@ object ImageManifestTagsRepo
 
   private def updateTagDBIO(imt: ImageManifestTag, imageManifestId: Int)(
       implicit ec: ExecutionContext
-  ) = {
+  ) =
     for {
       _ <- sqlu"""
           UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
@@ -83,7 +83,6 @@ object ImageManifestTagsRepo
         q.tag === imt.tag
       }.map(t => (t.imageManifestId, t.updatedAt)).update((imageManifestId, OffsetDateTime.now()))
     } yield ()
-  }
 
   private def findByImageIdDBIO(imageId: Rep[Int]) =
     table
@@ -111,7 +110,7 @@ object ImageManifestTagsRepo
   }
 
   def paginateByImageId(imageId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[RepositoryTagResponse]] = {
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryTagResponse]] =
     db.run {
       for {
         tags  <- findByImageIdAsReponseDBIO(imageId, p).result
@@ -119,5 +118,4 @@ object ImageManifestTagsRepo
         data = tags.map(t => RepositoryTagResponse.tupled(t.copy(_4 = t._4.toString)))
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
-  }
 }

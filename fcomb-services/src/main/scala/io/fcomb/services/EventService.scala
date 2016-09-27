@@ -19,7 +19,7 @@ package io.fcomb.services
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.{HttpMethods, HttpRequest, HttpEntity}
+import akka.http.scaladsl.model.{HttpEntity, HttpMethods, HttpRequest}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import com.typesafe.scalalogging.LazyLogging

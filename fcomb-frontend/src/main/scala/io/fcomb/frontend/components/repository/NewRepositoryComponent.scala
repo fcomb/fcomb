@@ -20,7 +20,7 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.components.LayoutComponent
@@ -28,7 +28,7 @@ import io.fcomb.frontend.styles.App
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.{Owner, OwnerKind}
-import io.fcomb.rpc.docker.distribution.{RepositoryResponse, ImageCreateRequest}
+import io.fcomb.rpc.docker.distribution.{ImageCreateRequest, RepositoryResponse}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -47,7 +47,7 @@ object NewRepositoryComponent {
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def create(props: Props): Callback = {
+    def create(props: Props): Callback =
       $.state.flatMap { state =>
         state.owner match {
           case Some(owner) if !state.isFormDisabled =>
@@ -75,7 +75,6 @@ object NewRepositoryComponent {
           case _ => Callback.empty
         }
       }
-    }
 
     def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> create(props)
@@ -98,12 +97,11 @@ object NewRepositoryComponent {
       $.modState(_.copy(description = value))
     }
 
-    def updateNamespace(namespace: Namespace) = {
+    def updateNamespace(namespace: Namespace) =
       namespace match {
         case on: OwnerNamespace => $.modState(_.copy(owner = on.toOwner))
         case _                  => Callback.empty
       }
-    }
 
     lazy val helpBlockClass = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
 

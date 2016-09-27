@@ -22,13 +22,12 @@ object UnitUtils {
   val gb = mb * kb
   val tb = gb * kb
 
-  def sizeInBytes(n: Long): String = {
+  def sizeInBytes(n: Long): String =
     if (n < kb) s"${format(n.toDouble)} B"
     else if (n < mb) s"${format(n / kb)} KB"
     else if (n < gb) s"${format(n / mb)} MB"
     else if (n < tb) s"${format(n / gb)} GB"
     else s"${format(n / tb)} TB"
-  }
 
   private def format(n: Double) = {
     val s = "%.1f".format(n)

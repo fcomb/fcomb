@@ -19,11 +19,11 @@ package io.fcomb.frontend.components.dashboard
 import cats.data.Xor
 import cats.syntax.eq._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.{
   CopyToClipboardComponent,
-  TimeAgoComponent,
-  SizeInBytesComponent
+  SizeInBytesComponent,
+  TimeAgoComponent
 }
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
@@ -44,7 +44,7 @@ object TagsComponent {
   class Backend($ : BackendScope[Props, State]) {
     val digestLength = 12
 
-    def getTags(name: String, sortColumn: String, sortOrder: SortOrder): Callback = {
+    def getTags(name: String, sortColumn: String, sortOrder: SortOrder): Callback =
       Callback.future {
         val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
         Rpc
@@ -57,9 +57,8 @@ object TagsComponent {
             case Xor.Left(e) => Callback.warn(e)
           }
       }
-    }
 
-    def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
+    def renderTagRow(props: Props, tag: RepositoryTagResponse) =
       // <.li(ctl.link(DashboardRoute.Repository(props.repositoryName, tag.tag))(tag.tag))
       <.tr(<.td(tag.tag),
            <.td(TimeAgoComponent.apply(tag.updatedAt)),
@@ -67,9 +66,8 @@ object TagsComponent {
            <.td(^.title := tag.digest,
                 tag.digest.take(digestLength),
                 CopyToClipboardComponent.apply(tag.digest, js.undefined, <.span("Copy"))))
-    }
 
-    def changeSortOrder(column: String)(e: ReactEventH): Callback = {
+    def changeSortOrder(column: String)(e: ReactEventH): Callback =
       for {
         _     <- e.preventDefaultCB
         name  <- $.props.map(_.repositoryName)
@@ -81,7 +79,6 @@ object TagsComponent {
         _ <- $.modState(_.copy(sortColumn = column, sortOrder = sortOrder))
         _ <- getTags(name, column, sortOrder)
       } yield ()
-    }
 
     def renderHeader(title: String, column: String, state: State) = {
       val header = if (state.sortColumn == column) {
@@ -91,7 +88,7 @@ object TagsComponent {
       <.th(<.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
     }
 
-    def renderTags(props: Props, state: State) = {
+    def renderTags(props: Props, state: State) =
       if (state.tags.isEmpty) <.span("No tags. Create one!")
       else {
         <.table(<.thead(
@@ -101,11 +98,9 @@ object TagsComponent {
                        renderHeader("Image", "digest", state))),
                 <.tbody(state.tags.map(renderTagRow(props, _))))
       }
-    }
 
-    def render(props: Props, state: State) = {
+    def render(props: Props, state: State) =
       <.div(<.h2("Tags"), renderTags(props, state))
-    }
   }
 
   private val component = ReactComponentB[Props]("Tags")

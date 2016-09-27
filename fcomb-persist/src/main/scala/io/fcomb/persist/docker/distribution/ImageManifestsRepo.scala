@@ -142,7 +142,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       manifest: SchemaV1.Manifest,
       schemaV1JsonBlob: String,
       digest: String
-  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
+  )(implicit ec: ExecutionContext): Future[ValidationModel] =
     findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) => FastFuture.successful(Validated.valid(im))
       case None =>
@@ -172,7 +172,6 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
             }
         }
     }
-  }
 
   def upsertSchemaV2(
       image: Image,
@@ -182,7 +181,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       schemaV1JsonBlob: String,
       schemaV2JsonBlob: String,
       digest: String
-  )(implicit ec: ExecutionContext): Future[ValidationModel] = {
+  )(implicit ec: ExecutionContext): Future[ValidationModel] =
     findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
         updateTagsByReference(im, reference).fast.map(_ => Validated.valid(im))
@@ -224,7 +223,6 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
           }
         }
     }
-  }
 
   def updateTagsByReference(im: ImageManifest, reference: Reference)(
       implicit ec: ExecutionContext

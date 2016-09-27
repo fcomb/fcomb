@@ -35,7 +35,7 @@ object SignInComponent {
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[RouterCtl[Route], State]) {
-    def authenticate(ctl: RouterCtl[Route]): Callback = {
+    def authenticate(ctl: RouterCtl[Route]): Callback =
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty
         else {
@@ -55,11 +55,9 @@ object SignInComponent {
           }
         }
       }
-    }
 
-    def handleOnSubmit(ctl: RouterCtl[Route])(e: ReactEventH): Callback = {
+    def handleOnSubmit(ctl: RouterCtl[Route])(e: ReactEventH): Callback =
       e.preventDefaultCB >> authenticate(ctl)
-    }
 
     def updateEmail(e: ReactEventI): Callback = {
       val value = e.target.value
@@ -71,7 +69,7 @@ object SignInComponent {
       $.modState(_.copy(password = value))
     }
 
-    def render(ctl: RouterCtl[Route], state: State) = {
+    def render(ctl: RouterCtl[Route], state: State) =
       <.form(^.onSubmit ==> handleOnSubmit(ctl),
              ^.disabled := state.isFormDisabled,
              <.div(^.display.flex,
@@ -96,7 +94,6 @@ object SignInComponent {
                                    primary = true,
                                    label = "Login",
                                    disabled = state.isFormDisabled)()))
-    }
   }
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignIn")

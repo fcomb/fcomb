@@ -42,7 +42,7 @@ object GroupsHandler {
 
   lazy val resourcePrefix = s"${OrganizationsHandler.resourcePrefix}/"
 
-  def index(slug: Slug) = {
+  def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
@@ -54,9 +54,8 @@ object GroupsHandler {
         }
       }
     }
-  }
 
-  def create(slug: Slug) = {
+  def create(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
@@ -72,9 +71,8 @@ object GroupsHandler {
         }
       }
     }
-  }
 
-  def show(slug: Slug, groupSlug: Slug) = {
+  def show(slug: Slug, groupSlug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
@@ -83,9 +81,8 @@ object GroupsHandler {
         }
       }
     }
-  }
 
-  def update(slug: Slug, groupSlug: Slug) = {
+  def update(slug: Slug, groupSlug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
@@ -100,9 +97,8 @@ object GroupsHandler {
         }
       }
     }
-  }
 
-  def destroy(slug: Slug, groupSlug: Slug) = {
+  def destroy(slug: Slug, groupSlug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
@@ -112,9 +108,8 @@ object GroupsHandler {
         }
       }
     }
-  }
 
-  def routes(slug: Slug): Route = {
+  def routes(slug: Slug): Route =
     // format: OFF
     pathPrefix(servicePath) {
       pathEnd {
@@ -131,5 +126,4 @@ object GroupsHandler {
       }
     }
     // format: ON
-  }
 }

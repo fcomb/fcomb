@@ -26,18 +26,16 @@ import io.fcomb.persist.OrganizationGroupsRepo
 import io.fcomb.server.OrganizationDirectives._
 
 object OrganizationGroupDirectives {
-  def groupBySlugWithAcl(slug: Slug, groupSlug: Slug, userId: Int): Directive1[OrganizationGroup] = {
+  def groupBySlugWithAcl(slug: Slug, groupSlug: Slug, userId: Int): Directive1[OrganizationGroup] =
     organizationBySlugWithAcl(slug, userId, Role.Admin).flatMap { org =>
       extractExecutionContext.flatMap { implicit ec =>
         onSuccess(OrganizationGroupsRepo.findBySlug(org.getId(), groupSlug)).flatMap(provideGroup)
       }
     }
-  }
 
-  final def provideGroup(groupOpt: Option[OrganizationGroup]): Directive1[OrganizationGroup] = {
+  final def provideGroup(groupOpt: Option[OrganizationGroup]): Directive1[OrganizationGroup] =
     groupOpt match {
       case Some(group) => provide(group)
       case _           => complete(HttpResponse(StatusCodes.NotFound))
     }
-  }
 }

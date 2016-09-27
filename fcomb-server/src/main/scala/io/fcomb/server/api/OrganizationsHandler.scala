@@ -40,7 +40,7 @@ object OrganizationsHandler {
 
   lazy val resourcePrefix = s"/$apiVersion/$servicePath/"
 
-  def create = {
+  def create =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         entity(as[OrganizationCreateRequest]) { req =>
@@ -53,9 +53,8 @@ object OrganizationsHandler {
         }
       }
     }
-  }
 
-  def show(slug: Slug) = {
+  def show(slug: Slug) =
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { userOpt =>
         val futRes = userOpt match {
@@ -70,7 +69,6 @@ object OrganizationsHandler {
         }
       }
     }
-  }
 
   // def update(slug: Slug) = {
   //   extractExecutionContext { implicit ec =>
@@ -89,7 +87,7 @@ object OrganizationsHandler {
   //   }
   // }
 
-  def destroy(slug: Slug) = {
+  def destroy(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
@@ -99,7 +97,6 @@ object OrganizationsHandler {
         }
       }
     }
-  }
 
   val routes: Route = {
     // format: OFF

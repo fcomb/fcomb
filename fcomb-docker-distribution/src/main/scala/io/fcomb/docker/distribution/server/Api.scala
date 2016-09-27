@@ -20,7 +20,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.docker.distribution.server.api._
 import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.models.docker.distribution.{Reference, ImageManifest}
+import io.fcomb.models.docker.distribution.{ImageManifest, Reference}
 import io.fcomb.server.headers._
 
 object Api {

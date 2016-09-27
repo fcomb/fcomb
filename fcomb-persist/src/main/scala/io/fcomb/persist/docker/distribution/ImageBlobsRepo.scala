@@ -20,10 +20,10 @@ import cats.data.Xor
 import io.fcomb.Db.db
 import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.OwnerKind
-import io.fcomb.models.docker.distribution.ImageManifest.{emptyTarSha256Digest, emptyTar}
-import io.fcomb.models.docker.distribution.{ImageBlobState, ImageBlob, BlobFileState}
+import io.fcomb.models.docker.distribution.ImageManifest.{emptyTar, emptyTarSha256Digest}
+import io.fcomb.models.docker.distribution.{BlobFileState, ImageBlob, ImageBlobState}
 import io.fcomb.persist.EnumsMapping._
-import io.fcomb.persist.{PersistTableWithUuidPk, PersistModelWithUuidPk}
+import io.fcomb.persist.{PersistModelWithUuidPk, PersistTableWithUuidPk}
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -50,10 +50,9 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
 
   val `application/octet-stream` = "application/octet-stream"
 
-  private def mapContentType(contentType: String): String = {
+  private def mapContentType(contentType: String): String =
     if (contentType == "none/none") `application/octet-stream`
     else contentType
-  }
 
   def mount(fromImageId: Int, toImageId: Int, digest: String, userId: Int)(
       implicit ec: ExecutionContext): Future[Option[ImageBlob]] =
@@ -244,12 +243,11 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
       }
       .map(_._1.id)
 
-  def destroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) = {
+  def destroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) =
     for {
       _   <- BlobFilesRepo.markOrDestroyByImageIdDBIO(imageId)
       res <- table.filter(_.imageId === imageId).delete
     } yield res
-  }
 
   def destroyOutdatedUploadsDBIO(until: Rep[OffsetDateTime]) =
     table.filter { q =>

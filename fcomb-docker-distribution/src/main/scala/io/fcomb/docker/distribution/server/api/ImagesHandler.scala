@@ -47,7 +47,7 @@ import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 
 object ImagesHandler {
-  def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) = {
+  def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
     tryAuthenticateUserBasic { userOpt =>
       extractMaterializer { implicit mat =>
         optionalHeaderValueByType[Accept]() { acceptOpt =>
@@ -81,7 +81,6 @@ object ImagesHandler {
         }
       }
     }
-  }
 
   private def completeSchemaV1Manifest(m: Xor[String, String]): Route =
     m match {
@@ -91,14 +90,13 @@ object ImagesHandler {
       case Xor.Left(e) => completeError(DistributionError.unknown(e))
     }
 
-  private def acceptIsAManifestV2(header: Accept) = {
+  private def acceptIsAManifestV2(header: Accept) =
     header.mediaRanges.exists { r =>
       r.matches(MediaTypes.`application/vnd.docker.distribution.manifest.v2+json`) &&
       r != MediaRanges.`*/*`
     }
-  }
 
-  def uploadManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) = {
+  def uploadManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         val userId = user.getId()
@@ -139,18 +137,16 @@ object ImagesHandler {
         }
       }
     }
-  }
 
-  private def respondWithContentType(contentType: ContentType): Directive0 = {
+  private def respondWithContentType(contentType: ContentType): Directive0 =
     mapRequest { req =>
       req.copy(
         entity = req.entity.withContentType(contentType),
         headers = req.headers.filterNot(_.isInstanceOf[Accept])
       )
     }
-  }
 
-  def destroyManifest(imageName: String, reference: Reference) = {
+  def destroyManifest(imageName: String, reference: Reference) =
     authenticateUserBasic { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
@@ -166,9 +162,8 @@ object ImagesHandler {
         }
       }
     }
-  }
 
-  def tags(imageName: String) = {
+  def tags(imageName: String) =
     tryAuthenticateUserBasic { userOpt =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
@@ -187,9 +182,8 @@ object ImagesHandler {
         }
       }
     }
-  }
 
-  def catalog = {
+  def catalog =
     authenticateUserBasic { user =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
         extractExecutionContext { implicit ec =>
@@ -206,5 +200,4 @@ object ImagesHandler {
         }
       }
     }
-  }
 }

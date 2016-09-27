@@ -20,7 +20,7 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
