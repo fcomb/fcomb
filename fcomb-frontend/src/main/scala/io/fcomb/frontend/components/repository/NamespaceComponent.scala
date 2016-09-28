@@ -50,9 +50,8 @@ object NamespaceComponent {
     private val limit = 256
 
     def fetchNamespaces(): Callback =
-      for {
-        props <- $.props
-        _ <- Callback.future {
+      $.props.flatMap { props =>
+        Callback.future {
           val role = if (props.isAdminRoleOnly) "admin" else ""
           val params = Map(
             "role"  -> role,
@@ -81,7 +80,7 @@ object NamespaceComponent {
               case Xor.Left(e) => Callback.warn(e)
             }
         }
-      } yield ()
+      }
 
     private def onChange(e: ReactEventI, idx: Int, namespace: Namespace): Callback =
       for {

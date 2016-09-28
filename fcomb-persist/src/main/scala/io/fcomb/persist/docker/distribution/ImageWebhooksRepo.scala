@@ -67,9 +67,7 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
   }
 
   def findByImageIdAsStream(imageId: Int) =
-    Source.fromPublisher(db.stream {
-      findByImageIdCompiled(imageId).result
-    })
+    Source.fromPublisher(db.stream(findByImageIdCompiled(imageId).result))
 
   private lazy val findByImageIdAndUrlCompiled = Compiled {
     (imageId: Rep[Int], url: Rep[String]) =>

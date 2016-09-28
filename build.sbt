@@ -8,7 +8,7 @@ lazy val circeVersion        = "0.5.2"
 lazy val commonsVersion      = "1.10"
 lazy val enumeratumVersion   = "1.4.15"
 lazy val guavaVersion        = "19.0"
-lazy val jawnVersion         = "0.9.0"
+lazy val jawnVersion         = "0.10.1"
 lazy val slickPgVersion      = "0.15.0-M2"
 lazy val slickVersion        = "3.2.0-M1"
 
@@ -106,8 +106,8 @@ lazy val utils = project
   .settings(allSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe"      % "config"       % "1.3.0",
-      "com.github.kxbmap" %% "configs"     % "0.4.2",
+      "com.typesafe"      % "config"       % "1.3.1",
+      "com.github.kxbmap" %% "configs"     % "0.4.3",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion
     ))
   .enablePlugins(AutomateHeaderPlugin)
@@ -291,7 +291,7 @@ lazy val frontend = project
     packageBin in Compile <<= (packageBin in Compile).dependsOn(frontendBundleBuild),
     libraryDependencies ++= Seq(
       "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.5.0",
-      "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.1",
+      "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.2",
       "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.5.0",
       "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
       "org.typelevel"                                  %%% "cats"          % catsVersion,
