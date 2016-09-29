@@ -35,9 +35,9 @@ import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.PaginationDirectives._
 
 object RepositoriesHandler {
-  val servicePath = "repositories"
+  val handlerPath = "repositories"
 
-  lazy val resourcePrefix = s"/$apiVersion/${RepositoriesHandler.servicePath}/"
+  lazy val resourcePrefix = s"/$apiVersion/${RepositoriesHandler.handlerPath}/"
 
   def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
@@ -74,7 +74,7 @@ object RepositoriesHandler {
 
   def routes(slug: Slug): Route =
     // format: OFF
-    path(servicePath) {
+    path(handlerPath) {
       get(index(slug)) ~
       post(create(slug))
     }

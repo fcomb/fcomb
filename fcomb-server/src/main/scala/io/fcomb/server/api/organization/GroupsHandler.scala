@@ -38,7 +38,7 @@ import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.SlugPath
 
 object GroupsHandler {
-  val servicePath = "groups"
+  val handlerPath = "groups"
 
   lazy val resourcePrefix = s"${OrganizationsHandler.resourcePrefix}/"
 
@@ -62,7 +62,7 @@ object GroupsHandler {
           entity(as[OrganizationGroupRequest]) { req =>
             onSuccess(OrganizationGroupsRepo.create(org.getId(), req)) {
               case Validated.Valid(group) =>
-                val prefix = s"${resourcePrefix}/$slug/$servicePath}"
+                val prefix = s"${resourcePrefix}/$slug/$handlerPath}"
                 val res    = OrganizationGroupHelpers.responseFrom(group)
                 completeCreated(res, prefix)
               case Validated.Invalid(errs) => completeErrors(errs)
@@ -111,7 +111,7 @@ object GroupsHandler {
 
   def routes(slug: Slug): Route =
     // format: OFF
-    pathPrefix(servicePath) {
+    pathPrefix(handlerPath) {
       pathEnd {
         get(index(slug)) ~
         post(create(slug))

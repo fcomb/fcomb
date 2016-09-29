@@ -27,7 +27,7 @@ import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.PaginationDirectives._
 
 object RepositoriesHandler {
-  val servicePath = "repositories"
+  val handlerPath = "repositories"
 
   def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
@@ -49,7 +49,7 @@ object RepositoriesHandler {
 
   def routes(slug: Slug): Route =
     // format: OFF
-    path(servicePath) {
+    path(handlerPath) {
       get(index(slug))
     }
     // format: ON

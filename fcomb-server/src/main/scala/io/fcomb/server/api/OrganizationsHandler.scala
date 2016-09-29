@@ -36,9 +36,9 @@ import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.SlugPath
 
 object OrganizationsHandler {
-  val servicePath = "organizations"
+  val handlerPath = "organizations"
 
-  lazy val resourcePrefix = s"/$apiVersion/$servicePath/"
+  lazy val resourcePrefix = s"/$apiVersion/$handlerPath/"
 
   def create =
     extractExecutionContext { implicit ec =>
@@ -100,7 +100,7 @@ object OrganizationsHandler {
 
   val routes: Route = {
     // format: OFF
-    pathPrefix(servicePath) {
+    pathPrefix(handlerPath) {
       pathEnd {
         post(create)
       } ~

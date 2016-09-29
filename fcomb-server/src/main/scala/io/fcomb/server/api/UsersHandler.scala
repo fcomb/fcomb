@@ -32,7 +32,7 @@ import io.fcomb.server.SlugPath
 import io.fcomb.utils.Config
 
 object UsersHandler {
-  val servicePath = "users"
+  val handlerPath = "users"
 
   def signUp =
     if (Config.security.isOpenSignUp) {
@@ -49,7 +49,7 @@ object UsersHandler {
 
   val routes: Route = {
     // format: OFF
-    pathPrefix(servicePath) {
+    pathPrefix(handlerPath) {
       path("sign_up")(post(signUp)) ~
       pathPrefix(SlugPath) { slug =>
         users.RepositoriesHandler.routes(slug)

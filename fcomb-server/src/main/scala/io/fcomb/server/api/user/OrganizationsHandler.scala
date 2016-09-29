@@ -24,7 +24,7 @@ import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.PaginationDirectives._
 
 object OrganizationsHandler {
-  val servicePath = "organizations"
+  val handlerPath = "organizations"
 
   def index =
     extractExecutionContext { implicit ec =>
@@ -39,7 +39,7 @@ object OrganizationsHandler {
 
   val routes: Route = {
     // format: OFF
-    path(servicePath) {
+    path(handlerPath) {
       get(index)
     }
     // format: ON

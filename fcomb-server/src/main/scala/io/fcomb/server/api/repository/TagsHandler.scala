@@ -26,7 +26,7 @@ import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 
 object TagsHandler {
-  val servicePath = "tags"
+  val handlerPath = "tags"
 
   def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
@@ -43,7 +43,7 @@ object TagsHandler {
 
   def routes(slug: Slug): Route =
     // format: OFF
-    path(servicePath) {
+    path(handlerPath) {
       get(index(slug))
     }
     // format: ON

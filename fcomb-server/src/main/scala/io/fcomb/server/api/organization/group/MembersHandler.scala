@@ -31,7 +31,7 @@ import io.fcomb.server.OrganizationGroupDirectives._
 import io.fcomb.server.PaginationDirectives._
 
 object MembersHandler {
-  val servicePath = "members"
+  val handlerPath = "members"
 
   def index(slug: Slug, groupSlug: Slug) =
     extractExecutionContext { implicit ec =>
@@ -74,7 +74,7 @@ object MembersHandler {
 
   def routes(slug: Slug, groupSlug: Slug): Route =
     // format: OFF
-    pathPrefix(servicePath) {
+    pathPrefix(handlerPath) {
       pathEnd {
         get(index(slug, groupSlug)) ~
         put(upsert(slug, groupSlug))

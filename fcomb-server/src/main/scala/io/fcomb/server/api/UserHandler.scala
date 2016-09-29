@@ -25,7 +25,7 @@ import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.rpc.helpers.UserHelpers
 
 object UserHandler {
-  val servicePath = "user"
+  val handlerPath = "user"
 
   def current =
     authenticateUser { user =>
@@ -91,7 +91,7 @@ object UserHandler {
 
   val routes: Route = {
     // format: OFF
-    pathPrefix(servicePath) {
+    pathPrefix(handlerPath) {
       pathEnd {
         get(current)
       } ~

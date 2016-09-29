@@ -28,7 +28,7 @@ import io.fcomb.json.models.errors.Formats._
 import io.fcomb.services.user.SessionsService
 
 object SessionsHandler {
-  val servicePath = "sessions"
+  val handlerPath = "sessions"
 
   def create =
     extractExecutionContext { implicit ec =>
@@ -42,7 +42,7 @@ object SessionsHandler {
 
   val routes: Route = {
     // format: OFF
-    path(servicePath) {
+    path(handlerPath) {
       post(create)
     }
     // format: ON

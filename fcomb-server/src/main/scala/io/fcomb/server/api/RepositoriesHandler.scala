@@ -35,7 +35,7 @@ import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 
 object RepositoriesHandler {
-  val servicePath = "repositories"
+  val handlerPath = "repositories"
 
   def show(slug: Slug) =
     extractExecutionContext { implicit ec =>
@@ -88,7 +88,7 @@ object RepositoriesHandler {
 
   val routes: Route = {
     // format: OFF
-    pathPrefix(servicePath) {
+    pathPrefix(handlerPath) {
       pathPrefix(IntNumber) { id =>
         nestedRoutes(Slug.Id(id))
       } ~

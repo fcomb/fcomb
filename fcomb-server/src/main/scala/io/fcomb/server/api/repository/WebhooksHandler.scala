@@ -33,7 +33,7 @@ import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 
 object WebhooksHandler {
-  val servicePath = "webhooks"
+  val handlerPath = "webhooks"
 
   def index(slug: Slug) =
     authenticateUser { user =>
@@ -68,7 +68,7 @@ object WebhooksHandler {
 
   def routes(slug: Slug) =
     // format: OFF
-    path(servicePath) {
+    path(handlerPath) {
       get(index(slug)) ~
       put(upsert(slug))
     }

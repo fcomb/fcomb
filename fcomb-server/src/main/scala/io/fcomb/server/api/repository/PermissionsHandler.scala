@@ -37,7 +37,7 @@ import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 
 object PermissionsHandler {
-  val servicePath = "permissions"
+  val handlerPath = "permissions"
 
   def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
@@ -93,7 +93,7 @@ object PermissionsHandler {
 
   def routes(slug: Slug): Route =
     // format: OFF
-    pathPrefix(servicePath) {
+    pathPrefix(handlerPath) {
       pathEnd {
         get(index(slug)) ~
         put(upsert(slug))
