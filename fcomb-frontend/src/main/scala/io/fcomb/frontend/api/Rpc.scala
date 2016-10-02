@@ -20,10 +20,16 @@ import cats.data.Xor
 import io.circe.scalajs.decodeJs
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
-import io.fcomb.frontend.dispatcher.actions.LogOut
+import io.fcomb.frontend.components.repository.Namespace
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.models.errors.{Error, Errors}
+import io.fcomb.frontend.dispatcher.actions.LogOut
+import io.fcomb.frontend.utils.PaginationUtils
+import io.fcomb.json.models.Formats._
 import io.fcomb.json.models.errors.Formats.decodeErrors
+import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.models.PaginationData
+import io.fcomb.models.errors.{Error, Errors}
+import io.fcomb.rpc.docker.distribution._
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.ext.AjaxException
 import org.scalajs.dom.window
@@ -41,6 +47,31 @@ object RpcMethod {
 }
 
 object Rpc {
+  def getRepository(slug: String)(implicit ec: ExecutionContext) =
+    call[RepositoryResponse](RpcMethod.GET, Resource.repository(slug))
+
+  def updateRepository(slug: String, req: ImageUpdateRequest)(implicit ec: ExecutionContext) =
+    callWith[ImageUpdateRequest, RepositoryResponse](RpcMethod.PUT, Resource.repository(slug), req)
+
+  private def getRepositoriesByUrl(url: String, page: Int, limit: Int)(
+      implicit ec: ExecutionContext) = {
+    val params = PaginationUtils.getParams(page, limit)
+    call[PaginationData[RepositoryResponse]](RpcMethod.GET, url, params)
+  }
+
+  def getNamespaceRepositories(namespace: Namespace, page: Int, limit: Int)(
+      implicit ec: ExecutionContext) = {
+    val url = namespace match {
+      case Namespace.All                   => Resource.userSelfRepositoriesAvailable
+      case Namespace.User(slug, _)         => Resource.userRepositories(slug)
+      case Namespace.Organization(slug, _) => Resource.organizationRepositories(slug)
+    }
+    getRepositoriesByUrl(url, page, limit)
+  }
+
+  def getAvailableRepositories(page: Int, limit: Int)(implicit ec: ExecutionContext) =
+    getRepositoriesByUrl(Resource.userSelfRepositories, page: Int, limit: Int)
+
   def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,
       url: String,

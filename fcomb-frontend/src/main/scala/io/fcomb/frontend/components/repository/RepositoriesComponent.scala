@@ -21,13 +21,9 @@ import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{LayoutComponent, TimeAgoComponent, ToolbarPaginationComponent}
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.frontend.utils.PaginationUtils
-import io.fcomb.json.models.Formats._
-import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.PaginationData
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
@@ -49,16 +45,13 @@ object RepositoriesComponent {
       $.modState(_.copy(page = page)) >> $.props.flatMap(p => getRepositories(p.namespace, page))
 
     def getRepositories(namespace: Namespace, page: Int) = {
-      val url = namespace match {
-        case Namespace.All => Resource.userSelfRepositoriesAvailable
-        case Namespace.User(slug, _) =>
-          if (currentUser.exists(_.username == slug)) Resource.userSelfRepositories
-          else Resource.userRepositories(slug)
-        case Namespace.Organization(slug, _) => Resource.organizationRepositories(slug)
+      val res = namespace match {
+        case Namespace.User(slug, _) if (currentUser.exists(_.username == slug)) =>
+          Rpc.getAvailableRepositories(page, limit)
+        case ns => Rpc.getNamespaceRepositories(ns, page, limit)
       }
-      val params = PaginationUtils.getParams(page, limit)
       Callback.future {
-        Rpc.call[PaginationData[RepositoryResponse]](RpcMethod.GET, url, params).map {
+        res.map {
           case Xor.Right(pd) =>
             $.modState(
               _.copy(

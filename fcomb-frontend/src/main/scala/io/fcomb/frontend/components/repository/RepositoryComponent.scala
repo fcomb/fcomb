@@ -18,9 +18,8 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{CopyToClipboardComponent, MarkdownComponent}
-import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.rpc.docker.distribution.{ImageUpdateRequest, RepositoryResponse}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -39,7 +38,7 @@ object RepositoryComponent {
 
     def getRepository(name: String): Callback =
       Callback.future {
-        Rpc.call[RepositoryResponse](RpcMethod.GET, Resource.repository(name)).map {
+        Rpc.getRepository(name).map {
           case Xor.Right(repository) =>
             $.modState(_.copy(repository = Some(repository)))
           case Xor.Left(e) => Callback.warn(e)
@@ -63,9 +62,7 @@ object RepositoryComponent {
           _ <- Callback.future {
             val req = ImageUpdateRequest(fs.description)
             Rpc
-              .callWith[ImageUpdateRequest, RepositoryResponse](RpcMethod.PUT,
-                                                                Resource.repository(name),
-                                                                req)
+              .updateRepository(name, req)
               .map {
                 case Xor.Right(repository) =>
                   $.modState(_.copy(repository = Some(repository), form = None))
