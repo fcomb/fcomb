@@ -28,8 +28,7 @@ object Formats {
 
   final implicit val encodeOwner: Encoder[Owner]     = deriveEncoder
   final implicit val encodeSession: Encoder[Session] = deriveEncoder
-  final implicit def encodePaginationData[T](
-      implicit encoder: Encoder[T]): Encoder[PaginationData[T]] =
+  final implicit def encodePaginationData[T: Encoder]: Encoder[PaginationData[T]] =
     deriveEncoder
   final implicit val encodeCreateRepo: Encoder[CreateRepo] = deriveEncoder
   final implicit val encodePushRepo: Encoder[PushRepo]     = deriveEncoder
@@ -49,8 +48,7 @@ object Formats {
 
   final implicit val decodeOwner: Decoder[Owner]     = deriveDecoder
   final implicit val decodeSession: Decoder[Session] = deriveDecoder
-  final implicit def decodePaginationData[T](
-      implicit decoder: Decoder[T]): Decoder[PaginationData[T]] =
+  final implicit def decodePaginationData[T: Decoder]: Decoder[PaginationData[T]] =
     deriveDecoder
   final implicit val decodeCreateRepo: Decoder[CreateRepo] = deriveDecoder
   final implicit val decodePushRepo: Decoder[PushRepo]     = deriveDecoder

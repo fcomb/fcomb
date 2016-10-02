@@ -66,8 +66,7 @@ object PaginationDirectives {
       .toMap
 
   // TODO: add Link: <api?limit=&offset=>; rel="next", <api?limit=&offset=>; rel="last"
-  def completePagination[T](label: String, pd: PaginationData[T])(
-      implicit encoder: Encoder[T]): Route = {
+  def completePagination[T: Encoder](label: String, pd: PaginationData[T]): Route = {
     val etagHash = pd.etagHash
     optionalHeaderValueByType[`If-None-Match`](()) {
       case Some(`If-None-Match`(EntityTagRange.Default(Seq(EntityTag(`etagHash`, _))))) =>

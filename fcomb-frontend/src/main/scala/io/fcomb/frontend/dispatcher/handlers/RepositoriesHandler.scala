@@ -14,8 +14,19 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.dispatcher.actions
+package io.fcomb.frontend.dispatcher.handlers
 
-import diode.Action
+import diode._
+import io.fcomb.frontend.dispatcher.actions
+// import io.fcomb.frontend.services.AuthService
 
-final case object LogOut extends Action
+final class RepositoriesHandler[M](modelRW: ModelRW[M, Option[String]])
+    extends ActionHandler(modelRW) {
+  protected def handle = {
+    case msg: actions.RepositoryAction =>
+      msg match {
+        case _ =>
+      }
+      ???
+  }
+}

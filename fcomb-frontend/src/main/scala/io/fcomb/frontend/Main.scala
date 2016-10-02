@@ -18,7 +18,7 @@ package io.fcomb.frontend
 
 import io.fcomb.frontend.components.RouterComponent
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.frontend.dispatcher.actions.Initialize
+import io.fcomb.frontend.dispatcher.actions.LoadSession
 import io.fcomb.frontend.styles._
 import japgolly.scalajs.react._
 import org.scalajs.dom.document
@@ -32,7 +32,7 @@ object Main extends JSApp {
     GlobalRegistry.register(App)
     GlobalRegistry.addToDocumentOnRegistration()
 
-    AppCircuit.dispatch(Initialize)
+    AppCircuit.dispatch(LoadSession)
     ReactDOM.render(RouterComponent.apply(), document.getElementById("app"))
 
     ()

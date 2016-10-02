@@ -18,4 +18,8 @@ package io.fcomb.frontend.dispatcher.actions
 
 import diode.Action
 
-final case object Initialize extends Action
+sealed trait RepositoryAction extends Action
+
+final case class LoadRepositories(namespace: String) extends RepositoryAction
+
+final case object LoadAvailableRepositories extends RepositoryAction

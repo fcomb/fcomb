@@ -18,4 +18,10 @@ package io.fcomb.frontend.dispatcher.actions
 
 import diode.Action
 
-final case class Authenticated(session: String) extends Action
+sealed trait AuthenticationAction extends Action
+
+final case class Authenticated(session: String) extends AuthenticationAction
+
+final case object LogOut extends AuthenticationAction
+
+final case object LoadSession extends AuthenticationAction

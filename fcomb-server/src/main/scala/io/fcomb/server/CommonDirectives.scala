@@ -44,7 +44,7 @@ object CommonDirectives {
   def completeAccepted(): Route =
     completeWithStatus(StatusCodes.Accepted)
 
-  def completeWithEtag[T](status: StatusCode, item: T)(implicit encoder: Encoder[T]): Route = {
+  def completeWithEtag[T: Encoder](status: StatusCode, item: T): Route = {
     val etagHash = item.hashCode.toHexString
     optionalHeaderValueByType[`If-None-Match`](()) {
       case Some(`If-None-Match`(EntityTagRange.Default(Seq(EntityTag(`etagHash`, _))))) =>
@@ -57,8 +57,7 @@ object CommonDirectives {
     }
   }
 
-  def completeCreated[T](item: T, prefix: String)(implicit encoder: Encoder[T],
-                                                  idLens: IdLens[T]): Route = {
+  def completeCreated[T: Encoder](item: T, prefix: String)(implicit idLens: IdLens[T]): Route = {
     val uri     = prefix + idLens.get(item)
     val headers = immutable.Seq(Location(uri))
     respondWithHeaders(headers)(complete((StatusCodes.Created, item)))

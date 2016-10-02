@@ -16,4 +16,8 @@
 
 package io.fcomb.frontend.dispatcher
 
-final case class RootModel(session: Option[String])
+import diode.data.Pot
+import io.fcomb.rpc.docker.distribution.RepositoryResponse
+
+final case class RootModel(session: Option[String],
+                           repositories: Pot[Map[String, RepositoryResponse]])

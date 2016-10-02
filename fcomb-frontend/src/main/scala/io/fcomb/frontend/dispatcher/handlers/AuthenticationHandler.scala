@@ -20,19 +20,22 @@ import diode._
 import io.fcomb.frontend.dispatcher.actions
 import io.fcomb.frontend.services.AuthService
 
-class AuthenticationHandler[M](modelRW: ModelRW[M, Option[String]])
+final class AuthenticationHandler[M](modelRW: ModelRW[M, Option[String]])
     extends ActionHandler(modelRW) {
   protected def handle = {
-    case actions.Initialize =>
-      AuthService.getToken() match {
-        case Some(token) => updated(Some(token))
-        case None        => noChange
+    case msg: actions.AuthenticationAction =>
+      msg match {
+        case actions.LoadSession =>
+          AuthService.getToken() match {
+            case Some(token) => updated(Some(token))
+            case None        => noChange
+          }
+        case actions.Authenticated(token) =>
+          AuthService.setToken(token)
+          updated(Some(token))
+        case actions.LogOut =>
+          AuthService.removeToken()
+          updated(None)
       }
-    case actions.Authenticated(token) =>
-      AuthService.setToken(token)
-      updated(Some(token))
-    case actions.LogOut =>
-      AuthService.removeToken()
-      updated(None)
   }
 }

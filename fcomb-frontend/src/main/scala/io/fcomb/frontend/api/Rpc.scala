@@ -18,6 +18,7 @@ package io.fcomb.frontend.api
 
 import cats.data.Xor
 import io.circe.scalajs.decodeJs
+import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 import io.fcomb.frontend.dispatcher.actions.LogOut
 import io.fcomb.frontend.dispatcher.AppCircuit
@@ -40,16 +41,15 @@ object RpcMethod {
 }
 
 object Rpc {
-  def callWith[T, U](method: RpcMethod,
-                     url: String,
-                     req: T,
-                     queryParams: Map[String, String] = Map.empty,
-                     headers: Map[String, String] = Map.empty,
-                     timeout: Int = 0)(implicit ec: ExecutionContext,
-                                       encoder: Encoder[T],
-                                       decoder: Decoder[U]): Future[Xor[Seq[Error], U]] = {
+  def callWith[T: Encoder, U: Decoder](
+      method: RpcMethod,
+      url: String,
+      req: T,
+      queryParams: Map[String, String] = Map.empty,
+      headers: Map[String, String] = Map.empty,
+      timeout: Int = 0)(implicit ec: ExecutionContext): Future[Xor[Seq[Error], U]] = {
     val hm        = if (headers.isEmpty) defaultHeaders else headers ++ defaultHeaders
-    val reqBody   = encoder.apply(req).noSpaces
+    val reqBody   = req.asJson.noSpaces
     val urlParams = queryParams.map { case (k, v) => s"$k=$v" }.mkString("&")
     val targetUrl = URIUtils.encodeURI(s"$url?$urlParams")
     Ajax

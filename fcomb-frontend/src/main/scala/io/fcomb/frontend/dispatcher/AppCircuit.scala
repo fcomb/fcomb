@@ -17,6 +17,7 @@
 package io.fcomb.frontend.dispatcher
 
 import diode.Circuit
+import diode.data.Pot
 import diode.react.ReactConnector
 import io.circe.parser.decode
 import io.fcomb.frontend.dispatcher.handlers._
@@ -29,7 +30,7 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
     new AuthenticationHandler(zoomRW(_.session)((m, v) => m.copy(session = v)))
   )
 
-  protected def initialModel = RootModel(session = None)
+  protected def initialModel = RootModel(None, Pot.empty)
 
   def currentState = zoom(identity).value
 
