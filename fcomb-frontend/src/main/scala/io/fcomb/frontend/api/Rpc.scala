@@ -17,6 +17,7 @@
 package io.fcomb.frontend.api
 
 import cats.data.Xor
+import diode.data._
 import io.circe.scalajs.decodeJs
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
@@ -28,7 +29,7 @@ import io.fcomb.json.models.Formats._
 import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.PaginationData
-import io.fcomb.models.errors.{Error, Errors}
+import io.fcomb.models.errors.{Error, Errors, ErrorsException}
 import io.fcomb.rpc.docker.distribution._
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.ext.AjaxException
@@ -62,15 +63,18 @@ object Rpc {
   def getNamespaceRepositories(namespace: Namespace, page: Int, limit: Int)(
       implicit ec: ExecutionContext) = {
     val url = namespace match {
-      case Namespace.All                   => Resource.userSelfRepositoriesAvailable
-      case Namespace.User(slug, _)         => Resource.userRepositories(slug)
+      case Namespace.All => Resource.userSelfRepositoriesAvailable
+      case ns @ Namespace.User(slug, _) =>
+        if (ns.isCurrentUser) Resource.userSelfRepositories
+        else Resource.userRepositories(slug)
       case Namespace.Organization(slug, _) => Resource.organizationRepositories(slug)
     }
     getRepositoriesByUrl(url, page, limit)
   }
 
-  def getAvailableRepositories(page: Int, limit: Int)(implicit ec: ExecutionContext) =
-    getRepositoriesByUrl(Resource.userSelfRepositories, page: Int, limit: Int)
+  def getRepositories(slugs: Set[String])(
+      implicit ec: ExecutionContext): Future[Map[String, Pot[RepositoryResponse]]] =
+    traversePotMap(slugs)(getRepository)
 
   def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,
@@ -98,6 +102,22 @@ object Rpc {
           Xor.Left(Seq(Errors.unknown))
       }
   }
+
+  private def traversePotMap[K, R](keys: Set[K])(call: K => Future[Xor[Seq[Error], R]])(
+      implicit ec: ExecutionContext): Future[Map[K, Pot[R]]] =
+    keys.foldLeft(Future.successful(Map.empty[K, Pot[R]])) {
+      case (fm, key) =>
+        for {
+          res <- call(key)
+          m   <- fm
+        } yield m + ((key, toPot(res)))
+    }
+
+  private def toPot[U](xor: Xor[Seq[Error], U]): Pot[U] =
+    xor match {
+      case Xor.Right(res) => Ready(res)
+      case Xor.Left(seq)  => Failed(ErrorsException(seq))
+    }
 
   private def decode[U](responseText: String)(implicit dec: Decoder[U]): Xor[Seq[Error], U] = {
     val body = if (responseText.nonEmpty) responseText else "null"

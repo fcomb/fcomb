@@ -20,6 +20,7 @@ import io.fcomb.frontend.components.auth._
 import io.fcomb.frontend.components.dashboard._
 import io.fcomb.frontend.components.organization._
 import io.fcomb.frontend.components.repository._
+import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.{DashboardRoute, Route}
 import japgolly.scalajs.react.extra.router._
 import japgolly.scalajs.react._
@@ -40,24 +41,32 @@ object RouterComponent {
     trimSlashes |
     staticRoute(root, DashboardRoute.Root) ~> redirectToPage(DashboardRoute.Repositories)(
       Redirect.Replace) |
-    staticRoute("repositories", DashboardRoute.Repositories) ~> renderR(
-      ctl => DashboardRepositoriesComponent.apply(ctl)) |
-    staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~> renderR(
-      ctl => UserNewRepositoryComponent.apply(ctl)) |
-    dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~> dynRenderR((r, ctl) => RepositoryComponent.apply(ctl, r.name)) |
-    dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~> dynRenderR((r, ctl) => TagsComponent.apply(ctl, r.name)) |
-    dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~> dynRenderR((r, ctl) => RepositorySettingsComponent.apply(ctl, r.name)) |
-    staticRoute("organizations", DashboardRoute.Organizations) ~> renderR(
-      ctl => OrganizationsComponent.apply(ctl)) |
-    staticRoute("organizations" / "new", DashboardRoute.NewOrganization) ~> renderR(
-      ctl => NewOrganizationComponent.apply(ctl)) |
-    dynamicRouteCT((organizationNamePath / "settings").caseClass[DashboardRoute.OrganizationSettings]) ~> dynRenderR(
-      (o, ctl) => OrganizationSettingsComponent.apply(ctl, o.orgName)) |
-    dynamicRouteCT((organizationNamePath / "repositories" / "new").caseClass[DashboardRoute.NewOrganizationRepository]) ~> dynRenderR((o, ctl) => NewOrganizationRepositoryComponent.apply(ctl, o.orgName)) |
-    dynamicRouteCT(organizationNamePath.caseClass[DashboardRoute.Organization]) ~> dynRenderR((o, ctl) => OrganizationComponent.apply(ctl, o.orgName)) |
-    dynamicRouteCT((organizationNamePath / "groups" / "new").caseClass[DashboardRoute.NewOrganizationGroup]) ~> dynRenderR((o, ctl) => NewGroupComponent.apply(ctl, o.orgName)) |
-    dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~> dynRenderR((o, ctl) => GroupsComponent.apply(ctl, o.orgName)) |
-    dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat)).caseClass[DashboardRoute.OrganizationGroup]) ~> dynRenderR((og, ctl) => GroupComponent.apply(ctl, og.orgName, og.name))
+    staticRoute("repositories", DashboardRoute.Repositories) ~>
+      renderR(ctl => DashboardRepositoriesComponent.apply(ctl)) |
+    staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~>
+      renderR(ctl => UserNewRepositoryComponent.apply(ctl)) |
+    dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~>
+      dynRenderR((r, ctl) => RepositoryComponent(ctl, r.name)) |
+    dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~>
+      dynRenderR((r, ctl) => TagsComponent.apply(ctl, r.name)) |
+    dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~>
+      dynRenderR((r, ctl) => RepositorySettingsComponent.apply(ctl, r.name)) |
+    staticRoute("organizations", DashboardRoute.Organizations) ~>
+      renderR(ctl => OrganizationsComponent.apply(ctl)) |
+    staticRoute("organizations" / "new", DashboardRoute.NewOrganization) ~>
+      renderR(ctl => NewOrganizationComponent.apply(ctl)) |
+    dynamicRouteCT((organizationNamePath / "settings").caseClass[DashboardRoute.OrganizationSettings]) ~>
+      dynRenderR((o, ctl) => OrganizationSettingsComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT((organizationNamePath / "repositories" / "new").caseClass[DashboardRoute.NewOrganizationRepository]) ~>
+      dynRenderR((o, ctl) => NewOrganizationRepositoryComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT(organizationNamePath.caseClass[DashboardRoute.Organization]) ~>
+      dynRenderR((o, ctl) => OrganizationComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT((organizationNamePath / "groups" / "new").caseClass[DashboardRoute.NewOrganizationGroup]) ~>
+      dynRenderR((o, ctl) => NewGroupComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~>
+      dynRenderR((o, ctl) => GroupsComponent.apply(ctl, o.orgName)) |
+    dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat)).caseClass[DashboardRoute.OrganizationGroup]) ~>
+      dynRenderR((og, ctl) => GroupComponent.apply(ctl, og.orgName, og.name))
     // format: ON
   }
 

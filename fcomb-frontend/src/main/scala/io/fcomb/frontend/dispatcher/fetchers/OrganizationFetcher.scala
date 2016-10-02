@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.dispatcher
+package io.fcomb.frontend.dispatcher.fetchers
 
-import diode.data.PotMap
-import io.fcomb.models.SessionPayload
-import io.fcomb.rpc.docker.distribution.RepositoryResponse
-import io.fcomb.rpc.OrganizationResponse
+import diode.data.Fetch
+import diode.Dispatcher
 
-final case class RootModel(session: Option[String],
-                           currentUser: Option[SessionPayload.User],
-                           repositories: PotMap[String, RepositoryResponse],
-                           organizations: PotMap[String, OrganizationResponse])
+final case class OrganizationFetcher(dispatch: Dispatcher) extends Fetch[String] {
+  override def fetch(key: String): Unit               = ()
+  override def fetch(keys: Traversable[String]): Unit = ()
+}

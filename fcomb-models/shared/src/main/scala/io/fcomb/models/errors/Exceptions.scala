@@ -23,3 +23,5 @@ trait FcombException extends Throwable with NoStackTrace
 trait ErrorException extends FcombException {
   val error: Error
 }
+
+final case class ErrorsException(errors: Seq[Error]) extends FcombException

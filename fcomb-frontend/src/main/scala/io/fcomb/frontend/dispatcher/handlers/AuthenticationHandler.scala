@@ -16,26 +16,38 @@
 
 package io.fcomb.frontend.dispatcher.handlers
 
-import diode._
-import io.fcomb.frontend.dispatcher.actions
+import diode.{ActionHandler, ActionResult, ModelRW}
+import io.circe.parser.decode
+import io.fcomb.frontend.dispatcher.actions._
 import io.fcomb.frontend.services.AuthService
+import io.fcomb.json.models.Formats.decodeSessionPayloadUser
+import io.fcomb.models.SessionPayload
+import org.scalajs.dom.window
 
-final class AuthenticationHandler[M](modelRW: ModelRW[M, Option[String]])
+final class AuthenticationHandler[M](
+    modelRW: ModelRW[M, (Option[String], Option[SessionPayload.User])])
     extends ActionHandler(modelRW) {
-  protected def handle = {
-    case msg: actions.AuthenticationAction =>
-      msg match {
-        case actions.LoadSession =>
-          AuthService.getToken() match {
-            case Some(token) => updated(Some(token))
-            case None        => noChange
-          }
-        case actions.Authenticated(token) =>
-          AuthService.setToken(token)
-          updated(Some(token))
-        case actions.LogOut =>
-          AuthService.removeToken()
-          updated(None)
+  val pf: PartialFunction[AuthenticationAction, ActionResult[M]] = {
+    case LoadSession =>
+      AuthService.getToken() match {
+        case Some(token) => applyToken(token)
+        case None        => noChange
       }
+    case Authenticated(token) =>
+      AuthService.setToken(token)
+      applyToken(token)
+    case LogOut =>
+      AuthService.removeToken()
+      updated((None, None))
   }
+
+  private def applyToken(token: String) =
+    updated((Some(token), decodeUser(token)))
+
+  private def decodeUser(session: String): Option[SessionPayload.User] =
+    session.split('.').lift(1).flatMap { body =>
+      decode[SessionPayload.User](window.atob(body)).toOption
+    }
+
+  protected def handle = { case action: AuthenticationAction => pf(action) }
 }

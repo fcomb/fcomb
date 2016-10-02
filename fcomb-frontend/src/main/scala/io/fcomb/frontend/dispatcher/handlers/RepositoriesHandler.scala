@@ -16,17 +16,20 @@
 
 package io.fcomb.frontend.dispatcher.handlers
 
-import diode._
-import io.fcomb.frontend.dispatcher.actions
-// import io.fcomb.frontend.services.AuthService
+import diode.data.{AsyncAction, PotMap}
+import diode.{ActionHandler, ActionResult, ModelRW}
+import io.fcomb.frontend.api.Rpc
+import io.fcomb.frontend.dispatcher.actions._
+import io.fcomb.rpc.docker.distribution.RepositoryResponse
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-final class RepositoriesHandler[M](modelRW: ModelRW[M, Option[String]])
+final class RepositoriesHandler[M](modelRW: ModelRW[M, PotMap[String, RepositoryResponse]])
     extends ActionHandler(modelRW) {
-  protected def handle = {
-    case msg: actions.RepositoryAction =>
-      msg match {
-        case _ =>
-      }
-      ???
+  val pf: PartialFunction[RepositoryAction, ActionResult[M]] = {
+    case action: UpdateRepositories =>
+      val updateEffect = action.effect(Rpc.getRepositories(action.keys))(identity)
+      action.handleWith(this, updateEffect)(AsyncAction.mapHandler(action.keys))
   }
+
+  protected def handle = { case action: RepositoryAction => pf(action) }
 }

@@ -17,6 +17,7 @@
 package io.fcomb.frontend.components.repository
 
 import cats.Eq
+import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.models.{Owner, OwnerKind}
 
 sealed trait Namespace
@@ -33,8 +34,9 @@ object Namespace {
   final case object All extends Namespace
 
   final case class User(slug: String, id: Option[Int] = None) extends OwnerNamespace {
-    def toOwner    = id.map(Owner(_, OwnerKind.User))
-    def groupTitle = "Users"
+    def isCurrentUser = AppCircuit.currentUser.exists(_.username == slug)
+    def toOwner       = id.map(Owner(_, OwnerKind.User))
+    def groupTitle    = "Users"
   }
 
   final case class Organization(slug: String, id: Option[Int] = None) extends OwnerNamespace {
