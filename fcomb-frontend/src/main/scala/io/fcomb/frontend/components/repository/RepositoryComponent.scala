@@ -38,7 +38,6 @@ object RepositoryComponent {
 
     def render(props: Props): ReactElement = {
       val repository = props.repositories().get(props.name)
-      println(s"repository: $repository")
       <.div(repository.renderReady { r =>
         val dockerPullCommand = s"docker pull ${props.name}"
         val description =

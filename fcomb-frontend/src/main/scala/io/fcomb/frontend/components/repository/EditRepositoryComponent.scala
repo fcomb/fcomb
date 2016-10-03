@@ -45,7 +45,8 @@ object EditRepositoryComponent {
     def applyState(props: Props) =
       props.repositories().get(props.name) match {
         case Ready(repo) =>
-          $.modState(_.copy(form = Some(FormState(repo.visibilityKind, repo.description))))
+          val formState = FormState(repo.visibilityKind, repo.description)
+          $.modState(_.copy(form = Some(formState)))
         case _ => Callback.empty
       }
 
@@ -96,13 +97,15 @@ object EditRepositoryComponent {
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.modState(_.copy(form = None))
 
+    def renderForm(formState: FormState) =
+      <.span(formState.toString())
+
     def render(props: Props, state: State) = {
       val repository = props.repositories().get(props.name)
-      println(repository)
       <.div(
         repository.renderReady { r =>
           state.form match {
-            case Some(form) => <.span(form.toString())
+            case Some(form) => renderForm(form)
             case _          => <.div()
           }
         }

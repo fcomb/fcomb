@@ -21,17 +21,18 @@ import diode.ActionResult
 
 object ActionUtils {
   def distinctKeys[K, R](action: AsyncAction[Map[K, Pot[R]], _],
-                         map: PotMap[K, R],
-                         keys: Set[K]): Set[K] = {
-    val m = map.seq.toMap
-    keys.foldLeft(Set.empty[K]) {
-      case (set, key) =>
-        m.get(key) match {
-          case Some(v) if v.isPending && action.state == PotState.PotEmpty => set
-          case _                                                           => set + key
-        }
-    }
-  }
+                         map: => PotMap[K, R],
+                         keys: Set[K]): Set[K] =
+    if (action.state == PotState.PotEmpty) {
+      val m = map.seq.toMap
+      keys.foldLeft(Set.empty[K]) {
+        case (set, key) =>
+          m.get(key) match {
+            case Some(v) if v.isPending => set
+            case _                      => set + key
+          }
+      }
+    } else keys
 
   def handleWithKeys[K, R, M](action: AsyncAction[Map[K, Pot[R]], _],
                               map: PotMap[K, R],
