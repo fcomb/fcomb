@@ -134,7 +134,7 @@ object RepositoriesComponent {
   private val component = ReactComponentB[Props]("Repositories")
     .initialState(State(Seq.empty, 1, 0))
     .renderBackend[Backend]
-    .componentWillReceiveProps(cb => cb.$.backend.getRepositories(cb.nextProps.namespace, 1))
+    .componentWillReceiveProps(lc => lc.$.backend.getRepositories(lc.nextProps.namespace, 1))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], namespace: Namespace) =

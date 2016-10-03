@@ -27,8 +27,10 @@ final class RepositoriesHandler[M](modelRW: ModelRW[M, PotMap[String, Repository
     extends ActionHandler(modelRW) {
   val pf: PartialFunction[RepositoryAction, ActionResult[M]] = {
     case action: UpdateRepositories =>
-      val updateEffect = action.effect(Rpc.getRepositories(action.keys))(identity)
-      action.handleWith(this, updateEffect)(AsyncAction.mapHandler(action.keys))
+      ActionUtils.handleWithKeys(action, value, action.keys) { keys =>
+        val updateEffect = action.effect(Rpc.getRepositories(keys))(identity)
+        action.handleWith(this, updateEffect)(AsyncAction.mapHandler(keys))
+      }
   }
 
   protected def handle = { case action: RepositoryAction => pf(action) }

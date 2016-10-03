@@ -328,7 +328,11 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   def update(id: Int, req: ImageUpdateRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] =
-    update(id)(_.copy(description = req.description))
+    update(id)(
+      _.copy(
+        visibilityKind = req.visibilityKind,
+        description = req.description
+      ))
 
   private lazy val findAvailableByUserIdCompiled = Compiled {
     (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>

@@ -16,29 +16,109 @@
 
 package io.fcomb.frontend.components.repository
 
+import cats.data.Xor
+import diode.data.{PotMap, Ready}
+import diode.react.ModelProxy
+import diode.react.ReactPot._
 import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
+import io.fcomb.rpc.docker.distribution.{ImageUpdateRequest, RepositoryResponse}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import org.scalajs.dom.raw.HTMLInputElement
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object EditRepositoryComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], name: String)
-  final case class FormState(visibilityKind: ImageVisibilityKind, description: Option[String])
+  final case class Props(ctl: RouterCtl[DashboardRoute],
+                         repositories: ModelProxy[PotMap[String, RepositoryResponse]],
+                         name: String)
+  final case class FormState(visibilityKind: ImageVisibilityKind, description: String)
   final case class State(form: Option[FormState],
                          errors: Map[String, String],
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def render(props: Props, state: State) = ???
+    val descriptionRef = Ref[HTMLInputElement]("description")
+
+    def applyState(props: Props) =
+      props.repositories().get(props.name) match {
+        case Ready(repo) =>
+          $.modState(_.copy(form = Some(FormState(repo.visibilityKind, repo.description))))
+        case _ => Callback.empty
+      }
+
+    // def formDescription(description: String)(e: ReactEventH): Callback =
+    //   e.preventDefaultCB >>
+    //     $.modState(_.copy(form = Some(FormState(description)))) >>
+    //     CallbackTo(descriptionRef.apply($).map(_.setSelectionRange(0, 0))).delayMs(1).void
+
+    def updateRepositoryDescription(): Callback =
+      $.state.zip($.props).flatMap {
+        case (state, props) =>
+          state.form match {
+            case Some(fs) if !state.isFormDisabled =>
+              for {
+                _ <- $.modState(_.copy(isFormDisabled = true))
+                _ <- Callback.future {
+                  val req = ImageUpdateRequest(fs.visibilityKind, fs.description)
+                  Rpc.updateRepository(props.name, req).map {
+                    case Xor.Right(repository) =>
+                      props.ctl.set(DashboardRoute.Repository(repository.name))
+                    case Xor.Left(e) => $.modState(_.copy(isFormDisabled = false))
+                  }
+                }
+              } yield ()
+            case _ => Callback.empty
+          }
+      }
+
+    def handleOnSubmit(e: ReactEventH): Callback =
+      e.preventDefaultCB >> updateRepositoryDescription
+
+    def updateDescription(fs: FormState)(e: ReactEventI): Callback = {
+      val value = e.target.value
+      $.modState(_.copy(form = Some(fs.copy(description = value))))
+    }
+
+    def renderDescriptionTextArea(fs: FormState) =
+      <.textarea(^.ref := descriptionRef,
+                 ^.id := "description",
+                 ^.name := "description",
+                 ^.autoFocus := true,
+                 ^.tabIndex := 1,
+                 ^.rows := 24,
+                 ^.cols := 120,
+                 ^.value := fs.description,
+                 ^.onChange ==> updateDescription(fs))
+
+    def cancel(e: ReactEventH): Callback =
+      e.preventDefaultCB >> $.modState(_.copy(form = None))
+
+    def render(props: Props, state: State) = {
+      val repository = props.repositories().get(props.name)
+      println(repository)
+      <.div(
+        repository.renderReady { r =>
+          state.form match {
+            case Some(form) => <.span(form.toString())
+            case _          => <.div()
+          }
+        }
+      )
+    }
   }
 
   private val component = ReactComponentB[Props]("EditRepository")
     .initialState(State(None, Map.empty, false))
     .renderBackend[Backend]
-    // .componentWillMount($ => $.backend.getRepository($.props.name))
+    .componentDidMount($ => $.backend.applyState($.props))
+    .componentWillReceiveProps(lc => lc.$.backend.applyState(lc.nextProps))
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], name: String) =
-    component(Props(ctl, name))
+  def apply(ctl: RouterCtl[DashboardRoute],
+            repositories: ModelProxy[PotMap[String, RepositoryResponse]],
+            name: String) =
+    component(Props(ctl, repositories, name))
 }

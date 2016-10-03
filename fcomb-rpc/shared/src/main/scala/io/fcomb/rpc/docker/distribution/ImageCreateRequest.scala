@@ -25,5 +25,6 @@ final case class ImageCreateRequest(
 )
 
 final case class ImageUpdateRequest(
+    visibilityKind: ImageVisibilityKind,
     description: String
 )

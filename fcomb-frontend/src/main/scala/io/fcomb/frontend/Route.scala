@@ -59,6 +59,7 @@ object DashboardRoute {
     def title = s"${Repositories.title} – $name"
   }
   final case class Repository(name: String)         extends RepositoryRoute
+  final case class EditRepository(name: String)     extends RepositoryRoute
   final case class RepositoryTags(name: String)     extends RepositoryRoute
   final case class RepositorySettings(name: String) extends RepositoryRoute
 
