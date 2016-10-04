@@ -16,28 +16,39 @@
 
 package io.fcomb.frontend.dispatcher
 
-import diode.Circuit
-import diode.data.Pot
+import diode.data.PotMap
 import diode.react.ReactConnector
-import io.circe.parser.decode
+import diode.{Action, Circuit}
+import io.fcomb.frontend.dispatcher.fetchers._
 import io.fcomb.frontend.dispatcher.handlers._
-import io.fcomb.json.models.Formats.decodeSessionPayloadUser
-import io.fcomb.models.SessionPayload
-import org.scalajs.dom.window
+import japgolly.scalajs.react.{Callback, CallbackTo}
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   protected def actionHandler = composeHandlers(
-    new AuthenticationHandler(zoomRW(_.session)((m, v) => m.copy(session = v)))
+    new AuthenticationHandler(zoomRW(m => (m.session, m.currentUser)) {
+      case (m, (sv, scu)) => m.copy(session = sv, currentUser = scu)
+    }),
+    new RepositoriesHandler(zoomRW(_.repositories)((m, v) => m.copy(repositories = v)))
   )
 
-  protected def initialModel = RootModel(None, Pot.empty)
+  private lazy val repositoryFetcher   = RepositoryFetcher(this)
+  private lazy val organizationFetcher = OrganizationFetcher(this)
+
+  protected def initialModel = RootModel(
+    session = None,
+    currentUser = None,
+    repositories = PotMap(repositoryFetcher),
+    organizations = PotMap(organizationFetcher)
+  )
+
+  def dispatchCB(action: Action): Callback =
+    CallbackTo(dispatch(action))
 
   def currentState = zoom(identity).value
 
   def session = currentState.session
 
-  def currentUser =
-    session
-      .flatMap(_.split('.').lift(1))
-      .flatMap(s => decode[SessionPayload.User](window.atob(s)).toOption)
+  def currentUser = currentState.currentUser
+
+  lazy val repositories = connect(_.repositories)
 }

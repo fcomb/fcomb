@@ -27,7 +27,7 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object RepositorySettingsComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
+  final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
   final case class State(repository: Option[RepositoryResponse])
 
   class Backend($ : BackendScope[Props, State]) {
@@ -43,10 +43,10 @@ object RepositorySettingsComponent {
     def render(props: Props, state: State): ReactElement = {
       val components: Seq[TagMod] = state.repository match {
         case Some(repository) =>
-          Seq(PermissionsComponent.apply(props.ctl, props.repositoryName, repository.owner.kind),
-              RepositoryVisibilityComponent
-                .apply(props.ctl, props.repositoryName, repository.visibilityKind),
-              DeleteRepositoryComponent.apply(props.ctl, props.repositoryName))
+          Seq(
+            PermissionsComponent.apply(props.ctl, props.slug, repository.owner.kind),
+            RepositoryVisibilityComponent.apply(props.ctl, props.slug, repository.visibilityKind),
+            DeleteRepositoryComponent.apply(props.ctl, props.slug))
         case _ => Seq.empty
       }
       <.section(
@@ -59,9 +59,9 @@ object RepositorySettingsComponent {
   private val component = ReactComponentB[Props]("RepositorySettings")
     .initialState(State(None))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getRepository($.props.repositoryName))
+    .componentWillMount($ => $.backend.getRepository($.props.slug))
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String) =
-    component.apply(Props(ctl, repositoryName))
+  def apply(ctl: RouterCtl[DashboardRoute], slug: String) =
+    component.apply(Props(ctl, slug))
 }

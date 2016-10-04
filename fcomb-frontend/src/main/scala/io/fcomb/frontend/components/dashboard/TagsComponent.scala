@@ -36,7 +36,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 
 object TagsComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
+  final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
   final case class State(tags: Seq[RepositoryTagResponse],
                          sortColumn: String,
                          sortOrder: SortOrder)
@@ -44,12 +44,12 @@ object TagsComponent {
   class Backend($ : BackendScope[Props, State]) {
     val digestLength = 12
 
-    def getTags(name: String, sortColumn: String, sortOrder: SortOrder): Callback =
+    def getTags(slug: String, sortColumn: String, sortOrder: SortOrder): Callback =
       Callback.future {
         val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
         Rpc
           .call[PaginationData[RepositoryTagResponse]](RpcMethod.GET,
-                                                       Resource.repositoryTags(name),
+                                                       Resource.repositoryTags(slug),
                                                        queryParams = queryParams)
           .map {
             case Xor.Right(pd) =>
@@ -59,7 +59,7 @@ object TagsComponent {
       }
 
     def renderTagRow(props: Props, tag: RepositoryTagResponse) =
-      // <.li(ctl.link(DashboardRoute.Repository(props.repositoryName, tag.tag))(tag.tag))
+      // <.li(ctl.link(DashboardRoute.Repository(props.slug, tag.tag))(tag.tag))
       <.tr(<.td(tag.tag),
            <.td(TimeAgoComponent.apply(tag.updatedAt)),
            <.td(SizeInBytesComponent.apply(tag.length)),
@@ -70,14 +70,14 @@ object TagsComponent {
     def changeSortOrder(column: String)(e: ReactEventH): Callback =
       for {
         _     <- e.preventDefaultCB
-        name  <- $.props.map(_.repositoryName)
+        slug  <- $.props.map(_.slug)
         state <- $.state
         sortOrder = {
           if (state.sortColumn == column) state.sortOrder.flip
           else state.sortOrder
         }
         _ <- $.modState(_.copy(sortColumn = column, sortOrder = sortOrder))
-        _ <- getTags(name, column, sortOrder)
+        _ <- getTags(slug, column, sortOrder)
       } yield ()
 
     def renderHeader(title: String, column: String, state: State) = {
@@ -107,10 +107,10 @@ object TagsComponent {
     .initialState(State(Seq.empty, "updatedAt", SortOrder.Desc))
     .renderBackend[Backend]
     .componentWillMount { $ =>
-      $.backend.getTags($.props.repositoryName, $.state.sortColumn, $.state.sortOrder)
+      $.backend.getTags($.props.slug, $.state.sortColumn, $.state.sortOrder)
     }
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String) =
-    component.apply(Props(ctl, repositoryName))
+  def apply(ctl: RouterCtl[DashboardRoute], slug: String) =
+    component.apply(Props(ctl, slug))
 }

@@ -23,11 +23,13 @@ object StringUtils {
       .replaceAll("([a-z\\d])([A-Z])", "$1_$2")
       .toLowerCase
 
-  def trim(opt: Option[String]) =
-    opt.map(_.trim) match {
-      case res @ Some(s) if s.nonEmpty => res
-      case _                           => None
-    }
+  def trim(s: String): Option[String] = {
+    val value = s.trim
+    if (value.isEmpty) None else Some(value)
+  }
+
+  def trim(opt: Option[String]): Option[String] =
+    opt.flatMap(trim)
 
   def normalizeEmail(email: String) =
     email.trim.toLowerCase

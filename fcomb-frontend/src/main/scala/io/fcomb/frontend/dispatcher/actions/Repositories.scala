@@ -17,9 +17,20 @@
 package io.fcomb.frontend.dispatcher.actions
 
 import diode.Action
+import diode.data.{AsyncAction, Pot, PotState}
+import io.fcomb.rpc.docker.distribution.RepositoryResponse
+import scala.util.{Failure, Try}
 
 sealed trait RepositoryAction extends Action
 
-final case class LoadRepositories(namespace: String) extends RepositoryAction
+final case class UpdateRepositories(
+    keys: Set[String],
+    state: PotState = PotState.PotEmpty,
+    result: Try[Map[String, Pot[RepositoryResponse]]] = Failure(new AsyncAction.PendingException)
+) extends AsyncAction[Map[String, Pot[RepositoryResponse]], UpdateRepositories]
+    with RepositoryAction {
+  def next(newState: PotState, newValue: Try[Map[String, Pot[RepositoryResponse]]]) =
+    UpdateRepositories(keys, newState, newValue)
+}
 
-final case object LoadAvailableRepositories extends RepositoryAction
+final case class UpsertRepository(repo: RepositoryResponse) extends RepositoryAction

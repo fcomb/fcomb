@@ -34,7 +34,7 @@ object SignOutComponent {
   private val component = ReactComponentB[RouterCtl[Route]]("SignOut")
     .renderBackend[Backend]
     .componentWillMount { $ ⇒
-      val cb = CallbackTo(AppCircuit.dispatch(LogOut)) >> $.props.set(Route.SignIn).delayMs(1).void
+      val cb = AppCircuit.dispatchCB(LogOut) >> $.props.set(Route.SignIn).delayMs(1).void
       AppCircuit.session match {
         case Some(sessionToken) =>
           Callback.future {

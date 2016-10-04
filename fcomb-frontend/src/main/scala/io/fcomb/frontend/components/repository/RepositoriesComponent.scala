@@ -23,7 +23,6 @@ import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{LayoutComponent, TimeAgoComponent, ToolbarPaginationComponent}
-import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
@@ -37,21 +36,14 @@ object RepositoriesComponent {
   final case class State(repositories: Seq[RepositoryResponse], page: Int, total: Int)
 
   final class Backend($ : BackendScope[Props, State]) {
-    private lazy val currentUser = AppCircuit.currentUser
-
     val limit = 25
 
     def updatePage(page: Int): Callback =
       $.modState(_.copy(page = page)) >> $.props.flatMap(p => getRepositories(p.namespace, page))
 
-    def getRepositories(namespace: Namespace, page: Int) = {
-      val res = namespace match {
-        case Namespace.User(slug, _) if (currentUser.exists(_.username == slug)) =>
-          Rpc.getAvailableRepositories(page, limit)
-        case ns => Rpc.getNamespaceRepositories(ns, page, limit)
-      }
+    def getRepositories(namespace: Namespace, page: Int) =
       Callback.future {
-        res.map {
+        Rpc.getNamespaceRepositories(namespace, page, limit).map {
           case Xor.Right(pd) =>
             $.modState(
               _.copy(
@@ -62,7 +54,6 @@ object RepositoriesComponent {
           case Xor.Left(e) => Callback.warn(e)
         }
       }
-    }
 
     lazy val visibilityColumnStyle = js.Dictionary("width" -> "64px")
     lazy val menuColumnStyle       = js.Dictionary("width" -> "48px", "padding" -> "0px")
@@ -143,7 +134,7 @@ object RepositoriesComponent {
   private val component = ReactComponentB[Props]("Repositories")
     .initialState(State(Seq.empty, 1, 0))
     .renderBackend[Backend]
-    .componentWillReceiveProps(cb => cb.$.backend.getRepositories(cb.nextProps.namespace, 1))
+    .componentWillReceiveProps(lc => lc.$.backend.getRepositories(lc.nextProps.namespace, 1))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], namespace: Namespace) =

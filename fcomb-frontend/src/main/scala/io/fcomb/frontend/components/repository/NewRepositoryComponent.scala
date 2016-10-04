@@ -19,22 +19,17 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.LayoutComponent
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
-import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
-import io.fcomb.models.{Owner, OwnerKind}
-import io.fcomb.rpc.docker.distribution.{ImageCreateRequest, RepositoryResponse}
-import japgolly.scalajs.react._
+import io.fcomb.models.Owner
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
 import scalacss.ScalaCssReact._
 
 object NewRepositoryComponent {
@@ -42,33 +37,26 @@ object NewRepositoryComponent {
   final case class State(owner: Option[Owner],
                          name: String,
                          visibilityKind: ImageVisibilityKind,
-                         description: Option[String],
+                         description: String,
                          errors: Map[String, String],
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
+    import RepositoryForm._
+
     def create(props: Props): Callback =
       $.state.flatMap { state =>
         state.owner match {
           case Some(owner) if !state.isFormDisabled =>
             $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
-              val url = owner match {
-                case Owner(_, OwnerKind.User) => Resource.userSelfRepositories
-                case Owner(id, OwnerKind.Organization) =>
-                  Resource.organizationRepositories(id.toString)
-              }
               Callback.future {
-                val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
                 Rpc
-                  .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
+                  .createRepository(owner, state.name, state.visibilityKind, state.description)
                   .map {
                     case Xor.Right(repository) =>
                       props.ctl.set(DashboardRoute.Repository(repository.slug))
                     case Xor.Left(errs) =>
                       $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
-                  }
-                  .recover {
-                    case _ => $.setState(state.copy(isFormDisabled = false))
                   }
               }
             }
@@ -90,10 +78,7 @@ object NewRepositoryComponent {
     }
 
     def updateDescription(e: ReactEventI): Callback = {
-      val value = e.target.value match {
-        case s if s.nonEmpty => Some(s)
-        case _               => None
-      }
+      val value = e.target.value
       $.modState(_.copy(description = value))
     }
 
@@ -102,15 +87,6 @@ object NewRepositoryComponent {
         case on: OwnerNamespace => $.modState(_.copy(owner = on.toOwner))
         case _                  => Callback.empty
       }
-
-    lazy val helpBlockClass = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
-
-    lazy val linkStyle =
-      Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
-
-    lazy val helpBlockPadding = js.Dictionary("paddingTop" -> "48px")
-
-    lazy val paddingTop = js.Dictionary("paddingTop" -> "12px")
 
     def renderNamespace(props: Props, state: State) =
       <.div(
@@ -145,59 +121,6 @@ object NewRepositoryComponent {
                   <.label(^.`for` := "name",
                           "Enter a name for repository that will be used by docker or rkt.")))
 
-    def renderDescription(state: State) = {
-      val link = <.a(linkStyle,
-                     ^.href := "https://daringfireball.net/projects/markdown/syntax",
-                     ^.target := "_blank",
-                     "Markdown")
-      <.div(
-        ^.`class` := "row",
-        ^.key := "descriptionRow",
-        <.div(^.`class` := "col-xs-6",
-              MuiTextField(floatingLabelText = "Description",
-                           id = "description",
-                           name = "description",
-                           multiLine = true,
-                           fullWidth = true,
-                           rowsMax = 15,
-                           disabled = state.isFormDisabled,
-                           errorText = state.errors.get("description"),
-                           value = state.description.orUndefined,
-                           onChange = updateDescription _)()),
-        <.div(
-          helpBlockClass,
-          ^.style := helpBlockPadding,
-          <.label(^.`for` := "description", "You can describe this repository in ", link, ".")))
-    }
-
-    def renderVisiblity(state: State) = {
-      val label = <.label(
-        ^.`for` := "visibilityKind",
-        "Repository visibility for others: it can be public to everyone to read and pull or private accessible only to the owner.")
-      <.div(^.`class` := "row",
-            ^.style := paddingTop,
-            ^.key := "visibilityRow",
-            <.div(^.`class` := "col-xs-6",
-                  MuiRadioButtonGroup(name = "visibilityKind",
-                                      defaultSelected = state.visibilityKind.value,
-                                      onChange = updateVisibilityKind _)(
-                    MuiRadioButton(
-                      key = "public",
-                      value = ImageVisibilityKind.Public.value,
-                      label = "Public",
-                      disabled = state.isFormDisabled
-                    )(),
-                    MuiRadioButton(
-                      style = paddingTop,
-                      key = "private",
-                      value = ImageVisibilityKind.Private.value,
-                      label = "Private",
-                      disabled = state.isFormDisabled
-                    )()
-                  )),
-            <.div(helpBlockClass, label))
-    }
-
     def renderActions(state: State) = {
       val createIsDisabled = state.isFormDisabled || state.owner.isEmpty
       <.div(^.`class` := "row",
@@ -220,14 +143,19 @@ object NewRepositoryComponent {
                        ^.key := "form",
                        MuiCardText(key = "form")(renderNamespace(props, state),
                                                  renderName(state),
-                                                 renderDescription(state),
-                                                 renderVisiblity(state),
+                                                 renderDescription(state.description,
+                                                                   state.errors,
+                                                                   state.isFormDisabled,
+                                                                   updateDescription),
+                                                 renderVisiblity(state.visibilityKind,
+                                                                 state.isFormDisabled,
+                                                                 updateVisibilityKind),
                                                  renderActions(state))))
   }
 
   private val component =
     ReactComponentB[Props]("NewRepository")
-      .initialState(State(None, "", ImageVisibilityKind.Private, None, Map.empty, false))
+      .initialState(State(None, "", ImageVisibilityKind.Private, "", Map.empty, false))
       .renderBackend[Backend]
       .build
 

@@ -54,13 +54,14 @@ object DashboardRoute {
     def title = s"${Repositories.title} – New"
   }
   sealed trait RepositoryRoute extends DashboardRoute {
-    val name: String
+    val slug: String
 
-    def title = s"${Repositories.title} – $name"
+    def title = s"${Repositories.title} – $slug"
   }
-  final case class Repository(name: String)         extends RepositoryRoute
-  final case class RepositoryTags(name: String)     extends RepositoryRoute
-  final case class RepositorySettings(name: String) extends RepositoryRoute
+  final case class Repository(slug: String)         extends RepositoryRoute
+  final case class EditRepository(slug: String)     extends RepositoryRoute
+  final case class RepositoryTags(slug: String)     extends RepositoryRoute
+  final case class RepositorySettings(slug: String) extends RepositoryRoute
 
   final case object Organizations extends DashboardRoute {
     def title = "Organizations"
