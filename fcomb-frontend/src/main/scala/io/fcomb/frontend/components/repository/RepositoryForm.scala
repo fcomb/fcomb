@@ -25,9 +25,8 @@ import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
 
-object RepositoryFormComponent {
+object RepositoryForm {
   lazy val helpBlockClass   = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
   lazy val helpBlockPadding = js.Dictionary("paddingTop" -> "48px")
   lazy val linkStyle =
@@ -64,7 +63,7 @@ object RepositoryFormComponent {
           <.div(helpBlockClass, label))
   }
 
-  def renderDescription(description: Option[String],
+  def renderDescription(description: String,
                         errors: Map[String, String],
                         isFormDisabled: Boolean,
                         updateDescription: ReactEventI => Callback) = {
@@ -84,7 +83,7 @@ object RepositoryFormComponent {
                          rowsMax = 15,
                          disabled = isFormDisabled,
                          errorText = errors.get("description"),
-                         value = description.orUndefined,
+                         value = description,
                          onChange = updateDescription)()),
       <.div(helpBlockClass,
             ^.style := helpBlockPadding,

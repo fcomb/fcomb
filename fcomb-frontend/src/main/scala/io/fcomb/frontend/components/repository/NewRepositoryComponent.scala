@@ -19,18 +19,18 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.{Owner, OwnerKind}
 import io.fcomb.rpc.docker.distribution.{ImageCreateRequest, RepositoryResponse}
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
 
@@ -39,12 +39,12 @@ object NewRepositoryComponent {
   final case class State(owner: Option[Owner],
                          name: String,
                          visibilityKind: ImageVisibilityKind,
-                         description: Option[String],
+                         description: String,
                          errors: Map[String, String],
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
-    import RepositoryFormComponent._
+    import RepositoryForm._
 
     def create(props: Props): Callback =
       $.state.flatMap { state =>
@@ -57,7 +57,8 @@ object NewRepositoryComponent {
                   Resource.organizationRepositories(id.toString)
               }
               Callback.future {
-                val req = ImageCreateRequest(state.name, state.visibilityKind, state.description)
+                val req =
+                  ImageCreateRequest(state.name, state.visibilityKind, Some(state.description))
                 Rpc
                   .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
                   .map {
@@ -89,10 +90,7 @@ object NewRepositoryComponent {
     }
 
     def updateDescription(e: ReactEventI): Callback = {
-      val value = e.target.value match {
-        case s if s.nonEmpty => Some(s)
-        case _               => None
-      }
+      val value = e.target.value
       $.modState(_.copy(description = value))
     }
 
@@ -169,7 +167,7 @@ object NewRepositoryComponent {
 
   private val component =
     ReactComponentB[Props]("NewRepository")
-      .initialState(State(None, "", ImageVisibilityKind.Private, None, Map.empty, false))
+      .initialState(State(None, "", ImageVisibilityKind.Private, "", Map.empty, false))
       .renderBackend[Backend]
       .build
 

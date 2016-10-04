@@ -17,18 +17,21 @@
 package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.materialui._
 import diode.data.{PotMap, Ready}
 import diode.react.ModelProxy
 import diode.react.ReactPot._
-import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
+import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.styles.App
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.{ImageUpdateRequest, RepositoryResponse}
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import org.scalajs.dom.raw.HTMLInputElement
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scalacss.ScalaCssReact._
 
 object EditRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute],
@@ -40,6 +43,8 @@ object EditRepositoryComponent {
                          isFormDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
+    import RepositoryForm._
+
     val descriptionRef = Ref[HTMLInputElement]("description")
 
     def applyState(props: Props) =
@@ -78,38 +83,56 @@ object EditRepositoryComponent {
     def handleOnSubmit(e: ReactEventH): Callback =
       e.preventDefaultCB >> updateRepositoryDescription
 
-    def updateDescription(fs: FormState)(e: ReactEventI): Callback = {
-      val value = e.target.value
-      $.modState(_.copy(form = Some(fs.copy(description = value))))
+    def modFormState(f: FormState => FormState): Callback =
+      $.modState(st => st.copy(form = st.form.map(f)))
+
+    def updateVisibilityKind(e: ReactEventI, value: String): Callback = {
+      val kind = ImageVisibilityKind.withName(value)
+      modFormState(_.copy(visibilityKind = kind))
     }
 
-    def renderDescriptionTextArea(fs: FormState) =
-      <.textarea(^.ref := descriptionRef,
-                 ^.id := "description",
-                 ^.name := "description",
-                 ^.autoFocus := true,
-                 ^.tabIndex := 1,
-                 ^.rows := 24,
-                 ^.cols := 120,
-                 ^.value := fs.description,
-                 ^.onChange ==> updateDescription(fs))
+    def updateDescription(e: ReactEventI): Callback = {
+      val value = e.target.value
+      modFormState(_.copy(description = value))
+    }
 
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.modState(_.copy(form = None))
 
-    def renderForm(formState: FormState) =
-      <.span(formState.toString())
+    def renderActions(state: State) =
+      <.div(^.`class` := "row",
+            ^.style := paddingTop,
+            ^.key := "actionsRow",
+            <.div(^.`class` := "col-xs-12",
+                  MuiRaisedButton(`type` = "submit",
+                                  primary = true,
+                                  label = "Update",
+                                  disabled = state.isFormDisabled,
+                                  key = "update")()))
+
+    def renderForm(state: State): ReactNode =
+      state.form match {
+        case Some(form) =>
+          MuiCard()(<.div(^.key := "header",
+                          App.formTitleBlock,
+                          MuiCardTitle(key = "title")(<.h1(App.formTitle, "Edit repository"))),
+                    <.form(^.onSubmit ==> handleOnSubmit,
+                           ^.disabled := state.isFormDisabled,
+                           ^.key := "form",
+                           MuiCardText(key = "form")(renderDescription(form.description,
+                                                                       state.errors,
+                                                                       state.isFormDisabled,
+                                                                       updateDescription),
+                                                     renderVisiblity(form.visibilityKind,
+                                                                     state.isFormDisabled,
+                                                                     updateVisibilityKind),
+                                                     renderActions(state))))
+        case _ => <.div()
+      }
 
     def render(props: Props, state: State) = {
       val repository = props.repositories().get(props.name)
-      <.div(
-        repository.renderReady { r =>
-          state.form match {
-            case Some(form) => renderForm(form)
-            case _          => <.div()
-          }
-        }
-      )
+      <.div(repository.renderReady(_ => renderForm(state)))
     }
   }
 
