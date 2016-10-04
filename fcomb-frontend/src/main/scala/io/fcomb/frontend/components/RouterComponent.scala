@@ -46,13 +46,13 @@ object RouterComponent {
     staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~>
       renderR(ctl => UserNewRepositoryComponent(ctl)) |
     dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~>
-      dynRenderR((r, ctl) => AC.repositories(RepositoryComponent(ctl, _, r.name))) |
+      dynRenderR((r, ctl) => AC.repositories(RepositoryComponent(ctl, _, r.slug))) |
     dynamicRouteCT((repositoryNamePath / "edit").caseClass[DashboardRoute.EditRepository]) ~>
-      dynRenderR((r, ctl) => AC.repositories(EditRepositoryComponent(ctl, _, r.name))) |
+      dynRenderR((r, ctl) => AC.repositories(EditRepositoryComponent(ctl, _, r.slug))) |
     dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~>
-      dynRenderR((r, ctl) => TagsComponent(ctl, r.name)) |
+      dynRenderR((r, ctl) => TagsComponent(ctl, r.slug)) |
     dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~>
-      dynRenderR((r, ctl) => RepositorySettingsComponent(ctl, r.name)) |
+      dynRenderR((r, ctl) => RepositorySettingsComponent(ctl, r.slug)) |
     staticRoute("organizations", DashboardRoute.Organizations) ~>
       renderR(ctl => OrganizationsComponent(ctl)) |
     staticRoute("organizations" / "new", DashboardRoute.NewOrganization) ~>

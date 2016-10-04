@@ -36,7 +36,7 @@ import scalacss.ScalaCssReact._
 object EditRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute],
                          repositories: ModelProxy[PotMap[String, RepositoryResponse]],
-                         name: String)
+                         slug: String)
   final case class FormState(visibilityKind: ImageVisibilityKind, description: String)
   final case class State(form: Option[FormState],
                          errors: Map[String, String],
@@ -48,7 +48,7 @@ object EditRepositoryComponent {
     val descriptionRef = Ref[HTMLInputElement]("description")
 
     def applyState(props: Props) =
-      props.repositories().get(props.name) match {
+      props.repositories().get(props.slug) match {
         case Ready(repo) =>
           val formState = FormState(repo.visibilityKind, repo.description)
           $.modState(_.copy(form = Some(formState)))
@@ -69,9 +69,9 @@ object EditRepositoryComponent {
                 _ <- $.modState(_.copy(isFormDisabled = true))
                 _ <- Callback.future {
                   val req = ImageUpdateRequest(fs.visibilityKind, fs.description)
-                  Rpc.updateRepository(props.name, req).map {
+                  Rpc.updateRepository(props.slug, req).map {
                     case Xor.Right(repository) =>
-                      props.ctl.set(DashboardRoute.Repository(repository.name))
+                      props.ctl.set(DashboardRoute.Repository(repository.slug))
                     case Xor.Left(e) => $.modState(_.copy(isFormDisabled = false))
                   }
                 }
@@ -131,7 +131,7 @@ object EditRepositoryComponent {
       }
 
     def render(props: Props, state: State) = {
-      val repository = props.repositories().get(props.name)
+      val repository = props.repositories().get(props.slug)
       <.div(repository.renderReady(_ => renderForm(state)))
     }
   }
@@ -145,6 +145,6 @@ object EditRepositoryComponent {
 
   def apply(ctl: RouterCtl[DashboardRoute],
             repositories: ModelProxy[PotMap[String, RepositoryResponse]],
-            name: String) =
-    component(Props(ctl, repositories, name))
+            slug: String) =
+    component(Props(ctl, repositories, slug))
 }

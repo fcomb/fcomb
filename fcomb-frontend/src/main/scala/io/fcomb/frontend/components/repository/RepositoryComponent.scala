@@ -30,28 +30,28 @@ import scala.scalajs.js
 object RepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute],
                          repositories: ModelProxy[PotMap[String, RepositoryResponse]],
-                         name: String)
+                         slug: String)
 
   final class Backend($ : BackendScope[Props, Unit]) {
     def selectAllText(e: ReactEventI): Callback =
       e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
 
     def render(props: Props): ReactElement = {
-      val repository = props.repositories().get(props.name)
+      val repository = props.repositories().get(props.slug)
       <.div(repository.renderReady { r =>
-        val dockerPullCommand = s"docker pull ${props.name}"
+        val dockerPullCommand = s"docker pull ${props.slug}"
         val description =
           if (r.description.nonEmpty) r.description
           else "*No description*"
         <.div(
-          <.h2(s"Repository ${props.name}"),
+          <.h2(s"Repository ${props.slug}"),
           <.div(<.input.text(^.value := dockerPullCommand,
                              ^.onClick ==> selectAllText,
                              ^.readOnly := true),
                 CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("Copy"))),
-          <.div(props.ctl.link(DashboardRoute.EditRepository(props.name))("Edit")),
-          <.div(props.ctl.link(DashboardRoute.RepositoryTags(props.name))("Tags")),
-          <.div(props.ctl.link(DashboardRoute.RepositorySettings(props.name))("Settings")),
+          <.div(props.ctl.link(DashboardRoute.EditRepository(props.slug))("Edit")),
+          <.div(props.ctl.link(DashboardRoute.RepositoryTags(props.slug))("Tags")),
+          <.div(props.ctl.link(DashboardRoute.RepositorySettings(props.slug))("Settings")),
           <.section(<.h3("Description"), <.article(MarkdownComponent.apply(description)))
         )
       })
@@ -62,6 +62,6 @@ object RepositoryComponent {
 
   def apply(ctl: RouterCtl[DashboardRoute],
             repositories: ModelProxy[PotMap[String, RepositoryResponse]],
-            name: String) =
-    component(Props(ctl, repositories, name))
+            slug: String) =
+    component(Props(ctl, repositories, slug))
 }
