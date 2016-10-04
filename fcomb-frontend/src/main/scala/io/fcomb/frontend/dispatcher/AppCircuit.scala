@@ -16,11 +16,12 @@
 
 package io.fcomb.frontend.dispatcher
 
-import diode.Circuit
 import diode.data.PotMap
 import diode.react.ReactConnector
+import diode.{Action, Circuit}
 import io.fcomb.frontend.dispatcher.fetchers._
 import io.fcomb.frontend.dispatcher.handlers._
+import japgolly.scalajs.react.{Callback, CallbackTo}
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   protected def actionHandler = composeHandlers(
@@ -39,6 +40,9 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
     repositories = PotMap(repositoryFetcher),
     organizations = PotMap(organizationFetcher)
   )
+
+  def dispatchCB(action: Action): Callback =
+    CallbackTo(dispatch(action))
 
   def currentState = zoom(identity).value
 

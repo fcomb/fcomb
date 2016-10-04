@@ -32,3 +32,5 @@ final case class UpdateRepositories(
   def next(newState: PotState, newValue: Try[Map[String, Pot[RepositoryResponse]]]) =
     UpdateRepositories(keys, newState, newValue)
 }
+
+final case class UpsertRepository(repo: RepositoryResponse) extends RepositoryAction

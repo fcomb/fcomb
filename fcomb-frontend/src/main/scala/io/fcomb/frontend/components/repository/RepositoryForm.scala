@@ -27,11 +27,13 @@ import japgolly.scalajs.react._
 import scala.scalajs.js
 
 object RepositoryForm {
+  val padding = "12px"
+
   lazy val helpBlockClass   = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
   lazy val helpBlockPadding = js.Dictionary("paddingTop" -> "48px")
   lazy val linkStyle =
     Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
-  lazy val paddingTop = js.Dictionary("paddingTop" -> "12px")
+  lazy val paddingTop = js.Dictionary("paddingTop" -> padding)
 
   def renderVisiblity(visibilityKind: ImageVisibilityKind,
                       isFormDisabled: Boolean,

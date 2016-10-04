@@ -19,15 +19,13 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
-import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
-import io.fcomb.models.{Owner, OwnerKind}
-import io.fcomb.rpc.docker.distribution.{ImageCreateRequest, RepositoryResponse}
+import io.fcomb.models.Owner
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
@@ -51,24 +49,14 @@ object NewRepositoryComponent {
         state.owner match {
           case Some(owner) if !state.isFormDisabled =>
             $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
-              val url = owner match {
-                case Owner(_, OwnerKind.User) => Resource.userSelfRepositories
-                case Owner(id, OwnerKind.Organization) =>
-                  Resource.organizationRepositories(id.toString)
-              }
               Callback.future {
-                val req =
-                  ImageCreateRequest(state.name, state.visibilityKind, Some(state.description))
                 Rpc
-                  .callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
+                  .createRepository(owner, state.name, state.visibilityKind, state.description)
                   .map {
                     case Xor.Right(repository) =>
                       props.ctl.set(DashboardRoute.Repository(repository.slug))
                     case Xor.Left(errs) =>
                       $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
-                  }
-                  .recover {
-                    case _ => $.setState(state.copy(isFormDisabled = false))
                   }
               }
             }

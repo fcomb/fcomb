@@ -23,14 +23,16 @@ import diode.react.ModelProxy
 import diode.react.ReactPot._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.dispatcher.actions.UpsertRepository
+import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
-import io.fcomb.rpc.docker.distribution.{ImageUpdateRequest, RepositoryResponse}
+import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
-import org.scalajs.dom.raw.HTMLInputElement
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 import scalacss.ScalaCssReact._
 
 object EditRepositoryComponent {
@@ -45,8 +47,6 @@ object EditRepositoryComponent {
   final class Backend($ : BackendScope[Props, State]) {
     import RepositoryForm._
 
-    val descriptionRef = Ref[HTMLInputElement]("description")
-
     def applyState(props: Props) =
       props.repositories().get(props.slug) match {
         case Ready(repo) =>
@@ -54,11 +54,6 @@ object EditRepositoryComponent {
           $.modState(_.copy(form = Some(formState)))
         case _ => Callback.empty
       }
-
-    // def formDescription(description: String)(e: ReactEventH): Callback =
-    //   e.preventDefaultCB >>
-    //     $.modState(_.copy(form = Some(FormState(description)))) >>
-    //     CallbackTo(descriptionRef.apply($).map(_.setSelectionRange(0, 0))).delayMs(1).void
 
     def updateRepositoryDescription(): Callback =
       $.state.zip($.props).flatMap {
@@ -68,10 +63,10 @@ object EditRepositoryComponent {
               for {
                 _ <- $.modState(_.copy(isFormDisabled = true))
                 _ <- Callback.future {
-                  val req = ImageUpdateRequest(fs.visibilityKind, fs.description)
-                  Rpc.updateRepository(props.slug, req).map {
-                    case Xor.Right(repository) =>
-                      props.ctl.set(DashboardRoute.Repository(repository.slug))
+                  Rpc.updateRepository(props.slug, fs.visibilityKind, fs.description).map {
+                    case Xor.Right(repo) =>
+                      AppCircuit.dispatchCB(UpsertRepository(repo)) >>
+                        props.ctl.set(DashboardRoute.Repository(repo.slug))
                     case Xor.Left(e) => $.modState(_.copy(isFormDisabled = false))
                   }
                 }
@@ -97,13 +92,20 @@ object EditRepositoryComponent {
     }
 
     def cancel(e: ReactEventH): Callback =
-      e.preventDefaultCB >> $.modState(_.copy(form = None))
+      e.preventDefaultCB >> $.props.flatMap(p => p.ctl.set(DashboardRoute.Repository(p.slug)))
 
     def renderActions(state: State) =
       <.div(^.`class` := "row",
             ^.style := paddingTop,
             ^.key := "actionsRow",
             <.div(^.`class` := "col-xs-12",
+                  MuiRaisedButton(`type` = "button",
+                                  primary = false,
+                                  label = "Cancel",
+                                  style = js.Dictionary("marginRight" -> padding),
+                                  disabled = state.isFormDisabled,
+                                  onTouchTap = cancel _,
+                                  key = "cancel")(),
                   MuiRaisedButton(`type` = "submit",
                                   primary = true,
                                   label = "Update",

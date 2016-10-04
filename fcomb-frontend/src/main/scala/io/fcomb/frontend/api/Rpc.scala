@@ -22,14 +22,15 @@ import io.circe.scalajs.decodeJs
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 import io.fcomb.frontend.components.repository.Namespace
-import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.dispatcher.actions.LogOut
+import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.utils.PaginationUtils
-import io.fcomb.json.models.Formats._
 import io.fcomb.json.models.errors.Formats.decodeErrors
+import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.PaginationData
+import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
+import io.fcomb.models.{Owner, OwnerKind, PaginationData}
 import io.fcomb.rpc.docker.distribution._
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.ext.AjaxException
@@ -51,8 +52,24 @@ object Rpc {
   def getRepository(slug: String)(implicit ec: ExecutionContext) =
     call[RepositoryResponse](RpcMethod.GET, Resource.repository(slug))
 
-  def updateRepository(slug: String, req: ImageUpdateRequest)(implicit ec: ExecutionContext) =
+  def createRepository(owner: Owner,
+                       name: String,
+                       visibilityKind: ImageVisibilityKind,
+                       description: String)(implicit ec: ExecutionContext) = {
+    val url = owner match {
+      case Owner(_, OwnerKind.User) => Resource.userSelfRepositories
+      case Owner(id, OwnerKind.Organization) =>
+        Resource.organizationRepositories(id.toString)
+    }
+    val req = ImageCreateRequest(name, visibilityKind, Some(description))
+    callWith[ImageCreateRequest, RepositoryResponse](RpcMethod.POST, url, req)
+  }
+
+  def updateRepository(slug: String, visibilityKind: ImageVisibilityKind, description: String)(
+      implicit ec: ExecutionContext) = {
+    val req = ImageUpdateRequest(visibilityKind, description)
     callWith[ImageUpdateRequest, RepositoryResponse](RpcMethod.PUT, Resource.repository(slug), req)
+  }
 
   private def getRepositoriesByUrl(url: String, page: Int, limit: Int)(
       implicit ec: ExecutionContext) = {
