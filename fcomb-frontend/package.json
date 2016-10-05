@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "bootstrap-grid": "^2.0.1",
-    "material-ui": "^v0.15.4",
+    "material-ui": "^v0.16.0-rc2",
     "react": "^15.3.2",
     "react-copy-to-clipboard": "^4.2.3",
     "react-dom": "^15.3.2",
