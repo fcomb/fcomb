@@ -37,22 +37,29 @@ object RouterComponent {
     val slugFormat           = """[\w\-\.]+"""
     val organizationNamePath = "organizations" / string(slugFormat)
 
+    def repository(ctl: RouterCtl[DashboardRoute], tab: RepositoryTab, slug: String) =
+      AC.repositories(RepositoryComponent(ctl, tab, _, slug))
+
     // format: OFF
     trimSlashes |
     staticRoute(root, DashboardRoute.Root) ~> redirectToPage(DashboardRoute.Repositories)(
       Redirect.Replace) |
+    // repos
     staticRoute("repositories", DashboardRoute.Repositories) ~>
       renderR(ctl => DashboardRepositoriesComponent(ctl)) |
     staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~>
       renderR(ctl => UserNewRepositoryComponent(ctl)) |
     dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~>
-      dynRenderR((r, ctl) => AC.repositories(RepositoryComponent(ctl, _, r.slug))) |
+      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Description, r.slug)) |
     dynamicRouteCT((repositoryNamePath / "edit").caseClass[DashboardRoute.EditRepository]) ~>
       dynRenderR((r, ctl) => AC.repositories(EditRepositoryComponent(ctl, _, r.slug))) |
     dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~>
-      dynRenderR((r, ctl) => TagsComponent(ctl, r.slug)) |
+      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Tags, r.slug)) |
     dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~>
-      dynRenderR((r, ctl) => RepositorySettingsComponent(ctl, r.slug)) |
+      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Settings, r.slug)) |
+    dynamicRouteCT((repositoryNamePath / "permissions").caseClass[DashboardRoute.RepositoryPermissions]) ~>
+      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Permissions, r.slug)) |
+    // orgs
     staticRoute("organizations", DashboardRoute.Organizations) ~>
       renderR(ctl => OrganizationsComponent(ctl)) |
     staticRoute("organizations" / "new", DashboardRoute.NewOrganization) ~>

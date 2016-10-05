@@ -16,11 +16,13 @@
 
 package io.fcomb.frontend.components.repository
 
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import diode.data.PotMap
 import diode.react.ModelProxy
 import diode.react.ReactPot._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.{CopyToClipboardComponent, MarkdownComponent}
+import io.fcomb.frontend.components.CopyToClipboardComponent
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -29,6 +31,7 @@ import scala.scalajs.js
 
 object RepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute],
+                         tab: RepositoryTab,
                          repositories: ModelProxy[PotMap[String, RepositoryResponse]],
                          slug: String)
 
@@ -36,23 +39,43 @@ object RepositoryComponent {
     def selectAllText(e: ReactEventI): Callback =
       e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
 
+    def onChange(tab: RepositoryTab, e: ReactEventH, el: ReactElement): Callback =
+      $.props.flatMap { props =>
+        val route = tab match {
+          case RepositoryTab.Description => DashboardRoute.Repository(props.slug)
+          case RepositoryTab.Tags        => DashboardRoute.RepositoryTags(props.slug)
+          case RepositoryTab.Permissions => DashboardRoute.RepositoryPermissions(props.slug)
+          case RepositoryTab.Settings    => DashboardRoute.RepositorySettings(props.slug)
+        }
+        props.ctl.set(route)
+      }
+
+    def renderTabs(tab: RepositoryTab, repo: RepositoryResponse) =
+      MuiTabs[RepositoryTab](value = tab, onChange = onChange _)(
+        MuiTab(key = "description", label = "Description", value = RepositoryTab.Description)(
+          RepositoryDescriptionComponent(repo)
+        ),
+        MuiTab(key = "tags", label = "Tags", value = RepositoryTab.Tags)(
+          <.div()
+        ),
+        MuiTab(key = "permissions", label = "Permissions", value = RepositoryTab.Permissions)(
+          <.div()
+        ),
+        MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
+          <.div()
+        ))
+
     def render(props: Props): ReactElement = {
       val repository = props.repositories().get(props.slug)
-      <.div(repository.renderReady { r =>
+      <.div(repository.renderReady { repo =>
         val dockerPullCommand = s"docker pull ${props.slug}"
-        val description =
-          if (r.description.nonEmpty) r.description
-          else "*No description*"
-        <.div(
-          <.h2(s"Repository ${props.slug}"),
-          <.div(<.input.text(^.value := dockerPullCommand,
-                             ^.onClick ==> selectAllText,
-                             ^.readOnly := true),
-                CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("Copy"))),
-          <.div(props.ctl.link(DashboardRoute.EditRepository(props.slug))("Edit")),
-          <.div(props.ctl.link(DashboardRoute.RepositoryTags(props.slug))("Tags")),
-          <.div(props.ctl.link(DashboardRoute.RepositorySettings(props.slug))("Settings")),
-          <.section(<.h3("Description"), <.article(MarkdownComponent.apply(description)))
+        <.section(
+          <.header(<.h2(repo.name)),
+          renderTabs(props.tab, repo)
+          // <.div(<.input.text(^.value := dockerPullCommand,
+          //                    ^.onClick ==> selectAllText,
+          //                    ^.readOnly := true),
+          //       CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("Copy")))
         )
       })
     }
@@ -61,7 +84,8 @@ object RepositoryComponent {
   private val component = ReactComponentB[Props]("Repository").renderBackend[Backend].build
 
   def apply(ctl: RouterCtl[DashboardRoute],
+            tab: RepositoryTab,
             repositories: ModelProxy[PotMap[String, RepositoryResponse]],
             slug: String) =
-    component(Props(ctl, repositories, slug))
+    component(Props(ctl, tab, repositories, slug))
 }

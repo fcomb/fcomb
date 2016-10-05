@@ -31,8 +31,7 @@ final class RepositoriesHandler[M](modelRW: ModelRW[M, PotMap[String, Repository
         val updateEffect = action.effect(Rpc.getRepositories(keys))(identity)
         action.handleWith(this, updateEffect)(AsyncAction.mapHandler(keys))
       }
-    case UpsertRepository(repo) =>
-      updated(value + ((repo.slug, Ready(repo))))
+    case UpsertRepository(repo) => updated(value + ((repo.slug, Ready(repo))))
   }
 
   protected def handle = { case action: RepositoryAction => pf(action) }
