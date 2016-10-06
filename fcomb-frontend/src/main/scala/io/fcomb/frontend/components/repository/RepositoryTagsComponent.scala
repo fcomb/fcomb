@@ -91,7 +91,7 @@ object RepositoryTagsComponent {
       }
 
     def render(props: Props, state: State) =
-      <.section(<.h2("Tags"), renderTags(props, state))
+      <.section(renderTags(props, state)
   }
 
   private val component = ReactComponentB[Props]("RepositoryTags")

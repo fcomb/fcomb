@@ -35,7 +35,6 @@ object RepositoryDescriptionComponent {
         if (props.repo.description.nonEmpty) props.repo.description
         else "*No description*"
       <.section(
-        <.h3("Description"),
         <.div(<.input.text(^.value := dockerPullCommand,
                            ^.onClick ==> selectAllText,
                            ^.readOnly := true),

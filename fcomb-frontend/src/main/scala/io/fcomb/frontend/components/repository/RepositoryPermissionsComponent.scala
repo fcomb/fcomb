@@ -227,10 +227,7 @@ object RepositoryPermissionsComponent {
                                    disabled = state.form.isFormDisabled)()))
 
     def render(props: Props, state: State) =
-      <.div(<.h2("Permissions"),
-            renderPermissions(props.slug, state),
-            <.hr,
-            renderForm(props, state))
+      <.div(renderPermissions(props.slug, state), <.hr, renderForm(props, state))
   }
 
   private val component = ReactComponentB[Props]("RepositoryPermissions")
