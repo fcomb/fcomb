@@ -31,7 +31,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 object MemberComponent {
-  final case class Props(repositoryName: String,
+  final case class Props(slug: String,
                          ownerKind: OwnerKind,
                          searchText: Option[String],
                          isDisabled: Boolean,
@@ -48,7 +48,7 @@ object MemberComponent {
           Rpc
             .call[DataResponse[PermissionMemberResponse]](
               RpcMethod.GET,
-              Resource.repositoryPermissionsMembersSuggestions(props.repositoryName),
+              Resource.repositoryPermissionsMembersSuggestions(props.slug),
               Map("q" -> q.trim))
             .map {
               case Xor.Right(res) =>
@@ -107,10 +107,10 @@ object MemberComponent {
       .renderBackend[Backend]
       .build
 
-  def apply(repositoryName: String,
+  def apply(slug: String,
             ownerKind: OwnerKind,
             searchText: Option[String],
             isDisabled: Boolean,
             cb: PermissionMemberResponse => Callback) =
-    component.apply(Props(repositoryName, ownerKind, searchText, isDisabled, cb))
+    component.apply(Props(slug, ownerKind, searchText, isDisabled, cb))
 }

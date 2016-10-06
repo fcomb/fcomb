@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.dashboard
+package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import cats.syntax.eq._
@@ -35,8 +35,8 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 
-object TagsComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
+object RepositoryTagsComponent {
+  final case class Props(slug: String)
   final case class State(tags: Seq[RepositoryTagResponse],
                          sortColumn: String,
                          sortOrder: SortOrder)
@@ -45,21 +45,12 @@ object TagsComponent {
     val digestLength = 12
 
     def getTags(slug: String, sortColumn: String, sortOrder: SortOrder): Callback =
-      Callback.future {
-        val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
-        Rpc
-          .call[PaginationData[RepositoryTagResponse]](RpcMethod.GET,
-                                                       Resource.repositoryTags(slug),
-                                                       queryParams = queryParams)
-          .map {
-            case Xor.Right(pd) =>
-              $.modState(_.copy(tags = pd.data))
-            case Xor.Left(e) => Callback.warn(e)
-          }
-      }
+      Callback.future(Rpc.getRepositotyTags(slug, sortColumn, sortOrder).map {
+        case Xor.Right(pd) => $.modState(_.copy(tags = pd.data))
+        case Xor.Left(e)   => Callback.warn(e)
+      })
 
     def renderTagRow(props: Props, tag: RepositoryTagResponse) =
-      // <.li(ctl.link(DashboardRoute.Repository(props.slug, tag.tag))(tag.tag))
       <.tr(<.td(tag.tag),
            <.td(TimeAgoComponent.apply(tag.updatedAt)),
            <.td(SizeInBytesComponent.apply(tag.length)),
@@ -100,17 +91,16 @@ object TagsComponent {
       }
 
     def render(props: Props, state: State) =
-      <.div(<.h2("Tags"), renderTags(props, state))
+      <.section(<.h2("Tags"), renderTags(props, state))
   }
 
-  private val component = ReactComponentB[Props]("Tags")
+  private val component = ReactComponentB[Props]("RepositoryTags")
     .initialState(State(Seq.empty, "updatedAt", SortOrder.Desc))
     .renderBackend[Backend]
-    .componentWillMount { $ =>
-      $.backend.getTags($.props.slug, $.state.sortColumn, $.state.sortOrder)
-    }
+    .componentWillMount($ =>
+      $.backend.getTags($.props.slug, $.state.sortColumn, $.state.sortOrder))
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], slug: String) =
-    component.apply(Props(ctl, slug))
+  def apply(slug: String) =
+    component.apply(Props(slug))
 }

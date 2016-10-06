@@ -16,51 +16,20 @@
 
 package io.fcomb.frontend.components.repository
 
-import cats.data.Xor
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
-import io.fcomb.json.rpc.docker.distribution.Formats.decodeRepositoryResponse
-import io.fcomb.rpc.docker.distribution.RepositoryResponse
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import japgolly.scalajs.react._
 
 object RepositorySettingsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
-  final case class State(repository: Option[RepositoryResponse])
 
-  class Backend($ : BackendScope[Props, State]) {
-    def getRepository(name: String): Callback =
-      Callback.future {
-        Rpc.call[RepositoryResponse](RpcMethod.GET, Resource.repository(name)).map {
-          case Xor.Right(repository) =>
-            $.modState(_.copy(repository = Some(repository)))
-          case Xor.Left(e) => Callback.warn(e)
-        }
-      }
-
-    def render(props: Props, state: State): ReactElement = {
-      val components: Seq[TagMod] = state.repository match {
-        case Some(repository) =>
-          Seq(
-            PermissionsComponent.apply(props.ctl, props.slug, repository.owner.kind),
-            RepositoryVisibilityComponent.apply(props.ctl, props.slug, repository.visibilityKind),
-            DeleteRepositoryComponent.apply(props.ctl, props.slug))
-        case _ => Seq.empty
-      }
-      <.section(
-        <.h1("Settings"),
-        components
-      )
-    }
+  class Backend($ : BackendScope[Props, Unit]) {
+    def render(props: Props): ReactElement =
+      <.section(<.h1("Settings"), DeleteRepositoryComponent.apply(props.ctl, props.slug))
   }
 
-  private val component = ReactComponentB[Props]("RepositorySettings")
-    .initialState(State(None))
-    .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getRepository($.props.slug))
-    .build
+  private val component = ReactComponentB[Props]("RepositorySettings").renderBackend[Backend].build
 
   def apply(ctl: RouterCtl[DashboardRoute], slug: String) =
     component.apply(Props(ctl, slug))

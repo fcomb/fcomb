@@ -22,12 +22,10 @@ import diode.data.PotMap
 import diode.react.ModelProxy
 import diode.react.ReactPot._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.CopyToClipboardComponent
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import scala.scalajs.js
 
 object RepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute],
@@ -50,33 +48,30 @@ object RepositoryComponent {
         props.ctl.set(route)
       }
 
-    def renderTabs(tab: RepositoryTab, repo: RepositoryResponse) =
-      MuiTabs[RepositoryTab](value = tab, onChange = onChange _)(
+    def renderTabs(props: Props, repo: RepositoryResponse) =
+      MuiTabs[RepositoryTab](value = props.tab, onChange = onChange _)(
         MuiTab(key = "description", label = "Description", value = RepositoryTab.Description)(
           RepositoryDescriptionComponent(repo)
         ),
         MuiTab(key = "tags", label = "Tags", value = RepositoryTab.Tags)(
-          <.div()
+          RepositoryTagsComponent(repo.slug)
         ),
         MuiTab(key = "permissions", label = "Permissions", value = RepositoryTab.Permissions)(
-          <.div()
+          RepositoryPermissionsComponent(props.ctl, repo.slug, repo.owner.kind)
         ),
         MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
-          <.div()
+          RepositorySettingsComponent(props.ctl, repo.slug)
         ))
 
     def render(props: Props): ReactElement = {
       val repository = props.repositories().get(props.slug)
       <.div(repository.renderReady { repo =>
-        val dockerPullCommand = s"docker pull ${props.slug}"
-        <.section(
-          <.header(<.h2(repo.name)),
-          renderTabs(props.tab, repo)
-          // <.div(<.input.text(^.value := dockerPullCommand,
-          //                    ^.onClick ==> selectAllText,
-          //                    ^.readOnly := true),
-          //       CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("Copy")))
-        )
+        // val dockerPullCommand = s"docker pull ${props.slug}"
+        // <.div(<.input.text(^.value := dockerPullCommand,
+        //                    ^.onClick ==> selectAllText,
+        //                    ^.readOnly := true),
+        //       CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("Copy")))
+        <.section(<.header(<.h2(repo.name)), renderTabs(props, repo))
       })
     }
   }

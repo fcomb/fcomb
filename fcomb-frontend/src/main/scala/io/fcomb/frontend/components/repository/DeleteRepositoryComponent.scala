@@ -28,7 +28,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 
 object DeleteRepositoryComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], repositoryName: String)
+  final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
   final case class State(isOpen: Boolean, isDisabled: Boolean)
 
   class Backend($ : BackendScope[Props, State]) {
@@ -41,7 +41,7 @@ object DeleteRepositoryComponent {
           $.setState(state.copy(isDisabled = true)) >>
             Callback.future {
               Rpc
-                .call[Unit](RpcMethod.DELETE, Resource.repository(props.repositoryName))
+                .call[Unit](RpcMethod.DELETE, Resource.repository(props.slug))
                 .map {
                   case Xor.Right(_) => props.ctl.set(DashboardRoute.Root)
                   case Xor.Left(e)  =>
@@ -95,6 +95,6 @@ object DeleteRepositoryComponent {
     .renderBackend[Backend]
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String) =
-    component.apply(Props(ctl, repositoryName))
+  def apply(ctl: RouterCtl[DashboardRoute], slug: String) =
+    component.apply(Props(ctl, slug))
 }

@@ -24,21 +24,18 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.OwnerKind
-import io.fcomb.models.{PaginationData, SortOrder}
+import io.fcomb.models.SortOrder
 import io.fcomb.rpc.acl._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-object PermissionsComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute],
-                         repositoryName: String,
-                         ownerKind: OwnerKind)
+object RepositoryPermissionsComponent {
+  final case class Props(ctl: RouterCtl[DashboardRoute], slug: String, ownerKind: OwnerKind)
   final case class FormState(member: Option[PermissionMemberResponse],
                              action: Action,
                              errors: Map[String, String],
@@ -52,30 +49,22 @@ object PermissionsComponent {
     FormState(None, Action.Read, Map.empty, false)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def getPermissions(name: String, sortColumn: String, sortOrder: SortOrder): Callback =
-      Callback.future {
-        val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
-        Rpc
-          .call[PaginationData[PermissionResponse]](RpcMethod.GET,
-                                                    Resource.repositoryPermissions(name),
-                                                    queryParams = queryParams)
-          .map {
-            case Xor.Right(pd) =>
-              $.modState(_.copy(permissions = pd.data))
-            case Xor.Left(e) => Callback.warn(e)
-          }
-      }
+    def getPermissions(slug: String, sortColumn: String, sortOrder: SortOrder): Callback =
+      Callback.future(Rpc.getRepositoryPermissions(slug, sortColumn, sortOrder).map {
+        case Xor.Right(pd) => $.modState(_.copy(permissions = pd.data))
+        case Xor.Left(e)   => Callback.warn(e)
+      })
 
-    def updatePermission(repositoryName: String, name: String, kind: MemberKind)(e: ReactEventI) = {
+    def updatePermission(slug: String, name: String, kind: MemberKind)(e: ReactEventI) = {
       val action = Action.withName(e.target.value)
       e.preventDefaultCB >>
         $.state.flatMap { state =>
           $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
             Callback.future {
-              upsertPermission(repositoryName, name, kind, action).map {
+              upsertPermission(slug, name, kind, action).map {
                 case Xor.Right(_) =>
                   updateFormDisabled(false) >>
-                    getPermissions(repositoryName, state.sortColumn, state.sortOrder)
+                    getPermissions(slug, state.sortColumn, state.sortOrder)
                 case Xor.Left(errs) =>
                   $.setState(state.copy(
                     form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
@@ -90,7 +79,7 @@ object PermissionsComponent {
       MuiMenuItem[Action](key = r.value, value = r, primaryText = r.entryName)())
     lazy val memberKinds = MemberKind.values.map(k => <.option(^.value := k.value)(k.entryName))
 
-    def renderActionCell(repositoryName: String, state: State, permission: PermissionResponse) = {
+    def renderActionCell(slug: String, state: State, permission: PermissionResponse) = {
       val member = permission.member
       if (member.isOwner) <.td(permission.action.toString())
       else
@@ -98,22 +87,22 @@ object PermissionsComponent {
           <.select(^.disabled := state.form.isFormDisabled,
                    ^.required := true,
                    ^.value := permission.action.value,
-                   ^.onChange ==> updatePermission(repositoryName, member.name, member.kind),
+                   ^.onChange ==> updatePermission(slug, member.name, member.kind),
                    actions))
     }
 
-    def deletePermission(repositoryName: String, name: String, kind: MemberKind)(e: ReactEventI) =
+    def deletePermission(slug: String, name: String, kind: MemberKind)(e: ReactEventI) =
       e.preventDefaultCB >>
         $.state.flatMap { state => // TODO: DRY
           $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
             Callback.future {
-              val url = Resource.repositoryPermission(repositoryName, kind, name)
+              val url = Resource.repositoryPermission(slug, kind, name)
               Rpc
                 .call[Unit](RpcMethod.DELETE, url)
                 .map {
                   case Xor.Right(_) =>
                     updateFormDisabled(false) >>
-                      getPermissions(repositoryName, state.sortColumn, state.sortOrder)
+                      getPermissions(slug, state.sortColumn, state.sortOrder)
                   case Xor.Left(e) =>
                     // TODO
                     updateFormDisabled(false)
@@ -124,26 +113,26 @@ object PermissionsComponent {
             }
         }
 
-    def renderOptionsCell(repositoryName: String, state: State, permission: PermissionResponse) = {
+    def renderOptionsCell(slug: String, state: State, permission: PermissionResponse) = {
       val member = permission.member
       if (member.isOwner) EmptyTag
       else
         <.td(
           <.button(^.`type` := "button",
                    ^.disabled := state.form.isFormDisabled,
-                   ^.onClick ==> deletePermission(repositoryName, member.name, member.kind),
+                   ^.onClick ==> deletePermission(slug, member.name, member.kind),
                    "Delete"))
     }
 
-    def renderPermissionRow(repositoryName: String, state: State, permission: PermissionResponse) =
+    def renderPermissionRow(slug: String, state: State, permission: PermissionResponse) =
       <.tr(<.td(permission.member.title),
-           renderActionCell(repositoryName, state, permission),
-           renderOptionsCell(repositoryName, state, permission))
+           renderActionCell(slug, state, permission),
+           renderOptionsCell(slug, state, permission))
 
     def changeSortOrder(column: String)(e: ReactEventH): Callback =
       for {
         _     <- e.preventDefaultCB
-        name  <- $.props.map(_.repositoryName)
+        name  <- $.props.map(_.slug)
         state <- $.state
         sortOrder = {
           if (state.sortColumn == column) state.sortOrder.flip
@@ -161,23 +150,20 @@ object PermissionsComponent {
       <.th(<.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
     }
 
-    def renderPermissions(repositoryName: String, state: State) =
+    def renderPermissions(slug: String, state: State) =
       if (state.permissions.isEmpty) <.span("No permissions. Create one!")
       else {
         <.table(<.thead(
                   <.tr(renderHeader("User", "member.username", state),
                        renderHeader("Action", "action", state),
                        <.th())),
-                <.tbody(state.permissions.map(renderPermissionRow(repositoryName, state, _))))
+                <.tbody(state.permissions.map(renderPermissionRow(slug, state, _))))
       }
 
     def updateFormDisabled(isFormDisabled: Boolean): Callback =
       $.modState(s => s.copy(form = s.form.copy(isFormDisabled = isFormDisabled)))
 
-    private def upsertPermission(repositoryName: String,
-                                 name: String,
-                                 kind: MemberKind,
-                                 action: Action) = {
+    private def upsertPermission(slug: String, name: String, kind: MemberKind, action: Action) = {
       val member = kind match {
         case MemberKind.User  => PermissionUsernameRequest(name)
         case MemberKind.Group => PermissionGroupNameRequest(name)
@@ -185,7 +171,7 @@ object PermissionsComponent {
       val req = PermissionCreateRequest(member, action)
       Rpc.callWith[PermissionCreateRequest, PermissionResponse](
         RpcMethod.PUT,
-        Resource.repositoryPermissions(repositoryName),
+        Resource.repositoryPermissions(slug),
         req)
     }
 
@@ -196,10 +182,10 @@ object PermissionsComponent {
           case Some(member) if !fs.isFormDisabled =>
             $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
               Callback.future {
-                upsertPermission(props.repositoryName, member.name, member.kind, fs.action).map {
+                upsertPermission(props.slug, member.name, member.kind, fs.action).map {
                   case Xor.Right(_) =>
                     $.modState(_.copy(form = defaultFormState)) >>
-                      getPermissions(props.repositoryName, state.sortColumn, state.sortOrder)
+                      getPermissions(props.slug, state.sortColumn, state.sortOrder)
                   case Xor.Left(errs) =>
                     $.setState(state.copy(
                       form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
@@ -225,7 +211,7 @@ object PermissionsComponent {
              ^.disabled := state.form.isFormDisabled,
              <.div(^.display.flex,
                    ^.flexDirection.column,
-                   MemberComponent.apply(props.repositoryName,
+                   MemberComponent.apply(props.slug,
                                          props.ownerKind,
                                          state.form.member.map(_.title),
                                          state.form.isFormDisabled,
@@ -242,19 +228,19 @@ object PermissionsComponent {
 
     def render(props: Props, state: State) =
       <.div(<.h2("Permissions"),
-            renderPermissions(props.repositoryName, state),
+            renderPermissions(props.slug, state),
             <.hr,
             renderForm(props, state))
   }
 
-  private val component = ReactComponentB[Props]("Permissions")
+  private val component = ReactComponentB[Props]("RepositoryPermissions")
     .initialState(State(Seq.empty, "action", SortOrder.Desc, defaultFormState))
     .renderBackend[Backend]
     .componentWillMount { $ =>
-      $.backend.getPermissions($.props.repositoryName, $.state.sortColumn, $.state.sortOrder)
+      $.backend.getPermissions($.props.slug, $.state.sortColumn, $.state.sortOrder)
     }
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], repositoryName: String, ownerKind: OwnerKind) =
-    component.apply(Props(ctl, repositoryName, ownerKind))
+  def apply(ctl: RouterCtl[DashboardRoute], slug: String, ownerKind: OwnerKind) =
+    component.apply(Props(ctl, slug, ownerKind))
 }

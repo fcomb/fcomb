@@ -27,10 +27,12 @@ import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.utils.PaginationUtils
 import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.models.Formats._
+import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
-import io.fcomb.models.{Owner, OwnerKind, PaginationData}
+import io.fcomb.models.{Owner, OwnerKind, PaginationData, SortOrder}
+import io.fcomb.rpc.acl.PermissionResponse
 import io.fcomb.rpc.docker.distribution._
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.ext.AjaxException
@@ -92,6 +94,22 @@ object Rpc {
   def getRepositories(slugs: Set[String])(
       implicit ec: ExecutionContext): Future[Map[String, Pot[RepositoryResponse]]] =
     traversePotMap(slugs)(getRepository)
+
+  def getRepositotyTags(slug: String, sortColumn: String, sortOrder: SortOrder)(
+      implicit ec: ExecutionContext) = {
+    val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
+    call[PaginationData[RepositoryTagResponse]](RpcMethod.GET,
+                                                Resource.repositoryTags(slug),
+                                                queryParams = queryParams)
+  }
+
+  def getRepositoryPermissions(slug: String, sortColumn: String, sortOrder: SortOrder)(
+      implicit ec: ExecutionContext) = {
+    val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
+    call[PaginationData[PermissionResponse]](RpcMethod.GET,
+                                             Resource.repositoryPermissions(slug),
+                                             queryParams = queryParams)
+  }
 
   def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,
