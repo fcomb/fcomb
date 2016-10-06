@@ -34,9 +34,6 @@ object RepositoryComponent {
                          slug: String)
 
   final class Backend($ : BackendScope[Props, Unit]) {
-    def selectAllText(e: ReactEventI): Callback =
-      e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
-
     def onChange(tab: RepositoryTab, e: ReactEventH, el: ReactElement): Callback =
       $.props.flatMap { props =>
         val route = tab match {
@@ -51,26 +48,17 @@ object RepositoryComponent {
     def renderTabs(props: Props, repo: RepositoryResponse) =
       MuiTabs[RepositoryTab](value = props.tab, onChange = onChange _)(
         MuiTab(key = "description", label = "Description", value = RepositoryTab.Description)(
-          RepositoryDescriptionComponent(repo)
-        ),
+          RepositoryDescriptionComponent(repo)),
         MuiTab(key = "tags", label = "Tags", value = RepositoryTab.Tags)(
-          RepositoryTagsComponent(repo.slug)
-        ),
+          RepositoryTagsComponent(repo.slug)),
         MuiTab(key = "permissions", label = "Permissions", value = RepositoryTab.Permissions)(
-          RepositoryPermissionsComponent(props.ctl, repo.slug, repo.owner.kind)
-        ),
+          RepositoryPermissionsComponent(props.ctl, repo.slug, repo.owner.kind)),
         MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
-          RepositorySettingsComponent(props.ctl, repo.slug)
-        ))
+          RepositorySettingsComponent(props.ctl, repo.slug)))
 
     def render(props: Props): ReactElement = {
       val repository = props.repositories().get(props.slug)
       <.div(repository.renderReady { repo =>
-        // val dockerPullCommand = s"docker pull ${props.slug}"
-        // <.div(<.input.text(^.value := dockerPullCommand,
-        //                    ^.onClick ==> selectAllText,
-        //                    ^.readOnly := true),
-        //       CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("Copy")))
         <.section(<.header(<.h2(repo.name)), renderTabs(props, repo))
       })
     }

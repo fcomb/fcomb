@@ -16,20 +16,31 @@
 
 package io.fcomb.frontend.components.repository
 
-import io.fcomb.frontend.components.MarkdownComponent
+import io.fcomb.frontend.components.{CopyToClipboardComponent, MarkdownComponent}
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
+import scala.scalajs.js
 
 object RepositoryDescriptionComponent {
   final case class Props(repo: RepositoryResponse)
 
   class Backend($ : BackendScope[Props, Unit]) {
+    def selectAllText(e: ReactEventI): Callback =
+      e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
+
     def render(props: Props) = {
+      val dockerPullCommand = s"docker pull ${props.repo.slug}"
       val description =
         if (props.repo.description.nonEmpty) props.repo.description
         else "*No description*"
-      <.section(<.h3("Description"), <.article(MarkdownComponent(description)))
+      <.section(
+        <.h3("Description"),
+        <.div(<.input.text(^.value := dockerPullCommand,
+                           ^.onClick ==> selectAllText,
+                           ^.readOnly := true),
+              CopyToClipboardComponent.apply(dockerPullCommand, js.undefined, <.span("Copy"))),
+        <.article(MarkdownComponent(description)))
     }
   }
 
