@@ -60,30 +60,52 @@ object RepositoryComponent {
             MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
               RepositorySettingsComponent(props.ctl, repo.slug)))
         else Seq.empty
-      MuiTabs[RepositoryTab](value = props.tab, onChange = onChange _)(
-        MuiTab(key = "description", label = "Description", value = RepositoryTab.Description)(
-          RepositoryDescriptionComponent(repo)),
-        MuiTab(key = "tags", label = "Tags", value = RepositoryTab.Tags)(
-          RepositoryTagsComponent(repo.slug)),
-        manageTabs)
+
+      MuiCardMedia(key = "tabs")(
+        MuiTabs[RepositoryTab](value = props.tab, onChange = onChange _)(
+          MuiTab(key = "description", label = "Description", value = RepositoryTab.Description)(
+            RepositoryDescriptionComponent(repo)),
+          MuiTab(key = "tags", label = "Tags", value = RepositoryTab.Tags)(
+            RepositoryTagsComponent(repo.slug)),
+          manageTabs))
+    }
+
+    def setEditRepositoryRoute(props: Props)(e: ReactEventH): Callback =
+      props.ctl.set(DashboardRoute.EditRepository(props.slug))
+
+    def renderHeader(props: Props, repo: RepositoryResponse, isManageable: Boolean) = {
+      val route = repo.owner.kind match {
+        case OwnerKind.Organization => DashboardRoute.Organization(repo.namespace)
+        case OwnerKind.User =>
+          if (AppCircuit.currentUser.exists(_.username == repo.namespace))
+            DashboardRoute.Repositories
+          else DashboardRoute.User(repo.namespace)
+      }
+      val menuBtn: ReactNode = if (isManageable) {
+        val menuIconBtn =
+          MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
+        val actions = Seq(
+          MuiMenuItem(primaryText = "Edit",
+                      key = "edit",
+                      onTouchTap = setEditRepositoryRoute(props) _)())
+        MuiIconMenu(iconButtonElement = menuIconBtn)(actions)
+      } else <.div()
+
+      <.div(^.key := "header",
+            App.cardTitleBlock,
+            MuiCardTitle(key = "title")(
+              <.div(^.`class` := "row",
+                    ^.key := "title",
+                    <.div(^.`class` := "col-xs-11",
+                          <.h1(App.cardTitle, props.ctl.link(route)(repo.namespace), repo.name)),
+                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, menuBtn)))))
     }
 
     def render(props: Props): ReactElement = {
       val repository = props.repositories().get(props.slug)
       <.section(repository.renderReady { repo =>
-        val route = repo.owner.kind match {
-          case OwnerKind.Organization => DashboardRoute.Organization(repo.namespace)
-          case OwnerKind.User =>
-            if (AppCircuit.currentUser.exists(_.username == repo.namespace))
-              DashboardRoute.Repositories
-            else DashboardRoute.User(repo.namespace)
-        }
         val isManageable = repo.action === Action.Manage
-        MuiCard()(<.div(^.key := "header",
-                        App.cardTitleBlock,
-                        MuiCardTitle(key = "title")(
-                          <.h1(App.cardTitle, props.ctl.link(route)(repo.namespace), repo.name))),
-                  MuiCardMedia(key = "tabs")(renderTabs(props, repo, isManageable)))
+        MuiCard()(renderHeader(props, repo, isManageable), renderTabs(props, repo, isManageable))
       })
     }
   }

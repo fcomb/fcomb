@@ -49,6 +49,8 @@ object App extends StyleSheet.Inline {
 
   val cardTitle = style(fontWeight :=! "400", margin(0.px), fontSize(20.px))
 
+  val rightActionBlock = style(position.absolute, margin(0.px), top(-12.px), right(0.px))
+
   val footer = style(textAlign.center,
                      paddingTop(24.px),
                      paddingBottom(12.px),
