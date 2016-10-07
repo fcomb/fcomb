@@ -17,13 +17,13 @@
 package io.fcomb.frontend.dispatcher.fetchers
 
 import diode.data.Fetch
-import diode.Dispatcher
-import io.fcomb.frontend.dispatcher.actions.UpdateRepositories
+import diode.{ActionBatch, Dispatcher}
+import io.fcomb.frontend.dispatcher.actions.UpdateRepository
 
 final case class RepositoryFetcher(dispatch: Dispatcher) extends Fetch[String] {
   override def fetch(key: String): Unit =
-    dispatch(UpdateRepositories(keys = Set(key)))
+    dispatch(UpdateRepository(key))
 
   override def fetch(keys: Traversable[String]): Unit =
-    dispatch(UpdateRepositories(keys.toSet))
+    dispatch(ActionBatch(keys.toSeq.distinct.map(key => UpdateRepository(key)): _*))
 }

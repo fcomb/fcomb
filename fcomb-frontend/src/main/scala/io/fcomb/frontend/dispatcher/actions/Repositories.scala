@@ -23,14 +23,14 @@ import scala.util.{Failure, Try}
 
 sealed trait RepositoryAction extends Action
 
-final case class UpdateRepositories(
-    keys: Set[String],
+final case class UpdateRepository(
+    slug: String,
     state: PotState = PotState.PotEmpty,
-    result: Try[Map[String, Pot[RepositoryResponse]]] = Failure(new AsyncAction.PendingException)
-) extends AsyncAction[Map[String, Pot[RepositoryResponse]], UpdateRepositories]
+    result: Try[Pot[RepositoryResponse]] = Failure(new AsyncAction.PendingException)
+) extends AsyncAction[Pot[RepositoryResponse], UpdateRepository]
     with RepositoryAction {
-  def next(newState: PotState, newValue: Try[Map[String, Pot[RepositoryResponse]]]) =
-    UpdateRepositories(keys, newState, newValue)
+  def next(newState: PotState, newValue: Try[Pot[RepositoryResponse]]) =
+    UpdateRepository(slug, newState, newValue)
 }
 
 final case class UpsertRepository(repo: RepositoryResponse) extends RepositoryAction

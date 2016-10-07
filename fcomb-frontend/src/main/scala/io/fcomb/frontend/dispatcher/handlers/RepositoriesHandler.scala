@@ -16,7 +16,7 @@
 
 package io.fcomb.frontend.dispatcher.handlers
 
-import diode.data.{AsyncAction, PotMap, Ready}
+import diode.data.{PotMap, Ready}
 import diode.{ActionHandler, ActionResult, ModelRW}
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.dispatcher.actions._
@@ -26,10 +26,10 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 final class RepositoriesHandler[M](modelRW: ModelRW[M, PotMap[String, RepositoryResponse]])
     extends ActionHandler(modelRW) {
   val pf: PartialFunction[RepositoryAction, ActionResult[M]] = {
-    case action: UpdateRepositories =>
-      ActionUtils.handleWithKeys(action, value, action.keys) { keys =>
-        val updateEffect = action.effect(Rpc.getRepositories(keys))(identity)
-        action.handleWith(this, updateEffect)(AsyncAction.mapHandler(keys))
+    case action: UpdateRepository =>
+      ActionUtils.handleWithKey(action, value, action.slug) { slug =>
+        val updateEffect = action.effect(Rpc.getRepository(slug))(identity)
+        action.handleWith(this, updateEffect)(ActionUtils.mapHandler(slug))
       }
     case UpsertRepository(repo) => updated(value + ((repo.slug, Ready(repo))))
   }

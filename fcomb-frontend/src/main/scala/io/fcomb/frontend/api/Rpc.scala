@@ -52,7 +52,7 @@ object RpcMethod {
 
 object Rpc {
   def getRepository(slug: String)(implicit ec: ExecutionContext) =
-    call[RepositoryResponse](RpcMethod.GET, Resource.repository(slug))
+    call[RepositoryResponse](RpcMethod.GET, Resource.repository(slug)).map(toPot)
 
   def createRepository(owner: Owner,
                        name: String,
@@ -90,10 +90,6 @@ object Rpc {
     }
     getRepositoriesByUrl(url, page, limit)
   }
-
-  def getRepositories(slugs: Set[String])(
-      implicit ec: ExecutionContext): Future[Map[String, Pot[RepositoryResponse]]] =
-    traversePotMap(slugs)(getRepository)
 
   def getRepositotyTags(slug: String, sortColumn: String, sortOrder: SortOrder)(
       implicit ec: ExecutionContext) = {
@@ -137,16 +133,6 @@ object Rpc {
           Xor.Left(Seq(Errors.unknown))
       }
   }
-
-  private def traversePotMap[K, R](keys: Set[K])(call: K => Future[Xor[Seq[Error], R]])(
-      implicit ec: ExecutionContext): Future[Map[K, Pot[R]]] =
-    keys.foldLeft(Future.successful(Map.empty[K, Pot[R]])) {
-      case (fm, key) =>
-        for {
-          res <- call(key)
-          m   <- fm
-        } yield m + ((key, toPot(res)))
-    }
 
   private def toPot[U](xor: Xor[Seq[Error], U]): Pot[U] =
     xor match {
