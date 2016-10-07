@@ -23,6 +23,7 @@ import diode.data.PotMap
 import diode.react.ModelProxy
 import diode.react.ReactPot._
 import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.components.LayoutComponent
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.OwnerKind
@@ -73,6 +74,11 @@ object RepositoryComponent {
     def setEditRepositoryRoute(props: Props)(e: ReactEventH): Callback =
       props.ctl.set(DashboardRoute.EditRepository(props.slug))
 
+    def breadcrumbLink(ctl: RouterCtl[DashboardRoute], target: DashboardRoute, text: String) =
+      <.a(LayoutComponent.linkAsTextStyle,
+          ^.href := ctl.urlFor(target).value,
+          ctl.setOnLinkClick(target))(text)
+
     def renderHeader(props: Props, repo: RepositoryResponse, isManageable: Boolean) = {
       val route = repo.owner.kind match {
         case OwnerKind.Organization => DashboardRoute.Organization(repo.namespace)
@@ -81,24 +87,28 @@ object RepositoryComponent {
             DashboardRoute.Repositories
           else DashboardRoute.User(repo.namespace)
       }
-      val menuBtn: ReactNode = if (isManageable) {
+      val buttons: Seq[ReactNode] = if (isManageable) {
         val menuIconBtn =
           MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
         val actions = Seq(
           MuiMenuItem(primaryText = "Edit",
                       key = "edit",
                       onTouchTap = setEditRepositoryRoute(props) _)())
-        MuiIconMenu(iconButtonElement = menuIconBtn)(actions)
-      } else <.div()
+        Seq(MuiIconMenu(iconButtonElement = menuIconBtn)(actions))
+      } else Seq.empty
+      val breadcrumbs = <.h1(
+        App.cardTitle,
+        breadcrumbLink(props.ctl, route, repo.namespace),
+        " / ",
+        breadcrumbLink(props.ctl, DashboardRoute.Repository(repo.slug), repo.name))
 
       <.div(^.key := "header",
             App.cardTitleBlock,
             MuiCardTitle(key = "title")(
               <.div(^.`class` := "row",
                     ^.key := "title",
-                    <.div(^.`class` := "col-xs-11",
-                          <.h1(App.cardTitle, props.ctl.link(route)(repo.namespace), repo.name)),
-                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, menuBtn)))))
+                    <.div(^.`class` := "col-xs-11", breadcrumbs),
+                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, buttons)))))
     }
 
     def render(props: Props): ReactElement = {

@@ -96,6 +96,9 @@ object LayoutComponent {
 
   private val theme = Mui.Styles.getMuiTheme(style)
 
+  lazy val linkAsTextStyle =
+    Seq(^.textDecoration := "none", ^.color := style.palette.textColor.toString)
+
   private val component =
     ReactComponentB[Props]("Layout").initialState(State(false)).renderBackend[Backend].build
 

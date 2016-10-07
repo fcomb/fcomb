@@ -57,8 +57,6 @@ object RepositoriesComponent {
 
     lazy val visibilityColumnStyle = js.Dictionary("width" -> "64px")
     lazy val menuColumnStyle       = js.Dictionary("width" -> "48px", "padding" -> "0px")
-    lazy val linkStyle =
-      Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
 
     def setRepositoryRoute(slug: String)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(DashboardRoute.Repository(slug)))
@@ -85,7 +83,9 @@ object RepositoriesComponent {
                  icon(color = LayoutComponent.style.palette.primary3Color)())
         ),
         MuiTableRowColumn(key = "name")(
-          <.a(linkStyle, ^.href := ctl.urlFor(target).value, ctl.setOnLinkClick(target))(name)),
+          <.a(LayoutComponent.linkAsTextStyle,
+              ^.href := ctl.urlFor(target).value,
+              ctl.setOnLinkClick(target))(name)),
         MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt)),
         MuiTableRowColumn(style = menuColumnStyle, key = "menu")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)
