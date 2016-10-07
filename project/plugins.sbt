@@ -1,5 +1,5 @@
 addSbtPlugin("com.dwijnand"      % "sbt-dynver"          % "1.0.0")
-addSbtPlugin("com.geirsson"      % "sbt-scalafmt"        % "0.4.3")
+addSbtPlugin("com.geirsson"      % "sbt-scalafmt"        % "0.4.4")
 addSbtPlugin("com.typesafe.sbt"  % "sbt-native-packager" % "1.2.0-M5")
 addSbtPlugin("com.typesafe.sbt"  % "sbt-twirl"           % "1.2.0")
 addSbtPlugin("de.heikoseeberger" % "sbt-header"          % "1.5.1")

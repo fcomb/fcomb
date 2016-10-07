@@ -117,7 +117,7 @@ object EditRepositoryComponent {
         case Some(form) =>
           MuiCard()(<.div(^.key := "header",
                           App.formTitleBlock,
-                          MuiCardTitle(key = "title")(<.h1(App.formTitle, "Edit repository"))),
+                          MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit repository"))),
                     <.form(^.onSubmit ==> handleOnSubmit,
                            ^.disabled := state.isFormDisabled,
                            ^.key := "form",

@@ -137,7 +137,7 @@ object NewRepositoryComponent {
     def render(props: Props, state: State) =
       MuiCard()(<.div(^.key := "header",
                       App.formTitleBlock,
-                      MuiCardTitle(key = "title")(<.h1(App.formTitle, "New repository"))),
+                      MuiCardTitle(key = "title")(<.h1(App.cardTitle, "New repository"))),
                 <.form(^.onSubmit ==> handleOnSubmit(props),
                        ^.disabled := state.isFormDisabled,
                        ^.key := "form",

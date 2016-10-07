@@ -43,13 +43,11 @@ object App extends StyleSheet.Inline {
 
   val helpBlock = style(color(c"#888"))
 
-  val formTitleBlock = style(padding(0.px),
-                             position.relative,
-                             borderBottom :=! "1px solid #eee",
-                             boxSizing.borderBox,
-                             margin(0.px))
+  val cardTitleBlock = style(padding(0.px), position.relative, boxSizing.borderBox, margin(0.px))
 
-  val formTitle = style(fontWeight :=! "400", margin(0.px), fontSize(20.px))
+  val formTitleBlock = cardTitleBlock + style(borderBottom :=! "1px solid #eee")
+
+  val cardTitle = style(fontWeight :=! "400", margin(0.px), fontSize(20.px))
 
   val footer = style(textAlign.center,
                      paddingTop(24.px),

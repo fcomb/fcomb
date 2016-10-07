@@ -18,19 +18,15 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import cats.syntax.eq._
-import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{
   CopyToClipboardComponent,
   SizeInBytesComponent,
   TimeAgoComponent
 }
-import io.fcomb.json.models.Formats._
-import io.fcomb.json.rpc.docker.distribution.Formats._
-import io.fcomb.models.{PaginationData, SortOrder}
+import io.fcomb.models.SortOrder
 import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
 import japgolly.scalajs.react._
-import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
@@ -91,7 +87,7 @@ object RepositoryTagsComponent {
       }
 
     def render(props: Props, state: State) =
-      <.section(renderTags(props, state)
+      <.section(renderTags(props, state))
   }
 
   private val component = ReactComponentB[Props]("RepositoryTags")

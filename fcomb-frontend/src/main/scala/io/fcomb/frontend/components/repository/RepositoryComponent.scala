@@ -22,10 +22,14 @@ import diode.data.PotMap
 import diode.react.ModelProxy
 import diode.react.ReactPot._
 import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.styles.App
+import io.fcomb.models.OwnerKind
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import scalacss.ScalaCssReact._
 
 object RepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute],
@@ -58,8 +62,19 @@ object RepositoryComponent {
 
     def render(props: Props): ReactElement = {
       val repository = props.repositories().get(props.slug)
-      <.div(repository.renderReady { repo =>
-        <.section(<.header(<.h2(repo.name)), renderTabs(props, repo))
+      <.section(repository.renderReady { repo =>
+        val route = repo.owner.kind match {
+          case OwnerKind.Organization => DashboardRoute.Organization(repo.namespace)
+          case OwnerKind.User =>
+            if (AppCircuit.currentUser.exists(_.username == repo.namespace))
+              DashboardRoute.Repositories
+            else DashboardRoute.User(repo.namespace)
+        }
+        MuiCard()(<.div(^.key := "header",
+                        App.cardTitleBlock,
+                        MuiCardTitle(key = "title")(
+                          <.h1(App.cardTitle, props.ctl.link(route)(repo.namespace), repo.name))),
+                  MuiCardMedia(key = "tabs")(renderTabs(props, repo)))
       })
     }
   }
