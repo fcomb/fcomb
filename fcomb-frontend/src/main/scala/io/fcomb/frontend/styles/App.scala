@@ -51,6 +51,8 @@ object App extends StyleSheet.Inline {
 
   val rightActionBlock = style(position.absolute, margin(0.px), top(-12.px), right(0.px))
 
+  val visibilityIconTitle = style(display.flex, float.left, marginRight(8.px))
+
   val footer = style(textAlign.center,
                      paddingTop(24.px),
                      paddingBottom(12.px),

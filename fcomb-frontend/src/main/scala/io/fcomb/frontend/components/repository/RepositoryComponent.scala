@@ -100,7 +100,7 @@ object RepositoryComponent {
       } else Seq.empty
       val breadcrumbs = <.h1(
         App.cardTitle,
-        visiblityIcon(repo.visibilityKind),
+        visiblityIcon(repo.visibilityKind, Some(App.visibilityIconTitle.htmlClass)),
         breadcrumbLink(props.ctl, route, repo.namespace),
         " / ",
         breadcrumbLink(props.ctl, DashboardRoute.Repository(repo.slug), repo.name))
@@ -125,12 +125,13 @@ object RepositoryComponent {
 
   private val component = ReactComponentB[Props]("Repository").renderBackend[Backend].build
 
-  def visiblityIcon(visibilityKind: ImageVisibilityKind) = {
+  def visiblityIcon(visibilityKind: ImageVisibilityKind, className: Option[String] = None) = {
     val icon = visibilityKind match {
       case ImageVisibilityKind.Public  => Mui.SvgIcons.ActionLockOpen
       case ImageVisibilityKind.Private => Mui.SvgIcons.ActionLock
     }
-    <.span(^.title := visibilityKind.toString,
+    <.span(^.className := className,
+           ^.title := visibilityKind.toString,
            icon(color = LayoutComponent.style.palette.primary3Color)())
   }
 
