@@ -40,9 +40,10 @@ object RepositoriesHandler {
   def show(slug: Slug) =
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { userOpt =>
-        imageBySlugRead(slug, userOpt) { image =>
-          val res = ImageHelpers.responseFrom(image, Action.Read)
-          completeWithEtag(StatusCodes.OK, res)
+        imageAndActionRead(slug, userOpt) {
+          case (image, action) =>
+            val res = ImageHelpers.responseFrom(image, action)
+            completeWithEtag(StatusCodes.OK, res)
         }
       }
     }
@@ -50,7 +51,7 @@ object RepositoriesHandler {
   def update(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageWithActionBySlugWithAcl(slug, user.getId(), Action.Manage) {
+        imageAndAction(slug, user.getId(), Action.Manage) {
           case (image, action) =>
             entity(as[ImageUpdateRequest]) { req =>
               onSuccess(ImagesRepo.update(image.getId(), req)) {
@@ -67,7 +68,7 @@ object RepositoriesHandler {
   def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
+        image(slug, user.getId(), Action.Manage) { image =>
           onSuccess(ImagesRepo.updateVisibility(image.getId(), visibilityKind)) { _ =>
             completeAccepted()
           }
@@ -78,7 +79,7 @@ object RepositoriesHandler {
   def destroy(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
+        image(slug, user.getId(), Action.Manage) { image =>
           onSuccess(ImagesRepo.destroy(image.getId())) { _ =>
             completeAccepted()
           }

@@ -31,7 +31,7 @@ object TagsHandler {
   def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { userOpt =>
-        imageBySlugRead(slug, userOpt) { image =>
+        imageRead(slug, userOpt) { image =>
           extractPagination { pg =>
             onSuccess(ImageManifestTagsRepo.paginateByImageId(image.getId(), pg)) { p =>
               completePagination(ImageManifestTagsRepo.label, p)

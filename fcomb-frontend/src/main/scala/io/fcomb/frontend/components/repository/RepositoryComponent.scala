@@ -16,6 +16,7 @@
 
 package io.fcomb.frontend.components.repository
 
+import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import diode.data.PotMap
@@ -25,6 +26,7 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.OwnerKind
+import io.fcomb.models.acl.Action
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -49,16 +51,22 @@ object RepositoryComponent {
         props.ctl.set(route)
       }
 
-    def renderTabs(props: Props, repo: RepositoryResponse) =
+    def renderTabs(props: Props, repo: RepositoryResponse, isManageable: Boolean) = {
+      val manageTabs =
+        if (isManageable)
+          Seq(
+            MuiTab(key = "permissions", label = "Permissions", value = RepositoryTab.Permissions)(
+              RepositoryPermissionsComponent(props.ctl, repo.slug, repo.owner.kind)),
+            MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
+              RepositorySettingsComponent(props.ctl, repo.slug)))
+        else Seq.empty
       MuiTabs[RepositoryTab](value = props.tab, onChange = onChange _)(
         MuiTab(key = "description", label = "Description", value = RepositoryTab.Description)(
           RepositoryDescriptionComponent(repo)),
         MuiTab(key = "tags", label = "Tags", value = RepositoryTab.Tags)(
           RepositoryTagsComponent(repo.slug)),
-        MuiTab(key = "permissions", label = "Permissions", value = RepositoryTab.Permissions)(
-          RepositoryPermissionsComponent(props.ctl, repo.slug, repo.owner.kind)),
-        MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
-          RepositorySettingsComponent(props.ctl, repo.slug)))
+        manageTabs)
+    }
 
     def render(props: Props): ReactElement = {
       val repository = props.repositories().get(props.slug)
@@ -70,11 +78,12 @@ object RepositoryComponent {
               DashboardRoute.Repositories
             else DashboardRoute.User(repo.namespace)
         }
+        val isManageable = repo.action === Action.Manage
         MuiCard()(<.div(^.key := "header",
                         App.cardTitleBlock,
                         MuiCardTitle(key = "title")(
                           <.h1(App.cardTitle, props.ctl.link(route)(repo.namespace), repo.name))),
-                  MuiCardMedia(key = "tabs")(renderTabs(props, repo)))
+                  MuiCardMedia(key = "tabs")(renderTabs(props, repo, isManageable)))
       })
     }
   }

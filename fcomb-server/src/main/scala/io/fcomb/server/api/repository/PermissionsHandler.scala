@@ -42,7 +42,7 @@ object PermissionsHandler {
   def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
+        image(slug, user.getId(), Action.Manage) { image =>
           extractPagination { pg =>
             onSuccess(PermissionsRepo.paginateByImageId(image, pg)) { p =>
               completePagination(PermissionsRepo.label, p)
@@ -55,7 +55,7 @@ object PermissionsHandler {
   def upsert(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
+        image(slug, user.getId(), Action.Manage) { image =>
           entity(as[PermissionCreateRequest]) { req =>
             onSuccess(PermissionsRepo.upsertByImage(image, req)) {
               case Validated.Valid(p)      => complete((StatusCodes.Accepted, p))
@@ -69,7 +69,7 @@ object PermissionsHandler {
   def destroy(slug: Slug, memberKind: MemberKind, memberSlug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
+        image(slug, user.getId(), Action.Manage) { image =>
           onSuccess(PermissionsRepo.destroyByImage(image, memberKind, memberSlug)) {
             case Validated.Valid(p)      => completeAccepted()
             case Validated.Invalid(errs) => completeErrors(errs)
@@ -81,7 +81,7 @@ object PermissionsHandler {
   def suggestions(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        imageBySlugWithAcl(slug, user.getId(), Action.Manage) { image =>
+        image(slug, user.getId(), Action.Manage) { image =>
           parameter('q) { q =>
             onSuccess(PermissionsRepo.findSuggestions(image, q)) { p =>
               completeWithEtag(StatusCodes.OK, DataResponse(p))

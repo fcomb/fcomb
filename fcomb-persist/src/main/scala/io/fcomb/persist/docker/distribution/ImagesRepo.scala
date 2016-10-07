@@ -121,7 +121,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   def findBySlug(slug: Slug)(implicit ec: ExecutionContext): Future[Option[Image]] =
     db.run(findBySlugDBIO(slug))
 
-  /** Returns [[cats.data.Xor.Left]] if forbidden and [[cats.data.Xor.Right]] if image found or not */
+  /** Returns [[cats.data.Xor.Left]] if forbidden and [[cats.data.Xor.Right]] if image is found or not */
   type ImageAclResult = Xor[Unit, Option[(Image, Action)]]
 
   def findBySlugWithAcl(slug: Slug, userId: Int, action: Action)(
