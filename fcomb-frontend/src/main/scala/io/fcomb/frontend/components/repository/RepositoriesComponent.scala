@@ -23,7 +23,6 @@ import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{LayoutComponent, TimeAgoComponent, ToolbarPaginationComponent}
-import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -65,10 +64,6 @@ object RepositoriesComponent {
                          repository: RepositoryResponse,
                          showNamespace: Boolean) = {
       val lastModifiedAt = repository.updatedAt.getOrElse(repository.createdAt)
-      val icon = repository.visibilityKind match {
-        case ImageVisibilityKind.Public  => Mui.SvgIcons.ActionLockOpen
-        case ImageVisibilityKind.Private => Mui.SvgIcons.ActionLock
-      }
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
       val actions = Seq(
@@ -79,9 +74,7 @@ object RepositoriesComponent {
       val target = DashboardRoute.Repository(repository.slug)
       MuiTableRow(key = repository.id.toString)(
         MuiTableRowColumn(style = visibilityColumnStyle, key = "visibilityKind")(
-          <.span(^.title := repository.visibilityKind.toString,
-                 icon(color = LayoutComponent.style.palette.primary3Color)())
-        ),
+          RepositoryComponent.visiblityIcon(repository.visibilityKind)),
         MuiTableRowColumn(key = "name")(
           <.a(LayoutComponent.linkAsTextStyle,
               ^.href := ctl.urlFor(target).value,

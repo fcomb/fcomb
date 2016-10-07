@@ -28,6 +28,7 @@ import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.OwnerKind
 import io.fcomb.models.acl.Action
+import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -57,17 +58,18 @@ object RepositoryComponent {
         if (isManageable)
           Seq(
             MuiTab(key = "permissions", label = "Permissions", value = RepositoryTab.Permissions)(
-              RepositoryPermissionsComponent(props.ctl, repo.slug, repo.owner.kind)),
+              MuiCardText()(
+                RepositoryPermissionsComponent(props.ctl, repo.slug, repo.owner.kind))),
             MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
-              RepositorySettingsComponent(props.ctl, repo.slug)))
+              MuiCardText()(RepositorySettingsComponent(props.ctl, repo.slug))))
         else Seq.empty
 
       MuiCardMedia(key = "tabs")(
         MuiTabs[RepositoryTab](value = props.tab, onChange = onChange _)(
           MuiTab(key = "description", label = "Description", value = RepositoryTab.Description)(
-            RepositoryDescriptionComponent(repo)),
+            MuiCardText()(RepositoryDescriptionComponent(repo))),
           MuiTab(key = "tags", label = "Tags", value = RepositoryTab.Tags)(
-            RepositoryTagsComponent(repo.slug)),
+            MuiCardText()(RepositoryTagsComponent(repo.slug))),
           manageTabs))
     }
 
@@ -98,6 +100,7 @@ object RepositoryComponent {
       } else Seq.empty
       val breadcrumbs = <.h1(
         App.cardTitle,
+        visiblityIcon(repo.visibilityKind),
         breadcrumbLink(props.ctl, route, repo.namespace),
         " / ",
         breadcrumbLink(props.ctl, DashboardRoute.Repository(repo.slug), repo.name))
@@ -121,6 +124,15 @@ object RepositoryComponent {
   }
 
   private val component = ReactComponentB[Props]("Repository").renderBackend[Backend].build
+
+  def visiblityIcon(visibilityKind: ImageVisibilityKind) = {
+    val icon = visibilityKind match {
+      case ImageVisibilityKind.Public  => Mui.SvgIcons.ActionLockOpen
+      case ImageVisibilityKind.Private => Mui.SvgIcons.ActionLock
+    }
+    <.span(^.title := visibilityKind.toString,
+           icon(color = LayoutComponent.style.palette.primary3Color)())
+  }
 
   def apply(ctl: RouterCtl[DashboardRoute],
             tab: RepositoryTab,
