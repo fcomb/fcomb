@@ -21,6 +21,7 @@ import cats.syntax.eq._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{
   CopyToClipboardComponent,
+  PaginationOrderState,
   SizeInBytesComponent,
   TimeAgoComponent
 }
@@ -33,26 +34,30 @@ import scala.scalajs.js
 
 object RepositoryTagsComponent {
   final case class Props(slug: String)
-  final case class State(tags: Seq[RepositoryTagResponse],
-                         sortColumn: String,
-                         sortOrder: SortOrder)
+  final case class State(tags: Seq[RepositoryTagResponse], pagination: PaginationOrderState)
 
   class Backend($ : BackendScope[Props, State]) {
     val digestLength = 12
+    val limit        = 64
 
-    def getTags(slug: String, sortColumn: String, sortOrder: SortOrder): Callback =
-      Callback.future(Rpc.getRepositotyTags(slug, sortColumn, sortOrder).map {
-        case Xor.Right(pd) => $.modState(_.copy(tags = pd.data))
-        case Xor.Left(e)   => Callback.warn(e)
-      })
+    def getTags(): Callback =
+      $.props.zip($.state).flatMap {
+        case (props, state) =>
+          val p = state.pagination
+          Callback.future(
+            Rpc.getRepositotyTags(props.slug, p.sortColumn, p.sortOrder, p.page, limit).map {
+              case Xor.Right(pd) => $.modState(_.copy(tags = pd.data))
+              case Xor.Left(e)   => Callback.warn(e)
+            })
+      }
 
     def renderTagRow(props: Props, tag: RepositoryTagResponse) =
       <.tr(<.td(tag.tag),
-           <.td(TimeAgoComponent.apply(tag.updatedAt)),
-           <.td(SizeInBytesComponent.apply(tag.length)),
+           <.td(TimeAgoComponent(tag.updatedAt)),
+           <.td(SizeInBytesComponent(tag.length)),
            <.td(^.title := tag.digest,
                 tag.digest.take(digestLength),
-                CopyToClipboardComponent.apply(tag.digest, js.undefined, <.span("Copy"))))
+                CopyToClipboardComponent(tag.digest, js.undefined, <.span("Copy"))))
 
     def changeSortOrder(column: String)(e: ReactEventH): Callback =
       for {
@@ -60,16 +65,17 @@ object RepositoryTagsComponent {
         slug  <- $.props.map(_.slug)
         state <- $.state
         sortOrder = {
-          if (state.sortColumn == column) state.sortOrder.flip
-          else state.sortOrder
+          if (state.pagination.sortColumn == column) state.pagination.sortOrder.flip
+          else state.pagination.sortOrder
         }
-        _ <- $.modState(_.copy(sortColumn = column, sortOrder = sortOrder))
-        _ <- getTags(slug, column, sortOrder)
+        _ <- $.modState(st =>
+          st.copy(pagination = st.pagination.copy(sortColumn = column, sortOrder = sortOrder)))
+        _ <- getTags()
       } yield ()
 
     def renderHeader(title: String, column: String, state: State) = {
-      val header = if (state.sortColumn == column) {
-        if (state.sortOrder === SortOrder.Asc) s"$title ↑"
+      val header = if (state.pagination.sortColumn == column) {
+        if (state.pagination.sortOrder === SortOrder.Asc) s"$title ↑"
         else s"$title ↓"
       } else title
       <.th(<.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
@@ -91,10 +97,9 @@ object RepositoryTagsComponent {
   }
 
   private val component = ReactComponentB[Props]("RepositoryTags")
-    .initialState(State(Seq.empty, "updatedAt", SortOrder.Desc))
+    .initialState(State(Seq.empty, PaginationOrderState(1, "updatedAt", SortOrder.Desc)))
     .renderBackend[Backend]
-    .componentWillMount($ =>
-      $.backend.getTags($.props.slug, $.state.sortColumn, $.state.sortOrder))
+    .componentWillMount(_.backend.getTags())
     .build
 
   def apply(slug: String) =

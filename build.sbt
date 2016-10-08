@@ -4,7 +4,7 @@ import de.heikoseeberger.sbtheader.license.Apache2_0
 lazy val akkaVersion         = "2.4.11"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.7.2"
-lazy val circeVersion        = "0.5.2"
+lazy val circeVersion        = "0.5.3"
 lazy val commonsVersion      = "1.10"
 lazy val enumeratumVersion   = "1.4.15"
 lazy val guavaVersion        = "19.0"
@@ -343,7 +343,7 @@ lazy val root = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-core" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
-      "com.lihaoyi"       % "ammonite-repl"   % "0.7.7" % "test" cross CrossVersion.full,
+      "com.lihaoyi"       % "ammonite-repl"   % "0.7.8" % "test" cross CrossVersion.full,
       "ch.qos.logback"    % "logback-classic" % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",

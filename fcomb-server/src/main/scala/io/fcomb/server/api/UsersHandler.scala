@@ -45,7 +45,7 @@ object UsersHandler {
         }
       }
     } else
-      complete((StatusCodes.Unauthorized, Errors.from(Errors.registrationIsDisabled)))
+      complete((StatusCodes.Forbidden, Errors.from(Errors.registrationIsDisabled)))
 
   val routes: Route = {
     // format: OFF

@@ -53,15 +53,27 @@ object RepositoryComponent {
         props.ctl.set(route)
       }
 
+    def renderPermissionsTab(props: Props, repo: RepositoryResponse) = {
+      val component: ReactNode =
+        if (props.tab === RepositoryTab.Permissions)
+          RepositoryPermissionsComponent(props.ctl, repo.slug, repo.owner.kind)
+        else <.div()
+      MuiTab(key = "permissions", label = "Permissions", value = RepositoryTab.Permissions)(
+        MuiCardText()(component))
+    }
+
+    def renderSettingsTab(props: Props, repo: RepositoryResponse) = {
+      val component: ReactNode =
+        if (props.tab === RepositoryTab.Settings)
+          RepositorySettingsComponent(props.ctl, repo.slug)
+        else <.div()
+      MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
+        MuiCardText()(component))
+    }
+
     def renderTabs(props: Props, repo: RepositoryResponse, isManageable: Boolean) = {
       val manageTabs =
-        if (isManageable)
-          Seq(
-            MuiTab(key = "permissions", label = "Permissions", value = RepositoryTab.Permissions)(
-              MuiCardText()(
-                RepositoryPermissionsComponent(props.ctl, repo.slug, repo.owner.kind))),
-            MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
-              MuiCardText()(RepositorySettingsComponent(props.ctl, repo.slug))))
+        if (isManageable) Seq(renderPermissionsTab(props, repo), renderSettingsTab(props, repo))
         else Seq.empty
 
       MuiCardMedia(key = "tabs")(

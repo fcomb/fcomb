@@ -91,12 +91,16 @@ object Rpc {
     getRepositoriesByUrl(url, page, limit)
   }
 
-  def getRepositotyTags(slug: String, sortColumn: String, sortOrder: SortOrder)(
-      implicit ec: ExecutionContext) = {
-    val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
+  def getRepositotyTags(slug: String,
+                        sortColumn: String,
+                        sortOrder: SortOrder,
+                        page: Int,
+                        limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = PaginationUtils.getParams(page, limit) ++
+        SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
     call[PaginationData[RepositoryTagResponse]](RpcMethod.GET,
                                                 Resource.repositoryTags(slug),
-                                                queryParams = queryParams)
+                                                queryParams)
   }
 
   def getRepositoryPermissions(slug: String, sortColumn: String, sortOrder: SortOrder)(
@@ -104,7 +108,7 @@ object Rpc {
     val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
     call[PaginationData[PermissionResponse]](RpcMethod.GET,
                                              Resource.repositoryPermissions(slug),
-                                             queryParams = queryParams)
+                                             queryParams)
   }
 
   def callWith[T: Encoder, U: Decoder](
