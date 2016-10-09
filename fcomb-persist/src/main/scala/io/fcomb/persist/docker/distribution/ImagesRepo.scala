@@ -516,6 +516,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     exceptIdFilter(id).filter(_.name === name.asColumnOfType[String]("citext")).exists
   }
 
+  def touchUpdatedAtDBIO(id: Int) =
+    table.filter(_.id === id).map(_.updatedAt).update(Some(OffsetDateTime.now()))
+
   import Validations._
 
   override def validate(i: Image)(

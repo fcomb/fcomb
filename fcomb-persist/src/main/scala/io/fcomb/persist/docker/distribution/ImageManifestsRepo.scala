@@ -117,18 +117,14 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
 
   private lazy val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Int], digest: Rep[String]) =>
-      table.filter { q =>
-        q.imageId === imageId && q.digest === digest
-      }.take(1)
+      table.filter(t => t.imageId === imageId && t.digest === digest).take(1)
   }
 
   def findByImageIdAndDigest(imageId: Int, digest: String) =
     db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
-  private def blobsCountIsLessThanExpected(
-      blobs: Seq[(UUID, Option[String], Long)],
-      digests: Set[String]
-  ) = {
+  private def blobsCountIsLessThanExpected(blobs: Seq[(UUID, Option[String], Long)],
+                                           digests: Set[String]) = {
     val existingDigests = blobs.collect { case (_, Some(dgst), _) => dgst }.toSet
     val notFound = digests
       .filterNot(existingDigests.contains)
@@ -225,8 +221,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
     }
 
   def updateTagsByReference(im: ImageManifest, reference: Reference)(
-      implicit ec: ExecutionContext
-  ): Future[Unit] = {
+      implicit ec: ExecutionContext): Future[Unit] = {
     val tags = reference match {
       case Reference.Tag(tag) if !im.tags.contains(tag) => List(tag)
       case _                                            => Nil
@@ -246,14 +241,15 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
 
   override def create(manifest: ImageManifest)(
       implicit ec: ExecutionContext,
-      m: Manifest[ImageManifest]
-  ): Future[ValidationModel] =
+      m: Manifest[ImageManifest]): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.Serializable)(
       createWithValidationDBIO(manifest).flatMap {
         case res @ Validated.Valid(im) =>
+          val imageId = im.imageId
           for {
             _ <- ImageManifestLayersRepo.insertLayersDBIO(im.getId(), im.layersBlobId)
-            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), im.tags)
+            _ <- ImageManifestTagsRepo.upsertTagsDBIO(imageId, im.getId(), im.tags)
+            _ <- ImagesRepo.touchUpdatedAtDBIO(imageId)
           } yield res
         case res => DBIO.successful(res)
       }
@@ -322,9 +318,5 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
   }
 
   def destroy(imageId: Int, digest: String)(implicit ec: ExecutionContext): Future[Boolean] =
-    db.run {
-      table.filter { q =>
-        q.imageId === imageId && q.digest === digest
-      }.delete.map(_ != 0)
-    }
+    db.run(table.filter(t => t.imageId === imageId && t.digest === digest).delete.map(_ != 0))
 }
