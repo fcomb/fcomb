@@ -504,9 +504,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   def destroyByOrganizationIdDBIO(id: Int)(implicit ec: ExecutionContext) =
     for {
       _ <- ImageBlobsRepo.destroyByOrganizationIdDBIO(id)
-      res <- table.filter { t =>
-        t.ownerId === id && t.ownerKind === (OwnerKind.Organization: OwnerKind)
-      }.delete
+      res <- table
+        .filter(t => t.ownerId === id && t.ownerKind === (OwnerKind.Organization: OwnerKind))
+        .delete
     } yield res
 
   override def destroy(id: Int)(implicit ec: ExecutionContext) =

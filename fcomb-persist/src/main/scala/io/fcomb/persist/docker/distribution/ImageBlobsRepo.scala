@@ -57,9 +57,9 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
   def mount(fromImageId: Int, toImageId: Int, digest: String, userId: Int)(
       implicit ec: ExecutionContext): Future[Option[ImageBlob]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
-      findByImageIdAndDigestCompiled((fromImageId, digest)).result.headOption.flatMap {
+      findUploadedCompiled((fromImageId, digest)).result.headOption.flatMap {
         case Some(blob) =>
-          findByImageIdAndDigestCompiled((toImageId, digest)).result.headOption.flatMap {
+          findUploadedCompiled((toImageId, digest)).result.headOption.flatMap {
             case Some(b) => DBIO.successful(Some(b))
             case None =>
               val timeNow = OffsetDateTime.now()
@@ -100,43 +100,36 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
 
   private lazy val findByImageIdAndUuidCompiled = Compiled {
     (imageId: Rep[Int], uuid: Rep[UUID]) =>
-      table.filter { q =>
-        q.imageId === imageId && q.id === uuid
-      }.take(1)
+      table.filter(t => t.imageId === imageId && t.id === uuid).take(1)
   }
 
   def findByImageIdAndUuid(imageId: Int, uuid: UUID)(implicit ec: ExecutionContext) =
     db.run(findByImageIdAndUuidCompiled((imageId, uuid)).result.headOption)
 
-  private lazy val findByImageIdAndDigestCompiled = Compiled {
-    (imageId: Rep[Int], digest: Rep[String]) =>
-      table.filter { q =>
-        q.imageId === imageId && q.digest === digest
-      }.take(1)
+  private def uploadedScope(imageId: Rep[Int]) =
+    table.filter(t =>
+      t.imageId === imageId && t.state === (ImageBlobState.Uploaded: ImageBlobState))
+
+  private lazy val findUploadedCompiled = Compiled { (imageId: Rep[Int], digest: Rep[String]) =>
+    uploadedScope(imageId).filter(_.digest === digest).take(1)
   }
 
-  def findByImageIdAndDigest(imageId: Int, digest: String)(implicit ec: ExecutionContext) =
-    db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
+  def findUploaded(imageId: Int, digest: String)(implicit ec: ExecutionContext) =
+    db.run(findUploadedCompiled((imageId, digest)).result.headOption)
 
-  private def findByImageIdAndDigestsDBIO(imageId: Int, digests: Set[String]) =
-    table.filter { q =>
-      q.imageId === imageId && q.digest.inSetBind(digests)
-    }
+  private def findAllUploadedDBIO(imageId: Int, digests: Set[String]) =
+    uploadedScope(imageId).filter(_.digest.inSetBind(digests)).distinctOn(_.digest.get).subquery
 
-  def findIdsWithDigestByImageIdAndDigests(imageId: Int, digests: Set[String])(
+  def findAllUploadedIds(imageId: Int, digests: Set[String])(
       implicit ec: ExecutionContext): Future[Seq[(UUID, Option[String], Long)]] =
-    db.run(
-      findByImageIdAndDigestsDBIO(imageId, digests).map(t => (t.id, t.digest, t.length)).result)
+    db.run(findAllUploadedDBIO(imageId, digests).map(t => (t.id, t.digest, t.length)).result)
 
-  def findByImageIdAndDigests(imageId: Int, digests: Set[String])(implicit ec: ExecutionContext) =
-    db.run(findByImageIdAndDigestsDBIO(imageId, digests).result)
+  def findAllUploaded(imageId: Int, digests: Set[String])(implicit ec: ExecutionContext) =
+    db.run(findAllUploadedDBIO(imageId, digests).result)
 
   private lazy val existUploadedByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Int], digest: Rep[String], exceptId: Rep[UUID]) =>
-      table.filter { q =>
-        q.id =!= exceptId && q.imageId === imageId && q.digest === digest &&
-        q.state === (ImageBlobState.Uploaded: ImageBlobState)
-      }.exists
+      uploadedScope(imageId).filter(t => t.id =!= exceptId && t.digest === digest).exists
   }
 
   def completeUploadOrDelete(id: UUID, imageId: Int, length: Long, digest: String)(
@@ -277,23 +270,21 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     db.run(table.filter(_.id.inSetBind(ids)).result)
 
   def createEmptyTarIfNotExists(imageId: Int)(implicit ec: ExecutionContext): Future[Unit] =
-    db.run {
-      findByImageIdAndDigestCompiled((imageId, emptyTarSha256Digest)).result.headOption.flatMap {
-        case Some(_) => DBIO.successful(())
-        case None =>
-          val blob = ImageBlob(
-            id = Some(UUID.randomUUID()),
-            state = ImageBlobState.Uploaded,
-            imageId = imageId,
-            digest = Some(emptyTarSha256Digest),
-            contentType = `application/octet-stream`,
-            length = emptyTar.length.toLong,
-            createdAt = OffsetDateTime.now(),
-            uploadedAt = None
-          )
-          table += blob
-      }.map(_ => ())
-    }
+    db.run(findUploadedCompiled((imageId, emptyTarSha256Digest)).result.headOption.flatMap {
+      case Some(_) => DBIO.successful(())
+      case None =>
+        val blob = ImageBlob(
+          id = Some(UUID.randomUUID()),
+          state = ImageBlobState.Uploaded,
+          imageId = imageId,
+          digest = Some(emptyTarSha256Digest),
+          contentType = `application/octet-stream`,
+          length = emptyTar.length.toLong,
+          createdAt = OffsetDateTime.now(),
+          uploadedAt = None
+        )
+        table += blob
+    }.map(_ => ()))
 
   def tryDestroy(id: UUID)(implicit ec: ExecutionContext): Future[Xor[String, Unit]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {

@@ -133,12 +133,10 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
     validationErrorAsFuture("layersBlobId", s"Unknown blobs: $notFound")
   }
 
-  def upsertSchemaV1(
-      image: Image,
-      manifest: SchemaV1.Manifest,
-      schemaV1JsonBlob: String,
-      digest: String
-  )(implicit ec: ExecutionContext): Future[ValidationModel] =
+  def upsertSchemaV1(image: Image,
+                     manifest: SchemaV1.Manifest,
+                     schemaV1JsonBlob: String,
+                     digest: String)(implicit ec: ExecutionContext): Future[ValidationModel] =
     findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) => FastFuture.successful(Validated.valid(im))
       case None =>
@@ -146,38 +144,35 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
         val tags =
           if (manifest.tag.nonEmpty) List(manifest.tag)
           else Nil
-        ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId(), digests).flatMap {
-          blobs =>
-            if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
-            else {
-              val length = blobs.foldLeft(0L)(_ + _._3)
-              create(
-                ImageManifest(
-                  id = None,
-                  digest = digest,
-                  imageId = image.getId(),
-                  tags = tags,
-                  layersBlobId = blobs.map(_._1).toList,
-                  schemaVersion = 1,
-                  schemaV1JsonBlob = schemaV1JsonBlob,
-                  schemaV2Details = None,
-                  length = length,
-                  createdAt = OffsetDateTime.now,
-                  updatedAt = None
-                ))
-            }
+        ImageBlobsRepo.findAllUploadedIds(image.getId(), digests).flatMap { blobs =>
+          if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
+          else {
+            val length = blobs.foldLeft(0L)(_ + _._3)
+            create(
+              ImageManifest(
+                id = None,
+                digest = digest,
+                imageId = image.getId(),
+                tags = tags,
+                layersBlobId = blobs.map(_._1).toList,
+                schemaVersion = 1,
+                schemaV1JsonBlob = schemaV1JsonBlob,
+                schemaV2Details = None,
+                length = length,
+                createdAt = OffsetDateTime.now,
+                updatedAt = None
+              ))
+          }
         }
     }
 
-  def upsertSchemaV2(
-      image: Image,
-      manifest: SchemaV2.Manifest,
-      reference: Reference,
-      configBlob: ImageBlob,
-      schemaV1JsonBlob: String,
-      schemaV2JsonBlob: String,
-      digest: String
-  )(implicit ec: ExecutionContext): Future[ValidationModel] =
+  def upsertSchemaV2(image: Image,
+                     manifest: SchemaV2.Manifest,
+                     reference: Reference,
+                     configBlob: ImageBlob,
+                     schemaV1JsonBlob: String,
+                     schemaV2JsonBlob: String,
+                     digest: String)(implicit ec: ExecutionContext): Future[ValidationModel] =
     findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
         updateTagsByReference(im, reference).fast.map(_ => Validated.valid(im))
@@ -189,7 +184,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
           else FastFuture.successful(())
         (for {
           _       <- emptyTarResFut
-          blobIds <- ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId(), digests)
+          blobIds <- ImageBlobsRepo.findAllUploadedIds(image.getId(), digests)
         } yield blobIds).flatMap { blobs =>
           if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
           else {

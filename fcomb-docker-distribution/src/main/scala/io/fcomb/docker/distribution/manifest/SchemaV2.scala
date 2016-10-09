@@ -50,7 +50,7 @@ object SchemaV2 {
         ImageManifestsRepo.updateTagsByReference(im, reference).fast.map(_ => Xor.Right(im.digest))
       case None =>
         val configDigest = manifest.config.getDigest
-        ImageBlobsRepo.findByImageIdAndDigest(image.getId(), configDigest).flatMap {
+        ImageBlobsRepo.findUploaded(image.getId(), configDigest).flatMap {
           case Some(configBlob) =>
             if (configBlob.length > 16.MB)
               FastFuture.successful(unknowError("Config JSON size is more than 16 MB"))

@@ -32,7 +32,7 @@ class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer
       case f: ParsingFailure =>
         (StatusCodes.UnprocessableEntity, Errors.deserialization(f.message))
       case f =>
-        val cause = ExceptionUtils.getRootCause(f)
+        val cause = Option(ExceptionUtils.getRootCause(f)).getOrElse(f)
         logger.error(cause.getMessage(), cause)
         (StatusCodes.InternalServerError, Errors.internal(cause.getMessage))
     }

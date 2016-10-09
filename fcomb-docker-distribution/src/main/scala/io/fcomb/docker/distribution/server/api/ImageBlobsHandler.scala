@@ -45,8 +45,8 @@ object ImageBlobsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
           import mat.executionContext
-          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
-            case Some(blob) if blob.isUploaded =>
+          onSuccess(ImageBlobsRepo.findUploaded(image.getId(), digest)) {
+            case Some(blob) =>
               val headers = immutable.Seq(
                 `Docker-Content-Digest`("sha256", digest),
                 etagHeader(digest),
@@ -73,8 +73,8 @@ object ImageBlobsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
           import mat.executionContext
-          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
-            case Some(blob) if blob.isUploaded =>
+          onSuccess(ImageBlobsRepo.findUploaded(image.getId(), digest)) {
+            case Some(blob) =>
               val ct = contentType(blob.contentType)
               optionalHeaderValueByType[Range]() {
                 case Some(Range(_, range +: _)) =>
@@ -131,8 +131,8 @@ object ImageBlobsHandler {
       extractMaterializer { implicit mat =>
         imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
           import mat.executionContext
-          onSuccess(ImageBlobsRepo.findByImageIdAndDigest(image.getId(), digest)) {
-            case Some(blob) if blob.isUploaded =>
+          onSuccess(ImageBlobsRepo.findUploaded(image.getId(), digest)) {
+            case Some(blob) =>
               onSuccess(ImageBlobsRepo.tryDestroy(blob.getId())) {
                 case Xor.Right(_) =>
                   val fut = ImageBlobsRepo.existByDigest(digest).flatMap { exist =>

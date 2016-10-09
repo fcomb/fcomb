@@ -160,11 +160,7 @@ class ImageBlobUploadsHandlerSpec
         header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val newBlob = await({
-          for {
-            Some(blob) <- ImageBlobsRepo.findByImageIdAndDigest(mountImage.getId(), bsDigest)
-          } yield blob
-        })
+        val Some(newBlob) = await(ImageBlobsRepo.findUploaded(mountImage.getId(), bsDigest))
         newBlob.length shouldEqual bs.length
         newBlob.state shouldEqual ImageBlobState.Uploaded
         newBlob.digest shouldEqual Some(bsDigest)

@@ -69,11 +69,8 @@ class ImageBlobsHandlerSpec
 
       Head(s"/v2/$imageSlug/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
+        checkBlobHeaders()
         responseAs[ByteString] shouldBe empty
-        header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
-        header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
-        header[`Accept-Ranges`] should contain(`Accept-Ranges`(RangeUnits.Bytes))
-        header[ETag] should contain(ETag(s"sha256:$bsDigest"))
         responseEntity.contentLengthOption shouldEqual Some(bs.length)
       }
     }
@@ -173,5 +170,42 @@ class ImageBlobsHandlerSpec
         file.exists() should be(false)
       }
     }
+
+    "return an info for uploaded blob (with uploading blobs with the same digest)" in {
+      val imageSlug = Fixtures.await(for {
+        user  <- UsersRepoFixture.create()
+        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
+        _ <- ImageBlobsRepoFixture.createAs(user.getId(),
+                                            image.getId(),
+                                            bs,
+                                            ImageBlobState.Uploading)
+        _ <- ImageBlobsRepoFixture.createAs(user.getId(),
+                                            image.getId(),
+                                            bs,
+                                            ImageBlobState.Uploaded)
+        _ <- ImageBlobsRepoFixture.createAs(user.getId(),
+                                            image.getId(),
+                                            bs,
+                                            ImageBlobState.Uploading)
+
+      } yield image.slug)
+
+      Head(s"/v2/$imageSlug/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.OK
+        checkBlobHeaders()
+      }
+
+      Get(s"/v2/$imageSlug/blobs/sha256:$bsDigest") ~> addCredentials(credentials) ~> route ~> check {
+        status shouldEqual StatusCodes.OK
+        checkBlobHeaders()
+      }
+    }
+  }
+
+  private def checkBlobHeaders() = {
+    header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
+    header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
+    header[`Accept-Ranges`] should contain(`Accept-Ranges`(RangeUnits.Bytes))
+    header[ETag] should contain(ETag(s"sha256:$bsDigest"))
   }
 }
