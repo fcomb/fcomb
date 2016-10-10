@@ -41,18 +41,16 @@ object RepositoriesComponent {
       $.modState(_.copy(page = page)) >> $.props.flatMap(p => getRepositories(p.namespace, page))
 
     def getRepositories(namespace: Namespace, page: Int) =
-      Callback.future {
-        Rpc.getNamespaceRepositories(namespace, page, limit).map {
-          case Xor.Right(pd) =>
-            $.modState(
-              _.copy(
-                repositories = pd.data,
-                page = pd.getPage,
-                total = pd.total
-              ))
-          case Xor.Left(e) => Callback.warn(e)
-        }
-      }
+      Callback.future(Rpc.getNamespaceRepositories(namespace, page, limit).map {
+        case Xor.Right(pd) =>
+          $.modState(
+            _.copy(
+              repositories = pd.data,
+              page = pd.getPage,
+              total = pd.total
+            ))
+        case Xor.Left(e) => Callback.warn(e)
+      })
 
     lazy val visibilityColumnStyle = js.Dictionary("width" -> "64px")
     lazy val menuColumnStyle       = js.Dictionary("width" -> "48px", "padding" -> "0px")
@@ -93,8 +91,7 @@ object RepositoriesComponent {
       MuiTableHeaderColumn(style = visibilityColumnStyle, key = "visibilityKind")("Visibility"),
       MuiTableHeaderColumn(key = "name")("Name"),
       MuiTableHeaderColumn(key = "lastModifiedAt")("Last modified"),
-      MuiTableHeaderColumn(style = menuColumnStyle, key = "menu")()
-    )
+      MuiTableHeaderColumn(style = menuColumnStyle, key = "menu")())
 
     def render(props: Props, state: State) = {
       val showNamespace = props.namespace === Namespace.All

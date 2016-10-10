@@ -18,6 +18,8 @@ package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
 import cats.syntax.eq._
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{
   CopyToClipboardComponent,
@@ -52,12 +54,14 @@ object RepositoryTagsComponent {
       }
 
     def renderTagRow(props: Props, tag: RepositoryTagResponse) =
-      <.tr(<.td(tag.tag),
-           <.td(TimeAgoComponent(tag.updatedAt)),
-           <.td(SizeInBytesComponent(tag.length)),
-           <.td(^.title := tag.digest,
+      MuiTableRow(key = tag.digest)(
+        MuiTableRowColumn(key = "tag")(tag.tag),
+        MuiTableRowColumn(key = "updatedAt")(TimeAgoComponent(tag.updatedAt)),
+        MuiTableRowColumn(key = "length")(SizeInBytesComponent(tag.length)),
+        MuiTableRowColumn(key = "digest")(
+          <.div(^.title := tag.digest,
                 tag.digest.take(digestLength),
-                CopyToClipboardComponent(tag.digest, js.undefined, <.span("Copy"))))
+                CopyToClipboardComponent(tag.digest, js.undefined, <.span("Copy")))))
 
     def changeSortOrder(column: String)(e: ReactEventH): Callback =
       for {
@@ -78,22 +82,38 @@ object RepositoryTagsComponent {
         if (state.pagination.sortOrder === SortOrder.Asc) s"$title ↑"
         else s"$title ↓"
       } else title
-      <.th(<.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
+      MuiTableHeaderColumn(key = column)(
+        <.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
     }
 
-    def renderTags(props: Props, state: State) =
-      if (state.tags.isEmpty) <.span("No tags. Create one!")
-      else {
-        <.table(<.thead(
-                  <.tr(renderHeader("Tag", "tag", state),
-                       renderHeader("Last modified", "updatedAt", state),
-                       renderHeader("Size", "length", state),
-                       renderHeader("Image", "digest", state))),
-                <.tbody(state.tags.map(renderTagRow(props, _))))
-      }
+    // TODO
+    // def renderTags(props: Props, state: State) =
+    //   if (state.tags.isEmpty) <.span("No tags. Create one!")
+    //   else {
 
-    def render(props: Props, state: State) =
-      <.section(renderTags(props, state))
+    //   }
+
+    def render(props: Props, state: State) = {
+      val columns = MuiTableRow()(renderHeader("Tag", "tag", state),
+                                  renderHeader("Last modified", "updatedAt", state),
+                                  renderHeader("Size", "length", state),
+                                  renderHeader("Image", "digest", state))
+      val rows = state.tags.map(renderTagRow(props, _))
+      <.section(
+        MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
+                                                                adjustForCheckbox = false,
+                                                                displaySelectAll = false,
+                                                                enableSelectAll = false,
+                                                                key = "header"
+                                                              )(columns),
+                                                              MuiTableBody(
+                                                                deselectOnClickaway = false,
+                                                                displayRowCheckbox = false,
+                                                                showRowHover = false,
+                                                                stripedRows = false,
+                                                                key = "body"
+                                                              )(rows)))
+    }
   }
 
   private val component = ReactComponentB[Props]("RepositoryTags")

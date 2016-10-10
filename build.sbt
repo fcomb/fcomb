@@ -202,7 +202,7 @@ lazy val crypto = project
       "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
       "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
       "io.circe"          %% "circe-parser"  % circeVersion,
-      "com.pauldijou"     %% "jwt-circe"     % "0.8.1"
+      "com.pauldijou"     %% "jwt-circe"     % "0.9.0"
     ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM, jsonJVM)

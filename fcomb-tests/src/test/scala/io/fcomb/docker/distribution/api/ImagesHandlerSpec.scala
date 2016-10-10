@@ -255,8 +255,6 @@ class ImagesHandlerSpec
     }
 
     "return created response for manifests V2 with uploading blobs" in {
-      // val manifestV1       = ByteString(getFixture("docker/distribution/manifestV1.json"))
-      // val digest = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
       val manifestV2 = ByteString(getFixture("docker/distribution/manifestV2.json"))
       val digest     = "eeb39ca4e9565a6689fa1a6b79d130e058796359a1da88a6f3e3d0fc95ed3b0b"
       val configBlobBs = ByteString(getFixture(
@@ -346,7 +344,7 @@ class ImagesHandlerSpec
         im <- ImageManifestsRepoFixture.createV1(user.getId(), imageSlug, blob1, "1.0")
       } yield (im, image, imageSlug))
 
-      def checkResponse(): Unit = {
+      def checkResponse() = {
         status shouldEqual StatusCodes.OK
         contentType shouldEqual `application/vnd.docker.distribution.manifest.v1+prettyjws`
         header[`Docker-Content-Digest`] should contain(
@@ -397,7 +395,7 @@ class ImagesHandlerSpec
         SchemaV1Manifest.verify(manifest, rawManifest) should be(right)
       }
 
-      def checkResponse(): Unit = {
+      def checkResponse() = {
         status shouldEqual StatusCodes.OK
         contentType shouldEqual `application/vnd.docker.distribution.manifest.v2+json`
         header[`Docker-Content-Digest`] should contain(
