@@ -45,7 +45,9 @@ import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
-class ImageTable(tag: Tag) extends Table[Image](tag, "dd_images") with PersistTableWithAutoIntPk {
+final class ImageTable(tag: Tag)
+    extends Table[Image](tag, "dd_images")
+    with PersistTableWithAutoIntPk {
   def name           = column[String]("name")
   def slug           = column[String]("slug")
   def visibilityKind = column[ImageVisibilityKind]("visibility_kind")

@@ -43,7 +43,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
 
-class ImageBlobUploadsHandlerSpec
+final class ImageBlobUploadsHandlerSpec
     extends WordSpec
     with Matchers
     with ScalatestRouteTest

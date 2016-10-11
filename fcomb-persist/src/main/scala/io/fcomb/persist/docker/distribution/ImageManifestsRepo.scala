@@ -27,7 +27,7 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
-class ImageManifestTable(tag: Tag)
+final class ImageManifestTable(tag: Tag)
     extends Table[ImageManifest](tag, "dd_image_manifests")
     with PersistTableWithAutoIntPk {
   def digest           = column[String]("digest")

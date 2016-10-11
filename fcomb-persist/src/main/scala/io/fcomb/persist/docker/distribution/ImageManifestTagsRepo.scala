@@ -25,7 +25,7 @@ import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 
-class ImageManifestTagTable(_tag: Tag)
+final class ImageManifestTagTable(_tag: Tag)
     extends Table[ImageManifestTag](_tag, "dd_image_manifest_tags") {
   def imageId         = column[Int]("image_id")
   def imageManifestId = column[Int]("image_manifest_id")

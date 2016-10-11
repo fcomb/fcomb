@@ -287,7 +287,7 @@ trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor =>
 
 import ImageBlobPushMessages._
 
-class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLogging {
+final class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLogging {
   import ImageBlobPushProcessor._
   import ShardRegion.Passivate
 

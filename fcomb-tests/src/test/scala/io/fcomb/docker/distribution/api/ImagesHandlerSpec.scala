@@ -49,7 +49,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 
-class ImagesHandlerSpec
+final class ImagesHandlerSpec
     extends WordSpec
     with Matchers
     with ScalatestRouteTest

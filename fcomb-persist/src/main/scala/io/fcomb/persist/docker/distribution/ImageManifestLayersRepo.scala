@@ -21,7 +21,7 @@ import io.fcomb.models.docker.distribution.ImageManifestLayer
 import io.fcomb.persist._
 import java.util.UUID
 
-class ImageManifestLayerTable(_tag: Tag)
+final class ImageManifestLayerTable(_tag: Tag)
     extends Table[ImageManifestLayer](_tag, "dd_image_manifest_layers") {
   def imageManifestId = column[Int]("image_manifest_id")
   def layerBlobId     = column[UUID]("layer_blob_id")

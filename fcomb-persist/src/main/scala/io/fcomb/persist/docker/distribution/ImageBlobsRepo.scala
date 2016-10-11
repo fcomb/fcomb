@@ -29,7 +29,7 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
-class ImageBlobTable(tag: Tag)
+final class ImageBlobTable(tag: Tag)
     extends Table[ImageBlob](tag, "dd_image_blobs")
     with PersistTableWithUuidPk {
   def imageId     = column[Int]("image_id")

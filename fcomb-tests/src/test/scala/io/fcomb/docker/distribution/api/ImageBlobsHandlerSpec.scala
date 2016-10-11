@@ -34,7 +34,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 import io.fcomb.docker.distribution.server.Api
 
-class ImageBlobsHandlerSpec
+final class ImageBlobsHandlerSpec
     extends WordSpec
     with Matchers
     with ScalatestRouteTest

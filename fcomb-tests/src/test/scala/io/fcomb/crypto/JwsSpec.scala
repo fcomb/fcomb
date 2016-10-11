@@ -19,7 +19,7 @@ package io.fcomb.crypto
 import org.scalatest.{Matchers, WordSpec}
 import org.jose4j.jwk.PublicJsonWebKey
 
-class JwsSpec extends WordSpec with Matchers {
+final class JwsSpec extends WordSpec with Matchers {
   "JWS module" should {
     "make key id from public key" in {
       val pk =

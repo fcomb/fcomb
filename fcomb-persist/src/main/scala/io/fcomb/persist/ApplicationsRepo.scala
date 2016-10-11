@@ -21,7 +21,7 @@ import io.fcomb.models.{Application, ApplicationState, OwnerKind}
 import io.fcomb.persist.EnumsMapping._
 import java.time.OffsetDateTime
 
-class ApplicationTable(tag: Tag)
+final class ApplicationTable(tag: Tag)
     extends Table[Application](tag, "applications")
     with PersistTableWithAutoIntPk {
   def name      = column[String]("name")

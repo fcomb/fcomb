@@ -41,7 +41,7 @@ import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
-class PermissionTable(tag: Tag)
+final class PermissionTable(tag: Tag)
     extends Table[Permission](tag, "acl_permissions")
     with PersistTableWithAutoIntPk {
   def imageId    = column[Int]("image_id")

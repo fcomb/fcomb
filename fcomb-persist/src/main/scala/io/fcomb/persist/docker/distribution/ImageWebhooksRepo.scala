@@ -26,7 +26,7 @@ import io.fcomb.persist.{PersistModelWithAutoIntPk, PersistTableWithAutoIntPk}
 import io.fcomb.rpc.helpers.docker.distribution.ImageWebhookHelpers
 import scala.concurrent.{ExecutionContext, Future}
 
-class ImageWebhookTable(tag: Tag)
+final class ImageWebhookTable(tag: Tag)
     extends Table[ImageWebhook](tag, "dd_image_webhooks")
     with PersistTableWithAutoIntPk {
   def imageId = column[Int]("image_id")

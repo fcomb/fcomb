@@ -15,7 +15,7 @@ import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import org.apache.commons.lang3.exception.ExceptionUtils
 
-class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer)
+final class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer)
     extends LazyLogging {
   import sys.dispatcher
 

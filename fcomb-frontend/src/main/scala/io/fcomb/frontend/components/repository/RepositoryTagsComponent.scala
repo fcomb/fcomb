@@ -57,9 +57,9 @@ object RepositoryTagsComponent {
         MuiTableRowColumn(key = "updatedAt")(TimeAgoComponent(tag.updatedAt)),
         MuiTableRowColumn(key = "length")(SizeInBytesComponent(tag.length)),
         MuiTableRowColumn(key = "digest")(
-          <.div(^.title := tag.digest,
-                tag.digest.take(digestLength),
-                CopyToClipboardComponent(tag.digest, js.undefined, <.span("Copy")))))
+          <.div(^.title := tag.digest, tag.digest.take(digestLength))),
+        MuiTableRowColumn(key = "actions")(
+          CopyToClipboardComponent(tag.digest, js.undefined, <.span("Copy"))))
 
     def changeSortOrder(column: String)(e: ReactEventH): Callback =
       for {
@@ -93,7 +93,8 @@ object RepositoryTagsComponent {
       val columns = MuiTableRow()(renderHeader("Tag", "tag", state),
                                   renderHeader("Last modified", "updatedAt", state),
                                   renderHeader("Size", "length", state),
-                                  renderHeader("Image", "digest", state))
+                                  renderHeader("Image", "digest", state),
+                                  MuiTableHeaderColumn(key = "actions")())
       val rows = state.tags.map(renderTagRow(props, _))
       <.section(
         MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
