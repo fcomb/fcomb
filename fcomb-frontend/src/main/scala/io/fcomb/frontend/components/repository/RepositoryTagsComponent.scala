@@ -42,19 +42,17 @@ object RepositoryTagsComponent {
     val digestLength = 12
     val limit        = 64
 
-    def getTags(): Callback =
-      $.props.zip($.state).flatMap {
-        case (props, state) =>
-          val p = state.pagination
-          Callback.future(
-            Rpc.getRepositotyTags(props.slug, p.sortColumn, p.sortOrder, p.page, limit).map {
-              case Xor.Right(pd) => $.modState(_.copy(tags = pd.data))
-              case Xor.Left(e)   => Callback.warn(e)
-            })
+    def getTags(pos: PaginationOrderState): Callback =
+      $.props.flatMap { props =>
+        Callback.future(
+          Rpc.getRepositotyTags(props.slug, pos.sortColumn, pos.sortOrder, pos.page, limit).map {
+            case Xor.Right(pd) => $.modState(_.copy(tags = pd.data))
+            case Xor.Left(e)   => Callback.warn(e)
+          })
       }
 
     def renderTagRow(props: Props, tag: RepositoryTagResponse) =
-      MuiTableRow(key = tag.digest)(
+      MuiTableRow(key = tag.tag)(
         MuiTableRowColumn(key = "tag")(tag.tag),
         MuiTableRowColumn(key = "updatedAt")(TimeAgoComponent(tag.updatedAt)),
         MuiTableRowColumn(key = "length")(SizeInBytesComponent(tag.length)),
@@ -66,15 +64,13 @@ object RepositoryTagsComponent {
     def changeSortOrder(column: String)(e: ReactEventH): Callback =
       for {
         _     <- e.preventDefaultCB
-        slug  <- $.props.map(_.slug)
+        props <- $.props
         state <- $.state
-        sortOrder = {
-          if (state.pagination.sortColumn == column) state.pagination.sortOrder.flip
-          else state.pagination.sortOrder
-        }
-        _ <- $.modState(st =>
-          st.copy(pagination = st.pagination.copy(sortColumn = column, sortOrder = sortOrder)))
-        _ <- getTags()
+        sortOrder = if (state.pagination.sortColumn == column) state.pagination.sortOrder.flip
+        else state.pagination.sortOrder
+        pagination = state.pagination.copy(sortColumn = column, sortOrder = sortOrder)
+        _ <- $.setState(state.copy(pagination = pagination))
+        _ <- getTags(pagination)
       } yield ()
 
     def renderHeader(title: String, column: String, state: State) = {
@@ -119,7 +115,7 @@ object RepositoryTagsComponent {
   private val component = ReactComponentB[Props]("RepositoryTags")
     .initialState(State(Seq.empty, PaginationOrderState(1, "updatedAt", SortOrder.Desc)))
     .renderBackend[Backend]
-    .componentWillMount(_.backend.getTags())
+    .componentWillMount($ => $.backend.getTags($.state.pagination))
     .build
 
   def apply(slug: String) =
