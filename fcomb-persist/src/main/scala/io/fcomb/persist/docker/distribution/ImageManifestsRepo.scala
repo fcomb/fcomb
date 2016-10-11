@@ -55,61 +55,56 @@ final class ImageManifestTable(tag: Tag)
      length,
      createdAt,
      updatedAt,
-     (v2ConfigBlobId, v2JsonBlob)) <>
-      ((apply2 _).tupled, unapply2)
-
-  private def apply2(
-      id: Option[Int],
-      digest: String,
-      imageId: Int,
-      tags: List[String],
-      layersBlobId: List[UUID],
-      schemaVersion: Int,
-      schemaV1JsonBlob: String,
-      length: Long,
-      createdAt: OffsetDateTime,
-      updatedAt: Option[OffsetDateTime],
-      v2DetailsTuple: (Option[UUID], Option[String])
-  ) = {
-    val schemaV2Details = (schemaVersion, v2DetailsTuple) match {
-      case (2, (configBlobId, Some(v2JsonBlob))) =>
-        Some(ImageManifestSchemaV2Details(configBlobId, v2JsonBlob))
-      case _ => None
-    }
-    ImageManifest(
-      id = id,
-      digest = digest,
-      imageId = imageId,
-      tags = tags,
-      layersBlobId = layersBlobId,
-      schemaVersion = schemaVersion,
-      schemaV1JsonBlob = schemaV1JsonBlob,
-      schemaV2Details = schemaV2Details,
-      length = length,
-      createdAt = createdAt,
-      updatedAt = updatedAt
-    )
-  }
-
-  def unapply2(m: ImageManifest) = {
-    val v2DetailsTuple = m.schemaV2Details match {
-      case Some(ImageManifestSchemaV2Details(configBlobId, v2JsonBlob)) =>
-        (configBlobId, Some(v2JsonBlob))
-      case None => (None, None)
-    }
-    Some(
-      (m.id,
-       m.digest,
-       m.imageId,
-       m.tags,
-       m.layersBlobId,
-       m.schemaVersion,
-       m.schemaV1JsonBlob,
-       m.length,
-       m.createdAt,
-       m.updatedAt,
-       v2DetailsTuple))
-  }
+     (v2ConfigBlobId, v2JsonBlob)).shaped <>
+      ({
+        case (id,
+              digest,
+              imageId,
+              tags,
+              layersBlobId,
+              schemaVersion,
+              schemaV1JsonBlob,
+              length,
+              createdAt,
+              updatedAt,
+              (v2ConfigBlobId, v2JsonBlob)) =>
+          val schemaV2Details = (schemaVersion, v2JsonBlob) match {
+            case (2, Some(v2JsonBlob)) =>
+              Some(ImageManifestSchemaV2Details(v2ConfigBlobId, v2JsonBlob))
+            case _ => None
+          }
+          ImageManifest(
+            id = id,
+            digest = digest,
+            imageId = imageId,
+            tags = tags,
+            layersBlobId = layersBlobId,
+            schemaVersion = schemaVersion,
+            schemaV1JsonBlob = schemaV1JsonBlob,
+            schemaV2Details = schemaV2Details,
+            length = length,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+          )
+      }, { m: ImageManifest =>
+        val v2DetailsTuple = m.schemaV2Details match {
+          case Some(ImageManifestSchemaV2Details(configBlobId, v2JsonBlob)) =>
+            (configBlobId, Some(v2JsonBlob))
+          case None => (None, None)
+        }
+        Some(
+          (m.id,
+           m.digest,
+           m.imageId,
+           m.tags,
+           m.layersBlobId,
+           m.schemaVersion,
+           m.schemaV1JsonBlob,
+           m.length,
+           m.createdAt,
+           m.updatedAt,
+           v2DetailsTuple))
+      })
 }
 
 object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, ImageManifestTable] {
@@ -222,16 +217,17 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       case _                                            => Nil
     }
     if (tags.nonEmpty)
-      runInTransaction(TransactionIsolation.Serializable)(for {
-        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), tags)
-        _ <- sqlu"""
-          UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
-            SET tags = tags || ${reference.value},
-                updated_at = ${OffsetDateTime.now()}
-            WHERE id = ${im.getId}
-          """
-      } yield ())
-    else FastFuture.successful(())
+      runInTransaction(TransactionIsolation.ReadCommitted) {
+        val timeNow = OffsetDateTime.now()
+        for {
+          _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), tags)
+          _ <- sqlu"""UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
+                    SET tags = tags || ${reference.value},
+                        updated_at = $timeNow
+                    WHERE id = ${im.getId}"""
+          _ <- ImagesRepo.touchUpdatedAtDBIO(im.imageId, timeNow)
+        } yield ()
+      } else FastFuture.successful(())
   }
 
   override def create(manifest: ImageManifest)(
@@ -244,7 +240,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
           for {
             _ <- ImageManifestLayersRepo.insertLayersDBIO(im.getId(), im.layersBlobId)
             _ <- ImageManifestTagsRepo.upsertTagsDBIO(imageId, im.getId(), im.tags)
-            _ <- ImagesRepo.touchUpdatedAtDBIO(imageId)
+            _ <- ImagesRepo.touchUpdatedAtDBIO(imageId, im.createdAt)
           } yield res
         case res => DBIO.successful(res)
       }

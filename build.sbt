@@ -264,7 +264,7 @@ lazy val tests = project
       "org.scalacheck"     %% "scalacheck"        % "1.13.2" % "test",
       "org.specs2"         %% "specs2-core"       % "3.8.5" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.0" % "test",
-      "com.ironcorelabs"   %% "cats-scalatest"    % "1.5.0" % "test",
+      "com.ironcorelabs"   %% "cats-scalatest"    % "2.0.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
       "ch.qos.logback"     % "logback-classic"    % "1.1.7",
       "junit"              % "junit-dep"          % "4.10" % "test"
