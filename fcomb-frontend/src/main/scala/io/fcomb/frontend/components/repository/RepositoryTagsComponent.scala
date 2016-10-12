@@ -29,6 +29,7 @@ import io.fcomb.frontend.components.{
   ToolbarPaginationComponent
 }
 import io.fcomb.frontend.styles.App
+import io.fcomb.frontend.utils.RepositoryUtils
 import io.fcomb.models.SortOrder
 import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
 import japgolly.scalajs.react._
@@ -63,15 +64,31 @@ object RepositoryTagsComponent {
           })
       }
 
-    def renderTagRow(props: Props, tag: RepositoryTagResponse) =
+    lazy val menuColumnStyle = js.Dictionary("width" -> "48px", "padding" -> "0px")
+
+    def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
+      val menuBtn =
+        MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
+      val dockerPullCommand = RepositoryUtils.dockerPullCommand(props.slug, tag.tag)
+      val actions = Seq(
+        CopyToClipboardComponent(
+          dockerPullCommand,
+          js.undefined,
+          MuiMenuItem(primaryText = "Copy docker pull command", key = "copy")(),
+          key = "copyDockerPull"),
+        CopyToClipboardComponent(tag.digest,
+                                 js.undefined,
+                                 MuiMenuItem(primaryText = "Copy image digest", key = "copy")(),
+                                 key = "copyDigest"))
       MuiTableRow(key = tag.tag)(
         MuiTableRowColumn(key = "tag")(tag.tag),
         MuiTableRowColumn(key = "updatedAt")(TimeAgoComponent(tag.updatedAt)),
         MuiTableRowColumn(key = "length")(SizeInBytesComponent(tag.length)),
         MuiTableRowColumn(key = "digest")(
           <.div(^.title := tag.digest, tag.digest.take(digestLength))),
-        MuiTableRowColumn(key = "actions")(
-          CopyToClipboardComponent(tag.digest, js.undefined, <.span("Copy"))))
+        MuiTableRowColumn(style = menuColumnStyle, key = "actions")(
+          MuiIconMenu(iconButtonElement = menuBtn)(actions)))
+    }
 
     def updateSort(column: String)(e: ReactEventH): Callback =
       for {
@@ -111,11 +128,12 @@ object RepositoryTagsComponent {
     def render(props: Props, state: State) =
       if (state.tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
       else {
-        val columns = MuiTableRow()(renderHeader("Tag", "tag", state),
-                                    renderHeader("Last modified", "updatedAt", state),
-                                    renderHeader("Size", "length", state),
-                                    renderHeader("Image", "digest", state),
-                                    MuiTableHeaderColumn(key = "actions")())
+        val columns = MuiTableRow()(
+          renderHeader("Tag", "tag", state),
+          renderHeader("Last modified", "updatedAt", state),
+          renderHeader("Size", "length", state),
+          renderHeader("Image", "digest", state),
+          MuiTableHeaderColumn(style = menuColumnStyle, key = "actions")())
         val rows = state.tags.map(renderTagRow(props, _))
         val p    = state.pagination
         <.section(

@@ -81,9 +81,7 @@ object RepositoriesComponent {
               ctl.setOnLinkClick(target))(name)),
         MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt)),
         MuiTableRowColumn(style = menuColumnStyle, key = "menu")(
-          MuiIconMenu(iconButtonElement = menuBtn)(actions)
-        )
-      )
+          MuiIconMenu(iconButtonElement = menuBtn)(actions)))
     }
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
