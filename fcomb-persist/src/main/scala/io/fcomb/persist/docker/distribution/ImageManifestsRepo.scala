@@ -55,7 +55,7 @@ final class ImageManifestTable(tag: Tag)
      length,
      createdAt,
      updatedAt,
-     (v2ConfigBlobId, v2JsonBlob)).shaped <>
+     (v2ConfigBlobId, v2JsonBlob)) <>
       ({
         case (id,
               digest,
@@ -257,10 +257,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       table
         .join(ImageManifestTagsRepo.table)
         .on(_.id === _.imageManifestId)
-        .filter {
-          case (t, imt) =>
-            t.imageId === imageId && imt.tag === tag
-        }
+        .filter { case (t, imt) => t.imageId === imageId && imt.tag === tag }
         .map(_._1)
   }
 
@@ -284,8 +281,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
   val fetchLimit = 256
 
   def findTagsByImageId(imageId: Int, n: Option[Int], last: Option[String])(
-      implicit ec: ExecutionContext
-  ): Future[(Seq[String], Int, Boolean)] = {
+      implicit ec: ExecutionContext): Future[(Seq[String], Int, Boolean)] = {
     val limit = n match {
       case Some(v) if v > 0 && v <= fetchLimit => v
       case _                                   => fetchLimit
@@ -298,14 +294,11 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
         }
       case None => DBIO.successful((0, 0L))
     }
-    db.run(for {
-        (id, offset) <- since
-        tags         <- findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
-      } yield tags)
-      .fast
-      .map { tags =>
-        (tags.take(limit), limit, tags.length > limit)
-      }
+    val q: DBIO[(Seq[String], Int, Boolean)] = for {
+      (id, offset) <- since
+      tags         <- findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
+    } yield (tags.take(limit), limit, tags.length > limit)
+    db.run(q)
   }
 
   def destroy(imageId: Int, digest: String)(implicit ec: ExecutionContext): Future[Boolean] =

@@ -25,7 +25,8 @@ import io.fcomb.frontend.components.{
   CopyToClipboardComponent,
   PaginationOrderState,
   SizeInBytesComponent,
-  TimeAgoComponent
+  TimeAgoComponent,
+  ToolbarPaginationComponent
 }
 import io.fcomb.models.SortOrder
 import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
@@ -36,17 +37,19 @@ import scala.scalajs.js
 
 object RepositoryTagsComponent {
   final case class Props(slug: String)
-  final case class State(tags: Seq[RepositoryTagResponse], pagination: PaginationOrderState)
+  final case class State(pagination: PaginationOrderState,
+                         tags: Seq[RepositoryTagResponse],
+                         total: Int)
 
   class Backend($ : BackendScope[Props, State]) {
     val digestLength = 12
-    val limit        = 64
+    val limit        = 50
 
     def getTags(pos: PaginationOrderState): Callback =
       $.props.flatMap { props =>
         Callback.future(
           Rpc.getRepositotyTags(props.slug, pos.sortColumn, pos.sortOrder, pos.page, limit).map {
-            case Xor.Right(pd) => $.modState(_.copy(tags = pd.data))
+            case Xor.Right(pd) => $.modState(_.copy(tags = pd.data, total = pd.total))
             case Xor.Left(e)   => Callback.warn(e)
           })
       }
@@ -72,6 +75,12 @@ object RepositoryTagsComponent {
         _ <- $.setState(state.copy(pagination = pagination))
         _ <- getTags(pagination)
       } yield ()
+
+    def updatePage(page: Int): Callback =
+      $.state.flatMap { state =>
+        val pagination = state.pagination.copy(page = page)
+        $.setState(state.copy(pagination = pagination)) >> getTags(pagination)
+      }
 
     def renderHeader(title: String, column: String, state: State) = {
       val header = if (state.pagination.sortColumn == column) {
@@ -109,12 +118,13 @@ object RepositoryTagsComponent {
                                                                 showRowHover = false,
                                                                 stripedRows = false,
                                                                 key = "body"
-                                                              )(rows)))
+                                                              )(rows)),
+        ToolbarPaginationComponent(state.pagination.page, limit, state.total, updatePage _))
     }
   }
 
   private val component = ReactComponentB[Props]("RepositoryTags")
-    .initialState(State(Seq.empty, PaginationOrderState(1, "updatedAt", SortOrder.Desc)))
+    .initialState(State(PaginationOrderState(1, "updatedAt", SortOrder.Desc), Seq.empty, 0))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getTags($.state.pagination))
     .build
