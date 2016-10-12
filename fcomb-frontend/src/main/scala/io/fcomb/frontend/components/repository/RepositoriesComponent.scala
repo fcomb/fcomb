@@ -99,7 +99,7 @@ object RepositoriesComponent {
         if (state.repositories.isEmpty)
           Seq(
             MuiTableRow(rowNumber = 4, key = "row")(
-              MuiTableRowColumn()("There are no repositories to show")))
+              MuiTableRowColumn()("There are no repositories to show yet")))
         else state.repositories.map(renderRepository(props.ctl, _, showNamespace))
 
       <.section(MuiTable(selectable = false, multiSelectable = false)(

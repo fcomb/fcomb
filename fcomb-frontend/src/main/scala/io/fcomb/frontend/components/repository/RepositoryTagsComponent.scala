@@ -28,29 +28,38 @@ import io.fcomb.frontend.components.{
   TimeAgoComponent,
   ToolbarPaginationComponent
 }
+import io.fcomb.frontend.styles.App
 import io.fcomb.models.SortOrder
 import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
+import scalacss.ScalaCssReact._
 
 object RepositoryTagsComponent {
   final case class Props(slug: String)
-  final case class State(pagination: PaginationOrderState,
-                         tags: Seq[RepositoryTagResponse],
-                         total: Int)
+  final case class State(tags: Seq[RepositoryTagResponse], pagination: PaginationOrderState) {
+    def flipSortColumn(column: String): State = {
+      val sortOrder =
+        if (pagination.sortColumn == column) pagination.sortOrder.flip
+        else pagination.sortOrder
+      this.copy(pagination = pagination.copy(sortColumn = column, sortOrder = sortOrder))
+    }
+  }
 
   class Backend($ : BackendScope[Props, State]) {
     val digestLength = 12
-    val limit        = 50
+    val limit        = 25
 
     def getTags(pos: PaginationOrderState): Callback =
       $.props.flatMap { props =>
         Callback.future(
           Rpc.getRepositotyTags(props.slug, pos.sortColumn, pos.sortOrder, pos.page, limit).map {
-            case Xor.Right(pd) => $.modState(_.copy(tags = pd.data, total = pd.total))
-            case Xor.Left(e)   => Callback.warn(e)
+            case Xor.Right(pd) =>
+              $.modState(st =>
+                st.copy(tags = pd.data, pagination = st.pagination.copy(total = pd.total)))
+            case Xor.Left(e) => Callback.warn(e)
           })
       }
 
@@ -64,16 +73,12 @@ object RepositoryTagsComponent {
         MuiTableRowColumn(key = "actions")(
           CopyToClipboardComponent(tag.digest, js.undefined, <.span("Copy"))))
 
-    def changeSortOrder(column: String)(e: ReactEventH): Callback =
+    def updateSort(column: String)(e: ReactEventH): Callback =
       for {
         _     <- e.preventDefaultCB
-        props <- $.props
-        state <- $.state
-        sortOrder = if (state.pagination.sortColumn == column) state.pagination.sortOrder.flip
-        else state.pagination.sortOrder
-        pagination = state.pagination.copy(sortColumn = column, sortOrder = sortOrder)
-        _ <- $.setState(state.copy(pagination = pagination))
-        _ <- getTags(pagination)
+        state <- $.state.map(_.flipSortColumn(column))
+        _     <- $.setState(state)
+        _     <- getTags(state.pagination)
       } yield ()
 
     def updatePage(page: Int): Callback =
@@ -82,21 +87,26 @@ object RepositoryTagsComponent {
         $.setState(state.copy(pagination = pagination)) >> getTags(pagination)
       }
 
+    lazy val sortIconStyle = js.Dictionary("width" -> "21px",
+                                           "height"        -> "21px",
+                                           "paddingRight"  -> "8px",
+                                           "verticalAlign" -> "middle")
+
     def renderHeader(title: String, column: String, state: State) = {
-      val header = if (state.pagination.sortColumn == column) {
-        if (state.pagination.sortOrder === SortOrder.Asc) s"$title ↑"
-        else s"$title ↓"
-      } else title
+      val sortIcon: ReactNode =
+        if (state.pagination.sortColumn == column) {
+          if (state.pagination.sortOrder === SortOrder.Asc)
+            Mui.SvgIcons.NavigationArrowUpward(style = sortIconStyle)()
+          else Mui.SvgIcons.NavigationArrowDownward(style = sortIconStyle)()
+        } else <.span()
+
       MuiTableHeaderColumn(key = column)(
-        <.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
+        <.a(App.sortedColumn,
+            ^.href := "#",
+            ^.onClick ==> updateSort(column),
+            sortIcon,
+            <.span(title))())
     }
-
-    // TODO
-    // def renderTags(props: Props, state: State) =
-    //   if (state.tags.isEmpty) <.span("No tags. Create one!")
-    //   else {
-
-    //   }
 
     def render(props: Props, state: State) = {
       val columns = MuiTableRow()(renderHeader("Tag", "tag", state),
@@ -104,7 +114,13 @@ object RepositoryTagsComponent {
                                   renderHeader("Size", "length", state),
                                   renderHeader("Image", "digest", state),
                                   MuiTableHeaderColumn(key = "actions")())
-      val rows = state.tags.map(renderTagRow(props, _))
+      val rows =
+        if (state.tags.isEmpty)
+          Seq(
+            MuiTableRow(rowNumber = 5, key = "row")(
+              MuiTableRowColumn()("There are no tags to show yet")))
+        else state.tags.map(renderTagRow(props, _))
+      val p = state.pagination
       <.section(
         MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
                                                                 adjustForCheckbox = false,
@@ -119,12 +135,12 @@ object RepositoryTagsComponent {
                                                                 stripedRows = false,
                                                                 key = "body"
                                                               )(rows)),
-        ToolbarPaginationComponent(state.pagination.page, limit, state.total, updatePage _))
+        ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
     }
   }
 
   private val component = ReactComponentB[Props]("RepositoryTags")
-    .initialState(State(PaginationOrderState(1, "updatedAt", SortOrder.Desc), Seq.empty, 0))
+    .initialState(State(Seq.empty, PaginationOrderState("updatedAt", SortOrder.Desc)))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getTags($.state.pagination))
     .build

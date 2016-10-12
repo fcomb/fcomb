@@ -18,6 +18,14 @@ package io.fcomb.frontend.components
 
 import io.fcomb.models.SortOrder
 
-final case class PaginationOrderState(page: Int, sortColumn: String, sortOrder: SortOrder)
+final case class PaginationOrderState(page: Int,
+                                      total: Int,
+                                      sortColumn: String,
+                                      sortOrder: SortOrder)
 
-final case class PaginationState(page: Int)
+final case class PaginationState(page: Int, total: Int)
+
+object PaginationOrderState {
+  def apply(sortColumn: String, sortOrder: SortOrder): PaginationOrderState =
+    PaginationOrderState(1, 0, sortColumn, sortOrder)
+}
