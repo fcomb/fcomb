@@ -108,35 +108,32 @@ object RepositoryTagsComponent {
             <.span(title))())
     }
 
-    def render(props: Props, state: State) = {
-      val columns = MuiTableRow()(renderHeader("Tag", "tag", state),
-                                  renderHeader("Last modified", "updatedAt", state),
-                                  renderHeader("Size", "length", state),
-                                  renderHeader("Image", "digest", state),
-                                  MuiTableHeaderColumn(key = "actions")())
-      val rows =
-        if (state.tags.isEmpty)
-          Seq(
-            MuiTableRow(rowNumber = 5, key = "row")(
-              MuiTableRowColumn()("There are no tags to show yet")))
-        else state.tags.map(renderTagRow(props, _))
-      val p = state.pagination
-      <.section(
-        MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
-                                                                adjustForCheckbox = false,
-                                                                displaySelectAll = false,
-                                                                enableSelectAll = false,
-                                                                key = "header"
-                                                              )(columns),
-                                                              MuiTableBody(
-                                                                deselectOnClickaway = false,
-                                                                displayRowCheckbox = false,
-                                                                showRowHover = false,
-                                                                stripedRows = false,
-                                                                key = "body"
-                                                              )(rows)),
-        ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
-    }
+    def render(props: Props, state: State) =
+      if (state.tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
+      else {
+        val columns = MuiTableRow()(renderHeader("Tag", "tag", state),
+                                    renderHeader("Last modified", "updatedAt", state),
+                                    renderHeader("Size", "length", state),
+                                    renderHeader("Image", "digest", state),
+                                    MuiTableHeaderColumn(key = "actions")())
+        val rows = state.tags.map(renderTagRow(props, _))
+        val p    = state.pagination
+        <.section(
+          MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
+                                                                  adjustForCheckbox = false,
+                                                                  displaySelectAll = false,
+                                                                  enableSelectAll = false,
+                                                                  key = "header"
+                                                                )(columns),
+                                                                MuiTableBody(
+                                                                  deselectOnClickaway = false,
+                                                                  displayRowCheckbox = false,
+                                                                  showRowHover = false,
+                                                                  stripedRows = false,
+                                                                  key = "body"
+                                                                )(rows)),
+          ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
+      }
   }
 
   private val component = ReactComponentB[Props]("RepositoryTags")

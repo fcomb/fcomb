@@ -53,6 +53,8 @@ object App extends StyleSheet.Inline {
 
   val visibilityIconTitle = style(display.flex, float.left, marginRight(8.px))
 
+  val infoMsg = style(textAlign.center, fontSize(24.px), padding(4.rem, 0.rem))
+
   val footer = style(textAlign.center,
                      paddingTop(24.px),
                      paddingBottom(12.px),

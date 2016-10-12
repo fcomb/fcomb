@@ -23,12 +23,14 @@ import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{LayoutComponent, TimeAgoComponent, ToolbarPaginationComponent}
+import io.fcomb.frontend.styles.App
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
+import scalacss.ScalaCssReact._
 
 object RepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], namespace: Namespace)
@@ -93,32 +95,29 @@ object RepositoriesComponent {
       MuiTableHeaderColumn(key = "lastModifiedAt")("Last modified"),
       MuiTableHeaderColumn(style = menuColumnStyle, key = "menu")())
 
-    def render(props: Props, state: State) = {
-      val showNamespace = props.namespace === Namespace.All
-      val rows =
-        if (state.repositories.isEmpty)
-          Seq(
-            MuiTableRow(rowNumber = 4, key = "row")(
-              MuiTableRowColumn()("There are no repositories to show yet")))
-        else state.repositories.map(renderRepository(props.ctl, _, showNamespace))
+    def render(props: Props, state: State): ReactElement =
+      if (state.repositories.isEmpty) <.div(App.infoMsg, "There are no repositories to show yet")
+      else {
+        val showNamespace = props.namespace === Namespace.All
+        val rows          = state.repositories.map(renderRepository(props.ctl, _, showNamespace))
 
-      <.section(MuiTable(selectable = false, multiSelectable = false)(
-                  MuiTableHeader(
-                    adjustForCheckbox = false,
-                    displaySelectAll = false,
-                    enableSelectAll = false,
-                    key = "header"
-                  )(colNames),
-                  MuiTableBody(
-                    deselectOnClickaway = false,
-                    displayRowCheckbox = false,
-                    showRowHover = false,
-                    stripedRows = false,
-                    key = "body"
-                  )(rows)
-                ),
-                ToolbarPaginationComponent(state.page, limit, state.total, updatePage _))
-    }
+        <.section(MuiTable(selectable = false, multiSelectable = false)(
+                    MuiTableHeader(
+                      adjustForCheckbox = false,
+                      displaySelectAll = false,
+                      enableSelectAll = false,
+                      key = "header"
+                    )(colNames),
+                    MuiTableBody(
+                      deselectOnClickaway = false,
+                      displayRowCheckbox = false,
+                      showRowHover = false,
+                      stripedRows = false,
+                      key = "body"
+                    )(rows)
+                  ),
+                  ToolbarPaginationComponent(state.page, limit, state.total, updatePage _))
+      }
   }
 
   private val component = ReactComponentB[Props]("Repositories")
