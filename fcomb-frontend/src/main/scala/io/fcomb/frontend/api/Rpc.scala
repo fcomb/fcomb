@@ -22,20 +22,20 @@ import io.circe.scalajs.decodeJs
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 import io.fcomb.frontend.components.repository.Namespace
-import io.fcomb.frontend.dispatcher.actions.LogOut
 import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.dispatcher.actions.LogOut
 import io.fcomb.frontend.utils.PaginationUtils
-import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.models.Formats._
+import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.models.acl.MemberKind
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
 import io.fcomb.models.{Owner, OwnerKind, PaginationData, SortOrder}
 import io.fcomb.rpc.acl.PermissionResponse
 import io.fcomb.rpc.docker.distribution._
-import org.scalajs.dom.ext.Ajax
-import org.scalajs.dom.ext.AjaxException
+import org.scalajs.dom.ext.{Ajax, AjaxException}
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js.{JSON, URIUtils}
@@ -96,20 +96,34 @@ object Rpc {
                         sortOrder: SortOrder,
                         page: Int,
                         limit: Int)(implicit ec: ExecutionContext) = {
-    val queryParams = PaginationUtils.getParams(page, limit) ++
-        SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
     call[PaginationData[RepositoryTagResponse]](RpcMethod.GET,
                                                 Resource.repositoryTags(slug),
                                                 queryParams)
   }
 
-  def getRepositoryPermissions(slug: String, sortColumn: String, sortOrder: SortOrder)(
-      implicit ec: ExecutionContext) = {
-    val queryParams = SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
+  def getRepositoryPermissions(slug: String,
+                               sortColumn: String,
+                               sortOrder: SortOrder,
+                               page: Int,
+                               limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
     call[PaginationData[PermissionResponse]](RpcMethod.GET,
                                              Resource.repositoryPermissions(slug),
                                              queryParams)
   }
+
+  def deletRepositoryPermission(slug: String, name: String, kind: MemberKind)(
+      implicit ec: ExecutionContext) = {
+    val url = Resource.repositoryPermission(slug, kind, name)
+    call[Unit](RpcMethod.DELETE, url)
+  }
+
+  private def toQueryParams(sortColumn: String,
+                            sortOrder: SortOrder,
+                            page: Int,
+                            limit: Int): Map[String, String] =
+    PaginationUtils.getParams(page, limit) ++ SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
 
   def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,

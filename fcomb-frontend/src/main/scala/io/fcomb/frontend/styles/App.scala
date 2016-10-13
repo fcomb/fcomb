@@ -16,6 +16,7 @@
 
 package io.fcomb.frontend.styles
 
+import scala.scalajs.js
 import scalacss.Defaults._
 
 object App extends StyleSheet.Inline {
@@ -64,4 +65,13 @@ object App extends StyleSheet.Inline {
                      left(0.px))
 
   val footerLink = style(textDecoration := "none", fontSize(13.px))
+
+  val menuColumnStyle = js.Dictionary("width" -> "48px", "padding" -> "0px")
+
+  val sortIconStyle = js.Dictionary("width" -> "21px",
+                                    "height"        -> "21px",
+                                    "paddingRight"  -> "8px",
+                                    "verticalAlign" -> "middle")
+
+  val visibilityColumnStyle = js.Dictionary("width" -> "64px")
 }

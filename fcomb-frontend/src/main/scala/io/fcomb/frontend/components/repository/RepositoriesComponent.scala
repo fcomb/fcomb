@@ -29,7 +29,6 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js
 import scalacss.ScalaCssReact._
 
 object RepositoriesComponent {
@@ -54,9 +53,6 @@ object RepositoriesComponent {
         case Xor.Left(e) => Callback.warn(e)
       })
 
-    lazy val visibilityColumnStyle = js.Dictionary("width" -> "64px")
-    lazy val menuColumnStyle       = js.Dictionary("width" -> "48px", "padding" -> "0px")
-
     def setRepositoryRoute(slug: String)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(DashboardRoute.Repository(slug)))
 
@@ -73,25 +69,26 @@ object RepositoriesComponent {
       val name   = if (showNamespace) repository.slug else repository.name
       val target = DashboardRoute.Repository(repository.slug)
       MuiTableRow(key = repository.id.toString)(
-        MuiTableRowColumn(style = visibilityColumnStyle, key = "visibilityKind")(
+        MuiTableRowColumn(style = App.visibilityColumnStyle, key = "visibilityKind")(
           RepositoryComponent.visiblityIcon(repository.visibilityKind)),
         MuiTableRowColumn(key = "name")(
           <.a(LayoutComponent.linkAsTextStyle,
               ^.href := ctl.urlFor(target).value,
               ctl.setOnLinkClick(target))(name)),
         MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt)),
-        MuiTableRowColumn(style = menuColumnStyle, key = "menu")(
+        MuiTableRowColumn(style = App.menuColumnStyle, key = "menu")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)))
     }
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
-    lazy val colNames = MuiTableRow()(
-      MuiTableHeaderColumn(style = visibilityColumnStyle, key = "visibilityKind")("Visibility"),
-      MuiTableHeaderColumn(key = "name")("Name"),
-      MuiTableHeaderColumn(key = "lastModifiedAt")("Last modified"),
-      MuiTableHeaderColumn(style = menuColumnStyle, key = "menu")())
+    lazy val colNames =
+      MuiTableRow()(MuiTableHeaderColumn(style = App.visibilityColumnStyle,
+                                         key = "visibilityKind")("Visibility"),
+                    MuiTableHeaderColumn(key = "name")("Name"),
+                    MuiTableHeaderColumn(key = "lastModifiedAt")("Last modified"),
+                    MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
 
     def render(props: Props, state: State): ReactElement =
       if (state.repositories.isEmpty) <.div(App.infoMsg, "There are no repositories to show yet")

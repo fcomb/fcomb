@@ -17,7 +17,6 @@
 package io.fcomb.frontend.components.repository
 
 import cats.data.Xor
-import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
@@ -25,6 +24,7 @@ import io.fcomb.frontend.components.{
   CopyToClipboardComponent,
   PaginationOrderState,
   SizeInBytesComponent,
+  Table,
   TimeAgoComponent,
   ToolbarPaginationComponent
 }
@@ -64,8 +64,6 @@ object RepositoryTagsComponent {
           })
       }
 
-    lazy val menuColumnStyle = js.Dictionary("width" -> "48px", "padding" -> "0px")
-
     def renderTagRow(props: Props, tag: RepositoryTagResponse) = {
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
@@ -86,7 +84,7 @@ object RepositoryTagsComponent {
         MuiTableRowColumn(key = "length")(SizeInBytesComponent(tag.length)),
         MuiTableRowColumn(key = "digest")(
           <.div(^.title := tag.digest, tag.digest.take(digestLength))),
-        MuiTableRowColumn(style = menuColumnStyle, key = "actions")(
+        MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)))
     }
 
@@ -104,38 +102,17 @@ object RepositoryTagsComponent {
         $.setState(state.copy(pagination = pagination)) >> getTags(pagination)
       }
 
-    lazy val sortIconStyle = js.Dictionary("width" -> "21px",
-                                           "height"        -> "21px",
-                                           "paddingRight"  -> "8px",
-                                           "verticalAlign" -> "middle")
-
-    def renderHeader(title: String, column: String, state: State) = {
-      val sortIcon: ReactNode =
-        if (state.pagination.sortColumn == column) {
-          if (state.pagination.sortOrder === SortOrder.Asc)
-            Mui.SvgIcons.NavigationArrowUpward(style = sortIconStyle)()
-          else Mui.SvgIcons.NavigationArrowDownward(style = sortIconStyle)()
-        } else <.span()
-
-      MuiTableHeaderColumn(key = column)(
-        <.a(App.sortedColumn,
-            ^.href := "#",
-            ^.onClick ==> updateSort(column),
-            sortIcon,
-            <.span(title))())
-    }
-
     def render(props: Props, state: State) =
       if (state.tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
       else {
+        val p = state.pagination
         val columns = MuiTableRow()(
-          renderHeader("Tag", "tag", state),
-          renderHeader("Last modified", "updatedAt", state),
-          renderHeader("Size", "length", state),
-          renderHeader("Image", "digest", state),
-          MuiTableHeaderColumn(style = menuColumnStyle, key = "actions")())
+          Table.renderHeader("Tag", "tag", p, updateSort _),
+          Table.renderHeader("Last modified", "updatedAt", p, updateSort _),
+          Table.renderHeader("Size", "length", p, updateSort _),
+          Table.renderHeader("Image", "digest", p, updateSort _),
+          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
         val rows = state.tags.map(renderTagRow(props, _))
-        val p    = state.pagination
         <.section(
           MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
                                                                   adjustForCheckbox = false,

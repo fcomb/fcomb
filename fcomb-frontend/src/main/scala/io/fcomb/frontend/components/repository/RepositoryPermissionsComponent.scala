@@ -16,23 +16,28 @@
 
 package io.fcomb.frontend.components.repository
 
+import diode.data.{Empty, Failed, Pot, Ready}
+import diode.react.ReactPot._
 import cats.data.Xor
-import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
+import io.fcomb.frontend.components.{PaginationOrderState, Table, ToolbarPaginationComponent}
+import io.fcomb.frontend.styles.App
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
-import io.fcomb.models.OwnerKind
-import io.fcomb.models.SortOrder
+import io.fcomb.models.errors.ErrorsException
+import io.fcomb.models.{OwnerKind, SortOrder}
 import io.fcomb.rpc.acl._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
+import scalacss.ScalaCssReact._
 
 object RepositoryPermissionsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String, ownerKind: OwnerKind)
@@ -40,43 +45,56 @@ object RepositoryPermissionsComponent {
                              action: Action,
                              errors: Map[String, String],
                              isFormDisabled: Boolean)
-  final case class State(permissions: Seq[PermissionResponse],
-                         sortColumn: String,
-                         sortOrder: SortOrder,
-                         form: FormState)
+  final case class State(permissions: Pot[Seq[PermissionResponse]],
+                         pagination: PaginationOrderState,
+                         form: FormState) {
+    def flipSortColumn(column: String): State = {
+      val sortOrder =
+        if (pagination.sortColumn == column) pagination.sortOrder.flip
+        else pagination.sortOrder
+      this.copy(pagination = pagination.copy(sortColumn = column, sortOrder = sortOrder))
+    }
+  }
 
   private def defaultFormState =
     FormState(None, Action.Read, Map.empty, false)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def getPermissions(slug: String, sortColumn: String, sortOrder: SortOrder): Callback =
-      Callback.future(Rpc.getRepositoryPermissions(slug, sortColumn, sortOrder).map {
-        case Xor.Right(pd) => $.modState(_.copy(permissions = pd.data))
-        case Xor.Left(e)   => Callback.warn(e)
-      })
+    val limit = 25
+
+    def getPermissions(pos: PaginationOrderState): Callback =
+      $.modState(st => st.copy(permissions = st.permissions.pending())) >>
+        $.props.flatMap { props =>
+          Callback.future(
+            Rpc
+              .getRepositoryPermissions(props.slug, pos.sortColumn, pos.sortOrder, pos.page, limit)
+              .map {
+                case Xor.Right(pd) =>
+                  $.modState(st =>
+                    st.copy(permissions = Ready(pd.data),
+                            pagination = st.pagination.copy(total = pd.total)))
+                case Xor.Left(errs) =>
+                  $.modState(_.copy(permissions = Failed(ErrorsException(errs))))
+              })
+        }
 
     def updatePermission(slug: String, name: String, kind: MemberKind)(e: ReactEventI) = {
       val action = Action.withName(e.target.value)
       e.preventDefaultCB >>
         $.state.flatMap { state =>
           $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
-            Callback.future {
-              upsertPermission(slug, name, kind, action).map {
-                case Xor.Right(_) =>
-                  updateFormDisabled(false) >>
-                    getPermissions(slug, state.sortColumn, state.sortOrder)
-                case Xor.Left(errs) =>
-                  $.setState(state.copy(
-                    form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
-              }.recover {
-                case _ => updateFormDisabled(false)
-              }
-            }
+            Callback.future(upsertPermission(slug, name, kind, action).map {
+              case Xor.Right(_) => updateFormDisabled(false) >> getPermissions(state.pagination)
+              case Xor.Left(errs) =>
+                $.setState(state.copy(
+                  form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
+            })
         }
     }
 
     lazy val actions = Action.values.map(r =>
-      MuiMenuItem[Action](key = r.value, value = r, primaryText = r.entryName)())
+      MuiMenuItem[Action](key = r.value, value = r, primaryText = r.entryName.capitalize)())
+
     lazy val memberKinds = MemberKind.values.map(k => <.option(^.value := k.value)(k.entryName))
 
     def renderActionCell(slug: String, state: State, permission: PermissionResponse) = {
@@ -95,69 +113,90 @@ object RepositoryPermissionsComponent {
       e.preventDefaultCB >>
         $.state.flatMap { state => // TODO: DRY
           $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
-            Callback.future {
-              val url = Resource.repositoryPermission(slug, kind, name)
-              Rpc
-                .call[Unit](RpcMethod.DELETE, url)
-                .map {
-                  case Xor.Right(_) =>
-                    updateFormDisabled(false) >>
-                      getPermissions(slug, state.sortColumn, state.sortOrder)
-                  case Xor.Left(e) =>
-                    // TODO
-                    updateFormDisabled(false)
-                }
-                .recover {
-                  case _ => updateFormDisabled(false)
-                }
-            }
+            Callback.future(Rpc.deletRepositoryPermission(slug, name, kind).map {
+              case Xor.Right(_) =>
+                updateFormDisabled(false) >> getPermissions(state.pagination)
+              case Xor.Left(e) => updateFormDisabled(false)
+            })
         }
 
-    def renderOptionsCell(slug: String, state: State, permission: PermissionResponse) = {
-      val member = permission.member
-      if (member.isOwner) EmptyTag
-      else
-        <.td(
-          <.button(^.`type` := "button",
-                   ^.disabled := state.form.isFormDisabled,
-                   ^.onClick ==> deletePermission(slug, member.name, member.kind),
-                   "Delete"))
+    // def renderPermissionRow(slug: String, state: State, permission: PermissionResponse) = {
+    //   val member = permission.member
+    //   if (member.isOwner) EmptyTag
+    //   else {
+    //     <.td(
+    //       <.button(^.`type` := "button",
+    //                ^.disabled := state.form.isFormDisabled,
+    //                ^.onClick ==> deletePermission(slug, member.name, member.kind),
+    //         "Delete"))
+
+    // }
+
+    def renderPermissionRow(slug: String, state: State, permission: PermissionResponse) = {
+      // <.tr(<.td(permission.member.title),
+      //      renderActionCell(slug, state, permission),
+      //   renderOptionsCell(slug, state, permission))
+
+      // val menuBtn =
+      //   MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
+      // val actions = Seq(
+      //   CopyToClipboardComponent(
+      //     dockerPullCommand,
+      //     js.undefined,
+      //     MuiMenuItem(primaryText = "Copy docker pull command", key = "copy")(),
+      //     key = "copyDockerPull"),
+      //   CopyToClipboardComponent(tag.digest,
+      //     js.undefined,
+      //     MuiMenuItem(primaryText = "Copy image digest", key = "copy")(),
+      //     key = "copyDigest"))
+      val title = permission.member.title
+      MuiTableRow(key = title)(MuiTableRowColumn(key = "title")(title),
+                               MuiTableRowColumn(key = "action")(permission.action.toString()),
+                               MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")())
+
+      //         MuiIconMenu(iconButtonElement = menuBtn)(actions)
     }
 
-    def renderPermissionRow(slug: String, state: State, permission: PermissionResponse) =
-      <.tr(<.td(permission.member.title),
-           renderActionCell(slug, state, permission),
-           renderOptionsCell(slug, state, permission))
-
-    def changeSortOrder(column: String)(e: ReactEventH): Callback =
+    def updateSort(column: String)(e: ReactEventH): Callback =
       for {
         _     <- e.preventDefaultCB
-        name  <- $.props.map(_.slug)
-        state <- $.state
-        sortOrder = {
-          if (state.sortColumn == column) state.sortOrder.flip
-          else state.sortOrder
-        }
-        _ <- $.modState(_.copy(sortColumn = column, sortOrder = sortOrder))
-        _ <- getPermissions(name, column, sortOrder)
+        state <- $.state.map(_.flipSortColumn(column))
+        _     <- $.setState(state)
+        _     <- getPermissions(state.pagination)
       } yield ()
 
-    def renderHeader(title: String, column: String, state: State) = {
-      val header = if (state.sortColumn == column) {
-        val postfix = if (state.sortOrder === SortOrder.Asc) "↑" else "↓"
-        s"$title $postfix"
-      } else title
-      <.th(<.a(^.href := "#", ^.onClick ==> changeSortOrder(column), header))
-    }
+    def updatePage(page: Int): Callback =
+      $.state.flatMap { state =>
+        val pagination = state.pagination.copy(page = page)
+        $.setState(state.copy(pagination = pagination)) >> getPermissions(pagination)
+      }
 
     def renderPermissions(slug: String, state: State) =
-      if (state.permissions.isEmpty) <.span("No permissions. Create one!")
-      else {
-        <.table(<.thead(
-                  <.tr(renderHeader("User", "member.username", state),
-                       renderHeader("Action", "action", state),
-                       <.th())),
-                <.tbody(state.permissions.map(renderPermissionRow(slug, state, _))))
+      state.permissions.renderReady { permissions =>
+        if (permissions.isEmpty) <.div(App.infoMsg, "There are no permissions to show yet")
+        else {
+          val p = state.pagination
+          val columns =
+            MuiTableRow()(Table.renderHeader("User", "member.username", p, updateSort _),
+                          Table.renderHeader("Action", "action", p, updateSort _),
+                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
+          val rows = permissions.map(renderPermissionRow(slug, state, _))
+          <.section(
+            MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
+                                                                    adjustForCheckbox = false,
+                                                                    displaySelectAll = false,
+                                                                    enableSelectAll = false,
+                                                                    key = "header"
+                                                                  )(columns),
+                                                                  MuiTableBody(
+                                                                    deselectOnClickaway = false,
+                                                                    displayRowCheckbox = false,
+                                                                    showRowHover = false,
+                                                                    stripedRows = false,
+                                                                    key = "body"
+                                                                  )(rows)),
+            ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
+        }
       }
 
     def updateFormDisabled(isFormDisabled: Boolean): Callback =
@@ -181,18 +220,15 @@ object RepositoryPermissionsComponent {
         fs.member match {
           case Some(member) if !fs.isFormDisabled =>
             $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
-              Callback.future {
+              Callback.future(
                 upsertPermission(props.slug, member.name, member.kind, fs.action).map {
                   case Xor.Right(_) =>
-                    $.modState(_.copy(form = defaultFormState)) >>
-                      getPermissions(props.slug, state.sortColumn, state.sortOrder)
+                    $.modState(_.copy(form = defaultFormState)) >> getPermissions(state.pagination)
                   case Xor.Left(errs) =>
-                    $.setState(state.copy(
-                      form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
-                }.recover {
-                  case _ => updateFormDisabled(false)
-                }
-              }
+                    $.setState(
+                      state.copy(
+                        form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
+                })
           case _ => Callback.empty
         }
       }
@@ -227,15 +263,13 @@ object RepositoryPermissionsComponent {
                                    disabled = state.form.isFormDisabled)()))
 
     def render(props: Props, state: State) =
-      <.div(renderPermissions(props.slug, state), <.hr, renderForm(props, state))
+      <.section(renderPermissions(props.slug, state), renderForm(props, state))
   }
 
   private val component = ReactComponentB[Props]("RepositoryPermissions")
-    .initialState(State(Seq.empty, "action", SortOrder.Desc, defaultFormState))
+    .initialState(State(Empty, PaginationOrderState("action", SortOrder.Desc), defaultFormState))
     .renderBackend[Backend]
-    .componentWillMount { $ =>
-      $.backend.getPermissions($.props.slug, $.state.sortColumn, $.state.sortOrder)
-    }
+    .componentWillMount($ => $.backend.getPermissions($.state.pagination))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], slug: String, ownerKind: OwnerKind) =
