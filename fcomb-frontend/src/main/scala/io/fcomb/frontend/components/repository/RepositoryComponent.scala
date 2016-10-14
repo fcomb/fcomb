@@ -129,7 +129,7 @@ object RepositoryComponent {
 
     def render(props: Props): ReactElement = {
       val repository = props.repositories().get(props.slug)
-      <.section(repository.renderReady { repo =>
+      <.section(repository.render { repo =>
         val isManageable = repo.action === Action.Manage
         MuiCard()(renderHeader(props, repo, isManageable), renderTabs(props, repo, isManageable))
       })

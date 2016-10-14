@@ -134,7 +134,7 @@ object EditRepositoryComponent {
 
     def render(props: Props, state: State) = {
       val repository = props.repositories().get(props.slug)
-      <.div(repository.renderReady(_ => renderForm(state)))
+      <.div(repository.render(_ => renderForm(state)))
     }
   }
 

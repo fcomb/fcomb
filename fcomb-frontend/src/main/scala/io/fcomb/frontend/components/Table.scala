@@ -31,11 +31,13 @@ object Table {
                    pagination: PaginationOrderState,
                    cb: String => ReactEventH => Callback) = {
     val (sortIcon, sortCB) =
-      if (pagination.total > 1 && pagination.sortColumn == column) {
+      if (pagination.total > 1) {
         val icon: ReactNode =
-          if (pagination.sortOrder === SortOrder.Asc)
-            Mui.SvgIcons.NavigationArrowUpward(style = App.sortIconStyle)()
-          else Mui.SvgIcons.NavigationArrowDownward(style = App.sortIconStyle)()
+          if (pagination.sortColumn == column) {
+            if (pagination.sortOrder === SortOrder.Asc)
+              Mui.SvgIcons.NavigationArrowUpward(style = App.sortIconStyle)()
+            else Mui.SvgIcons.NavigationArrowDownward(style = App.sortIconStyle)()
+          } else <.span()
         (icon, cb(column))
       } else (<.span(): ReactNode, emptyCB _)
 

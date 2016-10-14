@@ -19,6 +19,7 @@ package io.fcomb.frontend.components.repository
 import diode.data.{Empty, Failed, Pot, Ready}
 import diode.react.ReactPot._
 import cats.data.Xor
+import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
@@ -65,9 +66,6 @@ object RepositoryPermissionsComponent {
     def modFormState(f: FormState => FormState): Callback =
       $.modState(st => st.copy(form = f(st.form)))
 
-    def updateFormDisabled(isDisabled: Boolean): Callback =
-      modFormState(_.copy(isDisabled = isDisabled))
-
     def tryAcquireState(f: State => Callback) =
       $.state.flatMap { state =>
         if (state.form.isDisabled) Callback.warn("State is already acquired")
@@ -92,32 +90,31 @@ object RepositoryPermissionsComponent {
               })
         }
 
-    def updatePermission(slug: String, name: String, kind: MemberKind)(e: ReactEventI) = {
-      val action = Action.withName(e.target.value)
-      e.preventDefaultCB >>
+    def updatePermission(slug: String, name: String, kind: MemberKind, prevAction: Action)(
+        e: ReactEventI,
+        idx: Int,
+        newAction: Action) =
+      if (prevAction === newAction) Callback.empty
+      else
         tryAcquireState { state =>
-          Callback.future(upsertPermission(slug, name, kind, action).map {
+          Callback.future(upsertPermission(slug, name, kind, newAction).map {
             case Xor.Right(_)   => getPermissions(state.pagination)
             case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
           })
         }
-    }
 
     lazy val actions = Action.values.map(r =>
       MuiMenuItem[Action](key = r.value, value = r, primaryText = r.entryName.capitalize)())
 
     lazy val memberKinds = MemberKind.values.map(k => <.option(^.value := k.value)(k.entryName))
 
-    def renderActionCell(slug: String, state: State, permission: PermissionResponse) = {
-      val member = permission.member
-      if (member.isOwner) <.td(permission.action.toString())
-      else
-        <.td(
-          <.select(^.disabled := state.form.isDisabled,
-                   ^.required := true,
-                   ^.value := permission.action.value,
-                   ^.onChange ==> updatePermission(slug, member.name, member.kind),
-                   actions))
+    def renderActionCell(slug: String, isDisabled: Boolean, permission: PermissionResponse) = {
+      val member   = permission.member
+      val disabled = isDisabled || member.isOwner
+      MuiSelectField[Action](
+        value = permission.action,
+        disabled = disabled,
+        onChange = updatePermission(slug, member.name, member.kind, permission.action) _)(actions)
     }
 
     def deletePermission(slug: String, name: String, kind: MemberKind)(e: ReactEventI) =
@@ -160,7 +157,8 @@ object RepositoryPermissionsComponent {
       //     key = "copyDigest"))
       val title = permission.member.title
       MuiTableRow(key = title)(MuiTableRowColumn(key = "title")(title),
-                               MuiTableRowColumn(key = "action")(permission.action.toString()),
+                               MuiTableRowColumn(key = "action")(
+                                 renderActionCell(slug, state.form.isDisabled, permission)),
                                MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")())
 
       //         MuiIconMenu(iconButtonElement = menuBtn)(actions)
@@ -180,32 +178,30 @@ object RepositoryPermissionsComponent {
         $.setState(state.copy(pagination = pagination)) >> getPermissions(pagination)
       }
 
-    def renderPermissions(slug: String, state: State) =
-      state.permissions.renderReady { permissions =>
-        if (permissions.isEmpty) <.div(App.infoMsg, "There are no permissions to show yet")
-        else {
-          val p = state.pagination
-          val columns =
-            MuiTableRow()(Table.renderHeader("User", "member.username", p, updateSort _),
-                          Table.renderHeader("Action", "action", p, updateSort _),
-                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
-          val rows = permissions.map(renderPermissionRow(slug, state, _))
-          <.section(
-            MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
-                                                                    adjustForCheckbox = false,
-                                                                    displaySelectAll = false,
-                                                                    enableSelectAll = false,
-                                                                    key = "header"
-                                                                  )(columns),
-                                                                  MuiTableBody(
-                                                                    deselectOnClickaway = false,
-                                                                    displayRowCheckbox = false,
-                                                                    showRowHover = false,
-                                                                    stripedRows = false,
-                                                                    key = "body"
-                                                                  )(rows)),
-            ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
-        }
+    def renderPermissions(slug: String, state: State, permissions: Seq[PermissionResponse]) =
+      if (permissions.isEmpty) <.div(App.infoMsg, "There are no permissions to show yet")
+      else {
+        val p = state.pagination
+        val columns =
+          MuiTableRow()(Table.renderHeader("User", "member.username", p, updateSort _),
+                        Table.renderHeader("Action", "action", p, updateSort _),
+                        MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
+        val rows = permissions.map(renderPermissionRow(slug, state, _))
+        <.section(
+          MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
+                                                                  adjustForCheckbox = false,
+                                                                  displaySelectAll = false,
+                                                                  enableSelectAll = false,
+                                                                  key = "header"
+                                                                )(columns),
+                                                                MuiTableBody(
+                                                                  deselectOnClickaway = false,
+                                                                  displayRowCheckbox = false,
+                                                                  showRowHover = false,
+                                                                  stripedRows = false,
+                                                                  key = "body"
+                                                                )(rows)),
+          ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
       }
 
     private def upsertPermission(slug: String, name: String, kind: MemberKind, action: Action) = {
@@ -263,8 +259,9 @@ object RepositoryPermissionsComponent {
                                    label = "Add",
                                    disabled = state.form.isDisabled)()))
 
-    def render(props: Props, state: State) =
-      <.section(renderPermissions(props.slug, state), renderForm(props, state))
+    def render(props: Props, state: State): ReactElement =
+      <.section(state.permissions.render(ps => renderPermissions(props.slug, state, ps)),
+                renderForm(props, state))
   }
 
   private val component = ReactComponentB[Props]("RepositoryPermissions")
