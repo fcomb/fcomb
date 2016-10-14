@@ -60,7 +60,6 @@ object App extends StyleSheet.Inline {
                      paddingTop(24.px),
                      paddingBottom(12.px),
                      position.absolute,
-                     // bottom(0.px),
                      right(0.px),
                      left(0.px))
 

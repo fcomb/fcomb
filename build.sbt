@@ -298,7 +298,6 @@ lazy val frontend = project
       "me.chrons"                                      %%% "diode-react"   % "1.0.0",
       "io.circe"                                       %%% "circe-scalajs" % circeVersion
     ),
-    scalaJSUseRhino in Global := false,
     skip in packageJSDependencies := false,
     persistLauncher in Compile := true,
     persistLauncher in Test := false,

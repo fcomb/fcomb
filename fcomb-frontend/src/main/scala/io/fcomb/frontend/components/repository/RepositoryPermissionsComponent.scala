@@ -44,7 +44,7 @@ object RepositoryPermissionsComponent {
   final case class FormState(member: Option[PermissionMemberResponse],
                              action: Action,
                              errors: Map[String, String],
-                             isFormDisabled: Boolean)
+                             isDisabled: Boolean)
   final case class State(permissions: Pot[Seq[PermissionResponse]],
                          pagination: PaginationOrderState,
                          form: FormState) {
@@ -61,6 +61,20 @@ object RepositoryPermissionsComponent {
 
   final class Backend($ : BackendScope[Props, State]) {
     val limit = 25
+
+    def modFormState(f: FormState => FormState): Callback =
+      $.modState(st => st.copy(form = f(st.form)))
+
+    def updateFormDisabled(isDisabled: Boolean): Callback =
+      modFormState(_.copy(isDisabled = isDisabled))
+
+    def tryAcquireState(f: State => Callback) =
+      $.state.flatMap { state =>
+        if (state.form.isDisabled) Callback.warn("State is already acquired")
+        else
+          $.setState(state.copy(form = state.form.copy(isDisabled = true))) >>
+            f(state).finallyRun(modFormState(_.copy(isDisabled = false)))
+      }
 
     def getPermissions(pos: PaginationOrderState): Callback =
       $.modState(st => st.copy(permissions = st.permissions.pending())) >>
@@ -81,14 +95,11 @@ object RepositoryPermissionsComponent {
     def updatePermission(slug: String, name: String, kind: MemberKind)(e: ReactEventI) = {
       val action = Action.withName(e.target.value)
       e.preventDefaultCB >>
-        $.state.flatMap { state =>
-          $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
-            Callback.future(upsertPermission(slug, name, kind, action).map {
-              case Xor.Right(_) => updateFormDisabled(false) >> getPermissions(state.pagination)
-              case Xor.Left(errs) =>
-                $.setState(state.copy(
-                  form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
-            })
+        tryAcquireState { state =>
+          Callback.future(upsertPermission(slug, name, kind, action).map {
+            case Xor.Right(_)   => getPermissions(state.pagination)
+            case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
+          })
         }
     }
 
@@ -102,7 +113,7 @@ object RepositoryPermissionsComponent {
       if (member.isOwner) <.td(permission.action.toString())
       else
         <.td(
-          <.select(^.disabled := state.form.isFormDisabled,
+          <.select(^.disabled := state.form.isDisabled,
                    ^.required := true,
                    ^.value := permission.action.value,
                    ^.onChange ==> updatePermission(slug, member.name, member.kind),
@@ -111,13 +122,11 @@ object RepositoryPermissionsComponent {
 
     def deletePermission(slug: String, name: String, kind: MemberKind)(e: ReactEventI) =
       e.preventDefaultCB >>
-        $.state.flatMap { state => // TODO: DRY
-          $.setState(state.copy(form = state.form.copy(isFormDisabled = true))) >>
-            Callback.future(Rpc.deletRepositoryPermission(slug, name, kind).map {
-              case Xor.Right(_) =>
-                updateFormDisabled(false) >> getPermissions(state.pagination)
-              case Xor.Left(e) => updateFormDisabled(false)
-            })
+        tryAcquireState { state =>
+          Callback.future(Rpc.deletRepositoryPermission(slug, name, kind).map {
+            case Xor.Right(_) => getPermissions(state.pagination)
+            case Xor.Left(e)  => Callback.warn(e)
+          })
         }
 
     // def renderPermissionRow(slug: String, state: State, permission: PermissionResponse) = {
@@ -126,7 +135,7 @@ object RepositoryPermissionsComponent {
     //   else {
     //     <.td(
     //       <.button(^.`type` := "button",
-    //                ^.disabled := state.form.isFormDisabled,
+    //                ^.disabled := state.form.isDisabled,
     //                ^.onClick ==> deletePermission(slug, member.name, member.kind),
     //         "Delete"))
 
@@ -199,9 +208,6 @@ object RepositoryPermissionsComponent {
         }
       }
 
-    def updateFormDisabled(isFormDisabled: Boolean): Callback =
-      $.modState(s => s.copy(form = s.form.copy(isFormDisabled = isFormDisabled)))
-
     private def upsertPermission(slug: String, name: String, kind: MemberKind, action: Action) = {
       val member = kind match {
         case MemberKind.User  => PermissionUsernameRequest(name)
@@ -215,20 +221,15 @@ object RepositoryPermissionsComponent {
     }
 
     def add(props: Props): Callback =
-      $.state.flatMap { state =>
+      tryAcquireState { state =>
         val fs = state.form
         fs.member match {
-          case Some(member) if !fs.isFormDisabled =>
-            $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
-              Callback.future(
-                upsertPermission(props.slug, member.name, member.kind, fs.action).map {
-                  case Xor.Right(_) =>
-                    $.modState(_.copy(form = defaultFormState)) >> getPermissions(state.pagination)
-                  case Xor.Left(errs) =>
-                    $.setState(
-                      state.copy(
-                        form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
-                })
+          case Some(member) =>
+            Callback.future(upsertPermission(props.slug, member.name, member.kind, fs.action).map {
+              case Xor.Right(_) =>
+                $.modState(_.copy(form = defaultFormState)) >> getPermissions(state.pagination)
+              case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
+            })
           case _ => Callback.empty
         }
       }
@@ -244,13 +245,13 @@ object RepositoryPermissionsComponent {
 
     def renderForm(props: Props, state: State) =
       <.form(^.onSubmit ==> handleOnSubmit(props),
-             ^.disabled := state.form.isFormDisabled,
+             ^.disabled := state.form.isDisabled,
              <.div(^.display.flex,
                    ^.flexDirection.column,
                    MemberComponent.apply(props.slug,
                                          props.ownerKind,
                                          state.form.member.map(_.title),
-                                         state.form.isFormDisabled,
+                                         state.form.isDisabled,
                                          updateMember _),
                    MuiSelectField[Action](id = "action",
                                           floatingLabelText = "Action",
@@ -260,7 +261,7 @@ object RepositoryPermissionsComponent {
                    MuiRaisedButton(`type` = "submit",
                                    primary = true,
                                    label = "Add",
-                                   disabled = state.form.isFormDisabled)()))
+                                   disabled = state.form.isDisabled)()))
 
     def render(props: Props, state: State) =
       <.section(renderPermissions(props.slug, state), renderForm(props, state))
