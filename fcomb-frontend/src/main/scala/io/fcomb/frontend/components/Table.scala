@@ -35,8 +35,8 @@ object Table {
         val icon: ReactNode =
           if (pagination.sortColumn == column) {
             if (pagination.sortOrder === SortOrder.Asc)
-              Mui.SvgIcons.NavigationArrowUpward(style = App.sortIconStyle)()
-            else Mui.SvgIcons.NavigationArrowDownward(style = App.sortIconStyle)()
+              Mui.SvgIcons.NavigationArrowDropUp(style = App.sortIconStyle)()
+            else Mui.SvgIcons.NavigationArrowDropDown(style = App.sortIconStyle)()
           } else <.span()
         (icon, cb(column))
       } else (<.span(): ReactNode, emptyCB _)
