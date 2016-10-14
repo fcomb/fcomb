@@ -24,7 +24,7 @@ object Helpers {
       case (m, err) =>
         val column = err.param.getOrElse("_")
         val msg    = err.message
-        val value  = m.get(column).map(v => s"$v\n$msg").getOrElse(msg)
+        val value  = m.get(column).map(v => s"$v, $msg").getOrElse(msg)
         m + ((column, value))
     }
 }

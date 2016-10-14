@@ -37,7 +37,6 @@ import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js
 import scalacss.ScalaCssReact._
 
 object RepositoryPermissionsComponent {
@@ -109,15 +108,15 @@ object RepositoryPermissionsComponent {
     lazy val memberKinds = MemberKind.values.map(k => <.option(^.value := k.value)(k.entryName))
 
     def renderActionCell(slug: String, isDisabled: Boolean, permission: PermissionResponse) = {
-      val member   = permission.member
-      val disabled = isDisabled || member.isOwner
+      val member = permission.member
       MuiSelectField[Action](
         value = permission.action,
-        disabled = disabled,
+        disabled = isDisabled,
+        style = App.fixed,
         onChange = updatePermission(slug, member.name, member.kind, permission.action) _)(actions)
     }
 
-    def deletePermission(slug: String, name: String, kind: MemberKind)(e: ReactEventI) =
+    def deletePermission(slug: String, name: String, kind: MemberKind)(e: ReactTouchEventH) =
       e.preventDefaultCB >>
         tryAcquireState { state =>
           Callback.future(Rpc.deletRepositoryPermission(slug, name, kind).map {
@@ -126,42 +125,19 @@ object RepositoryPermissionsComponent {
           })
         }
 
-    // def renderPermissionRow(slug: String, state: State, permission: PermissionResponse) = {
-    //   val member = permission.member
-    //   if (member.isOwner) EmptyTag
-    //   else {
-    //     <.td(
-    //       <.button(^.`type` := "button",
-    //                ^.disabled := state.form.isDisabled,
-    //                ^.onClick ==> deletePermission(slug, member.name, member.kind),
-    //         "Delete"))
-
-    // }
+    def renderButtons(slug: String, isDisabled: Boolean, member: PermissionMemberResponse) =
+      MuiIconButton(disabled = isDisabled,
+                    onTouchTap = deletePermission(slug, member.name, member.kind) _)(
+        Mui.SvgIcons.ActionDelete(color = Mui.Styles.colors.lightBlack)())
 
     def renderPermissionRow(slug: String, state: State, permission: PermissionResponse) = {
-      // <.tr(<.td(permission.member.title),
-      //      renderActionCell(slug, state, permission),
-      //   renderOptionsCell(slug, state, permission))
-
-      // val menuBtn =
-      //   MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
-      // val actions = Seq(
-      //   CopyToClipboardComponent(
-      //     dockerPullCommand,
-      //     js.undefined,
-      //     MuiMenuItem(primaryText = "Copy docker pull command", key = "copy")(),
-      //     key = "copyDockerPull"),
-      //   CopyToClipboardComponent(tag.digest,
-      //     js.undefined,
-      //     MuiMenuItem(primaryText = "Copy image digest", key = "copy")(),
-      //     key = "copyDigest"))
-      val title = permission.member.title
-      MuiTableRow(key = title)(MuiTableRowColumn(key = "title")(title),
-                               MuiTableRowColumn(key = "action")(
-                                 renderActionCell(slug, state.form.isDisabled, permission)),
-                               MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")())
-
-      //         MuiIconMenu(iconButtonElement = menuBtn)(actions)
+      val title      = permission.member.title
+      val isDisabled = state.form.isDisabled || permission.member.isOwner
+      MuiTableRow(key = title)(
+        MuiTableRowColumn(key = "title")(title),
+        MuiTableRowColumn(key = "action")(renderActionCell(slug, isDisabled, permission)),
+        MuiTableRowColumn(style = App.menuColumnStyle, key = "buttons")(
+          renderButtons(slug, isDisabled, permission.member)))
     }
 
     def updateSort(column: String)(e: ReactEventH): Callback =
@@ -239,15 +215,17 @@ object RepositoryPermissionsComponent {
     def updateAction(e: ReactEventI, idx: Int, action: Action): Callback =
       $.modState(s => s.copy(form = s.form.copy(action = action)))
 
-    def renderForm(props: Props, state: State) =
-      <.form(^.onSubmit ==> handleOnSubmit(props),
+    def renderForm(props: Props, state: State) = {
+      val submitIsDisabled = state.form.isDisabled || state.form.member.isEmpty
+      <.form(App.separateBlock,
+             ^.onSubmit ==> handleOnSubmit(props),
              ^.disabled := state.form.isDisabled,
-             <.div(^.display.flex,
-                   ^.flexDirection.column,
+             <.div(<.h3("New permission"),
                    MemberComponent.apply(props.slug,
                                          props.ownerKind,
                                          state.form.member.map(_.title),
                                          state.form.isDisabled,
+                                         state.form.errors.get("member"),
                                          updateMember _),
                    MuiSelectField[Action](id = "action",
                                           floatingLabelText = "Action",
@@ -257,7 +235,8 @@ object RepositoryPermissionsComponent {
                    MuiRaisedButton(`type` = "submit",
                                    primary = true,
                                    label = "Add",
-                                   disabled = state.form.isDisabled)()))
+                                   disabled = submitIsDisabled)()))
+    }
 
     def render(props: Props, state: State): ReactElement =
       <.section(state.permissions.render(ps => renderPermissions(props.slug, state, ps)),

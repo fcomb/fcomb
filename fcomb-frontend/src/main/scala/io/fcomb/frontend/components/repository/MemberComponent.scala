@@ -20,6 +20,7 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.rpc.Formats.decodeDataResponse
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.OwnerKind
@@ -35,6 +36,7 @@ object MemberComponent {
                          ownerKind: OwnerKind,
                          searchText: Option[String],
                          isDisabled: Boolean,
+                         errorText: Option[String],
                          cb: PermissionMemberResponse => Callback)
   final case class State(member: Option[PermissionMemberResponse],
                          members: Seq[PermissionMemberResponse],
@@ -94,6 +96,7 @@ object MemberComponent {
         disabled = props.isDisabled,
         dataSource = state.data,
         searchText = props.searchText.orUndefined,
+        errorText = props.errorText,
         openOnFocus = true,
         onNewRequest = onNewRequest _,
         onUpdateInput = onUpdateInput _
@@ -111,6 +114,7 @@ object MemberComponent {
             ownerKind: OwnerKind,
             searchText: Option[String],
             isDisabled: Boolean,
+            errorText: Option[String],
             cb: PermissionMemberResponse => Callback) =
-    component.apply(Props(slug, ownerKind, searchText, isDisabled, cb))
+    component.apply(Props(slug, ownerKind, searchText, isDisabled, errorText, cb))
 }

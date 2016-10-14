@@ -523,13 +523,11 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
 
   import Validations._
 
-  override def validate(i: Image)(
-      implicit ec: ExecutionContext
-  ): ValidationDBIOResult = {
+  override def validate(i: Image)(implicit ec: ExecutionContext): ValidationDBIOResult = {
     val plainValidations = validatePlain(
       "name" -> List(
         lengthRange(i.name, 1, 255),
-        matches(i.name, Image.nameRegEx, "Invalid name format")
+        matches(i.name, Image.nameRegEx, "invalid name format")
       )
     )
     val dbioValidations = validateDBIO(
