@@ -112,7 +112,7 @@ object RepositoryPermissionsComponent {
       MuiSelectField[Action](
         value = permission.action,
         disabled = isDisabled,
-        style = App.fixed,
+        style = App.overflowHiddenStyle,
         onChange = updatePermission(slug, member.name, member.kind, permission.action) _)(actions)
     }
 
@@ -131,10 +131,11 @@ object RepositoryPermissionsComponent {
         Mui.SvgIcons.ActionDelete(color = Mui.Styles.colors.lightBlack)())
 
     def renderPermissionRow(slug: String, state: State, permission: PermissionResponse) = {
-      val title      = permission.member.title
-      val isDisabled = state.form.isDisabled || permission.member.isOwner
+      val title       = permission.member.title
+      val memberTitle = if (permission.member.isOwner) s"$title *" else title
+      val isDisabled  = state.form.isDisabled || permission.member.isOwner
       MuiTableRow(key = title)(
-        MuiTableRowColumn(key = "title")(title),
+        MuiTableRowColumn(key = "title")(memberTitle),
         MuiTableRowColumn(key = "action")(renderActionCell(slug, isDisabled, permission)),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "buttons")(
           renderButtons(slug, isDisabled, permission.member)))
@@ -215,18 +216,25 @@ object RepositoryPermissionsComponent {
     def updateAction(e: ReactEventI, idx: Int, action: Action): Callback =
       $.modState(s => s.copy(form = s.form.copy(action = action)))
 
+    def renderMember(props: Props, state: State) =
+      <.div(^.`class` := "row",
+            ^.style := App.paddingTopStyle,
+            ^.key := "member",
+            <.div(^.`class` := "col-xs-6",
+                  MemberComponent.apply(props.slug,
+                                        props.ownerKind,
+                                        state.form.member.map(_.title),
+                                        state.form.isDisabled,
+                                        state.form.errors.get("member"),
+                                        updateMember _)))
+
     def renderForm(props: Props, state: State) = {
       val submitIsDisabled = state.form.isDisabled || state.form.member.isEmpty
       <.form(App.separateBlock,
              ^.onSubmit ==> handleOnSubmit(props),
              ^.disabled := state.form.isDisabled,
              <.div(<.h3("New permission"),
-                   MemberComponent.apply(props.slug,
-                                         props.ownerKind,
-                                         state.form.member.map(_.title),
-                                         state.form.isDisabled,
-                                         state.form.errors.get("member"),
-                                         updateMember _),
+                   renderMember(props, state),
                    MuiSelectField[Action](id = "action",
                                           floatingLabelText = "Action",
                                           errorText = state.form.errors.get("action"),

@@ -24,16 +24,11 @@ import io.fcomb.frontend.styles.App
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
-import scala.scalajs.js
 
 object RepositoryForm {
-  val padding = "12px"
-
-  lazy val helpBlockClass   = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
-  lazy val helpBlockPadding = js.Dictionary("paddingTop" -> "48px")
+  lazy val helpBlockClass = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
   lazy val linkStyle =
     Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
-  lazy val paddingTop = js.Dictionary("paddingTop" -> padding)
 
   def renderVisiblity(visibilityKind: ImageVisibilityKind,
                       isFormDisabled: Boolean,
@@ -42,7 +37,7 @@ object RepositoryForm {
       ^.`for` := "visibilityKind",
       "Repository visibility for others: it can be public to everyone to read and pull or private accessible only to the owner.")
     <.div(^.`class` := "row",
-          ^.style := paddingTop,
+          ^.style := App.paddingTopStyle,
           ^.key := "visibilityRow",
           <.div(^.`class` := "col-xs-6",
                 MuiRadioButtonGroup(name = "visibilityKind",
@@ -55,7 +50,7 @@ object RepositoryForm {
                     disabled = isFormDisabled
                   )(),
                   MuiRadioButton(
-                    style = paddingTop,
+                    style = App.paddingTopStyle,
                     key = "private",
                     value = ImageVisibilityKind.Private.value,
                     label = "Private",
@@ -88,7 +83,7 @@ object RepositoryForm {
                          value = description,
                          onChange = updateDescription)()),
       <.div(helpBlockClass,
-            ^.style := helpBlockPadding,
+            ^.style := App.helpBlockStyle,
             <.label(^.`for` := "description", "You can describe this repository in ", link, ".")))
   }
 }

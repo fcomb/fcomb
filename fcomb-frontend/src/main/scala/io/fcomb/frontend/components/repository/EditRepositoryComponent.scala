@@ -94,15 +94,17 @@ object EditRepositoryComponent {
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.props.flatMap(p => p.ctl.set(DashboardRoute.Repository(p.slug)))
 
+    lazy val cancelStyle = js.Dictionary("marginRight" -> App.paddingTopLength)
+
     def renderActions(state: State) =
       <.div(^.`class` := "row",
-            ^.style := paddingTop,
+            ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
             <.div(^.`class` := "col-xs-12",
                   MuiRaisedButton(`type` = "button",
                                   primary = false,
                                   label = "Cancel",
-                                  style = js.Dictionary("marginRight" -> padding),
+                                  style = cancelStyle,
                                   disabled = state.isFormDisabled,
                                   onTouchTap = cancel _,
                                   key = "cancel")(),

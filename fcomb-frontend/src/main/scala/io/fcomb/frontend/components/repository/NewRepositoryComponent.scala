@@ -101,7 +101,7 @@ object NewRepositoryComponent {
                                  fullWidth = true)),
         <.div(
           helpBlockClass,
-          ^.style := helpBlockPadding,
+          ^.style := App.helpBlockStyle,
           <.label(^.`for` := "namespace", "An account which will be the owner of repository.")))
 
     def renderName(state: State) =
@@ -117,14 +117,14 @@ object NewRepositoryComponent {
                                value = state.name,
                                onChange = updateName _)()),
             <.div(helpBlockClass,
-                  ^.style := helpBlockPadding,
+                  ^.style := App.helpBlockStyle,
                   <.label(^.`for` := "name",
                           "Enter a name for repository that will be used by docker or rkt.")))
 
     def renderActions(state: State) = {
       val createIsDisabled = state.isFormDisabled || state.owner.isEmpty
       <.div(^.`class` := "row",
-            ^.style := paddingTop,
+            ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
             <.div(^.`class` := "col-xs-12",
                   MuiRaisedButton(`type` = "submit",

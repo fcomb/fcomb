@@ -67,11 +67,19 @@ object App extends StyleSheet.Inline {
 
   val footerLink = style(textDecoration := "none", fontSize(13.px))
 
+  // raw
+
   val menuColumnStyle = js.Dictionary("width" -> "48px", "padding" -> "0px")
 
   val sortIconStyle = js.Dictionary("paddingRight" -> "8px", "verticalAlign" -> "middle")
 
   val visibilityColumnStyle = js.Dictionary("width" -> "64px")
 
-  val fixed = js.Dictionary("overflow" -> "hidden")
+  val overflowHiddenStyle = js.Dictionary("overflow" -> "hidden")
+
+  val paddingTopLength = "12px"
+
+  val paddingTopStyle = js.Dictionary("paddingTop" -> paddingTopLength)
+
+  val helpBlockStyle = js.Dictionary("paddingTop" -> "48px")
 }
