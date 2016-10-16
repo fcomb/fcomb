@@ -37,6 +37,7 @@ object MemberComponent {
                          searchText: Option[String],
                          isDisabled: Boolean,
                          errorText: Option[String],
+                         fullWidth: Boolean,
                          cb: PermissionMemberResponse => Callback)
   final case class State(member: Option[PermissionMemberResponse],
                          members: Seq[PermissionMemberResponse],
@@ -91,8 +92,10 @@ object MemberComponent {
         case OwnerKind.Organization => "Username or group name"
       }
       MuiAutoComplete(
+        id = "member",
         floatingLabelText = label,
         filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
+        fullWidth = props.fullWidth,
         disabled = props.isDisabled,
         dataSource = state.data,
         searchText = props.searchText.orUndefined,
@@ -115,6 +118,7 @@ object MemberComponent {
             searchText: Option[String],
             isDisabled: Boolean,
             errorText: Option[String],
+            fullWidth: Boolean,
             cb: PermissionMemberResponse => Callback) =
-    component.apply(Props(slug, ownerKind, searchText, isDisabled, errorText, cb))
+    component.apply(Props(slug, ownerKind, searchText, isDisabled, errorText, fullWidth, cb))
 }

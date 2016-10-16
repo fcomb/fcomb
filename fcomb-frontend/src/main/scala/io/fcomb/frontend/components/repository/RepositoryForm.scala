@@ -26,10 +26,6 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 
 object RepositoryForm {
-  lazy val helpBlockClass = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
-  lazy val linkStyle =
-    Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
-
   def renderVisiblity(visibilityKind: ImageVisibilityKind,
                       isFormDisabled: Boolean,
                       updateVisibilityKind: (ReactEventI, String) => Callback) = {
@@ -57,14 +53,14 @@ object RepositoryForm {
                     disabled = isFormDisabled
                   )()
                 )),
-          <.div(helpBlockClass, label))
+          <.div(LayoutComponent.helpBlockClass, label))
   }
 
   def renderDescription(description: String,
                         errors: Map[String, String],
                         isFormDisabled: Boolean,
                         updateDescription: ReactEventI => Callback) = {
-    val link = <.a(linkStyle,
+    val link = <.a(LayoutComponent.linkAsTextStyle,
                    ^.href := "https://daringfireball.net/projects/markdown/syntax",
                    ^.target := "_blank",
                    "Markdown")
@@ -82,7 +78,7 @@ object RepositoryForm {
                          errorText = errors.get("description"),
                          value = description,
                          onChange = updateDescription)()),
-      <.div(helpBlockClass,
+      <.div(LayoutComponent.helpBlockClass,
             ^.style := App.helpBlockStyle,
             <.label(^.`for` := "description", "You can describe this repository in ", link, ".")))
   }

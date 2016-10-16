@@ -19,16 +19,17 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.components.LayoutComponent
 import io.fcomb.frontend.styles.App
-import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.Owner
+import io.fcomb.models.docker.distribution.ImageVisibilityKind
+import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
 
@@ -100,7 +101,7 @@ object NewRepositoryComponent {
                                  cb = updateNamespace _,
                                  fullWidth = true)),
         <.div(
-          helpBlockClass,
+          LayoutComponent.helpBlockClass,
           ^.style := App.helpBlockStyle,
           <.label(^.`for` := "namespace", "An account which will be the owner of repository.")))
 
@@ -116,7 +117,7 @@ object NewRepositoryComponent {
                                fullWidth = true,
                                value = state.name,
                                onChange = updateName _)()),
-            <.div(helpBlockClass,
+            <.div(LayoutComponent.helpBlockClass,
                   ^.style := App.helpBlockStyle,
                   <.label(^.`for` := "name",
                           "Enter a name for repository that will be used by docker or rkt.")))

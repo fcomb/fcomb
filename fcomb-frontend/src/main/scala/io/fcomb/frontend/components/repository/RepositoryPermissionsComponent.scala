@@ -26,7 +26,12 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.{PaginationOrderState, Table, ToolbarPaginationComponent}
+import io.fcomb.frontend.components.{
+  LayoutComponent,
+  PaginationOrderState,
+  Table,
+  ToolbarPaginationComponent
+}
 import io.fcomb.frontend.styles.App
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
@@ -38,6 +43,7 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
+import scala.scalajs.js
 
 object RepositoryPermissionsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String, ownerKind: OwnerKind)
@@ -131,9 +137,12 @@ object RepositoryPermissionsComponent {
         Mui.SvgIcons.ActionDelete(color = Mui.Styles.colors.lightBlack)())
 
     def renderPermissionRow(slug: String, state: State, permission: PermissionResponse) = {
-      val title       = permission.member.title
-      val memberTitle = if (permission.member.isOwner) s"$title *" else title
-      val isDisabled  = state.form.isDisabled || permission.member.isOwner
+      val title = permission.member.title
+      val memberTitle =
+        if (permission.member.isOwner)
+          <.label(^.title := "The owner of this repository", s"$title *")
+        else <.label(title)
+      val isDisabled = state.form.isDisabled || permission.member.isOwner
       MuiTableRow(key = title)(
         MuiTableRowColumn(key = "title")(memberTitle),
         MuiTableRowColumn(key = "action")(renderActionCell(slug, isDisabled, permission)),
@@ -216,35 +225,62 @@ object RepositoryPermissionsComponent {
     def updateAction(e: ReactEventI, idx: Int, action: Action): Callback =
       $.modState(s => s.copy(form = s.form.copy(action = action)))
 
-    def renderMember(props: Props, state: State) =
+    def renderFormMember(props: Props, state: State) =
       <.div(^.`class` := "row",
-            ^.style := App.paddingTopStyle,
             ^.key := "member",
             <.div(^.`class` := "col-xs-6",
-                  MemberComponent.apply(props.slug,
-                                        props.ownerKind,
-                                        state.form.member.map(_.title),
-                                        state.form.isDisabled,
-                                        state.form.errors.get("member"),
-                                        updateMember _)))
+                  MemberComponent(props.slug,
+                                  props.ownerKind,
+                                  state.form.member.map(_.title),
+                                  state.form.isDisabled,
+                                  state.form.errors.get("member"),
+                                  fullWidth = true,
+                                  updateMember _)),
+            <.div(LayoutComponent.helpBlockClass,
+                  ^.style := App.helpBlockStyle,
+                  <.label(^.`for` := "member",
+                          "Enter a name of user that will be added to this repository.")))
 
-    def renderForm(props: Props, state: State) = {
+    lazy val actionHelpBlock =
+      <.div("What can an user do with this repository:",
+            <.ul(<.li(<.strong("Read"), " - pull only;"),
+                 <.li(<.strong("Write"), " - pull and push;"),
+                 <.li(<.strong("Manage"), " - pull, push and manage permissions.")))
+
+    def renderFormAction(state: State) =
+      <.div(^.`class` := "row",
+            ^.key := "action",
+            <.div(^.`class` := "col-xs-6",
+                  MuiSelectField[Action](id = "action",
+                                         floatingLabelText = "Action",
+                                         errorText = state.form.errors.get("action"),
+                                         value = state.form.action,
+                                         fullWidth = true,
+                                         onChange = updateAction _)(actions)),
+            <.div(LayoutComponent.helpBlockClass,
+                  ^.style := App.helpBlockStyle,
+                  <.label(^.`for` := "action", actionHelpBlock)))
+
+    def renderFormButton(state: State) = {
       val submitIsDisabled = state.form.isDisabled || state.form.member.isEmpty
+      <.div(^.style := App.paddingTopStyle,
+            ^.key := "button",
+            MuiRaisedButton(`type` = "submit",
+                            primary = true,
+                            label = "Add",
+                            disabled = submitIsDisabled)())
+    }
+
+    lazy val headerStyle = js.Dictionary("marginBottom" -> "0px")
+
+    def renderForm(props: Props, state: State) =
       <.form(App.separateBlock,
              ^.onSubmit ==> handleOnSubmit(props),
              ^.disabled := state.form.isDisabled,
-             <.div(<.h3("New permission"),
-                   renderMember(props, state),
-                   MuiSelectField[Action](id = "action",
-                                          floatingLabelText = "Action",
-                                          errorText = state.form.errors.get("action"),
-                                          value = state.form.action,
-                                          onChange = updateAction _)(actions),
-                   MuiRaisedButton(`type` = "submit",
-                                   primary = true,
-                                   label = "Add",
-                                   disabled = submitIsDisabled)()))
-    }
+             <.h3(^.style := headerStyle, "New permission"),
+             renderFormMember(props, state),
+             renderFormAction(state),
+             renderFormButton(state))
 
     def render(props: Props, state: State): ReactElement =
       <.section(state.permissions.render(ps => renderPermissions(props.slug, state, ps)),

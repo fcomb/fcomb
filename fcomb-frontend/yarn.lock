@@ -350,10 +350,6 @@ block-stream@*:
   dependencies:
     inherits "~2.0.0"
 
-bluebird@^2.9.25:
-  version "2.11.0"
-  resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-2.11.0.tgz#534b9033c022c9579c56ba3b3e5a5caafbb650e1"
-
 bluebird@^3.4.1:
   version "3.4.6"
   resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.4.6.tgz#01da8d821d87813d158967e743d5fe6c62cf8c0f"
@@ -767,14 +763,14 @@ compressible@~2.0.8:
   dependencies:
     mime-db ">= 1.23.0 < 2"
 
-compression-webpack-plugin@^0.3.1:
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/compression-webpack-plugin/-/compression-webpack-plugin-0.3.1.tgz#ea3265d95c2f5a7043039a556d4d7cf6a37a4111"
+compression-webpack-plugin@^0.3.2:
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/compression-webpack-plugin/-/compression-webpack-plugin-0.3.2.tgz#1edfb0e749d7366d3e701670c463359b2c0cf704"
   dependencies:
     async "0.2.x"
     webpack-sources "^0.1.0"
   optionalDependencies:
-    node-zopfli "^1.3.4"
+    node-zopfli "^2.0.0"
 
 compression@^1.5.2:
   version "1.6.2"
@@ -3214,11 +3210,10 @@ node-uuid@~1.4.7:
   version "1.4.7"
   resolved "https://registry.yarnpkg.com/node-uuid/-/node-uuid-1.4.7.tgz#6da5a17668c4b3dd59623bda11cf7fa4c1f60a6f"
 
-node-zopfli@^1.3.4:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/node-zopfli/-/node-zopfli-1.4.0.tgz#51a974ed2221fcc1bb9dbed36682057fa4c1fa94"
+node-zopfli@^2.0.0:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/node-zopfli/-/node-zopfli-2.0.1.tgz#31c0a4905644e4c96a3047638df334b4533d69f8"
   dependencies:
-    bluebird "^2.9.25"
     commander "^2.8.1"
     defaults "^1.0.2"
     nan "^2.0.0"
@@ -3902,9 +3897,9 @@ react-event-listener@^0.3.0:
   dependencies:
     react-addons-shallow-compare "^0.14.0 || ^15.0.0"
 
-react-hot-loader@^3.0.0-beta.5:
-  version "3.0.0-beta.5"
-  resolved "https://registry.yarnpkg.com/react-hot-loader/-/react-hot-loader-3.0.0-beta.5.tgz#d7f97d15ef50a5433f17ba5d19c6ee1a7242170e"
+react-hot-loader@^3.0.0-beta.6:
+  version "3.0.0-beta.6"
+  resolved "https://registry.yarnpkg.com/react-hot-loader/-/react-hot-loader-3.0.0-beta.6.tgz#463fac0bfc8b63a8385258af20c91636abce75f4"
   dependencies:
     babel-template "^6.7.0"
     global "^4.3.0"
