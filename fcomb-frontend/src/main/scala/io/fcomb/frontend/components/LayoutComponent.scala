@@ -96,6 +96,11 @@ object LayoutComponent {
 
   private val theme = Mui.Styles.getMuiTheme(style)
 
+  lazy val linkAsTextStyle =
+    Seq(^.textDecoration := "none", ^.color := style.palette.textColor.toString)
+
+  lazy val helpBlockClass = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
+
   private val component =
     ReactComponentB[Props]("Layout").initialState(State(false)).renderBackend[Backend].build
 

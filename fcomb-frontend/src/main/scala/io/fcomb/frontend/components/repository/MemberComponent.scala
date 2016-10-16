@@ -20,6 +20,7 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.components.Implicits._
 import io.fcomb.json.rpc.Formats.decodeDataResponse
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.OwnerKind
@@ -31,10 +32,12 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 object MemberComponent {
-  final case class Props(repositoryName: String,
+  final case class Props(slug: String,
                          ownerKind: OwnerKind,
                          searchText: Option[String],
                          isDisabled: Boolean,
+                         errorText: Option[String],
+                         isFullWidth: Boolean,
                          cb: PermissionMemberResponse => Callback)
   final case class State(member: Option[PermissionMemberResponse],
                          members: Seq[PermissionMemberResponse],
@@ -48,7 +51,7 @@ object MemberComponent {
           Rpc
             .call[DataResponse[PermissionMemberResponse]](
               RpcMethod.GET,
-              Resource.repositoryPermissionsMembersSuggestions(props.repositoryName),
+              Resource.repositoryPermissionsMembersSuggestions(props.slug),
               Map("q" -> q.trim))
             .map {
               case Xor.Right(res) =>
@@ -89,11 +92,14 @@ object MemberComponent {
         case OwnerKind.Organization => "Username or group name"
       }
       MuiAutoComplete(
+        id = "member",
         floatingLabelText = label,
         filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
+        fullWidth = props.isFullWidth,
         disabled = props.isDisabled,
         dataSource = state.data,
         searchText = props.searchText.orUndefined,
+        errorText = props.errorText,
         openOnFocus = true,
         onNewRequest = onNewRequest _,
         onUpdateInput = onUpdateInput _
@@ -107,10 +113,12 @@ object MemberComponent {
       .renderBackend[Backend]
       .build
 
-  def apply(repositoryName: String,
+  def apply(slug: String,
             ownerKind: OwnerKind,
             searchText: Option[String],
             isDisabled: Boolean,
+            errorText: Option[String],
+            isFullWidth: Boolean,
             cb: PermissionMemberResponse => Callback) =
-    component.apply(Props(repositoryName, ownerKind, searchText, isDisabled, cb))
+    component.apply(Props(slug, ownerKind, searchText, isDisabled, errorText, isFullWidth, cb))
 }

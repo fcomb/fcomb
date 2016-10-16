@@ -47,37 +47,45 @@ object DashboardRoute {
     def title = "Dashboard"
   }
 
+  sealed trait RepositoryRoute extends DashboardRoute {
+    val slug: String
+
+    def title = s"${Repositories.title} – $slug"
+  }
   final case object Repositories extends DashboardRoute {
     def title = "Repositories"
   }
   final case object NewRepository extends DashboardRoute {
     def title = s"${Repositories.title} – New"
   }
-  sealed trait RepositoryRoute extends DashboardRoute {
+  final case class Repository(slug: String)            extends RepositoryRoute
+  final case class EditRepository(slug: String)        extends RepositoryRoute
+  final case class RepositoryTags(slug: String)        extends RepositoryRoute
+  final case class RepositorySettings(slug: String)    extends RepositoryRoute
+  final case class RepositoryPermissions(slug: String) extends RepositoryRoute
+
+  sealed trait OrganizationRoute extends DashboardRoute {
     val slug: String
 
-    def title = s"${Repositories.title} – $slug"
+    def title = s"${Organizations.title} – $slug"
   }
-  final case class Repository(slug: String)         extends RepositoryRoute
-  final case class EditRepository(slug: String)     extends RepositoryRoute
-  final case class RepositoryTags(slug: String)     extends RepositoryRoute
-  final case class RepositorySettings(slug: String) extends RepositoryRoute
-
   final case object Organizations extends DashboardRoute {
     def title = "Organizations"
   }
   final case object NewOrganization extends DashboardRoute {
     def title = s"${Organizations.title} – New"
   }
-  sealed trait OrganizationRoute extends DashboardRoute {
-    val orgName: String
+  final case class Organization(slug: String)                         extends OrganizationRoute
+  final case class OrganizationSettings(slug: String)                 extends OrganizationRoute
+  final case class OrganizationGroups(slug: String)                   extends OrganizationRoute
+  final case class NewOrganizationGroup(slug: String)                 extends OrganizationRoute
+  final case class OrganizationGroup(slug: String, groupName: String) extends OrganizationRoute
+  final case class NewOrganizationRepository(slug: String)            extends OrganizationRoute
 
-    def title = s"${Organizations.title} – $orgName"
+  sealed trait UserRoute extends DashboardRoute {
+    val slug: String
+
+    def title = s"Users – $slug"
   }
-  final case class Organization(orgName: String)                    extends OrganizationRoute
-  final case class OrganizationSettings(orgName: String)            extends OrganizationRoute
-  final case class OrganizationGroups(orgName: String)              extends OrganizationRoute
-  final case class NewOrganizationGroup(orgName: String)            extends OrganizationRoute
-  final case class OrganizationGroup(orgName: String, name: String) extends OrganizationRoute
-  final case class NewOrganizationRepository(orgName: String)       extends OrganizationRoute
+  final case class User(slug: String) extends UserRoute
 }

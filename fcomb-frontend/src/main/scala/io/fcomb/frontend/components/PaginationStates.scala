@@ -16,19 +16,16 @@
 
 package io.fcomb.frontend.components
 
-import japgolly.scalajs.react._
-import scala.scalajs.js
+import io.fcomb.models.SortOrder
 
-object CopyToClipboardComponent {
-  def apply(text: String,
-            onCopy: js.UndefOr[() => Unit],
-            children: ReactNode,
-            key: String = "copyToClipboard") = {
-    val props = js.Dynamic.literal()
-    props.updateDynamic("text")(text)
-    props.updateDynamic("key")(key)
-    onCopy.foreach(v => props.updateDynamic("onCopy")(v))
-    val f = React.asInstanceOf[js.Dynamic].createFactory(js.Dynamic.global.ReactCopyToClipboard)
-    f(props, children).asInstanceOf[ReactComponentU_]
-  }
+final case class PaginationOrderState(page: Int,
+                                      total: Int,
+                                      sortColumn: String,
+                                      sortOrder: SortOrder)
+
+final case class PaginationState(page: Int, total: Int)
+
+object PaginationOrderState {
+  def apply(sortColumn: String, sortOrder: SortOrder = SortOrder.Asc): PaginationOrderState =
+    PaginationOrderState(1, 0, sortColumn, sortOrder)
 }

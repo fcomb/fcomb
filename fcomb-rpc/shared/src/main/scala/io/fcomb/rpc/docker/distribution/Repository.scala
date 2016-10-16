@@ -31,4 +31,6 @@ final case class RepositoryResponse(
     action: Action,
     createdAt: String,
     updatedAt: Option[String]
-) extends ResponseModelWithIntPk
+) extends ResponseModelWithIntPk {
+  def namespace = slug.split('/').head
+}

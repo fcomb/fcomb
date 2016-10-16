@@ -13,8 +13,9 @@ import io.fcomb.json.models.errors.Formats.encodeErrors
 import io.fcomb.models.errors.{Error, Errors}
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
+import org.apache.commons.lang3.exception.ExceptionUtils
 
-class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer)
+final class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer)
     extends LazyLogging {
   import sys.dispatcher
 
@@ -31,8 +32,10 @@ class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer
       case f: ParsingFailure =>
         (StatusCodes.UnprocessableEntity, Errors.deserialization(f.message))
       case f =>
-        logger.error(f.getMessage(), f.getCause())
-        (StatusCodes.InternalServerError, Errors.internal(f.getMessage))
+        val cause = Option(ExceptionUtils.getRootCause(f)).getOrElse(f)
+        val msg   = Option(cause.getMessage()).getOrElse("")
+        logger.error(msg, cause)
+        (StatusCodes.InternalServerError, Errors.internal(msg))
     }
 
   private def completeError(status: StatusCode, error: Error) =

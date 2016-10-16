@@ -29,7 +29,7 @@ import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.ExecutionContext
 
-class BlobFileTable(tag: Tag) extends Table[BlobFile](tag, "dd_blob_files") {
+final class BlobFileTable(tag: Tag) extends Table[BlobFile](tag, "dd_blob_files") {
   def uuid       = column[UUID]("uuid", O.PrimaryKey)
   def digest     = column[Option[String]]("digest")
   def state      = column[BlobFileState]("state")

@@ -27,7 +27,7 @@ import io.fcomb.tests.fixtures._
 import io.fcomb.tests._
 import org.scalatest.{Matchers, WordSpec}
 
-class AuthenticationHandlerSpec
+final class AuthenticationHandlerSpec
     extends WordSpec
     with Matchers
     with ScalatestRouteTest

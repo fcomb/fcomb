@@ -24,17 +24,8 @@ import io.fcomb.frontend.styles.App
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
-import scala.scalajs.js
 
 object RepositoryForm {
-  val padding = "12px"
-
-  lazy val helpBlockClass   = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
-  lazy val helpBlockPadding = js.Dictionary("paddingTop" -> "48px")
-  lazy val linkStyle =
-    Seq(^.textDecoration := "none", ^.color := LayoutComponent.style.palette.textColor.toString)
-  lazy val paddingTop = js.Dictionary("paddingTop" -> padding)
-
   def renderVisiblity(visibilityKind: ImageVisibilityKind,
                       isFormDisabled: Boolean,
                       updateVisibilityKind: (ReactEventI, String) => Callback) = {
@@ -42,7 +33,7 @@ object RepositoryForm {
       ^.`for` := "visibilityKind",
       "Repository visibility for others: it can be public to everyone to read and pull or private accessible only to the owner.")
     <.div(^.`class` := "row",
-          ^.style := paddingTop,
+          ^.style := App.paddingTopStyle,
           ^.key := "visibilityRow",
           <.div(^.`class` := "col-xs-6",
                 MuiRadioButtonGroup(name = "visibilityKind",
@@ -55,21 +46,21 @@ object RepositoryForm {
                     disabled = isFormDisabled
                   )(),
                   MuiRadioButton(
-                    style = paddingTop,
+                    style = App.paddingTopStyle,
                     key = "private",
                     value = ImageVisibilityKind.Private.value,
                     label = "Private",
                     disabled = isFormDisabled
                   )()
                 )),
-          <.div(helpBlockClass, label))
+          <.div(LayoutComponent.helpBlockClass, label))
   }
 
   def renderDescription(description: String,
                         errors: Map[String, String],
                         isFormDisabled: Boolean,
                         updateDescription: ReactEventI => Callback) = {
-    val link = <.a(linkStyle,
+    val link = <.a(LayoutComponent.linkAsTextStyle,
                    ^.href := "https://daringfireball.net/projects/markdown/syntax",
                    ^.target := "_blank",
                    "Markdown")
@@ -87,8 +78,8 @@ object RepositoryForm {
                          errorText = errors.get("description"),
                          value = description,
                          onChange = updateDescription)()),
-      <.div(helpBlockClass,
-            ^.style := helpBlockPadding,
+      <.div(LayoutComponent.helpBlockClass,
+            ^.style := App.helpBlockStyle,
             <.label(^.`for` := "description", "You can describe this repository in ", link, ".")))
   }
 }

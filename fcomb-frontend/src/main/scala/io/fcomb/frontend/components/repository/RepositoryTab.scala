@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components
+package io.fcomb.frontend.components.repository
 
-import japgolly.scalajs.react._
-import scala.scalajs.js
+import io.fcomb.models.common.{Enum, EnumItem}
 
-object CopyToClipboardComponent {
-  def apply(text: String,
-            onCopy: js.UndefOr[() => Unit],
-            children: ReactNode,
-            key: String = "copyToClipboard") = {
-    val props = js.Dynamic.literal()
-    props.updateDynamic("text")(text)
-    props.updateDynamic("key")(key)
-    onCopy.foreach(v => props.updateDynamic("onCopy")(v))
-    val f = React.asInstanceOf[js.Dynamic].createFactory(js.Dynamic.global.ReactCopyToClipboard)
-    f(props, children).asInstanceOf[ReactComponentU_]
-  }
+sealed trait RepositoryTab extends EnumItem
+
+object RepositoryTab extends Enum[RepositoryTab] {
+  final case object Description extends RepositoryTab
+  final case object Tags        extends RepositoryTab
+  final case object Permissions extends RepositoryTab
+  final case object Settings    extends RepositoryTab
+
+  val values = findValues
 }

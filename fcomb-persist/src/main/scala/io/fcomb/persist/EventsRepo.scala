@@ -31,7 +31,9 @@ object EventTableImplicits {
 }
 import EventTableImplicits._
 
-class EventTable(tag: Tag) extends Table[Event](tag, "dd_events") with PersistTableWithAutoIntPk {
+final class EventTable(tag: Tag)
+    extends Table[Event](tag, "dd_events")
+    with PersistTableWithAutoIntPk {
   def kind            = column[EventKind]("kind")
   def detailsJsonBlob = column[Json]("details_json_blob")
   def createdByUserId = column[Int]("created_by")

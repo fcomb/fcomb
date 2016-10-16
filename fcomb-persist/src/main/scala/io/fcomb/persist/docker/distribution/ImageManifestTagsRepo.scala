@@ -25,7 +25,7 @@ import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 
-class ImageManifestTagTable(_tag: Tag)
+final class ImageManifestTagTable(_tag: Tag)
     extends Table[ImageManifestTag](_tag, "dd_image_manifest_tags") {
   def imageId         = column[Int]("image_id")
   def imageManifestId = column[Int]("image_manifest_id")
@@ -54,23 +54,18 @@ object ImageManifestTagsRepo
       newTags = tags
         .filterNot(existingTagsSet.contains)
         .map(t => ImageManifestTag(imageId, imageManifestId, t, timeNow))
-      _ <- {
-        if (newTags.isEmpty) DBIO.successful(())
-        else table ++= newTags
-      }
+      _ <- if (newTags.isEmpty) DBIO.successful(()) else table ++= newTags
     } yield ()
   }
 
   private def findAllExistingTagsDBIO(imageId: Int, imageManifestId: Int, tags: List[String]) =
-    table.filter { q =>
-      q.imageId === imageId && q.imageManifestId =!= imageManifestId && q.tag.inSetBind(tags)
-    }
-    // .forUpdate
-    .result
+    table
+      .filter(t =>
+        t.imageId === imageId && t.imageManifestId =!= imageManifestId && t.tag.inSetBind(tags))
+      .result // .forUpdate
 
   private def updateTagDBIO(imt: ImageManifestTag, imageManifestId: Int)(
-      implicit ec: ExecutionContext
-  ) =
+      implicit ec: ExecutionContext) =
     for {
       _ <- sqlu"""
           UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
@@ -101,8 +96,8 @@ object ImageManifestTagsRepo
   private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {
     val q = findByImageIdDBIO(imageId).map {
       case (t, imt) => (t.tag, imt.digest, imt.length, t.updatedAt)
-    }.drop(p.offset).take(p.limit)
-    sortByQuery(q, p)(sortByPF, _._4.desc)
+    }
+    sortByQuery(q, p)(sortByPF, _._4.desc).drop(p.offset).take(p.limit)
   }
 
   private lazy val findByImageIdTotalCompiled = Compiled { imageId: Rep[Int] =>

@@ -25,7 +25,7 @@ import io.fcomb.rpc.{MemberUserRequest, UserProfileResponse}
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
-class OrganizationGroupUserTable(tag: Tag)
+final class OrganizationGroupUserTable(tag: Tag)
     extends Table[OrganizationGroupUser](tag, "organization_group_users") {
   def groupId = column[Int]("group_id", O.PrimaryKey)
   def userId  = column[Int]("user_id", O.PrimaryKey)

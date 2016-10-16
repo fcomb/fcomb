@@ -19,16 +19,17 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.components.LayoutComponent
 import io.fcomb.frontend.styles.App
-import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.Owner
+import io.fcomb.models.docker.distribution.ImageVisibilityKind
+import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
 
@@ -97,11 +98,11 @@ object NewRepositoryComponent {
                                  isAdminRoleOnly = true,
                                  isAllNamespace = false,
                                  isDisabled = state.isFormDisabled,
-                                 cb = updateNamespace _,
-                                 fullWidth = true)),
+                                 isFullWidth = true,
+                                 cb = updateNamespace _)),
         <.div(
-          helpBlockClass,
-          ^.style := helpBlockPadding,
+          LayoutComponent.helpBlockClass,
+          ^.style := App.helpBlockStyle,
           <.label(^.`for` := "namespace", "An account which will be the owner of repository.")))
 
     def renderName(state: State) =
@@ -116,15 +117,15 @@ object NewRepositoryComponent {
                                fullWidth = true,
                                value = state.name,
                                onChange = updateName _)()),
-            <.div(helpBlockClass,
-                  ^.style := helpBlockPadding,
+            <.div(LayoutComponent.helpBlockClass,
+                  ^.style := App.helpBlockStyle,
                   <.label(^.`for` := "name",
                           "Enter a name for repository that will be used by docker or rkt.")))
 
     def renderActions(state: State) = {
       val createIsDisabled = state.isFormDisabled || state.owner.isEmpty
       <.div(^.`class` := "row",
-            ^.style := paddingTop,
+            ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
             <.div(^.`class` := "col-xs-12",
                   MuiRaisedButton(`type` = "submit",
@@ -137,7 +138,7 @@ object NewRepositoryComponent {
     def render(props: Props, state: State) =
       MuiCard()(<.div(^.key := "header",
                       App.formTitleBlock,
-                      MuiCardTitle(key = "title")(<.h1(App.formTitle, "New repository"))),
+                      MuiCardTitle(key = "title")(<.h1(App.cardTitle, "New repository"))),
                 <.form(^.onSubmit ==> handleOnSubmit(props),
                        ^.disabled := state.isFormDisabled,
                        ^.key := "form",

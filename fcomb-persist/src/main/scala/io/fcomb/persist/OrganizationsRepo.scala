@@ -38,7 +38,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.immutable
 import slick.jdbc.TransactionIsolation
 
-class OrganizationTable(tag: Tag)
+final class OrganizationTable(tag: Tag)
     extends Table[Organization](tag, "organizations")
     with PersistTableWithAutoIntPk {
   def name        = column[String]("name")

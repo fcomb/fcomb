@@ -27,9 +27,7 @@ import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.persist.docker.distribution.ImagesRepo
 
 object ImageDirectives {
-  def imageWithActionBySlugWithAcl(slug: Slug,
-                                   userId: Int,
-                                   action: Action): Directive1[(Image, Action)] =
+  def imageAndAction(slug: Slug, userId: Int, action: Action): Directive1[(Image, Action)] =
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlugWithAcl(slug, userId, action)).flatMap {
         case Xor.Right(Some(res @ (image, _))) => provide(res)
@@ -38,22 +36,25 @@ object ImageDirectives {
       }
     }
 
-  def imageBySlugWithAcl(slug: Slug, userId: Int, action: Action): Directive1[Image] =
-    imageWithActionBySlugWithAcl(slug, userId, action).flatMap {
-      case (image, _) => provide(image)
-    }
+  def image(slug: Slug, userId: Int, action: Action): Directive1[Image] =
+    imageAndAction(slug, userId, action).flatMap(provideImage)
 
-  def imageBySlugRead(slug: Slug, userOpt: Option[User]): Directive1[Image] =
+  def imageAndActionRead(slug: Slug, userOpt: Option[User]): Directive1[(Image, Action)] =
     userOpt match {
-      case Some(user) => imageBySlugWithAcl(slug, user.getId(), Action.Read)
+      case Some(user) => imageAndAction(slug, user.getId(), Action.Read)
       case _ =>
         extractExecutionContext.flatMap { implicit ec =>
           onSuccess(ImagesRepo.findBySlug(slug)).flatMap {
             case Some(image) if image.visibilityKind == ImageVisibilityKind.Public =>
-              provide(image)
+              provide((image, Action.Read))
             case Some(image) => complete(HttpResponse(StatusCodes.Forbidden))
             case _           => complete(HttpResponse(StatusCodes.NotFound))
           }
         }
     }
+
+  def imageRead(slug: Slug, userOpt: Option[User]): Directive1[Image] =
+    imageAndActionRead(slug, userOpt).flatMap(provideImage)
+
+  private def provideImage(t: (Image, Action)): Directive1[Image] = provide(t._1)
 }

@@ -39,7 +39,7 @@ object WebhooksHandler {
     authenticateUser { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
-        imageBySlugWithAcl(slug, user.getId(), Action.Read) { image =>
+        image(slug, user.getId(), Action.Read) { image =>
           extractPagination { pg =>
             onSuccess(ImageWebhooksRepo.paginateByImageId(image.getId(), pg)) { p =>
               completePagination(ImageWebhooksRepo.label, p)
@@ -53,7 +53,7 @@ object WebhooksHandler {
     authenticateUser { user =>
       extractMaterializer { implicit mat =>
         import mat.executionContext
-        imageBySlugWithAcl(slug, user.getId(), Action.Write) { image =>
+        image(slug, user.getId(), Action.Write) { image =>
           entity(as[ImageWebhookRequest]) { req =>
             onSuccess(ImageWebhooksRepo.upsert(image.getId(), req.url)) {
               case Validated.Valid(webhook) =>

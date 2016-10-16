@@ -31,7 +31,7 @@ import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
-class OrganizationGroupTable(tag: Tag)
+final class OrganizationGroupTable(tag: Tag)
     extends Table[OrganizationGroup](tag, "organization_groups")
     with PersistTableWithAutoIntPk {
   def organizationId = column[Int]("organization_id")

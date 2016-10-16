@@ -22,7 +22,7 @@ import scala.util.control.NoStackTrace
 import slick.ast.Ordering
 import slick.lifted.ColumnOrdered
 
-final case class UnknownSortColumnException(msg: String) extends Throwable with NoStackTrace
+final case class UnknownSortColumnException(message: String) extends Throwable with NoStackTrace
 
 trait PaginationActions {
   private val unknownSortColumnPF: PartialFunction[String, Rep[_]] = {

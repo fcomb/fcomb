@@ -27,7 +27,7 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
-class ImageManifestTable(tag: Tag)
+final class ImageManifestTable(tag: Tag)
     extends Table[ImageManifest](tag, "dd_image_manifests")
     with PersistTableWithAutoIntPk {
   def digest           = column[String]("digest")
@@ -56,60 +56,55 @@ class ImageManifestTable(tag: Tag)
      createdAt,
      updatedAt,
      (v2ConfigBlobId, v2JsonBlob)) <>
-      ((apply2 _).tupled, unapply2)
-
-  private def apply2(
-      id: Option[Int],
-      digest: String,
-      imageId: Int,
-      tags: List[String],
-      layersBlobId: List[UUID],
-      schemaVersion: Int,
-      schemaV1JsonBlob: String,
-      length: Long,
-      createdAt: OffsetDateTime,
-      updatedAt: Option[OffsetDateTime],
-      v2DetailsTuple: (Option[UUID], Option[String])
-  ) = {
-    val schemaV2Details = (schemaVersion, v2DetailsTuple) match {
-      case (2, (configBlobId, Some(v2JsonBlob))) =>
-        Some(ImageManifestSchemaV2Details(configBlobId, v2JsonBlob))
-      case _ => None
-    }
-    ImageManifest(
-      id = id,
-      digest = digest,
-      imageId = imageId,
-      tags = tags,
-      layersBlobId = layersBlobId,
-      schemaVersion = schemaVersion,
-      schemaV1JsonBlob = schemaV1JsonBlob,
-      schemaV2Details = schemaV2Details,
-      length = length,
-      createdAt = createdAt,
-      updatedAt = updatedAt
-    )
-  }
-
-  def unapply2(m: ImageManifest) = {
-    val v2DetailsTuple = m.schemaV2Details match {
-      case Some(ImageManifestSchemaV2Details(configBlobId, v2JsonBlob)) =>
-        (configBlobId, Some(v2JsonBlob))
-      case None => (None, None)
-    }
-    Some(
-      (m.id,
-       m.digest,
-       m.imageId,
-       m.tags,
-       m.layersBlobId,
-       m.schemaVersion,
-       m.schemaV1JsonBlob,
-       m.length,
-       m.createdAt,
-       m.updatedAt,
-       v2DetailsTuple))
-  }
+      ({
+        case (id,
+              digest,
+              imageId,
+              tags,
+              layersBlobId,
+              schemaVersion,
+              schemaV1JsonBlob,
+              length,
+              createdAt,
+              updatedAt,
+              (v2ConfigBlobId, v2JsonBlob)) =>
+          val schemaV2Details = (schemaVersion, v2JsonBlob) match {
+            case (2, Some(v2JsonBlob)) =>
+              Some(ImageManifestSchemaV2Details(v2ConfigBlobId, v2JsonBlob))
+            case _ => None
+          }
+          ImageManifest(
+            id = id,
+            digest = digest,
+            imageId = imageId,
+            tags = tags,
+            layersBlobId = layersBlobId,
+            schemaVersion = schemaVersion,
+            schemaV1JsonBlob = schemaV1JsonBlob,
+            schemaV2Details = schemaV2Details,
+            length = length,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+          )
+      }, { m: ImageManifest =>
+        val v2DetailsTuple = m.schemaV2Details match {
+          case Some(ImageManifestSchemaV2Details(configBlobId, v2JsonBlob)) =>
+            (configBlobId, Some(v2JsonBlob))
+          case None => (None, None)
+        }
+        Some(
+          (m.id,
+           m.digest,
+           m.imageId,
+           m.tags,
+           m.layersBlobId,
+           m.schemaVersion,
+           m.schemaV1JsonBlob,
+           m.length,
+           m.createdAt,
+           m.updatedAt,
+           v2DetailsTuple))
+      })
 }
 
 object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, ImageManifestTable] {
@@ -117,18 +112,14 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
 
   private lazy val findByImageIdAndDigestCompiled = Compiled {
     (imageId: Rep[Int], digest: Rep[String]) =>
-      table.filter { q =>
-        q.imageId === imageId && q.digest === digest
-      }.take(1)
+      table.filter(t => t.imageId === imageId && t.digest === digest).take(1)
   }
 
   def findByImageIdAndDigest(imageId: Int, digest: String) =
     db.run(findByImageIdAndDigestCompiled((imageId, digest)).result.headOption)
 
-  private def blobsCountIsLessThanExpected(
-      blobs: Seq[(UUID, Option[String], Long)],
-      digests: Set[String]
-  ) = {
+  private def blobsCountIsLessThanExpected(blobs: Seq[(UUID, Option[String], Long)],
+                                           digests: Set[String]) = {
     val existingDigests = blobs.collect { case (_, Some(dgst), _) => dgst }.toSet
     val notFound = digests
       .filterNot(existingDigests.contains)
@@ -137,12 +128,10 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
     validationErrorAsFuture("layersBlobId", s"Unknown blobs: $notFound")
   }
 
-  def upsertSchemaV1(
-      image: Image,
-      manifest: SchemaV1.Manifest,
-      schemaV1JsonBlob: String,
-      digest: String
-  )(implicit ec: ExecutionContext): Future[ValidationModel] =
+  def upsertSchemaV1(image: Image,
+                     manifest: SchemaV1.Manifest,
+                     schemaV1JsonBlob: String,
+                     digest: String)(implicit ec: ExecutionContext): Future[ValidationModel] =
     findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) => FastFuture.successful(Validated.valid(im))
       case None =>
@@ -150,38 +139,35 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
         val tags =
           if (manifest.tag.nonEmpty) List(manifest.tag)
           else Nil
-        ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId(), digests).flatMap {
-          blobs =>
-            if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
-            else {
-              val length = blobs.foldLeft(0L)(_ + _._3)
-              create(
-                ImageManifest(
-                  id = None,
-                  digest = digest,
-                  imageId = image.getId(),
-                  tags = tags,
-                  layersBlobId = blobs.map(_._1).toList,
-                  schemaVersion = 1,
-                  schemaV1JsonBlob = schemaV1JsonBlob,
-                  schemaV2Details = None,
-                  length = length,
-                  createdAt = OffsetDateTime.now,
-                  updatedAt = None
-                ))
-            }
+        ImageBlobsRepo.findAllUploadedIds(image.getId(), digests).flatMap { blobs =>
+          if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
+          else {
+            val length = blobs.foldLeft(0L)(_ + _._3)
+            create(
+              ImageManifest(
+                id = None,
+                digest = digest,
+                imageId = image.getId(),
+                tags = tags,
+                layersBlobId = blobs.map(_._1).toList,
+                schemaVersion = 1,
+                schemaV1JsonBlob = schemaV1JsonBlob,
+                schemaV2Details = None,
+                length = length,
+                createdAt = OffsetDateTime.now,
+                updatedAt = None
+              ))
+          }
         }
     }
 
-  def upsertSchemaV2(
-      image: Image,
-      manifest: SchemaV2.Manifest,
-      reference: Reference,
-      configBlob: ImageBlob,
-      schemaV1JsonBlob: String,
-      schemaV2JsonBlob: String,
-      digest: String
-  )(implicit ec: ExecutionContext): Future[ValidationModel] =
+  def upsertSchemaV2(image: Image,
+                     manifest: SchemaV2.Manifest,
+                     reference: Reference,
+                     configBlob: ImageBlob,
+                     schemaV1JsonBlob: String,
+                     schemaV2JsonBlob: String,
+                     digest: String)(implicit ec: ExecutionContext): Future[ValidationModel] =
     findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
         updateTagsByReference(im, reference).fast.map(_ => Validated.valid(im))
@@ -193,7 +179,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
           else FastFuture.successful(())
         (for {
           _       <- emptyTarResFut
-          blobIds <- ImageBlobsRepo.findIdsWithDigestByImageIdAndDigests(image.getId(), digests)
+          blobIds <- ImageBlobsRepo.findAllUploadedIds(image.getId(), digests)
         } yield blobIds).flatMap { blobs =>
           if (blobs.length != digests.size) blobsCountIsLessThanExpected(blobs, digests)
           else {
@@ -225,35 +211,36 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
     }
 
   def updateTagsByReference(im: ImageManifest, reference: Reference)(
-      implicit ec: ExecutionContext
-  ): Future[Unit] = {
+      implicit ec: ExecutionContext): Future[Unit] = {
     val tags = reference match {
       case Reference.Tag(tag) if !im.tags.contains(tag) => List(tag)
       case _                                            => Nil
     }
     if (tags.nonEmpty)
-      runInTransaction(TransactionIsolation.Serializable)(for {
-        _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), tags)
-        _ <- sqlu"""
-          UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
-            SET tags = tags || ${reference.value},
-                updated_at = ${OffsetDateTime.now()}
-            WHERE id = ${im.getId}
-          """
-      } yield ())
-    else FastFuture.successful(())
+      runInTransaction(TransactionIsolation.ReadCommitted) {
+        val timeNow = OffsetDateTime.now()
+        for {
+          _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), tags)
+          _ <- sqlu"""UPDATE #${ImageManifestsRepo.table.baseTableRow.tableName}
+                    SET tags = tags || ${reference.value},
+                        updated_at = $timeNow
+                    WHERE id = ${im.getId}"""
+          _ <- ImagesRepo.touchUpdatedAtDBIO(im.imageId, timeNow)
+        } yield ()
+      } else FastFuture.successful(())
   }
 
   override def create(manifest: ImageManifest)(
       implicit ec: ExecutionContext,
-      m: Manifest[ImageManifest]
-  ): Future[ValidationModel] =
+      m: Manifest[ImageManifest]): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.Serializable)(
       createWithValidationDBIO(manifest).flatMap {
         case res @ Validated.Valid(im) =>
+          val imageId = im.imageId
           for {
             _ <- ImageManifestLayersRepo.insertLayersDBIO(im.getId(), im.layersBlobId)
-            _ <- ImageManifestTagsRepo.upsertTagsDBIO(im.imageId, im.getId(), im.tags)
+            _ <- ImageManifestTagsRepo.upsertTagsDBIO(imageId, im.getId(), im.tags)
+            _ <- ImagesRepo.touchUpdatedAtDBIO(imageId, im.createdAt)
           } yield res
         case res => DBIO.successful(res)
       }
@@ -270,10 +257,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
       table
         .join(ImageManifestTagsRepo.table)
         .on(_.id === _.imageManifestId)
-        .filter {
-          case (t, imt) =>
-            t.imageId === imageId && imt.tag === tag
-        }
+        .filter { case (t, imt) => t.imageId === imageId && imt.tag === tag }
         .map(_._1)
   }
 
@@ -297,8 +281,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
   val fetchLimit = 256
 
   def findTagsByImageId(imageId: Int, n: Option[Int], last: Option[String])(
-      implicit ec: ExecutionContext
-  ): Future[(Seq[String], Int, Boolean)] = {
+      implicit ec: ExecutionContext): Future[(Seq[String], Int, Boolean)] = {
     val limit = n match {
       case Some(v) if v > 0 && v <= fetchLimit => v
       case _                                   => fetchLimit
@@ -311,20 +294,13 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
         }
       case None => DBIO.successful((0, 0L))
     }
-    db.run(for {
-        (id, offset) <- since
-        tags         <- findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
-      } yield tags)
-      .fast
-      .map { tags =>
-        (tags.take(limit), limit, tags.length > limit)
-      }
+    val q: DBIO[(Seq[String], Int, Boolean)] = for {
+      (id, offset) <- since
+      tags         <- findTagsByImageIdCompiled((imageId, limit + 1L, id, offset)).result
+    } yield (tags.take(limit), limit, tags.length > limit)
+    db.run(q)
   }
 
   def destroy(imageId: Int, digest: String)(implicit ec: ExecutionContext): Future[Boolean] =
-    db.run {
-      table.filter { q =>
-        q.imageId === imageId && q.digest === digest
-      }.delete.map(_ != 0)
-    }
+    db.run(table.filter(t => t.imageId === imageId && t.digest === digest).delete.map(_ != 0))
 }

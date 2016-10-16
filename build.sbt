@@ -4,7 +4,7 @@ import de.heikoseeberger.sbtheader.license.Apache2_0
 lazy val akkaVersion         = "2.4.11"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.7.2"
-lazy val circeVersion        = "0.5.2"
+lazy val circeVersion        = "0.5.3"
 lazy val commonsVersion      = "1.10"
 lazy val enumeratumVersion   = "1.4.15"
 lazy val guavaVersion        = "19.0"
@@ -202,7 +202,7 @@ lazy val crypto = project
       "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
       "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
       "io.circe"          %% "circe-parser"  % circeVersion,
-      "com.pauldijou"     %% "jwt-circe"     % "0.8.1"
+      "com.pauldijou"     %% "jwt-circe"     % "0.9.0"
     ))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(modelsJVM, jsonJVM)
@@ -264,7 +264,7 @@ lazy val tests = project
       "org.scalacheck"     %% "scalacheck"        % "1.13.2" % "test",
       "org.specs2"         %% "specs2-core"       % "3.8.5" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.0" % "test",
-      "com.ironcorelabs"   %% "cats-scalatest"    % "1.4.0" % "test",
+      "com.ironcorelabs"   %% "cats-scalatest"    % "2.0.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
       "ch.qos.logback"     % "logback-classic"    % "1.1.7",
       "junit"              % "junit-dep"          % "4.10" % "test"
@@ -298,7 +298,6 @@ lazy val frontend = project
       "me.chrons"                                      %%% "diode-react"   % "1.0.0",
       "io.circe"                                       %%% "circe-scalajs" % circeVersion
     ),
-    scalaJSUseRhino in Global := false,
     skip in packageJSDependencies := false,
     persistLauncher in Compile := true,
     persistLauncher in Test := false,
@@ -343,7 +342,7 @@ lazy val root = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-core" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
-      "com.lihaoyi"       % "ammonite-repl"   % "0.7.7" % "test" cross CrossVersion.full,
+      "com.lihaoyi"       % "ammonite-repl"   % "0.7.8" % "test" cross CrossVersion.full,
       "ch.qos.logback"    % "logback-classic" % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",

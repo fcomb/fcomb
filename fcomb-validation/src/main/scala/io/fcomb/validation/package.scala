@@ -17,8 +17,6 @@
 package io.fcomb
 
 import cats.data.{Validated, XorT}
-import cats.instances.all._
-import cats.syntax.cartesian._
 import io.fcomb.models.errors.{Error, Errors}
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.PostgresProfile.api._
@@ -39,14 +37,16 @@ package object validation {
   def eitherT[R](fut: Future[ValidationResult[R]])(implicit ec: ExecutionContext) =
     XorT(fut.map(_.toXor))
 
-  def plainValidation(validations: Seq[PlainValidation]): PlainValidation =
-    validations.foldLeft[PlainValidation](Validated.valid[String, Unit](()))(_ <* _)
+  def plainValidation(column: String, validations: List[PlainValidation]): List[Error] =
+    validations.collect { case Validated.Invalid(msg) => Errors.validation(msg, column) }
 
-  def futureValidation(validations: Seq[FutureValidation])(implicit ec: ExecutionContext) =
-    Future.sequence(validations).map(plainValidation)
+  def futureValidation(column: String, validations: List[FutureValidation])(
+      implicit ec: ExecutionContext): Future[List[Error]] =
+    Future.sequence(validations).map(plainValidation(column, _))
 
-  def dbioValidation(validations: Seq[DBIOValidation])(implicit ec: ExecutionContext) =
-    DBIO.sequence(validations).map(plainValidation)
+  def dbioValidation(column: String, validations: List[DBIOValidation])(
+      implicit ec: ExecutionContext): DBIOT[List[Error]] =
+    DBIO.sequence(validations).map(plainValidation(column, _))
 
   type ColumnValidation     = Validated[Error, Unit]
   type ValidationErrors     = List[Error]
@@ -65,7 +65,7 @@ package object validation {
       case Validated.Invalid(msg) => Validated.Invalid(Errors.validation(msg, column))
     }
 
-  def columnValidations2Map(validations: Seq[ColumnValidation]): ValidationResultUnit =
+  def columnValidations2Map(validations: List[ColumnValidation]): ValidationResultUnit =
     validations.foldLeft(List.empty[Error]) {
       case (acc, Validated.Valid(_))   => acc
       case (acc, Validated.Invalid(e)) => e :: acc
@@ -75,15 +75,9 @@ package object validation {
     }
 
   def validatePlain(result: (String, List[PlainValidation])*): ValidationResultUnit =
-    result.foldLeft(List.empty[Error]) {
-      case (m, (c, v)) =>
-        plainValidation(v) match {
-          case Validated.Valid(_)     => m
-          case Validated.Invalid(msg) => Errors.validation(msg, c) :: m
-        }
-    } match {
-      case Nil => Validated.Valid(())
-      case xs  => Validated.Invalid(xs)
+    result.foldLeft(List.empty[Error]) { case (m, (c, v)) => plainValidation(c, v) ::: m } match {
+      case Nil                                            => Validated.Valid(())
+      case xs                                             => Validated.Invalid(xs)
     }
 
   def validateDBIO(result: (String, List[DBIOValidation])*)(
@@ -92,11 +86,7 @@ package object validation {
       DBIO.successful(List.empty[Error]).asInstanceOf[DBIOT[ValidationErrors]]
     result
       .foldLeft(emptyList) {
-        case (m, (c, v)) =>
-          dbioValidation(v).flatMap {
-            case Validated.Valid(_)     => m
-            case Validated.Invalid(msg) => m.map(Errors.validation(msg, c) :: _)
-          }
+        case (m, (c, v)) => dbioValidation(c, v).flatMap(es => m.map(es ::: _))
       }
       .map {
         case Nil => Validated.Valid(())
@@ -107,7 +97,7 @@ package object validation {
   implicit class ValidationResultMethods[T](val result: ValidationResult[T]) extends AnyVal {
     def `:::`(result2: ValidationResult[T]): ValidationResult[T] =
       (result, result2) match {
-        case (Validated.Invalid(e1), Validated.Invalid(e2)) => Validated.Invalid(e1 ++ e2)
+        case (Validated.Invalid(e1), Validated.Invalid(e2)) => Validated.Invalid(e1 ::: e2)
         case (e @ Validated.Invalid(_), _)                  => e
         case (_, e @ Validated.Invalid(_))                  => e
         case _                                              => result

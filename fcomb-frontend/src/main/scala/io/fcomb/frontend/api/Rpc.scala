@@ -22,18 +22,20 @@ import io.circe.scalajs.decodeJs
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 import io.fcomb.frontend.components.repository.Namespace
-import io.fcomb.frontend.dispatcher.actions.LogOut
 import io.fcomb.frontend.dispatcher.AppCircuit
+import io.fcomb.frontend.dispatcher.actions.LogOut
 import io.fcomb.frontend.utils.PaginationUtils
-import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.models.Formats._
+import io.fcomb.json.models.errors.Formats.decodeErrors
+import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.models.acl.MemberKind
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
-import io.fcomb.models.{Owner, OwnerKind, PaginationData}
+import io.fcomb.models.{Owner, OwnerKind, PaginationData, SortOrder}
+import io.fcomb.rpc.acl.PermissionResponse
 import io.fcomb.rpc.docker.distribution._
-import org.scalajs.dom.ext.Ajax
-import org.scalajs.dom.ext.AjaxException
+import org.scalajs.dom.ext.{Ajax, AjaxException}
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js.{JSON, URIUtils}
@@ -50,7 +52,7 @@ object RpcMethod {
 
 object Rpc {
   def getRepository(slug: String)(implicit ec: ExecutionContext) =
-    call[RepositoryResponse](RpcMethod.GET, Resource.repository(slug))
+    call[RepositoryResponse](RpcMethod.GET, Resource.repository(slug)).map(toPot)
 
   def createRepository(owner: Owner,
                        name: String,
@@ -71,14 +73,20 @@ object Rpc {
     callWith[ImageUpdateRequest, RepositoryResponse](RpcMethod.PUT, Resource.repository(slug), req)
   }
 
-  private def getRepositoriesByUrl(url: String, page: Int, limit: Int)(
-      implicit ec: ExecutionContext) = {
-    val params = PaginationUtils.getParams(page, limit)
-    call[PaginationData[RepositoryResponse]](RpcMethod.GET, url, params)
+  private def getRepositoriesByUrl(url: String,
+                                   sortColumn: String,
+                                   sortOrder: SortOrder,
+                                   page: Int,
+                                   limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[RepositoryResponse]](RpcMethod.GET, url, queryParams)
   }
 
-  def getNamespaceRepositories(namespace: Namespace, page: Int, limit: Int)(
-      implicit ec: ExecutionContext) = {
+  def getNamespaceRepositories(namespace: Namespace,
+                               sortColumn: String,
+                               sortOrder: SortOrder,
+                               page: Int,
+                               limit: Int)(implicit ec: ExecutionContext) = {
     val url = namespace match {
       case Namespace.All => Resource.userSelfRepositoriesAvailable
       case ns @ Namespace.User(slug, _) =>
@@ -86,12 +94,45 @@ object Rpc {
         else Resource.userRepositories(slug)
       case Namespace.Organization(slug, _) => Resource.organizationRepositories(slug)
     }
-    getRepositoriesByUrl(url, page, limit)
+    getRepositoriesByUrl(url, sortColumn, sortOrder, page, limit)
   }
 
-  def getRepositories(slugs: Set[String])(
-      implicit ec: ExecutionContext): Future[Map[String, Pot[RepositoryResponse]]] =
-    traversePotMap(slugs)(getRepository)
+  def getRepositoryTags(slug: String,
+                        sortColumn: String,
+                        sortOrder: SortOrder,
+                        page: Int,
+                        limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[RepositoryTagResponse]](RpcMethod.GET,
+                                                Resource.repositoryTags(slug),
+                                                queryParams)
+  }
+
+  def getRepositoryPermissions(slug: String,
+                               sortColumn: String,
+                               sortOrder: SortOrder,
+                               page: Int,
+                               limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[PermissionResponse]](RpcMethod.GET,
+                                             Resource.repositoryPermissions(slug),
+                                             queryParams)
+  }
+
+  def deletRepositoryPermission(slug: String, name: String, kind: MemberKind)(
+      implicit ec: ExecutionContext) = {
+    val url = Resource.repositoryPermission(slug, kind, name)
+    call[Unit](RpcMethod.DELETE, url)
+  }
+
+  def deleteRepository(slug: String)(implicit ec: ExecutionContext) =
+    call[Unit](RpcMethod.DELETE, Resource.repository(slug))
+
+  private def toQueryParams(sortColumn: String,
+                            sortOrder: SortOrder,
+                            page: Int,
+                            limit: Int): Map[String, String] =
+    PaginationUtils.getParams(page, limit) ++ SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
 
   def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,
@@ -119,16 +160,6 @@ object Rpc {
           Xor.Left(Seq(Errors.unknown))
       }
   }
-
-  private def traversePotMap[K, R](keys: Set[K])(call: K => Future[Xor[Seq[Error], R]])(
-      implicit ec: ExecutionContext): Future[Map[K, Pot[R]]] =
-    keys.foldLeft(Future.successful(Map.empty[K, Pot[R]])) {
-      case (fm, key) =>
-        for {
-          res <- call(key)
-          m   <- fm
-        } yield m + ((key, toPot(res)))
-    }
 
   private def toPot[U](xor: Xor[Seq[Error], U]): Pot[U] =
     xor match {

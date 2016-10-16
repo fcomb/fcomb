@@ -84,10 +84,8 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     DBIO.successful(Validated.Valid(()))
 
   protected def validateThenApply(result: ValidationDBIOResult)(
-      f: => DBIOAction[T, NoStream, Effect.All])(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]
-  ): Future[ValidationModel] =
+      f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext,
+                                                 m: Manifest[T]): Future[ValidationModel] =
     validateThenApplyVM(result)(f.map(Validated.Valid(_)))
 
   protected def validateThenApplyDBIO(result: ValidationDBIOResult)(
@@ -106,14 +104,10 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     }
 
   protected def validateThenApplyVM(result: ValidationDBIOResult)(
-      f: => DBIOAction[ValidationModel, NoStream, Effect.All]
-  )(
+      f: => DBIOAction[ValidationModel, NoStream, Effect.All])(
       implicit ec: ExecutionContext,
-      m: Manifest[T]
-  ): Future[ValidationModel] =
-    runInTransaction(TransactionIsolation.ReadCommitted)(
-      validateThenApplyVMDBIO(result)(f)
-    )
+      m: Manifest[T]): Future[ValidationModel] =
+    runInTransaction(TransactionIsolation.ReadCommitted)(validateThenApplyVMDBIO(result)(f))
 
   def all() =
     db.run(table.result)
@@ -137,32 +131,23 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 
   def createWithValidationDBIO(item: T)(
       implicit ec: ExecutionContext,
-      m: Manifest[T]
-  ): DBIOAction[ValidationModel, NoStream, Effect.All] = {
+      m: Manifest[T]): DBIOAction[ValidationModel, NoStream, Effect.All] = {
     val mappedItem = mapModel(item)
     validateThenApplyDBIO(validate(mappedItem))(createDBIO(mappedItem))
   }
 
-  def create(item: T)(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]
-  ): Future[ValidationModel] =
+  def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted)(
       createWithValidationDBIO(item)
     )
 
-  def strictUpdateDBIO[R](res: R)(
-      q: Int,
-      error: ValidationResult[R]
-  )(
-      implicit ec: ExecutionContext
-  ): ValidationResult[R] =
+  def strictUpdateDBIO[R](res: R)(q: Int, error: ValidationResult[R])(
+      implicit ec: ExecutionContext): ValidationResult[R] =
     if (q == 0) error
     else Validated.Valid(res)
 
   def strictDestroyDBIO(q: Int, error: ValidationResultUnit)(
-      implicit ec: ExecutionContext
-  ): ValidationResultUnit =
+      implicit ec: ExecutionContext): ValidationResultUnit =
     if (q == 0) error
     else Validated.Valid(())
 }

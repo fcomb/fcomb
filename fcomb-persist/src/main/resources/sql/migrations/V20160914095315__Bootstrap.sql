@@ -1,5 +1,5 @@
-CREATE EXTENSION "uuid-ossp";
-CREATE EXTENSION "citext";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "citext";
 
 CREATE TYPE user_role AS ENUM ('admin', 'developer');
 
