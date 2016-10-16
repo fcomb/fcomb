@@ -80,8 +80,8 @@ object RepositoryComponent {
 
       MuiCardMedia(key = "tabs")(
         MuiTabs[RepositoryTab](value = props.tab, onChange = onChange _)(
-          MuiTab(key = "description", label = "Description", value = RepositoryTab.Description)(
-            MuiCardText()(RepositoryDescriptionComponent(repo))),
+          MuiTab(key = "info", label = "Info", value = RepositoryTab.Description)(
+            MuiCardText()(RepositoryInfoComponent(repo))),
           renderTagsTab(props, repo),
           manageTabs))
     }

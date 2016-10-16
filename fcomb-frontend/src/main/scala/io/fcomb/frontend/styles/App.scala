@@ -67,6 +67,8 @@ object App extends StyleSheet.Inline {
 
   val footerLink = style(textDecoration := "none", fontSize(13.px))
 
+  val dockerPullInput = style(width(100.%%), height(48.px), paddingLeft(8.px), paddingRight(40.px))
+
   // raw
 
   val menuColumnStyle = js.Dictionary("width" -> "48px", "padding" -> "0px")
