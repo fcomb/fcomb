@@ -26,7 +26,7 @@ object RepositorySettingsComponent {
 
   class Backend($ : BackendScope[Props, Unit]) {
     def render(props: Props): ReactElement =
-      <.section(DeleteRepositoryComponent.apply(props.ctl, props.slug))
+      <.section(DeleteRepositoryComponent(props.ctl, props.slug))
   }
 
   private val component = ReactComponentB[Props]("RepositorySettings").renderBackend[Backend].build

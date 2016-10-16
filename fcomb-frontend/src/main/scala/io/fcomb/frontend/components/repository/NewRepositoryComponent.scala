@@ -98,8 +98,8 @@ object NewRepositoryComponent {
                                  isAdminRoleOnly = true,
                                  isAllNamespace = false,
                                  isDisabled = state.isFormDisabled,
-                                 cb = updateNamespace _,
-                                 fullWidth = true)),
+                                 isFullWidth = true,
+                                 cb = updateNamespace _)),
         <.div(
           LayoutComponent.helpBlockClass,
           ^.style := App.helpBlockStyle,

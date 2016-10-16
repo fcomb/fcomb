@@ -58,6 +58,7 @@ object DashboardRepositoriesComponent {
                                          isAdminRoleOnly = false,
                                          isAllNamespace = true,
                                          isDisabled = false,
+                                         isFullWidth = false,
                                          updateNamespace _)),
                     MuiCardText(key = "repos")(RepositoriesComponent(props.ctl, namespace)))
         case _ => MuiCircularProgress(key = "progress")()

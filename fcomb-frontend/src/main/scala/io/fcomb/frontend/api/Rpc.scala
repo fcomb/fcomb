@@ -119,6 +119,9 @@ object Rpc {
     call[Unit](RpcMethod.DELETE, url)
   }
 
+  def deleteRepository(slug: String)(implicit ec: ExecutionContext) =
+    call[Unit](RpcMethod.DELETE, Resource.repository(slug))
+
   private def toQueryParams(sortColumn: String,
                             sortOrder: SortOrder,
                             page: Int,

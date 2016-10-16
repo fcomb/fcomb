@@ -234,12 +234,11 @@ object RepositoryPermissionsComponent {
                                   state.form.member.map(_.title),
                                   state.form.isDisabled,
                                   state.form.errors.get("member"),
-                                  fullWidth = true,
+                                  isFullWidth = true,
                                   updateMember _)),
             <.div(LayoutComponent.helpBlockClass,
                   ^.style := App.helpBlockStyle,
-                  <.label(^.`for` := "member",
-                          "Enter a name of user that will be added to this repository.")))
+                  <.label(^.`for` := "member", "Who will be added to this repository.")))
 
     lazy val actionHelpBlock =
       <.div("What can an user do with this repository:",
