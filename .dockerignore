@@ -1,8 +1,7 @@
 .ensime*
 .git/
 fcomb-frontend/node_modules/
-fcomb-frontend/bundles/
-fcomb-frontend/src/main/resources/public/
+fcomb-frontend/src/main/resources/public/*
 target/
 */target/
 **/*/target/
