@@ -33,7 +33,7 @@ final class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materi
         (StatusCodes.UnprocessableEntity, Errors.deserialization(f.message))
       case f =>
         val cause = Option(ExceptionUtils.getRootCause(f)).getOrElse(f)
-        val msg   = cause.getMessage()
+        val msg   = Option(cause.getMessage()).getOrElse("")
         logger.error(msg, cause)
         (StatusCodes.InternalServerError, Errors.internal(msg))
     }

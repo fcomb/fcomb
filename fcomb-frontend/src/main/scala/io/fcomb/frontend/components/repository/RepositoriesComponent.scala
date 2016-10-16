@@ -135,8 +135,8 @@ object RepositoriesComponent {
                                            p,
                                            updateSort _,
                                            style = App.visibilityColumnStyle),
-                        Table.renderHeader("Name", "name", p, updateSort _),
-                        Table.renderHeader("Last modified", "lastModifiedAt", p, updateSort _),
+                        Table.renderHeader("Name", "slug", p, updateSort _),
+                        Table.renderHeader("Last modified", "updatedAt", p, updateSort _),
                         MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
         val rows = repositories.map(renderRepository(props.ctl, _, showNamespace))
 

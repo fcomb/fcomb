@@ -31,6 +31,7 @@ import io.fcomb.persist.{
   EventsRepo,
   OrganizationGroupUsersRepo,
   OrganizationGroupsRepo,
+  PaginationActions,
   PersistModelWithAutoIntPk,
   PersistTableWithAutoIntPk
 }
@@ -104,7 +105,7 @@ final class ImageTable(tag: Tag)
       })
 }
 
-object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
+object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with PaginationActions {
   val table = TableQuery[ImageTable]
   val label = "images"
 
@@ -336,24 +337,28 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
         description = req.description
       ))
 
-  private lazy val findAvailableByUserIdCompiled = Compiled {
-    (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      availableScope(userId).sortBy(_._1.slug).drop(offset).take(limit)
-  }
-
-  private lazy val findAvailableByUserIdTotalCompiled = Compiled { userId: Rep[Int] =>
+  private lazy val availableScopeTotalCompiled = Compiled { userId: Rep[Int] =>
     availableScope(userId).length
   }
 
+  private type ImageResponseTupleRep = (ImageTable, Rep[Action])
+
+  private def sortByPF(q: ImageResponseTupleRep): PartialFunction[String, Rep[_]] = {
+    case "name"           => q._1.name
+    case "slug"           => q._1.slug
+    case "updatedAt"      => q._1.updatedAt
+    case "visibilityKind" => q._1.visibilityKind
+  }
+
   def paginateAvailableByUserId(userId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] =
-    db.run {
-      for {
-        images <- findAvailableByUserIdCompiled((userId, p.offset, p.limit)).result
-        total  <- findAvailableByUserIdTotalCompiled(userId).result
-        data = images.map((ImageHelpers.responseFrom _).tupled)
-      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
-    }
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
+    val scope = availableScope(userId).drop(p.offset).take(p.limit)
+    db.run(for {
+      images <- sortByQuery(scope, p)(sortByPF, _._1.slug).result
+      total  <- availableScopeTotalCompiled(userId).result
+      data = images.map((ImageHelpers.responseFrom _).tupled)
+    } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
+  }
 
   private def findPublicByOwnerDBIO(ownerId: Rep[Int], ownerKind: Rep[OwnerKind]) =
     table.filter { q =>
@@ -361,23 +366,19 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       q.visibilityKind === (ImageVisibilityKind.Public: ImageVisibilityKind)
     }.map(t => (t, (Action.Read: Rep[Action]).asColumnOf[Action])).subquery
 
-  private lazy val findPublicByOwnerCompiled = Compiled {
-    (ownerId: Rep[Int], ownerKind: Rep[OwnerKind], offset: ConstColumn[Long],
-     limit: ConstColumn[Long]) =>
-      findPublicByOwnerDBIO(ownerId, ownerKind).drop(offset).take(limit)
-  }
-
   private lazy val findPublicByOwnerTotalCompiled = Compiled {
     (ownerId: Rep[Int], ownerKind: Rep[OwnerKind]) =>
       findPublicByOwnerDBIO(ownerId, ownerKind).length
   }
 
   private def paginatePublicByOwnerDBIO(ownerId: Int, ownerKind: OwnerKind, p: Pagination)(
-      implicit ec: ExecutionContext) =
+      implicit ec: ExecutionContext) = {
+    val scope = findPublicByOwnerDBIO(ownerId, ownerKind).drop(p.offset).take(p.limit)
     for {
-      images <- findPublicByOwnerCompiled((ownerId, ownerKind, p.offset, p.limit)).result
+      images <- sortByQuery(scope, p)(sortByPF, _._1.slug).result
       total  <- findPublicByOwnerTotalCompiled((ownerId, ownerKind)).result
     } yield (images, total)
+  }
 
   private def findAvailableByUserOwnerAsMemberDBIO(ownerId: Rep[Int], currentUserId: Rep[Int]) =
     table
@@ -426,22 +427,19 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     })
   }
 
-  private lazy val findByUserOwnerCompiled = Compiled {
-    (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      availableByUserOwnerDBIO(userId).sortBy(_._1.name).drop(offset).take(limit)
-  }
-
-  private lazy val findByUserOwnerTotalCompiled = Compiled { userId: Rep[Int] =>
+  private lazy val availableByUserOwnerTotalCompiled = Compiled { userId: Rep[Int] =>
     availableByUserOwnerDBIO(userId).length
   }
 
   def paginateByUser(userId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] =
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
+    val scope = availableByUserOwnerDBIO(userId).drop(p.offset).take(p.limit)
     db.run(for {
-      images <- findByUserOwnerCompiled((userId, p.offset, p.limit)).result
-      total  <- findByUserOwnerTotalCompiled(userId).result
+      images <- sortByQuery(scope, p)(sortByPF, _._1.slug).result
+      total  <- availableByUserOwnerTotalCompiled(userId).result
       data = images.map((ImageHelpers.responseFrom _).tupled)
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
+  }
 
   private def availableByOrganizationAndUserDBIO(orgId: Rep[Int], userId: Rep[Int]) =
     organizationAdminsScope.filter {
@@ -464,12 +462,6 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       .union(availableByOrganizationAndUserGroupsDBIO(orgId, currentUserId))
       .sortBy(_._1.name)
 
-  private lazy val findAvailableByOrganizationOwnerCompiled = Compiled {
-    (ownerId: Rep[Int], currentUserId: Rep[Int], offset: ConstColumn[Long],
-     limit: ConstColumn[Long]) =>
-      findAvailableByOrganizationOwnerDBIO(ownerId, currentUserId).drop(offset).take(limit)
-  }
-
   private lazy val findAvailableByOrganizationOwnerTotalCompiled = Compiled {
     (ownerId: Rep[Int], currentUserId: Rep[Int]) =>
       findAvailableByOrganizationOwnerDBIO(ownerId, currentUserId).length
@@ -481,8 +473,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       p: Pagination)(implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
     val q = currentUserIdOpt match {
       case Some(id) =>
+        val scope = findAvailableByOrganizationOwnerDBIO(orgId, id).drop(p.offset).take(p.limit)
         for {
-          images <- findAvailableByOrganizationOwnerCompiled((orgId, id, p.offset, p.limit)).result
+          images <- sortByQuery(scope, p)(sortByPF, _._1.slug).result
           total  <- findAvailableByOrganizationOwnerTotalCompiled((orgId, id)).result
         } yield (images, total)
       case _ => paginatePublicByOwnerDBIO(orgId, OwnerKind.Organization, p)
