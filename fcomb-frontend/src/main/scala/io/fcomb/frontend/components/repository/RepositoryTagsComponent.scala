@@ -19,6 +19,8 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
+import diode.data.{Empty, Failed, Pot, Ready}
+import diode.react.ReactPot._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{
   CopyToClipboardComponent,
@@ -29,6 +31,7 @@ import io.fcomb.frontend.components.{
   ToolbarPaginationComponent
 }
 import io.fcomb.frontend.styles.App
+import io.fcomb.models.errors.ErrorsException
 import io.fcomb.frontend.utils.RepositoryUtils
 import io.fcomb.models.SortOrder
 import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
@@ -40,7 +43,7 @@ import scalacss.ScalaCssReact._
 
 object RepositoryTagsComponent {
   final case class Props(slug: String)
-  final case class State(tags: Seq[RepositoryTagResponse], pagination: PaginationOrderState) {
+  final case class State(tags: Pot[Seq[RepositoryTagResponse]], pagination: PaginationOrderState) {
     def flipSortColumn(column: String): State = {
       val sortOrder =
         if (pagination.sortColumn == column) pagination.sortOrder.flip
@@ -56,11 +59,11 @@ object RepositoryTagsComponent {
     def getTags(pos: PaginationOrderState): Callback =
       $.props.flatMap { props =>
         Callback.future(
-          Rpc.getRepositotyTags(props.slug, pos.sortColumn, pos.sortOrder, pos.page, limit).map {
+          Rpc.getRepositoryTags(props.slug, pos.sortColumn, pos.sortOrder, pos.page, limit).map {
             case Xor.Right(pd) =>
               $.modState(st =>
-                st.copy(tags = pd.data, pagination = st.pagination.copy(total = pd.total)))
-            case Xor.Left(e) => Callback.warn(e)
+                st.copy(tags = Ready(pd.data), pagination = st.pagination.copy(total = pd.total)))
+            case Xor.Left(errs) => $.modState(_.copy(tags = Failed(ErrorsException(errs))))
           })
       }
 
@@ -102,17 +105,16 @@ object RepositoryTagsComponent {
         $.setState(state.copy(pagination = pagination)) >> getTags(pagination)
       }
 
-    def render(props: Props, state: State) =
-      if (state.tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
+    def renderTags(props: Props, tags: Seq[RepositoryTagResponse], p: PaginationOrderState) =
+      if (tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
       else {
-        val p = state.pagination
         val columns = MuiTableRow()(
           Table.renderHeader("Tag", "tag", p, updateSort _),
           Table.renderHeader("Last modified", "updatedAt", p, updateSort _),
           Table.renderHeader("Size", "length", p, updateSort _),
           Table.renderHeader("Image", "digest", p, updateSort _),
           MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
-        val rows = state.tags.map(renderTagRow(props, _))
+        val rows = tags.map(renderTagRow(props, _))
         <.section(
           MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
                                                                   adjustForCheckbox = false,
@@ -129,10 +131,13 @@ object RepositoryTagsComponent {
                                                                 )(rows)),
           ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
       }
+
+    def render(props: Props, state: State): ReactElement =
+      <.section(state.tags.render(ts => renderTags(props, ts, state.pagination)))
   }
 
   private val component = ReactComponentB[Props]("RepositoryTags")
-    .initialState(State(Seq.empty, PaginationOrderState("updatedAt", SortOrder.Desc)))
+    .initialState(State(Empty, PaginationOrderState("updatedAt", SortOrder.Desc)))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getTags($.state.pagination))
     .build

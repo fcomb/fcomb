@@ -26,6 +26,6 @@ final case class PaginationOrderState(page: Int,
 final case class PaginationState(page: Int, total: Int)
 
 object PaginationOrderState {
-  def apply(sortColumn: String, sortOrder: SortOrder): PaginationOrderState =
+  def apply(sortColumn: String, sortOrder: SortOrder = SortOrder.Asc): PaginationOrderState =
     PaginationOrderState(1, 0, sortColumn, sortOrder)
 }

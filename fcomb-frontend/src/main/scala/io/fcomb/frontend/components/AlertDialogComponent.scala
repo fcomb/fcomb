@@ -33,10 +33,7 @@ object AlertDialogComponent {
     def onRequestClose(buttonClicked: Boolean): Callback = updateOpenState(false)
 
     lazy val actions = js.Array(
-      MuiFlatButton(key = "cancel",
-                    label = "Cancel",
-                    primary = true,
-                    onTouchTap = closeDialog _)())
+      MuiFlatButton(key = "ok", label = "OK", primary = true, onTouchTap = closeDialog _)())
 
     def render(props: Props, state: State) =
       MuiDialog(

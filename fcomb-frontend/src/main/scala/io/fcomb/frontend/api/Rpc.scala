@@ -73,14 +73,20 @@ object Rpc {
     callWith[ImageUpdateRequest, RepositoryResponse](RpcMethod.PUT, Resource.repository(slug), req)
   }
 
-  private def getRepositoriesByUrl(url: String, page: Int, limit: Int)(
-      implicit ec: ExecutionContext) = {
-    val params = PaginationUtils.getParams(page, limit)
-    call[PaginationData[RepositoryResponse]](RpcMethod.GET, url, params)
+  private def getRepositoriesByUrl(url: String,
+                                   sortColumn: String,
+                                   sortOrder: SortOrder,
+                                   page: Int,
+                                   limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[RepositoryResponse]](RpcMethod.GET, url, queryParams)
   }
 
-  def getNamespaceRepositories(namespace: Namespace, page: Int, limit: Int)(
-      implicit ec: ExecutionContext) = {
+  def getNamespaceRepositories(namespace: Namespace,
+                               sortColumn: String,
+                               sortOrder: SortOrder,
+                               page: Int,
+                               limit: Int)(implicit ec: ExecutionContext) = {
     val url = namespace match {
       case Namespace.All => Resource.userSelfRepositoriesAvailable
       case ns @ Namespace.User(slug, _) =>
@@ -88,10 +94,10 @@ object Rpc {
         else Resource.userRepositories(slug)
       case Namespace.Organization(slug, _) => Resource.organizationRepositories(slug)
     }
-    getRepositoriesByUrl(url, page, limit)
+    getRepositoriesByUrl(url, sortColumn, sortOrder, page, limit)
   }
 
-  def getRepositotyTags(slug: String,
+  def getRepositoryTags(slug: String,
                         sortColumn: String,
                         sortOrder: SortOrder,
                         page: Int,

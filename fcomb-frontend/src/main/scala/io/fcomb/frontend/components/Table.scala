@@ -23,13 +23,15 @@ import io.fcomb.frontend.styles.App
 import io.fcomb.models.SortOrder
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
+import scala.scalajs.js
 import scalacss.ScalaCssReact._
 
 object Table {
   def renderHeader(title: String,
                    column: String,
                    pagination: PaginationOrderState,
-                   cb: String => ReactEventH => Callback) = {
+                   cb: String => ReactEventH => Callback,
+                   style: js.Dictionary[String] = js.Dictionary.empty) = {
     val (sortIcon, sortCB) =
       if (pagination.total > 1) {
         val icon: ReactNode =
@@ -41,8 +43,8 @@ object Table {
         (icon, cb(column))
       } else (<.span(): ReactNode, emptyCB _)
 
-    MuiTableHeaderColumn(key = column)(
-      <.a(App.sortedColumn, ^.href := "#", ^.onClick ==> sortCB, sortIcon, <.span(title))())
+    MuiTableHeaderColumn(style = style, key = column)(
+      <.a(App.sortedColumn, ^.href := "#", ^.onClick ==> sortCB, <.span(title), sortIcon)())
   }
 
   private def emptyCB(e: ReactEventH) = e.preventDefaultCB

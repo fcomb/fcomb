@@ -73,7 +73,7 @@ object App extends StyleSheet.Inline {
 
   val sortIconStyle = js.Dictionary("paddingRight" -> "8px", "verticalAlign" -> "middle")
 
-  val visibilityColumnStyle = js.Dictionary("width" -> "64px")
+  val visibilityColumnStyle = js.Dictionary("width" -> "80px")
 
   val overflowHiddenStyle = js.Dictionary("overflow" -> "hidden")
 
