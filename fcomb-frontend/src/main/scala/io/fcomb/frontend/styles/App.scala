@@ -69,6 +69,8 @@ object App extends StyleSheet.Inline {
 
   val dockerPullInput = style(width(100.%%), height(48.px), paddingLeft(8.px), paddingRight(40.px))
 
+  val digest = style(fontFamily :=! "monospace")
+
   // raw
 
   val menuColumnStyle = js.Dictionary("width" -> "48px", "padding" -> "0px")

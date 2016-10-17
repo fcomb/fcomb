@@ -18,7 +18,7 @@ RUN apk add --update nodejs nodejs-dev && \
     chown -R fcomb:fcomb ${APP} && \
     deluser --remove-home java && \
     apk del --purge nodejs nodejs-dev && \
-    rm -rf /var/cache/apk/* ${WORKDIR}
+    rm -rf /var/cache/apk/* /tmp/* /home/java
 
 EXPOSE 8080
 

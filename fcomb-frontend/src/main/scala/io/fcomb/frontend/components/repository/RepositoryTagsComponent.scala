@@ -86,7 +86,7 @@ object RepositoryTagsComponent {
         MuiTableRowColumn(key = "updatedAt")(TimeAgoComponent(tag.updatedAt)),
         MuiTableRowColumn(key = "length")(SizeInBytesComponent(tag.length)),
         MuiTableRowColumn(key = "digest")(
-          <.div(^.title := tag.digest, tag.digest.take(digestLength))),
+          <.div(App.digest, ^.title := tag.digest, tag.digest.take(digestLength))),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)))
     }
