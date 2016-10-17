@@ -6,7 +6,7 @@
 set -o pipefail
 
 declare -r sbt_release_version="0.13.12"
-declare -r sbt_unreleased_version="0.13.13-RC1"
+declare -r sbt_unreleased_version="0.13.13-RC3"
 
 declare -r latest_212="2.12.0-RC1"
 declare -r latest_211="2.11.8"
@@ -233,7 +233,14 @@ execRunner () {
 }
 
 jar_url ()  { make_url "$1"; }
-jar_file () { echo "$sbt_launch_dir/$1/sbt-launch.jar"; }
+
+is_cygwin () [[ "$(uname -a)" == "CYGWIN"* ]]
+
+jar_file () {
+  is_cygwin \
+  && echo "$(cygpath -w $sbt_launch_dir/"$1"/sbt-launch.jar)" \
+  || echo "$sbt_launch_dir/$1/sbt-launch.jar"
+}
 
 download_url () {
   local url="$1"

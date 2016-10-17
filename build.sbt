@@ -1,3 +1,4 @@
+import com.typesafe.sbt.packager.MappingsHelper._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
@@ -102,6 +103,7 @@ lazy val allSettings = buildSettings ++ commonSettings ++ publishSettings
 
 lazy val utils = project
   .in(file("fcomb-utils"))
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "utils")
   .settings(allSettings: _*)
   .settings(
@@ -110,36 +112,36 @@ lazy val utils = project
       "com.github.kxbmap" %% "configs"     % "0.4.3",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion
     ))
-  .enablePlugins(AutomateHeaderPlugin)
 
 lazy val models = crossProject
   .in(file("fcomb-models"))
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "models")
   .settings(allSettings: _*)
-  .settings(
-    libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum" % enumeratumVersion
-    ))
+  .settings(libraryDependencies ++= Seq(
+    "com.beachape" %%% "enumeratum" % enumeratumVersion
+  ))
   .jvmSettings(libraryDependencies ++= Seq(
     "com.github.t3hnar" %% "scala-bcrypt" % "2.6"
   ))
-  .enablePlugins(AutomateHeaderPlugin)
 
 lazy val modelsJVM = models.jvm
 lazy val modelsJS  = models.js
 
 lazy val rpc = crossProject
   .in(file("fcomb-rpc"))
+  .dependsOn(models)
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "rpc")
   .settings(allSettings: _*)
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(models)
 
 lazy val rpcJVM = rpc.jvm
 lazy val rpcJS  = rpc.js
 
 lazy val validation = project
   .in(file("fcomb-validation"))
+  .dependsOn(modelsJVM)
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "validation")
   .settings(allSettings: _*)
   .settings(
@@ -147,30 +149,30 @@ lazy val validation = project
       "com.typesafe.slick" %% "slick"     % slickVersion,
       "org.typelevel"      %% "cats-free" % catsVersion
     ))
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(modelsJVM)
 
 lazy val persist = project
   .in(file("fcomb-persist"))
+  .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "persist")
   .settings(allSettings: _*)
   .settings(libraryDependencies ++= Seq(
-    "commons-codec"       % "commons-codec"           % commonsVersion,
-    "io.fcomb"            %% "db-migration"           % "0.3.1",
-    "org.postgresql"      % "postgresql"              % "9.4.1211" exclude ("org.slf4j", "slf4j-simple"),
-    "com.typesafe.akka"   %% "akka-http-experimental" % akkaVersion,
-    "com.typesafe.slick"  %% "slick"                  % slickVersion,
-    "com.typesafe.slick"  %% "slick-hikaricp"         % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
-    "com.github.tminglei" %% "slick-pg"               % slickPgVersion,
-    "com.github.tminglei" %% "slick-pg_date2"         % slickPgVersion,
-    "com.github.tminglei" %% "slick-pg_circe-json"    % slickPgVersion,
-    "com.zaxxer"          % "HikariCP"                % "2.5.1"
+    "commons-codec" % "commons-codec" % commonsVersion,
+    "io.fcomb"      %% "db-migration" % "0.3.1",
+    "org.postgresql" % "postgresql" % "9.4.1211" exclude ("org.slf4j", "slf4j-simple"),
+    "com.typesafe.akka"  %% "akka-http-experimental" % akkaVersion,
+    "com.typesafe.slick" %% "slick"                  % slickVersion,
+    "com.typesafe.slick" %% "slick-hikaricp" % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
+    "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
+    "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
+    "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
+    "com.zaxxer"          % "HikariCP"             % "2.5.1"
   ))
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
 
 lazy val json = crossProject
   .in(file("fcomb-json"))
+  .dependsOn(models, rpc)
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "json")
   .settings(allSettings: _*)
   .settings(
@@ -185,14 +187,14 @@ lazy val json = crossProject
       "io.circe"       %% "circe-jawn"  % circeVersion,
       "org.spire-math" %% "jawn-parser" % jawnVersion
     ))
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(models, rpc)
 
 lazy val jsonJVM = json.jvm
 lazy val jsonJS  = json.js
 
 lazy val crypto = project
   .in(file("fcomb-crypto"))
+  .dependsOn(modelsJVM, jsonJVM)
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "crypto")
   .settings(allSettings: _*)
   .settings(
@@ -204,19 +206,19 @@ lazy val crypto = project
       "io.circe"          %% "circe-parser"  % circeVersion,
       "com.pauldijou"     %% "jwt-circe"     % "0.9.0"
     ))
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(modelsJVM, jsonJVM)
 
 lazy val templates = project
   .in(file("fcomb-templates"))
+  .dependsOn(utils)
+  .enablePlugins(AutomateHeaderPlugin, SbtTwirl)
   .settings(moduleName := "templates")
   .settings(allSettings: _*)
   .settings(TwirlKeys.templateImports += "io.fcomb.templates._, io.fcomb.utils._")
-  .enablePlugins(AutomateHeaderPlugin, SbtTwirl)
-  .dependsOn(utils)
 
 lazy val services = project
   .in(file("fcomb-services"))
+  .dependsOn(persist, utils, crypto, templates)
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "services")
   .settings(allSettings: _*)
   .settings(
@@ -226,22 +228,21 @@ lazy val services = project
       "de.heikoseeberger"  %% "akka-http-circe"                    % "1.10.1",
       "org.apache.commons" % "commons-email"                       % "1.4"
     ))
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(persist, utils, crypto, templates)
 
 lazy val server = project
   .in(file("fcomb-server"))
+  .dependsOn(persist, utils, jsonJVM, validation, services)
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "server")
   .settings(allSettings: _*)
-  .settings(
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-http-core" % akkaVersion
-    ))
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(persist, utils, jsonJVM, validation, services)
+  .settings(libraryDependencies ++= Seq(
+    "com.typesafe.akka" %% "akka-http-core" % akkaVersion
+  ))
 
 lazy val dockerDistribution = project
   .in(file("fcomb-docker-distribution"))
+  .dependsOn(server)
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "docker-distribution")
   .settings(allSettings: _*)
   .settings(
@@ -249,46 +250,42 @@ lazy val dockerDistribution = project
       "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
       "com.google.guava"  % "guava"                  % guavaVersion
     ))
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(server)
 
 lazy val tests = project
   .in(file("fcomb-tests"))
+  .dependsOn(server, dockerDistribution)
+  .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "tests")
   .settings(allSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % "test",
-      "com.typesafe.akka"  %% "akka-http-testkit" % akkaVersion % "test",
-      "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
-      "org.scalacheck"     %% "scalacheck"        % "1.13.2" % "test",
-      "org.specs2"         %% "specs2-core"       % "3.8.5" % "test",
-      "org.scalatest"      %% "scalatest"         % "3.0.0" % "test",
-      "com.ironcorelabs"   %% "cats-scalatest"    % "2.0.0" % "test",
-      "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
-      "ch.qos.logback"     % "logback-classic"    % "1.1.7",
-      "junit"              % "junit-dep"          % "4.10" % "test"
+      "com.typesafe.akka" %% "akka-testkit"      % akkaVersion % "test",
+      "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % "test",
+      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
+      "org.scalacheck"   %% "scalacheck"     % "1.13.2" % "test",
+      "org.specs2"       %% "specs2-core"    % "3.8.5"  % "test",
+      "org.scalatest"    %% "scalatest"      % "3.0.0"  % "test",
+      "com.ironcorelabs" %% "cats-scalatest" % "2.0.0"  % "test",
+      "com.typesafe.slick" %% "slick-testkit" % slickVersion % "test" exclude ("junit", "junit-dep"),
+      "ch.qos.logback" % "logback-classic" % "1.1.7",
+      "junit" % "junit-dep" % "4.10" % "test"
     ),
     parallelExecution in Test := false,
     fork in Test := true
   )
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(server, dockerDistribution)
 
 lazy val frontendAssetsDirectory = settingKey[File]("Assets directory path")
 lazy val frontendBundleBuild     = taskKey[Unit]("Build frontend assets through webpack")
 
 lazy val frontend = project
   .in(file("fcomb-frontend"))
+  .dependsOn(modelsJS, rpcJS, jsonJS)
+  .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
   .settings(moduleName := "frontend")
   .settings(allSettings: _*)
   .settings(
     frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "public",
-    frontendBundleBuild := {
-      fullOptJS
-      assert(s"${baseDirectory.value}/build.sh".! == 0, "js build error")
-    },
-    packageBin in Compile <<= (packageBin in Compile).dependsOn(frontendBundleBuild),
+    frontendBundleBuild := { assert(s"${baseDirectory.value}/build.sh".! == 0, "js build error") },
     libraryDependencies ++= Seq(
       "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.5.0",
       "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.2",
@@ -308,10 +305,13 @@ lazy val frontend = project
     mappings in (Compile, packageBin) ~= { (ms: Seq[(File, String)]) =>
       val exts = Set(".js", ".html", ".ttf", ".woff", ".woff2")
       ms.filter { case (_, p) => exts.exists(p.endsWith) }
+    },
+    mappings in (Compile, packageBin) ++= {
+      (fullOptJS in Compile).value
+      (frontendBundleBuild in Compile).value
+      directory(frontendAssetsDirectory.value)
     }
   )
-  .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
-  .dependsOn(modelsJS, rpcJS, jsonJS)
 
 lazy val javaRunOptions = Seq(
   "-server",
@@ -333,17 +333,19 @@ lazy val javaRunOptions = Seq(
 
 lazy val root = project
   .in(file("."))
+  .aggregate(tests)
+  .dependsOn(server, dockerDistribution, frontend)
+  .enablePlugins(JavaAppPackaging)
   .settings(allSettings: _*)
   .settings(noPublishSettings)
   .settings(RevolverPlugin.settings)
-  .settings(SbtNativePackager.packageArchetype.java_application)
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http-core" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
-      "com.lihaoyi"       % "ammonite-repl"   % "0.7.8" % "test" cross CrossVersion.full,
-      "ch.qos.logback"    % "logback-classic" % "1.1.7"
+      "com.lihaoyi" % "ammonite-repl" % "0.7.8" % "test" cross CrossVersion.full,
+      "ch.qos.logback" % "logback-classic" % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",
     aggregate in reStart := false,
@@ -358,6 +360,3 @@ lazy val root = project
     fork in run := true,
     fork in reStart := true
   )
-  .aggregate(tests)
-  .dependsOn(server, dockerDistribution, frontend)
-  .enablePlugins(SbtNativePackager)

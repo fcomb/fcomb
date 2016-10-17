@@ -67,9 +67,9 @@ object NamespaceComponent {
                 val namespaces = currentUser ++ orgs
                 val data       = js.Array(namespaces.map(_.slug): _*)
                 val namespace = (props.namespace match {
-                  case on: OwnerNamespace                                                 =>
+                  case on: OwnerNamespace =>
                     namespaces.collectFirst { case o: OwnerNamespace if o.slug == on.slug => o }
-                  case _                                                                  => None
+                  case _ => None
                 }).orElse(currentUser.headOption)
                 $.modState(
                   _.copy(

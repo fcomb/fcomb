@@ -89,7 +89,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
 
   private def availableByUserGroupsDBIO(userId: Rep[Int]) =
     groupsScope.filter {
-      case (_, ogut)           => ogut.userId === userId
+      case (_, ogut) => ogut.userId === userId
     }.map { case ((t, ogt), _) => (t, ogt.role) }.subquery
 
   private type AvailableScopeQuery =

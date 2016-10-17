@@ -76,8 +76,8 @@ package object validation {
 
   def validatePlain(result: (String, List[PlainValidation])*): ValidationResultUnit =
     result.foldLeft(List.empty[Error]) { case (m, (c, v)) => plainValidation(c, v) ::: m } match {
-      case Nil                                            => Validated.Valid(())
-      case xs                                             => Validated.Invalid(xs)
+      case Nil => Validated.Valid(())
+      case xs  => Validated.Invalid(xs)
     }
 
   def validateDBIO(result: (String, List[DBIOValidation])*)(
