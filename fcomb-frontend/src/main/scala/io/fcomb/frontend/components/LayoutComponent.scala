@@ -63,10 +63,10 @@ object LayoutComponent {
                               ^.target := "_blank",
                               "© 2016 fcomb")
       MuiMuiThemeProvider(muiTheme = theme)(
-        <.div(<.header(
-                MuiAppBar(title = props.res.page.title,
-                          onLeftIconButtonTouchTap = openDrawer _,
-                          showMenuIconButton = true)()),
+        <.div(<.header(App.appBarHeader,
+                       MuiAppBar(title = props.res.page.title,
+                                 onLeftIconButtonTouchTap = openDrawer _,
+                                 showMenuIconButton = true)()),
               MuiDrawer(docked = false, open = state.isOpen, onRequestChange = closeDrawer _)(
                 MuiMenuItem(key = "repos",
                             primaryText = "Repositories",

@@ -150,8 +150,7 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
 
   def begin(blobId: UUID)(
       implicit ec: ExecutionContext,
-      timeout: Timeout = Timeout(30.seconds)
-  ): Future[Xor[String, MessageDigest]] =
+      timeout: Timeout = Timeout(30.seconds)): Future[Xor[String, MessageDigest]] =
     askRef[Xor[String, MessageDigest]](blobId, Begin, timeout)
 
   def commit(blobId: UUID, md: MessageDigest)(
@@ -304,22 +303,19 @@ final class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLo
     case Begin =>
       context.become(locking, false)
       sender() ! Xor.Right(state.digest.clone.asInstanceOf[MessageDigest])
-    case Commit(_) =>
-      sender() ! Xor.Left("Transaction not being started")
+    case Commit(_) => sender() ! Xor.Left("Transaction not being started")
     case Stop =>
       sender() ! Xor.Right(())
       context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   val locking: Receive = {
-    case Begin =>
-      sender() ! Xor.Left("Transaction already started")
+    case Begin => sender() ! Xor.Left("Transaction already started")
     case Commit(md) =>
       context.become(idle)
       updateState(md)
       sender() ! Xor.Right(state.digest.clone.asInstanceOf[MessageDigest])
-    case Stop =>
-      sender() ! Xor.Left("The transaction is not completed yet")
+    case Stop => sender() ! Xor.Left("The transaction is not completed yet")
   }
 
   def receive = idle

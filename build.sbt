@@ -3,9 +3,10 @@ import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
 lazy val akkaVersion         = "2.4.11"
+lazy val akkaHttpVersion     = "3.0.0-RC1"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.7.2"
-lazy val circeVersion        = "0.5.3"
+lazy val circeVersion        = "0.5.4"
 lazy val commonsVersion      = "1.10"
 lazy val enumeratumVersion   = "1.4.15"
 lazy val guavaVersion        = "19.0"
@@ -160,8 +161,8 @@ lazy val persist = project
     "commons-codec" % "commons-codec" % commonsVersion,
     "io.fcomb"      %% "db-migration" % "0.3.1",
     "org.postgresql" % "postgresql" % "9.4.1211" exclude ("org.slf4j", "slf4j-simple"),
-    "com.typesafe.akka"  %% "akka-http-experimental" % akkaVersion,
-    "com.typesafe.slick" %% "slick"                  % slickVersion,
+    "com.typesafe.akka"  % "akka-http" % akkaHttpVersion,
+    "com.typesafe.slick" %% "slick"    % slickVersion,
     "com.typesafe.slick" %% "slick-hikaricp" % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
     "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
@@ -224,7 +225,7 @@ lazy val services = project
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka"  %% "akka-distributed-data-experimental" % akkaVersion,
-      "com.typesafe.akka"  %% "akka-http-core"                     % akkaVersion,
+      "com.typesafe.akka"  % "akka-http"                           % akkaHttpVersion,
       "de.heikoseeberger"  %% "akka-http-circe"                    % "1.10.1",
       "org.apache.commons" % "commons-email"                       % "1.4"
     ))
@@ -236,7 +237,7 @@ lazy val server = project
   .settings(moduleName := "server")
   .settings(allSettings: _*)
   .settings(libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-http-core" % akkaVersion
+    "com.typesafe.akka" % "akka-http" % akkaHttpVersion
   ))
 
 lazy val dockerDistribution = project
@@ -259,8 +260,8 @@ lazy val tests = project
   .settings(allSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-testkit"      % akkaVersion % "test",
-      "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % "test",
+      "com.typesafe.akka" %% "akka-testkit"     % akkaVersion     % "test",
+      "com.typesafe.akka" % "akka-http-testkit" % akkaHttpVersion % "test",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "org.scalacheck"   %% "scalacheck"     % "1.13.2" % "test",
       "org.specs2"       %% "specs2-core"    % "3.8.5"  % "test",
@@ -342,8 +343,8 @@ lazy val root = project
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-http-core" % akkaVersion,
-      "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
+      "com.typesafe.akka" % "akka-http"   % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.lihaoyi" % "ammonite-repl" % "0.7.8" % "test" cross CrossVersion.full,
       "ch.qos.logback" % "logback-classic" % "1.1.7"
     ),

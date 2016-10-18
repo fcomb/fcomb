@@ -27,6 +27,13 @@ object App extends StyleSheet.Inline {
     fontFamily :=! "Roboto, sans-serif"
   )
 
+  val appBarHeader = style(
+    position.fixed,
+    left(0.px),
+    right(0.px),
+    zIndex(1000)
+  )
+
   val floatActionButton = style(
     transform := "translateY(0)!important",
     backfaceVisibility.hidden,
@@ -36,7 +43,7 @@ object App extends StyleSheet.Inline {
     transition := "transform .3s cubic-bezier(.4,0,.2,1),-webkit-transform .3s cubic-bezier(.4,0,.2,1)",
     zIndex(21))
 
-  val main = style(paddingTop(48.px))
+  val main = style(paddingTop(112.px))
 
   val lightBlack = rgba(0, 0, 0, 0.87)
 

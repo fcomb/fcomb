@@ -52,7 +52,7 @@ object RepositoriesComponent {
     }
   }
 
-  private def defaultPagination = PaginationOrderState("name")
+  private def defaultPagination = PaginationOrderState("slug")
 
   final class Backend($ : BackendScope[Props, State]) {
     val limit = 25
