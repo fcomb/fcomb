@@ -8,7 +8,7 @@ lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.7.2"
 lazy val circeVersion        = "0.5.4"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.4.15"
+lazy val enumeratumVersion   = "1.4.16"
 lazy val guavaVersion        = "19.0"
 lazy val jawnVersion         = "0.10.1"
 lazy val slickPgVersion      = "0.15.0-M2"
@@ -158,12 +158,12 @@ lazy val persist = project
   .settings(moduleName := "persist")
   .settings(allSettings: _*)
   .settings(libraryDependencies ++= Seq(
-    "commons-codec" % "commons-codec" % commonsVersion,
-    "io.fcomb"      %% "db-migration" % "0.3.1",
-    "org.postgresql" % "postgresql" % "9.4.1211" exclude ("org.slf4j", "slf4j-simple"),
-    "com.typesafe.akka"  % "akka-http" % akkaHttpVersion,
-    "com.typesafe.slick" %% "slick"    % slickVersion,
-    "com.typesafe.slick" %% "slick-hikaricp" % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
+    "commons-codec"       % "commons-codec"        % commonsVersion,
+    "io.fcomb"            %% "db-migration"        % "0.3.1",
+    "org.postgresql"      % "postgresql"           % "9.4.1211" exclude ("org.slf4j", "slf4j-simple"),
+    "com.typesafe.akka"   % "akka-http"            % akkaHttpVersion,
+    "com.typesafe.slick"  %% "slick"               % slickVersion,
+    "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
     "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
@@ -260,23 +260,24 @@ lazy val tests = project
   .settings(allSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-testkit"     % akkaVersion     % "test",
-      "com.typesafe.akka" % "akka-http-testkit" % akkaHttpVersion % "test",
-      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-      "org.scalacheck"   %% "scalacheck"     % "1.13.2" % "test",
-      "org.specs2"       %% "specs2-core"    % "3.8.5"  % "test",
-      "org.scalatest"    %% "scalatest"      % "3.0.0"  % "test",
-      "com.ironcorelabs" %% "cats-scalatest" % "2.0.0"  % "test",
-      "com.typesafe.slick" %% "slick-testkit" % slickVersion % "test" exclude ("junit", "junit-dep"),
-      "ch.qos.logback" % "logback-classic" % "1.1.7",
-      "junit" % "junit-dep" % "4.10" % "test"
+      "com.typesafe.akka"  %% "akka-testkit"     % akkaVersion % "test",
+      "com.typesafe.akka"  % "akka-http-testkit" % akkaHttpVersion % "test",
+      "com.typesafe.akka"  %% "akka-slf4j"       % akkaVersion,
+      "org.scalacheck"     %% "scalacheck"       % "1.13.2" % "test",
+      "org.specs2"         %% "specs2-core"      % "3.8.5.1" % "test",
+      "org.scalatest"      %% "scalatest"        % "3.0.0" % "test",
+      "com.ironcorelabs"   %% "cats-scalatest"   % "2.0.0" % "test",
+      "com.typesafe.slick" %% "slick-testkit"    % slickVersion % "test" exclude ("junit", "junit-dep"),
+      "ch.qos.logback"     % "logback-classic"   % "1.1.7",
+      "junit"              % "junit-dep"         % "4.10" % "test"
     ),
     parallelExecution in Test := false,
     fork in Test := true
   )
 
 lazy val frontendAssetsDirectory = settingKey[File]("Assets directory path")
-lazy val frontendBundleBuild     = taskKey[Unit]("Build frontend assets through webpack")
+lazy val frontendBundleBuild =
+  taskKey[Unit]("Build frontend assets through webpack")
 
 lazy val frontend = project
   .in(file("fcomb-frontend"))
@@ -286,7 +287,9 @@ lazy val frontend = project
   .settings(allSettings: _*)
   .settings(
     frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "public",
-    frontendBundleBuild := { assert(s"${baseDirectory.value}/build.sh".! == 0, "js build error") },
+    frontendBundleBuild := {
+      assert(s"${baseDirectory.value}/build.sh".! == 0, "js build error")
+    },
     libraryDependencies ++= Seq(
       "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.5.0",
       "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.2",
@@ -343,10 +346,10 @@ lazy val root = project
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" % "akka-http"   % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-      "com.lihaoyi" % "ammonite-repl" % "0.7.8" % "test" cross CrossVersion.full,
-      "ch.qos.logback" % "logback-classic" % "1.1.7"
+      "com.typesafe.akka" % "akka-http"       % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
+      "com.lihaoyi"       % "ammonite-repl"   % "0.7.8" % "test" cross CrossVersion.full,
+      "ch.qos.logback"    % "logback-classic" % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",
     aggregate in reStart := false,
