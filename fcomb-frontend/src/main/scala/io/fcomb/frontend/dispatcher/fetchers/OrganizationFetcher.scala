@@ -17,9 +17,13 @@
 package io.fcomb.frontend.dispatcher.fetchers
 
 import diode.data.Fetch
-import diode.Dispatcher
+import diode.{ActionBatch, Dispatcher}
+import io.fcomb.frontend.dispatcher.actions.UpdateOrganization
 
 final case class OrganizationFetcher(dispatch: Dispatcher) extends Fetch[String] {
-  override def fetch(key: String): Unit               = ()
-  override def fetch(keys: Traversable[String]): Unit = ()
+  override def fetch(key: String): Unit =
+    dispatch(UpdateOrganization(key))
+
+  override def fetch(keys: Traversable[String]): Unit =
+    dispatch(ActionBatch(keys.toSeq.distinct.map(key => UpdateOrganization(key)): _*))
 }

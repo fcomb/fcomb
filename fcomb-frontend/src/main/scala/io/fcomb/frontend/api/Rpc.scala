@@ -22,19 +22,21 @@ import io.circe.scalajs.decodeJs
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 import io.fcomb.frontend.components.repository.Namespace
-import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.dispatcher.actions.LogOut
+import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.utils.PaginationUtils
-import io.fcomb.json.models.Formats._
 import io.fcomb.json.models.errors.Formats.decodeErrors
+import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.MemberKind
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
 import io.fcomb.models.{Owner, OwnerKind, PaginationData, SortOrder}
 import io.fcomb.rpc.acl.PermissionResponse
 import io.fcomb.rpc.docker.distribution._
+import io.fcomb.rpc.OrganizationResponse
 import org.scalajs.dom.ext.{Ajax, AjaxException}
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
@@ -133,6 +135,9 @@ object Rpc {
                             page: Int,
                             limit: Int): Map[String, String] =
     PaginationUtils.getParams(page, limit) ++ SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
+
+  def getOrganization(slug: String)(implicit ec: ExecutionContext) =
+    call[OrganizationResponse](RpcMethod.GET, Resource.organization(slug)).map(toPot)
 
   def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,
