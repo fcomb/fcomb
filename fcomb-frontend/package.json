@@ -15,7 +15,7 @@
     "file-loader": "^0.9.0",
     "gulp-decompress": "^2.0.1",
     "html-minify-loader": "^1.1.0",
-    "html-webpack-plugin": "^2.22.0",
+    "html-webpack-plugin": "^2.24.0",
     "image-webpack-loader": "^3.0.0",
     "imagemin": "^5.2.2",
     "json-loader": "^0.5.4",
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "bootstrap-grid": "^2.0.1",
-    "material-ui": "^v0.16.0",
+    "material-ui": "^v0.16.1",
     "react": "^15.3.2",
     "react-copy-to-clipboard": "^4.2.3",
     "react-dom": "^15.3.2",

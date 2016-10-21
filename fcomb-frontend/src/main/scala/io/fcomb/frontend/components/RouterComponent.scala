@@ -37,8 +37,8 @@ object RouterComponent {
     val slugFormat           = """[\w\-\.]+"""
     val organizationNamePath = "organizations" / string(slugFormat)
 
-    def repository(ctl: RouterCtl[DashboardRoute], tab: RepositoryTab, slug: String) =
-      AC.repositories(RepositoryComponent(ctl, tab, _, slug))
+    def repo(ctl: RouterCtl[DashboardRoute], tab: RepositoryTab, slug: String) =
+      AC.repos(RepositoryComponent(ctl, tab, _, slug))
 
     // format: OFF
     trimSlashes |
@@ -50,15 +50,15 @@ object RouterComponent {
     staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~>
       renderR(ctl => UserNewRepositoryComponent(ctl)) |
     dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~>
-      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Description, r.slug)) |
+      dynRenderR((r, ctl) => repo(ctl, RepositoryTab.Description, r.slug)) |
     dynamicRouteCT((repositoryNamePath / "edit").caseClass[DashboardRoute.EditRepository]) ~>
-      dynRenderR((r, ctl) => AC.repositories(EditRepositoryComponent(ctl, _, r.slug))) |
+      dynRenderR((r, ctl) => AC.repos(EditRepositoryComponent(ctl, _, r.slug))) |
     dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~>
-      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Tags, r.slug)) |
+      dynRenderR((r, ctl) => repo(ctl, RepositoryTab.Tags, r.slug)) |
     dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~>
-      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Settings, r.slug)) |
+      dynRenderR((r, ctl) => repo(ctl, RepositoryTab.Settings, r.slug)) |
     dynamicRouteCT((repositoryNamePath / "permissions").caseClass[DashboardRoute.RepositoryPermissions]) ~>
-      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Permissions, r.slug)) |
+      dynRenderR((r, ctl) => repo(ctl, RepositoryTab.Permissions, r.slug)) |
     // orgs
     staticRoute("organizations", DashboardRoute.Organizations) ~>
       renderR(ctl => OrganizationsComponent(ctl)) |

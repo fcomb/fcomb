@@ -139,6 +139,14 @@ object Rpc {
   def getOrganization(slug: String)(implicit ec: ExecutionContext) =
     call[OrganizationResponse](RpcMethod.GET, Resource.organization(slug)).map(toPot)
 
+  def getOrganizations(sortColumn: String, sortOrder: SortOrder, page: Int, limit: Int)(
+      implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[OrganizationResponse]](RpcMethod.GET,
+                                               Resource.userSelfOrganizations,
+                                               queryParams)
+  }
+
   def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,
       url: String,

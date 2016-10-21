@@ -61,11 +61,10 @@ object RepositoriesComponent {
       $.state.zip($.props).flatMap {
         case (state, props) =>
           val pagination = state.pagination.copy(page = page)
-          $.setState(state.copy(pagination = pagination)) >> getRepositories(props.namespace,
-                                                                             pagination)
+          $.setState(state.copy(pagination = pagination)) >> getRepos(props.namespace, pagination)
       }
 
-    def getRepositories(namespace: Namespace, pos: PaginationOrderState) =
+    def getRepos(namespace: Namespace, pos: PaginationOrderState) =
       Callback.future(
         Rpc
           .getNamespaceRepositories(namespace, pos.sortColumn, pos.sortOrder, pos.page, limit)
@@ -84,21 +83,20 @@ object RepositoriesComponent {
     def renderRepository(ctl: RouterCtl[DashboardRoute],
                          repository: RepositoryResponse,
                          showNamespace: Boolean) = {
+      val target         = DashboardRoute.Repository(repository.slug)
       val lastModifiedAt = repository.updatedAt.getOrElse(repository.createdAt)
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
       val actions = Seq(
-        MuiMenuItem(
-          primaryText = "Open",
-          key = "open",
-          onTouchTap = setRepositoryRoute(DashboardRoute.Repository(repository.slug)) _)(),
+        MuiMenuItem(primaryText = "Open",
+                    key = "open",
+                    onTouchTap = setRepositoryRoute(target) _)(),
         MuiMenuItem(primaryText = "Edit",
                     key = "edit",
                     onTouchTap =
                       setRepositoryRoute(DashboardRoute.EditRepository(repository.slug)) _)()
       )
-      val name   = if (showNamespace) repository.slug else repository.name
-      val target = DashboardRoute.Repository(repository.slug)
+      val name = if (showNamespace) repository.slug else repository.name
       MuiTableRow(key = repository.id.toString)(
         MuiTableRowColumn(style = App.visibilityColumnStyle, key = "visibilityKind")(
           RepositoryComponent.visiblityIcon(repository.visibilityKind)),
@@ -117,7 +115,7 @@ object RepositoriesComponent {
         state     <- $.state.map(_.flipSortColumn(column))
         _         <- $.setState(state)
         namespace <- $.props.map(_.namespace)
-        _         <- getRepositories(namespace, state.pagination)
+        _         <- getRepos(namespace, state.pagination)
       } yield ()
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
@@ -166,7 +164,7 @@ object RepositoriesComponent {
     .initialState(State(Empty, defaultPagination))
     .renderBackend[Backend]
     .componentWillReceiveProps(lc =>
-      lc.$.backend.getRepositories(lc.nextProps.namespace, defaultPagination))
+      lc.$.backend.getRepos(lc.nextProps.namespace, defaultPagination))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], namespace: Namespace) =
