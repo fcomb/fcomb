@@ -118,9 +118,6 @@ object RepositoriesComponent {
         _         <- getRepos(namespace, state.pagination)
       } yield ()
 
-    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
-      $.props.flatMap(_.ctl.set(route))
-
     def renderRepositories(props: Props,
                            repositories: Seq[RepositoryResponse],
                            p: PaginationOrderState): ReactElement =

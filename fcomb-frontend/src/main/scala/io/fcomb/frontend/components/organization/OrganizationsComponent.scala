@@ -72,7 +72,7 @@ object OrganizationsComponent {
       })
 
     def renderOrg(ctl: RouterCtl[DashboardRoute], org: OrganizationResponse) = {
-      val target = DashboardRoute.Repository(org.name)
+      val target = DashboardRoute.Organization(org.name)
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
       val actions = Seq(
@@ -125,9 +125,6 @@ object OrganizationsComponent {
               ),
               ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
       }
-
-    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
-      $.props.flatMap(_.ctl.set(route))
 
     def render(props: Props, state: State): ReactElement =
       <.section(
