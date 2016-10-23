@@ -38,7 +38,7 @@ object NewGroupComponent {
                          errors: Map[String, String],
                          isFormDisabled: Boolean)
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def create(props: Props): Callback =
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty

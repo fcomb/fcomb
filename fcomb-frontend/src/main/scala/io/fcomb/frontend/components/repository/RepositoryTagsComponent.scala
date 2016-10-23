@@ -52,7 +52,7 @@ object RepositoryTagsComponent {
     }
   }
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     val digestLength = 12
     val limit        = 25
 

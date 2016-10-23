@@ -25,7 +25,7 @@ object AlertDialogComponent {
   final case class Props(title: String, isModal: Boolean, children: ReactNode*)
   final case class State(isOpen: Boolean)
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def updateOpenState(isOpen: Boolean) = $.modState(_.copy(isOpen = false))
 
     def closeDialog(e: ReactTouchEventH): Callback = updateOpenState(false)

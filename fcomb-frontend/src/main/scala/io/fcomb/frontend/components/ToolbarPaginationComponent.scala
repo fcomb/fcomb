@@ -25,7 +25,7 @@ import scala.scalajs.js
 object ToolbarPaginationComponent {
   final case class Props(page: Int, limit: Int, total: Int, cb: Int => Callback)
 
-  class Backend($ : BackendScope[Props, Unit]) {
+  final class Backend($ : BackendScope[Props, Unit]) {
     def paginate(page: Int)(e: ReactTouchEventH): Callback =
       $.props.flatMap(_.cb(page))
 

@@ -39,7 +39,7 @@ object OrganizationComponent {
                          orgs: ModelProxy[PotMap[String, OrganizationResponse]],
                          slug: String)
 
-  class Backend($ : BackendScope[Props, Unit]) {
+  final class Backend($ : BackendScope[Props, Unit]) {
     // def render(props: Props) = {
     //   <.section(
     //     <.h2(s"Organization ${props.name}"),

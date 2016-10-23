@@ -31,7 +31,7 @@ object FloatActionButtonComponent {
                          title: String,
                          icon: ReactNode)
 
-  class Backend($ : BackendScope[Props, Unit]) {
+  final class Backend($ : BackendScope[Props, Unit]) {
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 

@@ -33,7 +33,7 @@ object DashboardRepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
   final case class State(namespace: Option[Namespace])
 
-  final case class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def setDefaultOwner(): Callback =
       AppCircuit.currentUser match {
         case Some(p) =>

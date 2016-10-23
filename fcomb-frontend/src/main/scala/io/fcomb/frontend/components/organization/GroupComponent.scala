@@ -44,7 +44,7 @@ object GroupComponent {
   private def defaultFormState =
     FormState("", Map.empty, false)
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def getGroup(orgName: String, name: String) =
       Callback.future {
         Rpc

@@ -26,7 +26,7 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object SignOutComponent {
-  class Backend($ : BackendScope[RouterCtl[Route], Unit]) {
+  final class Backend($ : BackendScope[RouterCtl[Route], Unit]) {
     def render(ctl: RouterCtl[Route]) =
       <.h1("sign out...")
   }

@@ -32,7 +32,7 @@ object GroupsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
   final case class State(groups: Seq[OrganizationGroupResponse])
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def getGroups(orgName: String): Callback =
       Callback.future {
         Rpc

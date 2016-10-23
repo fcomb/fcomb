@@ -31,7 +31,7 @@ object DeleteOrganizationComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
   final case class State(isOpen: Boolean, isValid: Boolean, isDisabled: Boolean)
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def delete(e: ReactTouchEventH): Callback =
       $.state.flatMap { state =>
         if (state.isDisabled) Callback.empty

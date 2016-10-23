@@ -34,7 +34,7 @@ object NewOrganizationComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
   final case class State(name: String, errors: Map[String, String], isFormDisabled: Boolean)
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def create(ctl: RouterCtl[DashboardRoute]): Callback = {
       $.state.flatMap { state =>
         if (state.isFormDisabled) Callback.empty

@@ -36,7 +36,7 @@ object DeleteRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
   final case class State(isDisabled: Boolean, isConfirmationOpen: Boolean, error: Option[String])
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def delete(e: ReactTouchEventH): Callback =
       (for {
         props <- $.props
