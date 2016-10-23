@@ -22,8 +22,8 @@ import chandu0101.scalajs.react.components.materialui._
 import diode.data.PotMap
 import diode.react.ModelProxy
 import diode.react.ReactPot._
-import io.fcomb.frontend.components.LayoutComponent
 import io.fcomb.frontend.components.repository.{Namespace, RepositoriesComponent}
+import io.fcomb.frontend.components.{FloatActionButtonComponent, LayoutComponent}
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.acl.Role
@@ -111,7 +111,10 @@ object OrganizationComponent {
       val organization = props.orgs().get(props.slug)
       <.section(organization.render { org =>
         val isManageable = org.role.contains(Role.Admin)
-        MuiCard()(renderHeader(props), renderTabs(props, isManageable))
+        <.div(MuiCard(key = "repos")(renderHeader(props), renderTabs(props, isManageable)),
+              FloatActionButtonComponent(props.ctl,
+                                         DashboardRoute.NewOrganizationRepository(props.slug),
+                                         "New repository"))
       })
     }
   }
