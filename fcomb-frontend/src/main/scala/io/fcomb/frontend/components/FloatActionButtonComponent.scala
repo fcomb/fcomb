@@ -38,6 +38,7 @@ object FloatActionButtonComponent {
     def render(props: Props) =
       <.div(App.floatActionButton,
             ^.title := props.title,
+            ^.key := "fab",
             MuiFloatingActionButton(secondary = true, onTouchTap = setRoute(props.route) _)(
               props.icon))
   }

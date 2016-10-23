@@ -8,7 +8,7 @@ lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.7.2"
 lazy val circeVersion        = "0.5.4"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.4.16"
+lazy val enumeratumVersion   = "1.4.17"
 lazy val guavaVersion        = "19.0"
 lazy val jawnVersion         = "0.10.1"
 lazy val slickPgVersion      = "0.15.0-M2"
@@ -110,7 +110,7 @@ lazy val utils = project
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe"      % "config"       % "1.3.1",
-      "com.github.kxbmap" %% "configs"     % "0.4.3",
+      "com.github.kxbmap" %% "configs"     % "0.4.4",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion
     ))
 

@@ -13,6 +13,7 @@
     "compression-webpack-plugin": "^0.3.2",
     "css-loader": "^0.25.0",
     "file-loader": "^0.9.0",
+    "fsevents": "^1.0.14",
     "gulp-decompress": "^2.0.1",
     "html-minify-loader": "^1.1.0",
     "html-webpack-plugin": "^2.24.0",

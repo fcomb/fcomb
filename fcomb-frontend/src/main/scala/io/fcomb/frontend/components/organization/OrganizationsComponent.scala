@@ -128,12 +128,9 @@ object OrganizationsComponent {
 
     def render(props: Props, state: State): ReactElement =
       <.section(
-        MuiCard()(
-          MuiCardText(key = "orgs")(FloatActionButtonComponent(props.ctl,
-                                                               DashboardRoute.NewOrganization,
-                                                               "New organization"),
-                                    state.orgs.render(os =>
-                                      renderOrgs(props, os, state.pagination))))
+        FloatActionButtonComponent(props.ctl, DashboardRoute.NewOrganization, "New organization"),
+        MuiCard(key = "orgs")(MuiCardText(key = "orgs")(state.orgs.render(os =>
+          renderOrgs(props, os, state.pagination))))
       )
   }
 
