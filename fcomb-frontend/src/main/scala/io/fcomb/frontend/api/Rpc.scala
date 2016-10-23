@@ -30,7 +30,7 @@ import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.json.rpc.Formats._
-import io.fcomb.models.acl.MemberKind
+import io.fcomb.models.acl.{MemberKind, Role}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
 import io.fcomb.models.{Owner, OwnerKind, PaginationData, SortOrder}
@@ -145,6 +145,20 @@ object Rpc {
     call[PaginationData[OrganizationResponse]](RpcMethod.GET,
                                                Resource.userSelfOrganizations,
                                                queryParams)
+  }
+
+  def getUserSelfOrganizations(canCreateRoleOnly: Boolean, limit: Int)(
+      implicit ec: ExecutionContext) = {
+    val role =
+      if (canCreateRoleOnly) Seq(Role.Admin, Role.Creator).map(_.entryName).mkString(",")
+      else ""
+    val params = Map(
+      "role"  -> role,
+      "limit" -> limit.toString()
+    ).filter(_._2.nonEmpty)
+    call[PaginationData[OrganizationResponse]](RpcMethod.GET,
+                                               Resource.userSelfOrganizations,
+                                               params)
   }
 
   def callWith[T: Encoder, U: Decoder](

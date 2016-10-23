@@ -344,6 +344,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
   private type ImageResponseTupleRep = (ImageTable, Rep[Action])
 
   private def sortByPF(q: ImageResponseTupleRep): PartialFunction[String, Rep[_]] = {
+    case "id"             => q._1.id
     case "name"           => q._1.name
     case "slug"           => q._1.slug
     case "updatedAt"      => q._1.updatedAt

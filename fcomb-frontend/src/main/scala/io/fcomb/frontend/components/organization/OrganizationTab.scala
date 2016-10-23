@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.repository
+package io.fcomb.frontend.components.organization
 
 import io.fcomb.models.common.{Enum, EnumItem}
 
-sealed trait RepositoryTab extends EnumItem
+sealed trait OrganizationTab extends EnumItem
 
-object RepositoryTab extends Enum[RepositoryTab] {
-  final case object Info        extends RepositoryTab
-  final case object Tags        extends RepositoryTab
-  final case object Permissions extends RepositoryTab
-  final case object Settings    extends RepositoryTab
+object OrganizationTab extends Enum[OrganizationTab] {
+  final case object Repositories extends OrganizationTab
+  final case object Groups       extends OrganizationTab
+  final case object Settings     extends OrganizationTab
 
   val values = findValues
 }

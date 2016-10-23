@@ -50,7 +50,7 @@ object DashboardRepositoriesComponent {
         case Some(namespace) =>
           MuiCard()(MuiCardTitle(key = "title")(
                       NamespaceComponent(namespace,
-                                         isAdminRoleOnly = false,
+                                         canCreateRoleOnly = false,
                                          isAllNamespace = true,
                                          isDisabled = false,
                                          isFullWidth = false,

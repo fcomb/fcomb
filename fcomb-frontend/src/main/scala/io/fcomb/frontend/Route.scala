@@ -76,7 +76,6 @@ object DashboardRoute {
     def title = s"${Organizations.title} – New"
   }
   final case class Organization(slug: String)                         extends OrganizationRoute
-  final case class EditOrganization(slug: String)                     extends OrganizationRoute
   final case class OrganizationSettings(slug: String)                 extends OrganizationRoute
   final case class OrganizationGroups(slug: String)                   extends OrganizationRoute
   final case class NewOrganizationGroup(slug: String)                 extends OrganizationRoute

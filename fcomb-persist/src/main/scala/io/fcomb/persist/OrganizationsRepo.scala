@@ -51,7 +51,9 @@ final class OrganizationTable(tag: Tag)
       ((Organization.apply _).tupled, Organization.unapply)
 }
 
-object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, OrganizationTable] {
+object OrganizationsRepo
+    extends PersistModelWithAutoIntPk[Organization, OrganizationTable]
+    with PaginationActions {
   val table = TableQuery[OrganizationTable]
   val label = "organizations"
 
@@ -100,49 +102,36 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
 
   private def availableByUserIdScopeDBIO(
       userId: Rep[Int],
-      filter: immutable.Map[String, String]): AvailableScopeQuery = {
-    val q = filter.foldLeft(availableByUserIdScopeDBIO(userId)) {
-      case (s, (column, value)) =>
-        s.filter { q =>
-          column match {
-            case "name" =>
-              q._1.name.like(value.replaceAll("\\*", "%").asColumnOfType[String]("citext"))
-            case "role" => q._2 === Role.withName(value)
-            case _      => LiteralColumn(false)
+      filter: immutable.Map[String, String]): AvailableScopeQuery =
+    filter
+      .foldLeft(availableByUserIdScopeDBIO(userId)) {
+        case (s, (column, value)) =>
+          s.filter { q =>
+            column match {
+              case "name" =>
+                q._1.name.like(value.replaceAll("\\*", "%").asColumnOfType[String]("citext"))
+              case "role" => q._2 === Role.withName(value)
+              case _      => LiteralColumn(false)
+            }
           }
-        }
-    }
-    q.sortBy(_._1.name).subquery
-  }
+      }
+      .subquery
 
-  private lazy val availableByUserIdCompiled = Compiled {
-    (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      availableByUserIdScopeDBIO(userId).drop(offset).take(limit)
-  }
+  type OrganizationResponseTupleRep = (OrganizationTable, Rep[Role])
 
-  private lazy val availableByUserIdTotalCompiled = Compiled { (userId: Rep[Int]) =>
-    availableByUserIdScopeDBIO(userId).length
+  private def sortByPF(q: OrganizationResponseTupleRep): PartialFunction[String, Rep[_]] = {
+    case "id"   => q._1.id
+    case "name" => q._1.name
   }
-
-  private def availableByUserIdDBIO(userId: Int, p: Pagination) =
-    if (p.filter.isEmpty)
-      (availableByUserIdCompiled((userId, p.offset, p.limit)).result,
-       availableByUserIdTotalCompiled(userId).result)
-    else {
-      val scope = availableByUserIdScopeDBIO(userId, p.filter)
-      (scope.drop(p.offset).take(p.limit).result, scope.length.result)
-    }
 
   def paginateAvailableByUserId(userId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[OrganizationResponse]] = {
-    val (orgsQ, totalQ) = availableByUserIdDBIO(userId, p)
-    db.run {
-      for {
-        orgs  <- orgsQ
-        total <- totalQ
-        data = orgs.map { case (org, role) => OrganizationHelpers.responseFrom(org, role) }
-      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
-    }
+    val scope = availableByUserIdScopeDBIO(userId, p.filter)
+    db.run(for {
+      orgs  <- sortByQuery(scope.drop(p.offset).take(p.limit), p)(sortByPF, _._1.name).result
+      total <- scope.length.result
+      data = orgs.map { case (org, role) => OrganizationHelpers.responseFrom(org, role) }
+    } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
   }
 
   private lazy val findRoleByIdAndUserIdCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>

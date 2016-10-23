@@ -65,17 +65,21 @@ object RepositoriesComponent {
       }
 
     def getRepos(namespace: Namespace, pos: PaginationOrderState) =
-      Callback.future(
-        Rpc
-          .getNamespaceRepositories(namespace, pos.sortColumn, pos.sortOrder, pos.page, limit)
-          .map {
-            case Xor.Right(pd) =>
-              $.modState(
-                st =>
-                  st.copy(repositories = Ready(pd.data),
-                          pagination = st.pagination.copy(total = pd.total)))
-            case Xor.Left(errs) => $.modState(_.copy(repositories = Failed(ErrorsException(errs))))
-          })
+      $.state.flatMap { state =>
+        if (state.repositories.isPending) Callback.empty
+        else
+          $.setState(state.copy(repositories = state.repositories.pending())) >>
+            Callback.future(Rpc
+              .getNamespaceRepositories(namespace, pos.sortColumn, pos.sortOrder, pos.page, limit)
+              .map {
+                case Xor.Right(pd) =>
+                  $.modState(st =>
+                    st.copy(repositories = Ready(pd.data),
+                            pagination = st.pagination.copy(total = pd.total)))
+                case Xor.Left(errs) =>
+                  $.modState(_.copy(repositories = Failed(ErrorsException(errs))))
+              })
+      }
 
     def setRepositoryRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
@@ -160,6 +164,7 @@ object RepositoriesComponent {
   private val component = ReactComponentB[Props]("Repositories")
     .initialState(State(Empty, defaultPagination))
     .renderBackend[Backend]
+    .componentWillMount($ => $.backend.getRepos($.props.namespace, defaultPagination))
     .componentWillReceiveProps(lc =>
       lc.$.backend.getRepos(lc.nextProps.namespace, defaultPagination))
     .build

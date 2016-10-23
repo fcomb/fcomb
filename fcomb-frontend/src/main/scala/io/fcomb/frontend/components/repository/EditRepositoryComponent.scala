@@ -143,7 +143,7 @@ object EditRepositoryComponent {
   private val component = ReactComponentB[Props]("EditRepository")
     .initialState(State(None, Map.empty, false))
     .renderBackend[Backend]
-    .componentDidMount($ => $.backend.applyState($.props))
+    .componentWillMount($ => $.backend.applyState($.props))
     .componentWillReceiveProps(lc => lc.$.backend.applyState(lc.nextProps))
     .build
 

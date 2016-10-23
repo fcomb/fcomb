@@ -95,7 +95,7 @@ object NewRepositoryComponent {
         ^.key := "namespaceRow",
         <.div(^.`class` := "col-xs-6",
               NamespaceComponent(props.namespace,
-                                 isAdminRoleOnly = true,
+                                 canCreateRoleOnly = true,
                                  isAllNamespace = false,
                                  isDisabled = state.isFormDisabled,
                                  isFullWidth = true,

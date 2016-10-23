@@ -38,14 +38,14 @@ import scalacss.ScalaCssReact._
 object RepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute],
                          tab: RepositoryTab,
-                         repositories: ModelProxy[PotMap[String, RepositoryResponse]],
+                         repos: ModelProxy[PotMap[String, RepositoryResponse]],
                          slug: String)
 
   final class Backend($ : BackendScope[Props, Unit]) {
     def onChange(tab: RepositoryTab, e: ReactEventH, el: ReactElement): Callback =
       $.props.flatMap { props =>
         val route = tab match {
-          case RepositoryTab.Description => DashboardRoute.Repository(props.slug)
+          case RepositoryTab.Info        => DashboardRoute.Repository(props.slug)
           case RepositoryTab.Tags        => DashboardRoute.RepositoryTags(props.slug)
           case RepositoryTab.Permissions => DashboardRoute.RepositoryPermissions(props.slug)
           case RepositoryTab.Settings    => DashboardRoute.RepositorySettings(props.slug)
@@ -80,7 +80,7 @@ object RepositoryComponent {
 
       MuiCardMedia(key = "tabs")(
         MuiTabs[RepositoryTab](value = props.tab, onChange = onChange _)(
-          MuiTab(key = "info", label = "Info", value = RepositoryTab.Description)(
+          MuiTab(key = "info", label = "Info", value = RepositoryTab.Info)(
             MuiCardText()(RepositoryInfoComponent(repo))),
           renderTagsTab(props, repo),
           manageTabs))
@@ -128,7 +128,7 @@ object RepositoryComponent {
     }
 
     def render(props: Props): ReactElement = {
-      val repository = props.repositories().get(props.slug)
+      val repository = props.repos().get(props.slug)
       <.section(repository.render { repo =>
         val isManageable = repo.action === Action.Manage
         MuiCard()(renderHeader(props, repo, isManageable), renderTabs(props, repo, isManageable))
@@ -150,7 +150,7 @@ object RepositoryComponent {
 
   def apply(ctl: RouterCtl[DashboardRoute],
             tab: RepositoryTab,
-            repositories: ModelProxy[PotMap[String, RepositoryResponse]],
+            repos: ModelProxy[PotMap[String, RepositoryResponse]],
             slug: String) =
-    component(Props(ctl, tab, repositories, slug))
+    component(Props(ctl, tab, repos, slug))
 }

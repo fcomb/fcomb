@@ -78,10 +78,7 @@ object OrganizationsComponent {
       val actions = Seq(
         MuiMenuItem(primaryText = "Open",
                     key = "open",
-                    onTouchTap = setRepositoryRoute(target) _)(),
-        MuiMenuItem(primaryText = "Edit",
-                    key = "edit",
-                    onTouchTap = setRepositoryRoute(DashboardRoute.EditOrganization(org.name)) _)()
+                    onTouchTap = setRepositoryRoute(target) _)()
       )
       MuiTableRow(key = org.id.toString)(
         MuiTableRowColumn(key = "name")(
