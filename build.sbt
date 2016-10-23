@@ -37,7 +37,9 @@ lazy val commonSettings =
         Resolver.sonatypeRepo("releases"),
         Resolver.sonatypeRepo("snapshots"),
         Resolver.bintrayRepo("fcomb", "maven"),
-        Resolver.bintrayRepo("etaty", "maven")
+        Resolver.bintrayRepo("etaty", "maven"),
+        Resolver.bintrayRepo("dwhjames", "maven"),
+        Resolver.bintrayRepo("mfglabs", "maven")
       ),
       libraryDependencies ++= Seq(
         "com.chuusai"                %% "shapeless"     % "2.3.2",
@@ -236,9 +238,11 @@ lazy val server = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "server")
   .settings(allSettings: _*)
-  .settings(libraryDependencies ++= Seq(
-    "com.typesafe.akka" % "akka-http" % akkaHttpVersion
-  ))
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" % "akka-http"    % akkaHttpVersion,
+      "com.mfglabs"       %% "commons-aws" % "0.10.0"
+    ))
 
 lazy val dockerDistribution = project
   .in(file("fcomb-docker-distribution"))
@@ -246,11 +250,9 @@ lazy val dockerDistribution = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "docker-distribution")
   .settings(allSettings: _*)
-  .settings(
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
-      "com.google.guava"  % "guava"                  % guavaVersion
-    ))
+  .settings(libraryDependencies ++= Seq(
+    "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion
+  ))
 
 lazy val tests = project
   .in(file("fcomb-tests"))

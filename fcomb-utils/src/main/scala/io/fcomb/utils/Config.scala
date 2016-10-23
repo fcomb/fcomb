@@ -61,4 +61,17 @@ object Config {
   }
 
   lazy val smtp = config.getConfig("smtp")
+
+  lazy val storageAdapter = config.getString("storageAdapter")
+
+  object s3 {
+    lazy val bucketName      = config.getString("s3.bucketName")
+    lazy val region          = config.getString("s3.region")
+    lazy val secretAccessKey = config.getString("s3.secretAccessKey")
+    lazy val accessKeyId     = config.getString("s3.accessKeyId")
+  }
+
+  object test {
+    lazy val futureTimeout = config.getInt("test.futureTimeout")
+  }
 }

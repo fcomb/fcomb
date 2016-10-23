@@ -111,7 +111,7 @@ object ImageBlobsHandler {
                       )
                       val source =
                         if (digest == ImageManifest.emptyTarSha256Digest) emptyTarSource
-                        else FileIO.fromPath(BlobFileUtils.getFile(blob).toPath)
+                        else BlobFileUtils.source(BlobFileUtils.getFile(blob))
                       complete(
                         HttpResponse(
                           StatusCodes.OK,

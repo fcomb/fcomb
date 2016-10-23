@@ -19,19 +19,17 @@ package io.fcomb.docker.distribution.services
 import akka.actor._
 import akka.cluster.sharding._
 import akka.pattern.ask
-import akka.stream.Materializer
 import akka.stream.scaladsl._
 import akka.stream.{ClosedShape, Materializer}
-import akka.util.Timeout
 import akka.util.{ByteString, Timeout}
 import cats.data.Xor
 import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.services.Exceptions._
 import io.fcomb.utils.StringUtils
 import java.io.File
-import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.util.UUID
+import io.fcomb.docker.distribution.utils.BlobFileUtils
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
@@ -117,9 +115,8 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
       Xor.Right(fileDigest) <- commit(blobId, chunkDigest)
     } yield (length, StringUtils.hexify(fileDigest.digest))
 
-  private def uploadChunkGraph(md: MessageDigest, source: Source[ByteString, Any], file: File) = {
-    val fileOptions = Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
-
+  private def uploadChunkGraph(md: MessageDigest, source: Source[ByteString, Any], file: File)(
+      implicit ec: ExecutionContext) = {
     val sink = Sink.fold[(Long, MessageDigest), ByteString]((0L, md)) {
       case ((length, md), bs) =>
         md.update(bs.toArray)
@@ -135,7 +132,7 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
 
           source ~> broadcast.in
 
-          broadcast.out(0) ~> FileIO.toPath(file.toPath, fileOptions)
+          broadcast.out(0) ~> BlobFileUtils.sink(file)
           broadcast.out(1) ~> sink
 
           ClosedShape

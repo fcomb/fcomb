@@ -26,7 +26,7 @@ import io.fcomb.docker.distribution.utils.BlobFileUtils
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.apache.commons.codec.digest.DigestUtils
-import akka.stream.scaladsl.{FileIO, Source}
+import akka.stream.scaladsl.Source
 import akka.stream.Materializer
 
 object ImageBlobsRepoFixture {
@@ -42,9 +42,9 @@ object ImageBlobsRepoFixture {
       createdAt = OffsetDateTime.now(),
       uploadedAt = None
     )
-    (for {
+    for {
       Validated.Valid(res) <- ImageBlobsRepo.create(blob)
-    } yield res)
+    } yield res
   }
 
   def createAs(
@@ -70,7 +70,7 @@ object ImageBlobsRepoFixture {
       Validated.Valid(im) <- ImageBlobsRepo.create(blob)
       file = BlobFileUtils.getFile(blob)
       _    = file.getParentFile.mkdirs()
-      _ <- Source.single(bs).runWith(FileIO.toPath(file.toPath))
+      _ <- Source.single(bs).runWith(BlobFileUtils.sink(file))
     } yield im
   }
 }

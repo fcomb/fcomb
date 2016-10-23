@@ -22,14 +22,13 @@ import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
 import io.fcomb.docker.distribution.utils.BlobFileUtils
-import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
@@ -37,10 +36,11 @@ import io.fcomb.persist.docker.distribution._
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests.fixtures.docker.distribution.{ImageBlobsRepoFixture, ImagesRepoFixture}
-import java.io.FileInputStream
 import java.util.UUID
+
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{Matchers, WordSpec}
+
 import scala.concurrent.duration._
 
 final class ImageBlobUploadsHandlerSpec
@@ -68,7 +68,7 @@ final class ImageBlobUploadsHandlerSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    BlobFileUtils.getBlobFilePath(bsDigest).delete()
+    BlobFileUtils.destroyBlob(bsDigest)
     ()
   }
 
@@ -112,10 +112,15 @@ final class ImageBlobUploadsHandlerSpec
         blob.digest shouldEqual Some(bsDigest)
 
         val file = BlobFileUtils.getBlobFilePath(blob.digest.get)
-        file.length shouldEqual bs.length
-        val fis        = new FileInputStream(file)
-        val fileDigest = DigestUtils.sha256Hex(fis)
-        fileDigest shouldEqual bsDigest
+        val bytestring = await(
+          BlobFileUtils
+            .source(file)
+            .runWith(
+              Sink.fold(ByteString.empty)(_ concat _)
+            )
+        )
+        bytestring.length shouldEqual bs.length
+        bytestring shouldEqual bs
       }
     }
 
@@ -191,10 +196,15 @@ final class ImageBlobUploadsHandlerSpec
         blob.digest shouldEqual Some(bsDigest)
 
         val file = BlobFileUtils.getBlobFilePath(bsDigest)
-        file.length shouldEqual bs.length
-        val fis        = new FileInputStream(file)
-        val fileDigest = DigestUtils.sha256Hex(fis)
-        fileDigest shouldEqual bsDigest
+        val bytestring = await(
+          BlobFileUtils
+            .source(file)
+            .runWith(
+              Sink.fold(ByteString.empty)(_ concat _)
+            )
+        )
+        bytestring.length shouldEqual bs.length
+        bytestring shouldEqual bs
       }
     }
 
@@ -226,10 +236,15 @@ final class ImageBlobUploadsHandlerSpec
         updatedBlob.digest shouldEqual Some(blobPart1Digest)
 
         val file = BlobFileUtils.getUploadFilePath(blob.getId())
-        file.length shouldEqual blobPart1.length
-        val fis        = new FileInputStream(file)
-        val fileDigest = DigestUtils.sha256Hex(fis)
-        fileDigest shouldEqual blobPart1Digest
+        val bytestring = await(
+          BlobFileUtils
+            .source(file)
+            .runWith(
+              Sink.fold(ByteString.empty)(_ concat _)
+            )
+        )
+        bytestring.length shouldEqual blobPart1.length
+        bytestring shouldEqual blobPart1
       }
 
       val blobPart2 = bs.drop(blobPart1.length)
@@ -252,10 +267,15 @@ final class ImageBlobUploadsHandlerSpec
         updatedBlob.digest shouldEqual Some(bsDigest)
 
         val file = BlobFileUtils.getUploadFilePath(blob.getId())
-        file.length shouldEqual bs.length
-        val fis        = new FileInputStream(file)
-        val fileDigest = DigestUtils.sha256Hex(fis)
-        fileDigest shouldEqual bsDigest
+        val bytestring = await(
+          BlobFileUtils
+            .source(file)
+            .runWith(
+              Sink.fold(ByteString.empty)(_ concat _)
+            )
+        )
+        bytestring.length shouldEqual bs.length
+        bytestring shouldEqual bs
       }
     }
 

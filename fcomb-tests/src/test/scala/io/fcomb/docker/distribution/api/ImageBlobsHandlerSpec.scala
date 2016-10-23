@@ -21,10 +21,8 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
-import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures._
@@ -51,7 +49,7 @@ final class ImageBlobsHandlerSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    BlobFileUtils.getBlobFilePath(bsDigest).delete()
+    BlobFileUtils.destroyBlob(bsDigest)
     ()
   }
 
