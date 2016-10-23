@@ -110,7 +110,7 @@ object OrganizationsRepo
             column match {
               case "name" =>
                 q._1.name.like(value.replaceAll("\\*", "%").asColumnOfType[String]("citext"))
-              case "role" => q._2 === Role.withName(value)
+              case "role" => q._2.inSetBind(value.split(',').map(Role.withName))
               case _      => LiteralColumn(false)
             }
           }
