@@ -26,12 +26,7 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.{
-  LayoutComponent,
-  PaginationOrderState,
-  Table,
-  ToolbarPaginationComponent
-}
+import io.fcomb.frontend.components.{LayoutComponent, PaginationOrderState, Table}
 import io.fcomb.frontend.styles.App
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
@@ -169,25 +164,11 @@ object RepositoryPermissionsComponent {
       else {
         val p = state.pagination
         val columns =
-          MuiTableRow()(Table.renderHeader("User", "member.username", p, updateSort _),
-                        Table.renderHeader("Action", "action", p, updateSort _),
+          MuiTableRow()(Table.header("User", "member.username", p, updateSort _),
+                        Table.header("Action", "action", p, updateSort _),
                         MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
         val rows = permissions.map(renderPermissionRow(slug, state, _))
-        <.section(
-          MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
-                                                                  adjustForCheckbox = false,
-                                                                  displaySelectAll = false,
-                                                                  enableSelectAll = false,
-                                                                  key = "header"
-                                                                )(columns),
-                                                                MuiTableBody(
-                                                                  deselectOnClickaway = false,
-                                                                  displayRowCheckbox = false,
-                                                                  showRowHover = false,
-                                                                  stripedRows = false,
-                                                                  key = "body"
-                                                                )(rows)),
-          ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
+        Table(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
     private def upsertPermission(slug: String, name: String, kind: MemberKind, action: Action) = {

@@ -22,6 +22,11 @@ object Main extends App with LazyLogging {
   import sys.dispatcher
 
   val cluster = Cluster(sys)
+  cluster.registerOnMemberRemoved {
+    sys.registerOnTermination(System.exit(-1))
+    sys.scheduler.scheduleOnce(10.seconds)(System.exit(-1))(sys.dispatcher)
+    sys.terminate()
+  }
 
   if (Config.config.getList("akka.cluster.seed-nodes").isEmpty) {
     logger.info("Going to a single-node cluster mode")
@@ -44,8 +49,7 @@ object Main extends App with LazyLogging {
       EmailService.start()
     case Failure(e) =>
       logger.error(e.getMessage(), e.getCause())
-      try sys.terminate()
-      finally System.exit(-1)
+      sys.terminate()
   }
 
   Await.result(sys.whenTerminated, Duration.Inf)

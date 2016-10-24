@@ -17,8 +17,20 @@
 package io.fcomb.frontend.components.organization
 
 import cats.data.Xor
+import chandu0101.scalajs.react.components.Implicits._
+import chandu0101.scalajs.react.components.materialui._
+import diode.data.{Empty, Failed, Pot, Ready}
+import diode.react.ReactPot._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
+import io.fcomb.frontend.components.{
+  FloatActionButtonComponent,
+  LayoutComponent,
+  PaginationOrderState,
+  Table,
+  ToolbarPaginationComponent
+}
+import io.fcomb.frontend.styles.App
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.PaginationData
@@ -27,62 +39,69 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scalacss.ScalaCssReact._
 
 object GroupsComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
-  final case class State(groups: Seq[OrganizationGroupResponse])
+  final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
+  final case class State(groups: Pot[Seq[OrganizationGroupResponse]],
+                         pagination: PaginationOrderState)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def getGroups(orgName: String): Callback =
-      Callback.future {
-        Rpc
-          .call[PaginationData[OrganizationGroupResponse]](RpcMethod.GET,
-                                                           Resource.organizationGroups(orgName))
-          .map {
-            case Xor.Right(pd) =>
-              $.modState(_.copy(pd.data))
-            case Xor.Left(e) => Callback.warn(e)
-          }
+    val limit = 25
+
+    def getGroups(pos: PaginationOrderState): Callback =
+      $.props.flatMap { props =>
+        Callback.future(
+          Rpc
+            .getOrgaizationGroups(props.slug, pos.sortColumn, pos.sortOrder, pos.page, limit)
+            .map {
+              case Xor.Right(pd) =>
+                $.modState(st =>
+                  st.copy(groups = Ready(pd.data),
+                          pagination = st.pagination.copy(total = pd.total)))
+              case Xor.Left(e) => Callback.warn(e)
+            })
       }
 
-    def deleteGroup(orgName: String, name: String)(e: ReactEventI) =
+    def deleteGroup(slug: String, group: String)(e: ReactEventI) =
       e.preventDefaultCB >>
-        Callback.future {
-          Rpc.call[Unit](RpcMethod.DELETE, Resource.organizationGroup(orgName, name)).map {
-            case Xor.Right(_) => getGroups(orgName)
-            case Xor.Left(e)  => ??? // TODO
-          }
-        }
+        Callback.future(Rpc.deleteOrganizationGroup(slug, group).map {
+          case Xor.Right(_) => $.state.flatMap(st => getGroups(st.pagination))
+          case Xor.Left(e)  => ??? // TODO
+        })
 
     def renderGroup(props: Props, group: OrganizationGroupResponse) =
       <.tr(
-        <.td(
-          props.ctl.link(DashboardRoute.OrganizationGroup(props.orgName, group.name))(group.name)),
+        <.td(props.ctl.link(DashboardRoute.OrganizationGroup(props.slug, group.name))(group.name)),
         <.td(
           <.button(^.`type` := "button",
-                   ^.onClick ==> deleteGroup(props.orgName, group.name),
+                   ^.onClick ==> deleteGroup(props.slug, group.name),
                    "Delete")))
 
-    def renderGroups(props: Props, groups: Seq[OrganizationGroupResponse]) =
-      if (groups.isEmpty) <.span("No groups. Create one!")
+    def renderGroups(props: Props,
+                     groups: Seq[OrganizationGroupResponse],
+                     pos: PaginationOrderState) =
+      if (groups.isEmpty) <.div(App.infoMsg, "There are no groups to show yet")
       else
         <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
                 <.tbody(groups.map(renderGroup(props, _))))
 
     def render(props: Props, state: State) =
-      <.div(
-        <.h2("Groups"),
-        <.div(props.ctl.link(DashboardRoute.NewOrganizationGroup(props.orgName))("New group")),
-        <.div(<.h3("Members"), renderGroups(props, state.groups))
+      <.section(
+        FloatActionButtonComponent(props.ctl,
+                                   DashboardRoute.NewOrganizationGroup(props.slug),
+                                   "New group"),
+        MuiCard(key = "orgs")(MuiCardText(key = "orgs")(state.groups.render(gs =>
+          renderGroups(props, gs, state.pagination))))
       )
   }
 
   private val component = ReactComponentB[Props]("Groups")
-    .initialState(State(Seq.empty))
+    .initialState(State(Empty, PaginationOrderState("name")))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getGroups($.props.orgName))
+    .componentWillMount($ => $.backend.getGroups($.state.pagination))
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], orgName: String) =
-    component(Props(ctl, orgName))
+  def apply(ctl: RouterCtl[DashboardRoute], slug: String) =
+    component(Props(ctl, slug))
 }

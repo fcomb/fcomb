@@ -27,8 +27,7 @@ import io.fcomb.frontend.components.{
   PaginationOrderState,
   SizeInBytesComponent,
   Table,
-  TimeAgoComponent,
-  ToolbarPaginationComponent
+  TimeAgoComponent
 }
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.errors.ErrorsException
@@ -109,27 +108,13 @@ object RepositoryTagsComponent {
       if (tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
       else {
         val columns = MuiTableRow()(
-          Table.renderHeader("Tag", "tag", p, updateSort _),
-          Table.renderHeader("Last modified", "updatedAt", p, updateSort _),
-          Table.renderHeader("Size", "length", p, updateSort _),
-          Table.renderHeader("Image", "digest", p, updateSort _),
+          Table.header("Tag", "tag", p, updateSort _),
+          Table.header("Last modified", "updatedAt", p, updateSort _),
+          Table.header("Size", "length", p, updateSort _),
+          Table.header("Image", "digest", p, updateSort _),
           MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
         val rows = tags.map(renderTagRow(props, _))
-        <.section(
-          MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
-                                                                  adjustForCheckbox = false,
-                                                                  displaySelectAll = false,
-                                                                  enableSelectAll = false,
-                                                                  key = "header"
-                                                                )(columns),
-                                                                MuiTableBody(
-                                                                  deselectOnClickaway = false,
-                                                                  displayRowCheckbox = false,
-                                                                  showRowHover = false,
-                                                                  stripedRows = false,
-                                                                  key = "body"
-                                                                )(rows)),
-          ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
+        Table(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
     def render(props: Props, state: State): ReactElement =

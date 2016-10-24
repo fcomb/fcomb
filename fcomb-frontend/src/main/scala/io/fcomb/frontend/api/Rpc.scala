@@ -36,7 +36,7 @@ import io.fcomb.models.errors.{Error, Errors, ErrorsException}
 import io.fcomb.models.{Owner, OwnerKind, PaginationData, SortOrder}
 import io.fcomb.rpc.acl.PermissionResponse
 import io.fcomb.rpc.docker.distribution._
-import io.fcomb.rpc.OrganizationResponse
+import io.fcomb.rpc.{OrganizationGroupResponse, OrganizationResponse}
 import org.scalajs.dom.ext.{Ajax, AjaxException}
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
@@ -160,6 +160,20 @@ object Rpc {
                                                Resource.userSelfOrganizations,
                                                params)
   }
+
+  def getOrgaizationGroups(slug: String,
+                           sortColumn: String,
+                           sortOrder: SortOrder,
+                           page: Int,
+                           limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[OrganizationGroupResponse]](RpcMethod.GET,
+                                                    Resource.organizationGroups(slug),
+                                                    queryParams)
+  }
+
+  def deleteOrganizationGroup(slug: String, group: String)(implicit ec: ExecutionContext) =
+    call[Unit](RpcMethod.DELETE, Resource.organizationGroup(slug, group))
 
   def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,

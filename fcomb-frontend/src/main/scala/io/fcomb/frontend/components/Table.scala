@@ -27,11 +27,11 @@ import scala.scalajs.js
 import scalacss.ScalaCssReact._
 
 object Table {
-  def renderHeader(title: String,
-                   column: String,
-                   pagination: PaginationOrderState,
-                   cb: String => ReactEventH => Callback,
-                   style: js.Dictionary[String] = js.Dictionary.empty) = {
+  def header(title: String,
+             column: String,
+             pagination: PaginationOrderState,
+             cb: String => ReactEventH => Callback,
+             style: js.Dictionary[String] = js.Dictionary.empty) = {
     val (sortIcon, sortCB) =
       if (pagination.total > 1) {
         val icon: ReactNode =
@@ -46,6 +46,29 @@ object Table {
     MuiTableHeaderColumn(style = style, key = column)(
       <.a(App.sortedColumn, ^.href := "#", ^.onClick ==> sortCB, <.span(title), sortIcon)())
   }
+
+  def apply(columns: ReactComponentU_,
+            rows: Seq[ReactComponentU_],
+            page: Int,
+            limit: Int,
+            total: Int,
+            cb: Int => Callback) =
+    <.div(MuiTable(selectable = false, multiSelectable = false)(
+            MuiTableHeader(
+              adjustForCheckbox = false,
+              displaySelectAll = false,
+              enableSelectAll = false,
+              key = "header"
+            )(MuiTableRow()(columns)),
+            MuiTableBody(
+              deselectOnClickaway = false,
+              displayRowCheckbox = false,
+              showRowHover = false,
+              stripedRows = false,
+              key = "body"
+            )(rows)
+          ),
+          ToolbarPaginationComponent(page, limit, total, cb))
 
   private def emptyCB(e: ReactEventH) = e.preventDefaultCB
 }

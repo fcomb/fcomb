@@ -26,8 +26,7 @@ import io.fcomb.frontend.components.{
   FloatActionButtonComponent,
   LayoutComponent,
   PaginationOrderState,
-  Table,
-  ToolbarPaginationComponent
+  Table
 }
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
@@ -101,26 +100,10 @@ object OrganizationsComponent {
       if (orgs.isEmpty) <.div(App.infoMsg, "There are no organizations to show yet")
       else {
         val columns =
-          MuiTableRow()(Table.renderHeader("Name", "name", p, updateSort _),
+          MuiTableRow()(Table.header("Name", "name", p, updateSort _),
                         MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
         val rows = orgs.map(renderOrg(props.ctl, _))
-
-        <.div(MuiTable(selectable = false, multiSelectable = false)(
-                MuiTableHeader(
-                  adjustForCheckbox = false,
-                  displaySelectAll = false,
-                  enableSelectAll = false,
-                  key = "header"
-                )(columns),
-                MuiTableBody(
-                  deselectOnClickaway = false,
-                  displayRowCheckbox = false,
-                  showRowHover = false,
-                  stripedRows = false,
-                  key = "body"
-                )(rows)
-              ),
-              ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
+        Table(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
     def render(props: Props, state: State): ReactElement =
