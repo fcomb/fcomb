@@ -47,7 +47,7 @@ object Table {
       <.a(App.sortedColumn, ^.href := "#", ^.onClick ==> sortCB, <.span(title), sortIcon)())
   }
 
-  def apply(columns: ReactComponentU_,
+  def apply(columns: Seq[ReactComponentU_],
             rows: Seq[ReactComponentU_],
             page: Int,
             limit: Int,

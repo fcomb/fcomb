@@ -99,9 +99,8 @@ object OrganizationsComponent {
     def renderOrgs(props: Props, orgs: Seq[OrganizationResponse], p: PaginationOrderState) =
       if (orgs.isEmpty) <.div(App.infoMsg, "There are no organizations to show yet")
       else {
-        val columns =
-          MuiTableRow()(Table.header("Name", "name", p, updateSort _),
-                        MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
+        val columns = Seq(Table.header("Name", "name", p, updateSort _),
+                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
         val rows = orgs.map(renderOrg(props.ctl, _))
         Table(columns, rows, p.page, limit, p.total, updatePage _)
       }

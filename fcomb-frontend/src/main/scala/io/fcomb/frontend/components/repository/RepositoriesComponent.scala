@@ -127,15 +127,14 @@ object RepositoriesComponent {
       if (repositories.isEmpty) <.div(App.infoMsg, "There are no repositories to show yet")
       else {
         val showNamespace = props.namespace === Namespace.All
-        val columns =
-          MuiTableRow()(Table.header("Visibility",
-                                     "visibilityKind",
-                                     p,
-                                     updateSort _,
-                                     style = App.visibilityColumnStyle),
-                        Table.header("Name", "slug", p, updateSort _),
-                        Table.header("Last modified", "updatedAt", p, updateSort _),
-                        MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
+        val columns = Seq(Table.header("Visibility",
+                                       "visibilityKind",
+                                       p,
+                                       updateSort _,
+                                       style = App.visibilityColumnStyle),
+                          Table.header("Name", "slug", p, updateSort _),
+                          Table.header("Last modified", "updatedAt", p, updateSort _),
+                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
         val rows = repositories.map(renderRepository(props.ctl, _, showNamespace))
         Table(columns, rows, p.page, limit, p.total, updatePage _)
       }

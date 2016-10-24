@@ -107,12 +107,11 @@ object RepositoryTagsComponent {
     def renderTags(props: Props, tags: Seq[RepositoryTagResponse], p: PaginationOrderState) =
       if (tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
       else {
-        val columns = MuiTableRow()(
-          Table.header("Tag", "tag", p, updateSort _),
-          Table.header("Last modified", "updatedAt", p, updateSort _),
-          Table.header("Size", "length", p, updateSort _),
-          Table.header("Image", "digest", p, updateSort _),
-          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
+        val columns = Seq(Table.header("Tag", "tag", p, updateSort _),
+                          Table.header("Last modified", "updatedAt", p, updateSort _),
+                          Table.header("Size", "length", p, updateSort _),
+                          Table.header("Image", "digest", p, updateSort _),
+                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
         val rows = tags.map(renderTagRow(props, _))
         Table(columns, rows, p.page, limit, p.total, updatePage _)
       }

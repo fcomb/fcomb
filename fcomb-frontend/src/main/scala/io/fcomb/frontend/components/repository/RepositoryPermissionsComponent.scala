@@ -163,10 +163,9 @@ object RepositoryPermissionsComponent {
       if (permissions.isEmpty) <.div(App.infoMsg, "There are no permissions to show yet")
       else {
         val p = state.pagination
-        val columns =
-          MuiTableRow()(Table.header("User", "member.username", p, updateSort _),
-                        Table.header("Action", "action", p, updateSort _),
-                        MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
+        val columns = Seq(Table.header("User", "member.username", p, updateSort _),
+                          Table.header("Action", "action", p, updateSort _),
+                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
         val rows = permissions.map(renderPermissionRow(slug, state, _))
         Table(columns, rows, p.page, limit, p.total, updatePage _)
       }

@@ -40,21 +40,6 @@ object OrganizationComponent {
                          slug: String)
 
   final class Backend($ : BackendScope[Props, Unit]) {
-    // def render(props: Props) = {
-    //   <.section(
-    //     <.h2(s"Organization ${props.name}"),
-    //     <.ul(
-    //       <.li(props.ctl.link(DashboardRoute.OrganizationGroups(props.name))("Groups")),
-    //       <.li(props.ctl.link(DashboardRoute.OrganizationSettings(props.name))("Settings"))
-    //     ),
-    //     <.div(<.h1("Repositories"),
-    //         MuiFloatingActionButton(onTouchTap = setRoute(DashboardRoute.NewOrganizationOrganization(props.name)) _)(
-    //           ContentAdd()()),
-    //       <.section(
-    //         RepositoriesComponent.apply(props.ctl, Namespace.Organization(props.name))))
-    //   )
-    // }
-
     def onChange(tab: OrganizationTab, e: ReactEventH, el: ReactElement): Callback =
       $.props.flatMap { props =>
         val route = tab match {
@@ -65,22 +50,22 @@ object OrganizationComponent {
         props.ctl.set(route)
       }
 
-    // def renderGroupsTab(props: Props, repo: OrganizationResponse) = {
-    //   val component: ReactNode =
-    //     if (props.tab === OrganizationTab.Permissions)
-    //       OrganizationPermissionsComponent(props.ctl, repo.slug, repo.owner.kind)
-    //     else <.div()
-    //   MuiTab(key = "permissions", label = "Permissions", value = OrganizationTab.Permissions)(
-    //     MuiCardText()(component))
-    // }
+    def renderGroupsTab(props: Props) = {
+      val component: ReactNode =
+        if (props.tab === OrganizationTab.Groups)
+          GroupsComponent(props.ctl, props.slug)
+        else <.div()
+      MuiTab(key = "groups", label = "Groups", value = OrganizationTab.Groups)(
+        MuiCardText()(component))
+    }
 
     def renderTabs(props: Props, isManageable: Boolean) = {
       val manageTabs =
-        /*if (isManageable)
-          Seq(renderPermissionsTab(props, repo),
+        if (isManageable)
+          Seq(renderGroupsTab(props),
               MuiTab(key = "settings", label = "Settings", value = OrganizationTab.Settings)(
-                MuiCardText()(OrganizationSettingsComponent(props.ctl, repo.slug))))
-        else*/ Seq.empty
+                MuiCardText()(OrganizationSettingsComponent(props.ctl, props.slug))))
+        else Seq.empty
 
       MuiCardMedia(key = "tabs")(
         MuiTabs[OrganizationTab](value = props.tab, onChange = onChange _)(
