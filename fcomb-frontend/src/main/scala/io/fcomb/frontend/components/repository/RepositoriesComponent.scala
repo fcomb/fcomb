@@ -27,7 +27,7 @@ import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{
   LayoutComponent,
   PaginationOrderState,
-  Table,
+  TableComponent,
   TimeAgoComponent
 }
 import io.fcomb.frontend.styles.App
@@ -127,16 +127,16 @@ object RepositoriesComponent {
       if (repositories.isEmpty) <.div(App.infoMsg, "There are no repositories to show yet")
       else {
         val showNamespace = props.namespace === Namespace.All
-        val columns = Seq(Table.header("Visibility",
-                                       "visibilityKind",
-                                       p,
-                                       updateSort _,
-                                       style = App.visibilityColumnStyle),
-                          Table.header("Name", "slug", p, updateSort _),
-                          Table.header("Last modified", "updatedAt", p, updateSort _),
+        val columns = Seq(TableComponent.header("Visibility",
+                                                "visibilityKind",
+                                                p,
+                                                updateSort _,
+                                                style = App.visibilityColumnStyle),
+                          TableComponent.header("Name", "slug", p, updateSort _),
+                          TableComponent.header("Last modified", "updatedAt", p, updateSort _),
                           MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
         val rows = repositories.map(renderRepository(props.ctl, _, showNamespace))
-        Table(columns, rows, p.page, limit, p.total, updatePage _)
+        TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
     def render(props: Props, state: State): ReactElement =

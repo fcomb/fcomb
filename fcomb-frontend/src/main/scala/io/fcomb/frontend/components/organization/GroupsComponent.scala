@@ -23,28 +23,36 @@ import diode.data.{Empty, Failed, Pot, Ready}
 import diode.react.ReactPot._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
-import io.fcomb.frontend.components.{
-  FloatActionButtonComponent,
-  LayoutComponent,
-  PaginationOrderState,
-  Table,
-  ToolbarPaginationComponent
-}
+import io.fcomb.frontend.components.{LayoutComponent, PaginationOrderState, TableComponent}
 import io.fcomb.frontend.styles.App
-import io.fcomb.json.models.Formats._
-import io.fcomb.json.rpc.Formats._
-import io.fcomb.models.PaginationData
+import io.fcomb.models.acl.Role
+import io.fcomb.models.errors.ErrorsException
 import io.fcomb.rpc.OrganizationGroupResponse
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
 
 object GroupsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
+  final case class FormState(name: String,
+                             role: Role,
+                             errors: Map[String, String],
+                             isDisabled: Boolean)
   final case class State(groups: Pot[Seq[OrganizationGroupResponse]],
-                         pagination: PaginationOrderState)
+                         pagination: PaginationOrderState,
+                         form: FormState) {
+    def flipSortColumn(column: String): State = {
+      val sortOrder =
+        if (pagination.sortColumn == column) pagination.sortOrder.flip
+        else pagination.sortOrder
+      this.copy(pagination = pagination.copy(sortColumn = column, sortOrder = sortOrder))
+    }
+  }
+
+  private def defaultFormState =
+    FormState("", Role.Member, Map.empty, false)
 
   final class Backend($ : BackendScope[Props, State]) {
     val limit = 25
@@ -59,45 +67,65 @@ object GroupsComponent {
                 $.modState(st =>
                   st.copy(groups = Ready(pd.data),
                           pagination = st.pagination.copy(total = pd.total)))
-              case Xor.Left(e) => Callback.warn(e)
+              case Xor.Left(errs) => $.modState(_.copy(groups = Failed(ErrorsException(errs))))
             })
       }
 
-    def deleteGroup(slug: String, group: String)(e: ReactEventI) =
+    def updateSort(column: String)(e: ReactEventH): Callback =
+      for {
+        _     <- e.preventDefaultCB
+        state <- $.state.map(_.flipSortColumn(column))
+        _     <- $.setState(state)
+        _     <- getGroups(state.pagination)
+      } yield ()
+
+    def updatePage(page: Int): Callback =
+      $.state.flatMap { state =>
+        val pagination = state.pagination.copy(page = page)
+        $.setState(state.copy(pagination = pagination)) >> getGroups(pagination)
+      }
+
+    def deleteGroup(slug: String, group: String)(e: ReactTouchEventH) =
       e.preventDefaultCB >>
         Callback.future(Rpc.deleteOrganizationGroup(slug, group).map {
           case Xor.Right(_) => $.state.flatMap(st => getGroups(st.pagination))
-          case Xor.Left(e)  => ??? // TODO
+          case Xor.Left(e)  => Callback.warn(e)
         })
 
-    def renderGroup(props: Props, group: OrganizationGroupResponse) =
-      <.tr(
-        <.td(props.ctl.link(DashboardRoute.OrganizationGroup(props.slug, group.name))(group.name)),
-        <.td(
-          <.button(^.`type` := "button",
-                   ^.onClick ==> deleteGroup(props.slug, group.name),
-                   "Delete")))
+    def renderGroup(props: Props, group: OrganizationGroupResponse, isDisabled: Boolean) = {
+      val target = DashboardRoute.OrganizationGroup(props.slug, group.name)
+      MuiTableRow(key = group.id.toString)(
+        MuiTableRowColumn(key = "name")(
+          <.a(LayoutComponent.linkAsTextStyle,
+              ^.href := props.ctl.urlFor(target).value,
+              props.ctl.setOnLinkClick(target))(group.name)),
+        MuiTableRowColumn(key = "role")(group.role.toString),
+        MuiTableRowColumn(style = App.menuColumnStyle, key = "buttons")(
+          MuiIconButton(disabled = isDisabled, onTouchTap = deleteGroup(props.slug, group.name) _)(
+            Mui.SvgIcons.ActionDelete(color = Mui.Styles.colors.lightBlack)())
+        ))
+    }
 
     def renderGroups(props: Props,
                      groups: Seq[OrganizationGroupResponse],
-                     pos: PaginationOrderState) =
+                     p: PaginationOrderState,
+                     isDisabled: Boolean) =
       if (groups.isEmpty) <.div(App.infoMsg, "There are no groups to show yet")
-      else
-        <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
-                <.tbody(groups.map(renderGroup(props, _))))
+      else {
+        val columns = Seq(TableComponent.header("Name", "name", p, updateSort _),
+                          TableComponent.header("Role", "role", p, updateSort _),
+                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
+        val rows = groups.map(renderGroup(props, _, isDisabled))
+        TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
+      }
 
     def render(props: Props, state: State) =
-      <.section(
-        FloatActionButtonComponent(props.ctl,
-                                   DashboardRoute.NewOrganizationGroup(props.slug),
-                                   "New group"),
-        MuiCard(key = "orgs")(MuiCardText(key = "orgs")(state.groups.render(gs =>
-          renderGroups(props, gs, state.pagination))))
-      )
+      <.section(state.groups.render(gs =>
+        renderGroups(props, gs, state.pagination, state.form.isDisabled)))
   }
 
   private val component = ReactComponentB[Props]("Groups")
-    .initialState(State(Empty, PaginationOrderState("name")))
+    .initialState(State(Empty, PaginationOrderState("name"), defaultFormState))
     .renderBackend[Backend]
     .componentWillMount($ => $.backend.getGroups($.state.pagination))
     .build

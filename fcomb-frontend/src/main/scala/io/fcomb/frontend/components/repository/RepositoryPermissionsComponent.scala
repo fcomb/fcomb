@@ -26,7 +26,7 @@ import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.{LayoutComponent, PaginationOrderState, Table}
+import io.fcomb.frontend.components.{LayoutComponent, PaginationOrderState, TableComponent}
 import io.fcomb.frontend.styles.App
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
@@ -108,7 +108,7 @@ object RepositoryPermissionsComponent {
 
     lazy val memberKinds = MemberKind.values.map(k => <.option(^.value := k.value)(k.entryName))
 
-    def renderActionCell(slug: String, isDisabled: Boolean, permission: PermissionResponse) = {
+    def renderActionCell(slug: String, permission: PermissionResponse, isDisabled: Boolean) = {
       val member = permission.member
       MuiSelectField[Action](
         value = permission.action,
@@ -126,7 +126,7 @@ object RepositoryPermissionsComponent {
           })
         }
 
-    def renderButtons(slug: String, isDisabled: Boolean, member: PermissionMemberResponse) =
+    def renderButtons(slug: String, member: PermissionMemberResponse, isDisabled: Boolean) =
       MuiIconButton(disabled = isDisabled,
                     onTouchTap = deletePermission(slug, member.name, member.kind) _)(
         Mui.SvgIcons.ActionDelete(color = Mui.Styles.colors.lightBlack)())
@@ -140,9 +140,9 @@ object RepositoryPermissionsComponent {
       val isDisabled = state.form.isDisabled || permission.member.isOwner
       MuiTableRow(key = title)(
         MuiTableRowColumn(key = "title")(memberTitle),
-        MuiTableRowColumn(key = "action")(renderActionCell(slug, isDisabled, permission)),
+        MuiTableRowColumn(key = "action")(renderActionCell(slug, permission, isDisabled)),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "buttons")(
-          renderButtons(slug, isDisabled, permission.member)))
+          renderButtons(slug, permission.member, isDisabled)))
     }
 
     def updateSort(column: String)(e: ReactEventH): Callback =
@@ -163,11 +163,11 @@ object RepositoryPermissionsComponent {
       if (permissions.isEmpty) <.div(App.infoMsg, "There are no permissions to show yet")
       else {
         val p = state.pagination
-        val columns = Seq(Table.header("User", "member.username", p, updateSort _),
-                          Table.header("Action", "action", p, updateSort _),
+        val columns = Seq(TableComponent.header("User", "member.username", p, updateSort _),
+                          TableComponent.header("Action", "action", p, updateSort _),
                           MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
         val rows = permissions.map(renderPermissionRow(slug, state, _))
-        Table(columns, rows, p.page, limit, p.total, updatePage _)
+        TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
     private def upsertPermission(slug: String, name: String, kind: MemberKind, action: Action) = {

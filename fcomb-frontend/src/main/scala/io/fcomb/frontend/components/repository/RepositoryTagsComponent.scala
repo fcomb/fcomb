@@ -26,7 +26,7 @@ import io.fcomb.frontend.components.{
   CopyToClipboardComponent,
   PaginationOrderState,
   SizeInBytesComponent,
-  Table,
+  TableComponent,
   TimeAgoComponent
 }
 import io.fcomb.frontend.styles.App
@@ -107,13 +107,13 @@ object RepositoryTagsComponent {
     def renderTags(props: Props, tags: Seq[RepositoryTagResponse], p: PaginationOrderState) =
       if (tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
       else {
-        val columns = Seq(Table.header("Tag", "tag", p, updateSort _),
-                          Table.header("Last modified", "updatedAt", p, updateSort _),
-                          Table.header("Size", "length", p, updateSort _),
-                          Table.header("Image", "digest", p, updateSort _),
+        val columns = Seq(TableComponent.header("Tag", "tag", p, updateSort _),
+                          TableComponent.header("Last modified", "updatedAt", p, updateSort _),
+                          TableComponent.header("Size", "length", p, updateSort _),
+                          TableComponent.header("Image", "digest", p, updateSort _),
                           MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
         val rows = tags.map(renderTagRow(props, _))
-        Table(columns, rows, p.page, limit, p.total, updatePage _)
+        TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
     def render(props: Props, state: State): ReactElement =

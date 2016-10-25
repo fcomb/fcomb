@@ -96,10 +96,13 @@ object OrganizationComponent {
       val organization = props.orgs().get(props.slug)
       <.section(organization.render { org =>
         val isManageable = org.role.contains(Role.Admin)
-        <.div(MuiCard(key = "repos")(renderHeader(props), renderTabs(props, isManageable)),
-              FloatActionButtonComponent(props.ctl,
-                                         DashboardRoute.NewOrganizationRepository(props.slug),
-                                         "New repository"))
+        val fab: ReactNode =
+          if (isManageable)
+            FloatActionButtonComponent(props.ctl,
+                                       DashboardRoute.NewOrganizationRepository(props.slug),
+                                       "New repository")
+          else <.div()
+        <.div(MuiCard(key = "repos")(renderHeader(props), renderTabs(props, isManageable)), fab)
       })
     }
   }

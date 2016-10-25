@@ -26,7 +26,7 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.js
 import scalacss.ScalaCssReact._
 
-object Table {
+object TableComponent {
   def header(title: String,
              column: String,
              pagination: PaginationOrderState,
