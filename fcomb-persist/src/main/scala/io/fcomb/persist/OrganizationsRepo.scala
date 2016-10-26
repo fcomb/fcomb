@@ -90,9 +90,12 @@ object OrganizationsRepo
     table.filter(_.ownerUserId === userId).map(t => (t, (Role.Admin: Rep[Role]).asColumnOf[Role]))
 
   private def availableByUserGroupsDBIO(userId: Rep[Int]) =
-    groupsScope.filter {
-      case (_, ogut) => ogut.userId === userId
-    }.map { case ((t, ogt), _) => (t, ogt.role) }.subquery
+    groupsScope
+      .filter {
+        case (_, ogut) => ogut.userId === userId
+      }
+      .map { case ((t, ogt), _) => (t, ogt.role) }
+      .subquery
 
   private type AvailableScopeQuery =
     Query[(OrganizationTable, Rep[Role]), (Organization, Role), Seq]
@@ -135,9 +138,12 @@ object OrganizationsRepo
   }
 
   private lazy val findRoleByIdAndUserIdCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
-    groupsScope.filter {
-      case ((t, _), ogut) => t.id === id && ogut.userId === userId
-    }.map(_._1._2.role).take(1)
+    groupsScope
+      .filter {
+        case ((t, _), ogut) => t.id === id && ogut.userId === userId
+      }
+      .map(_._1._2.role)
+      .take(1)
   }
 
   def findWithRoleBySlugDBIO(slug: Slug, userId: Int)(implicit ec: ExecutionContext) =
@@ -165,10 +171,12 @@ object OrganizationsRepo
     db.run(findBySlugWithAclDBIO(slug, userId, role))
 
   private lazy val isAdminCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
-    groupsScope.filter {
-      case ((t, ogt), ogut) =>
-        t.id === id && ogut.userId === userId && ogt.role === (Role.Admin: Role)
-    }.exists
+    groupsScope
+      .filter {
+        case ((t, ogt), ogut) =>
+          t.id === id && ogut.userId === userId && ogt.role === (Role.Admin: Role)
+      }
+      .exists
   }
 
   def isAdminDBIO(id: Int, userId: Int) =

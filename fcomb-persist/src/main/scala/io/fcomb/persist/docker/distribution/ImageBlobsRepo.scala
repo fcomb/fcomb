@@ -270,21 +270,24 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
     db.run(table.filter(_.id.inSetBind(ids)).result)
 
   def createEmptyTarIfNotExists(imageId: Int)(implicit ec: ExecutionContext): Future[Unit] =
-    db.run(findUploadedCompiled((imageId, emptyTarSha256Digest)).result.headOption.flatMap {
-      case Some(_) => DBIO.successful(())
-      case None =>
-        val blob = ImageBlob(
-          id = Some(UUID.randomUUID()),
-          state = ImageBlobState.Uploaded,
-          imageId = imageId,
-          digest = Some(emptyTarSha256Digest),
-          contentType = `application/octet-stream`,
-          length = emptyTar.length.toLong,
-          createdAt = OffsetDateTime.now(),
-          uploadedAt = None
-        )
-        table += blob
-    }.map(_ => ()))
+    db.run(
+      findUploadedCompiled((imageId, emptyTarSha256Digest)).result.headOption
+        .flatMap {
+          case Some(_) => DBIO.successful(())
+          case None =>
+            val blob = ImageBlob(
+              id = Some(UUID.randomUUID()),
+              state = ImageBlobState.Uploaded,
+              imageId = imageId,
+              digest = Some(emptyTarSha256Digest),
+              contentType = `application/octet-stream`,
+              length = emptyTar.length.toLong,
+              createdAt = OffsetDateTime.now(),
+              uploadedAt = None
+            )
+            table += blob
+        }
+        .map(_ => ()))
 
   def tryDestroy(id: UUID)(implicit ec: ExecutionContext): Future[Xor[String, Unit]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {

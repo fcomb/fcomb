@@ -33,11 +33,11 @@ final class AuthenticationHandlerSpec
     with ScalatestRouteTest
     with PersistSpec {
   val route       = Api.routes
-  val credentials = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
+  val credentials = BasicHttpCredentials(UsersFixture.username, UsersFixture.password)
 
   "The authentication handler" should {
     "return a version for GET requests to the version path" in {
-      Fixtures.await(UsersRepoFixture.create())
+      Fixtures.await(UsersFixture.create())
 
       Get("/v2/") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK

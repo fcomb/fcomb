@@ -51,15 +51,19 @@ object OrganizationGroupsRepo
   val label = "groups"
 
   private lazy val findByOrgIdAndIdCompiled = Compiled { (orgId: Rep[Int], id: Rep[Int]) =>
-    table.filter { t =>
-      t.organizationId === orgId && t.id === id
-    }.take(1)
+    table
+      .filter { t =>
+        t.organizationId === orgId && t.id === id
+      }
+      .take(1)
   }
 
   private lazy val findByOrgIdAndNameCompiled = Compiled { (orgId: Rep[Int], name: Rep[String]) =>
-    table.filter { t =>
-      t.organizationId === orgId && t.name === name.asColumnOfType[String]("citext")
-    }.take(1)
+    table
+      .filter { t =>
+        t.organizationId === orgId && t.name === name.asColumnOfType[String]("citext")
+      }
+      .take(1)
   }
 
   def findBySlugDBIO(orgId: Int, slug: Slug) =
@@ -213,9 +217,11 @@ object OrganizationGroupsRepo
 
   private lazy val uniqueNameCompiled = Compiled {
     (id: Rep[Option[Int]], organizationId: Rep[Int], name: Rep[String]) =>
-      exceptIdFilter(id).filter { q =>
-        q.organizationId === organizationId && q.name === name.asColumnOfType[String]("citext")
-      }.exists
+      exceptIdFilter(id)
+        .filter { q =>
+          q.organizationId === organizationId && q.name === name.asColumnOfType[String]("citext")
+        }
+        .exists
   }
 
   override def validate(group: OrganizationGroup)(

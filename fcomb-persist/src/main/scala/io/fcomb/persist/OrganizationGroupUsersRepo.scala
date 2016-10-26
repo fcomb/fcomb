@@ -72,9 +72,11 @@ object OrganizationGroupUsersRepo
 
   private lazy val existByGroupAndUserIdCompiled = Compiled {
     (groupId: Rep[Int], userId: Rep[Int]) =>
-      table.filter { t =>
-        t.groupId === groupId && t.userId === userId
-      }.exists
+      table
+        .filter { t =>
+          t.groupId === groupId && t.userId === userId
+        }
+        .exists
   }
 
   def upsertDBIO(groupId: Int, req: MemberUserRequest)(implicit ec: ExecutionContext) =
@@ -98,9 +100,11 @@ object OrganizationGroupUsersRepo
     db.run(upsertDBIO(groupId, req))
 
   private def destroyDBIO(groupId: Int, userId: Int) =
-    table.filter { t =>
-      t.groupId === groupId && t.userId === userId
-    }.delete
+    table
+      .filter { t =>
+        t.groupId === groupId && t.userId === userId
+      }
+      .delete
 
   private def destroyAsValidatedDBIO(groupId: Int, userId: Int)(implicit ec: ExecutionContext) =
     destroyDBIO(groupId, userId).map { res =>

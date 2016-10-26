@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-package io.fcomb.tests.fixtures
+package io.fcomb.server.api.organization
 
-import cats.data.Validated
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import akka.http.scaladsl.testkit.ScalatestRouteTest
+import io.fcomb.tests._
+import io.fcomb.tests.fixtures._
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.{Matchers, WordSpec}
 
-object Fixtures {
-  def get[T](res: Validated[_, T]): T = {
-    val (Validated.Valid(item)) = res
-    item
-  }
-
-  def await[T](fut: Future[T])(implicit timeout: Duration = 10.seconds): T =
-    Await.result(fut, timeout)
-}
+final class GroupsHandlerSpec
+    extends WordSpec
+    with Matchers
+    with ScalatestRouteTest
+    with SpecHelpers
+    with ScalaFutures
+    with PersistSpec
+    with ActorClusterSpec {}

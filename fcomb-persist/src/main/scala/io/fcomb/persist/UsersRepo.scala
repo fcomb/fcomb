@@ -120,13 +120,15 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
         val salt         = generateSalt
         val passwordHash = password.bcrypt(salt)
         db.run {
-          updatePasswordCompiled(userId)
-            .update((passwordHash, Some(OffsetDateTime.now)))
-            .map(_ != 0)
-        }.fast.map { isUpdated =>
-          if (isUpdated) Validated.Valid(())
-          else validationError("id", "not found")
-        }
+            updatePasswordCompiled(userId)
+              .update((passwordHash, Some(OffsetDateTime.now)))
+              .map(_ != 0)
+          }
+          .fast
+          .map { isUpdated =>
+            if (isUpdated) Validated.Valid(())
+            else validationError("id", "not found")
+          }
       case res => FastFuture.successful(res)
     }
 

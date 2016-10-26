@@ -24,7 +24,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import java.time.OffsetDateTime
 
-object ImagesRepoFixture {
+object ImagesFixture {
   def create(user: User,
              imageName: String,
              visibilityKind: ImageVisibilityKind,

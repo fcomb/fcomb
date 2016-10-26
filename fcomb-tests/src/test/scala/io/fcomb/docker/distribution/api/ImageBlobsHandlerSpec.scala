@@ -28,7 +28,7 @@ import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures._
-import io.fcomb.tests.fixtures.docker.distribution.{ImageBlobsRepoFixture, ImagesRepoFixture}
+import io.fcomb.tests.fixtures.docker.distribution.{ImageBlobsFixture, ImagesFixture}
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
@@ -46,7 +46,7 @@ final class ImageBlobsHandlerSpec
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)
-  val credentials      = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
+  val credentials      = BasicHttpCredentials(UsersFixture.username, UsersFixture.password)
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
 
   override def beforeEach(): Unit = {
@@ -58,9 +58,9 @@ final class ImageBlobsHandlerSpec
   "The image blob handler" should {
     "return an info without content for HEAD request to the exist layer path" in {
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        _ <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        _ <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs,
@@ -78,9 +78,9 @@ final class ImageBlobsHandlerSpec
 
     "return a blob for GET request to the blob download path" in {
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        _ <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        _ <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs,
@@ -101,9 +101,9 @@ final class ImageBlobsHandlerSpec
 
     "return a part of blob for GET request to the blob download path" in {
       val (blob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs,
@@ -134,9 +134,9 @@ final class ImageBlobsHandlerSpec
 
     "return not modified status for GET request to the blob download path" in {
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        _ <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        _ <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs,
@@ -153,9 +153,9 @@ final class ImageBlobsHandlerSpec
 
     "return successful response for DELETE request to the blob path" in {
       val (blob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs,
@@ -174,20 +174,11 @@ final class ImageBlobsHandlerSpec
 
     "return an info for uploaded blob (with uploading blobs with the same digest)" in {
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        _ <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                            image.getId(),
-                                            bs,
-                                            ImageBlobState.Uploading)
-        _ <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                            image.getId(),
-                                            bs,
-                                            ImageBlobState.Uploaded)
-        _ <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                            image.getId(),
-                                            bs,
-                                            ImageBlobState.Uploading)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        _     <- ImageBlobsFixture.createAs(user.getId(), image.getId(), bs, ImageBlobState.Uploading)
+        _     <- ImageBlobsFixture.createAs(user.getId(), image.getId(), bs, ImageBlobState.Uploaded)
+        _     <- ImageBlobsFixture.createAs(user.getId(), image.getId(), bs, ImageBlobState.Uploading)
 
       } yield image.slug)
 

@@ -36,7 +36,7 @@ import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution._
 import io.fcomb.tests._
 import io.fcomb.tests.fixtures._
-import io.fcomb.tests.fixtures.docker.distribution.{ImageBlobsRepoFixture, ImagesRepoFixture}
+import io.fcomb.tests.fixtures.docker.distribution.{ImageBlobsFixture, ImagesFixture}
 import java.io.FileInputStream
 import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
@@ -57,7 +57,7 @@ final class ImageBlobUploadsHandlerSpec
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)
-  val credentials      = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
+  val credentials      = BasicHttpCredentials(UsersFixture.username, UsersFixture.password)
   val clusterRef       = ImageBlobPushProcessor.startRegion(30.seconds)
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
 
@@ -75,8 +75,8 @@ final class ImageBlobUploadsHandlerSpec
   "The image blob upload handler" should {
     "return an uuid for POST request to the start upload path" in {
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
       } yield image.slug)
 
       Post(s"/v2/$imageSlug/blobs/uploads/") ~> addCredentials(credentials) ~> route ~> check {
@@ -91,8 +91,8 @@ final class ImageBlobUploadsHandlerSpec
 
     "return successful response for POST request to initiate monolithic blob upload path" in {
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
       } yield image.slug)
 
       Post(
@@ -121,8 +121,8 @@ final class ImageBlobUploadsHandlerSpec
 
     "return failed response for POST request to initiate monolithic blob upload path" in {
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
       } yield image.slug)
 
       Post(
@@ -137,17 +137,17 @@ final class ImageBlobUploadsHandlerSpec
 
     "return successful response for PUT request to mount blob upload path" in {
       val (imageSlug, mountImage) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs,
           ImageBlobState.Uploaded
         )
-        mountImage <- ImagesRepoFixture.create(user,
-                                               s"${imageName}-mount",
-                                               ImageVisibilityKind.Private)
+        mountImage <- ImagesFixture.create(user,
+                                           s"${imageName}-mount",
+                                           ImageVisibilityKind.Private)
       } yield (image.slug, mountImage))
 
       Post(
@@ -169,9 +169,9 @@ final class ImageBlobUploadsHandlerSpec
 
     "return successful response for PUT request to monolithic blob upload path" in {
       val (blob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob  <- ImageBlobsRepoFixture.create(user.getId(), image.getId())
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob  <- ImageBlobsFixture.create(user.getId(), image.getId())
       } yield (blob, image.slug))
 
       Put(
@@ -200,9 +200,9 @@ final class ImageBlobUploadsHandlerSpec
 
     "return successful response for PATCH requests to blob upload path" in {
       val (blob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob  <- ImageBlobsRepoFixture.create(user.getId(), image.getId())
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob  <- ImageBlobsFixture.create(user.getId(), image.getId())
       } yield (blob, image.slug))
 
       val blobPart1       = bs.take(bs.length / 2)
@@ -261,9 +261,9 @@ final class ImageBlobUploadsHandlerSpec
 
     "return successful response for PUT request without final chunk to complete blob upload path" in {
       val (blob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs,
@@ -291,9 +291,9 @@ final class ImageBlobUploadsHandlerSpec
 
     "return successful response for PUT request with final chunk to complete blob upload path" in {
       val (blob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs.take(1),
@@ -321,9 +321,9 @@ final class ImageBlobUploadsHandlerSpec
 
     "return successful response for PUT request without final chunk to complete blob path" in {
       val (blob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs,
@@ -351,9 +351,9 @@ final class ImageBlobUploadsHandlerSpec
 
     "return successful response for PUT request with final chunk to complete blob path" in {
       val (blob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs.take(1),
@@ -381,9 +381,9 @@ final class ImageBlobUploadsHandlerSpec
 
     "return successful response for DELETE request to the blob upload path" in {
       val (blob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           bs,

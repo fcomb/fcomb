@@ -61,7 +61,7 @@ final class ImagesHandlerSpec
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)
-  val credentials      = BasicHttpCredentials(UsersRepoFixture.username, UsersRepoFixture.password)
+  val credentials      = BasicHttpCredentials(UsersFixture.username, UsersFixture.password)
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
   val eventServiceRef  = EventService.start()
 
@@ -73,13 +73,13 @@ final class ImagesHandlerSpec
   "The image handler" should {
     "return list of repositories for GET request to the catalog path" in {
       val (image1Slug, image2Slug, image3Slug) = Fixtures.await(for {
-        user   <- UsersRepoFixture.create()
-        image1 <- ImagesRepoFixture.create(user, "test1", ImageVisibilityKind.Private)
-        _      <- ImageBlobsRepoFixture.create(user.getId(), image1.getId())
-        image2 <- ImagesRepoFixture.create(user, "test2", ImageVisibilityKind.Private)
-        _      <- ImageBlobsRepoFixture.create(user.getId(), image2.getId())
-        image3 <- ImagesRepoFixture.create(user, "test3", ImageVisibilityKind.Private)
-        _      <- ImageBlobsRepoFixture.create(user.getId(), image3.getId())
+        user   <- UsersFixture.create()
+        image1 <- ImagesFixture.create(user, "test1", ImageVisibilityKind.Private)
+        _      <- ImageBlobsFixture.create(user.getId(), image1.getId())
+        image2 <- ImagesFixture.create(user, "test2", ImageVisibilityKind.Private)
+        _      <- ImageBlobsFixture.create(user.getId(), image2.getId())
+        image3 <- ImagesFixture.create(user, "test3", ImageVisibilityKind.Private)
+        _      <- ImageBlobsFixture.create(user.getId(), image3.getId())
       } yield (image1.slug, image2.slug, image3.slug))
 
       Get(s"/v2/_catalog") ~> addCredentials(credentials) ~> route ~> check {
@@ -107,19 +107,19 @@ final class ImagesHandlerSpec
 
     "return list of tags for GET request to the tags path" in {
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob1 <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                                image.getId(),
-                                                bs,
-                                                ImageBlobState.Uploaded)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob1 <- ImageBlobsFixture.createAs(user.getId(),
+                                            image.getId(),
+                                            bs,
+                                            ImageBlobState.Uploaded)
         imageSlug = image.slug
-        _ <- ImageManifestsRepoFixture.createV2(user.getId(), imageSlug, blob1, List("1.0", "1.1"))
-        blob2 <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                                image.getId(),
-                                                bs ++ bs,
-                                                ImageBlobState.Uploaded)
-        _ <- ImageManifestsRepoFixture.createV2(user.getId(), imageSlug, blob2, List("2.0", "2.1"))
+        _ <- ImageManifestsFixture.createV2(user.getId(), imageSlug, blob1, List("1.0", "1.1"))
+        blob2 <- ImageBlobsFixture.createAs(user.getId(),
+                                            image.getId(),
+                                            bs ++ bs,
+                                            ImageBlobState.Uploaded)
+        _ <- ImageManifestsFixture.createV2(user.getId(), imageSlug, blob2, List("2.0", "2.1"))
       } yield imageSlug)
 
       Get(s"/v2/$imageSlug/tags/list") ~> addCredentials(credentials) ~> route ~> check {
@@ -150,9 +150,9 @@ final class ImagesHandlerSpec
       val digest     = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
       val image = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob1 <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob1 <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           ByteString.empty,
@@ -177,8 +177,8 @@ final class ImagesHandlerSpec
       val digest     = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
       val imageSlug = Fixtures.await(for {
-        u     <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(u, imageName, ImageVisibilityKind.Private)
+        u     <- UsersFixture.create()
+        image <- ImagesFixture.create(u, imageName, ImageVisibilityKind.Private)
       } yield image.slug)
 
       Put(
@@ -200,18 +200,18 @@ final class ImagesHandlerSpec
         "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
 
       val (configBlob, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob1 <- ImageBlobsRepoFixture.createAs(
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob1 <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           ByteString.empty,
           ImageBlobState.Uploaded,
           digestOpt = Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
-        cb <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                             image.getId(),
-                                             configBlobBs,
-                                             ImageBlobState.Uploaded)
+        cb <- ImageBlobsFixture.createAs(user.getId(),
+                                         image.getId(),
+                                         configBlobBs,
+                                         ImageBlobState.Uploaded)
       } yield (cb, image.slug))
       configBlob.digest should contain(
         "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
@@ -233,7 +233,7 @@ final class ImagesHandlerSpec
       val digest     = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
       def createBlob(userId: Int, imageId: Int, state: ImageBlobState) =
-        ImageBlobsRepoFixture.createAs(
+        ImageBlobsFixture.createAs(
           userId,
           imageId,
           ByteString.empty,
@@ -241,8 +241,8 @@ final class ImagesHandlerSpec
           digestOpt = Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
 
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         _     <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploading)
         blob1 <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploaded)
         _     <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploading)
@@ -261,7 +261,7 @@ final class ImagesHandlerSpec
         "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
 
       def createBlob(userId: Int, imageId: Int, state: ImageBlobState) =
-        ImageBlobsRepoFixture.createAs(
+        ImageBlobsFixture.createAs(
           userId,
           imageId,
           ByteString.empty,
@@ -269,15 +269,15 @@ final class ImagesHandlerSpec
           digestOpt = Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
 
       val imageSlug = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         _     <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploading)
         blob1 <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploaded)
         _     <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploading)
-        cb_ <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                              image.getId(),
-                                              configBlobBs,
-                                              ImageBlobState.Uploaded)
+        cb_ <- ImageBlobsFixture.createAs(user.getId(),
+                                          image.getId(),
+                                          configBlobBs,
+                                          ImageBlobState.Uploaded)
       } yield image.slug)
 
       Put(s"/v2/$imageSlug/manifests/sha256:$digest", HttpEntity(`application/json`, manifestV2)) ~> addCredentials(
@@ -294,8 +294,8 @@ final class ImagesHandlerSpec
       val configBlobDigest = "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08"
 
       val (user, image) = Fixtures.await(for {
-        u     <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(u, imageName, ImageVisibilityKind.Private)
+        u     <- UsersFixture.create()
+        image <- ImagesFixture.create(u, imageName, ImageVisibilityKind.Private)
       } yield (u, image))
       val imageSlug = image.slug
 
@@ -310,7 +310,7 @@ final class ImagesHandlerSpec
       }
 
       val configBlob = Fixtures.await(for {
-        res <- ImageBlobsRepoFixture.createAs(
+        res <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           configBlobBs,
@@ -334,14 +334,14 @@ final class ImagesHandlerSpec
 
     "return manifest v1 for GET request to manifest path by tag and digest" in {
       val (im, image, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob1 <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                                image.getId(),
-                                                bs,
-                                                ImageBlobState.Uploaded)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob1 <- ImageBlobsFixture.createAs(user.getId(),
+                                            image.getId(),
+                                            bs,
+                                            ImageBlobState.Uploaded)
         imageSlug = image.slug
-        im <- ImageManifestsRepoFixture.createV1(user.getId(), imageSlug, blob1, "1.0")
+        im <- ImageManifestsFixture.createV1(user.getId(), imageSlug, blob1, "1.0")
       } yield (im, image, imageSlug))
 
       def checkResponse() = {
@@ -371,14 +371,14 @@ final class ImagesHandlerSpec
 
     "return manifest v2 for GET request to manifest path by tag and digest" in {
       val (im, image, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob1 <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                                image.getId(),
-                                                bs,
-                                                ImageBlobState.Uploaded)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob1 <- ImageBlobsFixture.createAs(user.getId(),
+                                            image.getId(),
+                                            bs,
+                                            ImageBlobState.Uploaded)
         imageSlug = image.slug
-        im <- ImageManifestsRepoFixture.createV2(user.getId(), imageSlug, blob1, List("1.0"))
+        im <- ImageManifestsFixture.createV2(user.getId(), imageSlug, blob1, List("1.0"))
       } yield (im, image, imageSlug))
 
       Get(s"/v2/$imageSlug/manifests/1.0") ~> addCredentials(credentials) ~> route ~> check {
@@ -421,14 +421,14 @@ final class ImagesHandlerSpec
 
     "return accepted response for DELETE request to manifest path by digest" in {
       val (im, imageSlug) = Fixtures.await(for {
-        user  <- UsersRepoFixture.create()
-        image <- ImagesRepoFixture.create(user, imageName, ImageVisibilityKind.Private)
-        blob1 <- ImageBlobsRepoFixture.createAs(user.getId(),
-                                                image.getId(),
-                                                bs,
-                                                ImageBlobState.Uploaded)
+        user  <- UsersFixture.create()
+        image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
+        blob1 <- ImageBlobsFixture.createAs(user.getId(),
+                                            image.getId(),
+                                            bs,
+                                            ImageBlobState.Uploaded)
         imageSlug = image.slug
-        im <- ImageManifestsRepoFixture.createV2(user.getId(), imageSlug, blob1, List("1.0"))
+        im <- ImageManifestsFixture.createV2(user.getId(), imageSlug, blob1, List("1.0"))
       } yield (im, imageSlug))
 
       Delete(s"/v2/$imageSlug/manifests/sha256:${im.digest}") ~> addCredentials(credentials) ~> route ~> check {

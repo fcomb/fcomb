@@ -16,16 +16,26 @@
 
 package io.fcomb.tests.fixtures
 
-import cats.data.Validated
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import akka.http.scaladsl.util.FastFuture._
+import io.fcomb.models.Organization
+import io.fcomb.persist.OrganizationsRepo
+import java.time.OffsetDateTime
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-object Fixtures {
-  def get[T](res: Validated[_, T]): T = {
-    val (Validated.Valid(item)) = res
-    item
-  }
+object OrganizationsFixture {
+  val name = "Test org"
 
-  def await[T](fut: Future[T])(implicit timeout: Duration = 10.seconds): T =
-    Await.result(fut, timeout)
+  def create(name: String = name, userId: Int): Future[Organization] =
+    OrganizationsRepo
+      .create(
+        Organization(
+          id = None,
+          name = name,
+          ownerUserId = userId,
+          createdAt = OffsetDateTime.now,
+          updatedAt = None
+        ))
+      .fast
+      .map(Fixtures.get)
 }

@@ -29,7 +29,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.stream.Materializer
 
-object ImageBlobsRepoFixture {
+object ImageBlobsFixture {
   def create(userId: Int, imageId: Int): Future[ImageBlob] = {
     val id = UUID.randomUUID()
     val blob = ImageBlob(
