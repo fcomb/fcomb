@@ -24,7 +24,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object OrganizationsFixture {
-  val name = "Test org"
+  val name = "testorg"
 
   def create(name: String = name, userId: Int): Future[Organization] =
     OrganizationsRepo

@@ -204,7 +204,7 @@ object OrganizationsRepo
   //   update(id)(_.copy(name = req.name))
   // }
 
-  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) =
+  def safeDestroyDBIO(id: Int)(implicit ec: ExecutionContext) =
     for {
       _   <- PermissionsRepo.destroyByOrganizationIdDBIO(id)
       _   <- OrganizationGroupsRepo.destroyByOrganizationIdDBIO(id)
@@ -213,7 +213,7 @@ object OrganizationsRepo
     } yield res
 
   override def destroy(id: Int)(implicit ec: ExecutionContext) =
-    runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
+    runInTransaction(TransactionIsolation.Serializable)(safeDestroyDBIO(id))
 
   private lazy val findSuggestionsCompiled = Compiled {
     (imageId: Rep[Int], orgId: Rep[Int], name: Rep[String], limit: ConstColumn[Long]) =>
@@ -259,7 +259,8 @@ object OrganizationsRepo
 
   override def validate(org: Organization)(implicit ec: ExecutionContext): ValidationDBIOResult = {
     val plainValidations = validatePlain(
-      "name" -> List(lengthRange(org.name, 1, 255))
+      "name" -> List(lengthRange(org.name, 1, 255),
+                     matches(org.name, Organization.nameRegEx, "invalid name format"))
     )
     val dbioValidations = validateDBIO(
       "name" -> List(unique(uniqueNameCompiled((org.id, org.name))))

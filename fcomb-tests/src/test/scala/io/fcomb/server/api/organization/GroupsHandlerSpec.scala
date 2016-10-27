@@ -16,10 +16,17 @@
 
 package io.fcomb.server.api.organization
 
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import io.fcomb.tests._
+import io.fcomb.json.models.errors.Formats.decodeErrors
+import io.fcomb.models.acl.Role
+import io.fcomb.models.errors.Errors
+import io.fcomb.server.Api
+import io.fcomb.server.CirceSupport._
+import io.fcomb.tests.AuthSpec._
 import io.fcomb.tests.fixtures._
-import org.scalatest.concurrent.ScalaFutures
+import io.fcomb.tests._
 import org.scalatest.{Matchers, WordSpec}
 
 final class GroupsHandlerSpec
@@ -27,6 +34,22 @@ final class GroupsHandlerSpec
     with Matchers
     with ScalatestRouteTest
     with SpecHelpers
-    with ScalaFutures
-    with PersistSpec
-    with ActorClusterSpec {}
+    with PersistSpec {
+  val route = Api.routes
+
+  "The groups handler" should {
+    "return an error when deleting an admins group" in {
+      val (org, user) = Fixtures.await(for {
+        user <- UsersFixture.create()
+        org  <- OrganizationsFixture.create(userId = user.getId())
+        _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Creator)
+      } yield (org, user))
+
+      Delete(s"/v1/organizations/${org.name}/groups/admins") ~> authenticate(user) ~> route ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        responseAs[Errors].errors.head shouldEqual Errors
+          .validation("Cannot delete the last admin group", "id")
+      }
+    }
+  }
+}

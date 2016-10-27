@@ -102,9 +102,7 @@ object GroupsHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
-          onSuccess(OrganizationGroupsRepo.destroy(group.getId())) { _ =>
-            completeAccepted()
-          }
+          completeAsAccepted(OrganizationGroupsRepo.safeDestroy(group.getId()))
         }
       }
     }

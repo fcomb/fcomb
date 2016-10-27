@@ -116,7 +116,7 @@ object OrganizationGroupUsersRepo
     runInTransaction(TransactionIsolation.Serializable) {
       UsersRepo.findBySlugAsValidatedDBIO(userSlug).flatMap {
         case Validated.Valid(user) =>
-          OrganizationGroupsRepo.existAdminGroupApartFromDBIO(groupId).flatMap { exist =>
+          OrganizationGroupsRepo.existsAdminGroupApartFromDBIO(groupId).flatMap { exist =>
             if (exist) destroyAsValidatedDBIO(groupId, user.getId())
             else OrganizationGroupsRepo.cannotDeleteAdminGroup
           }

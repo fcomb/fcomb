@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package io.fcomb.models
+package io.fcomb.tests
 
-import java.time.OffsetDateTime
+import akka.http.scaladsl.client.RequestBuilding
+import akka.http.scaladsl.model.headers.Authorization
+import akka.http.scaladsl.model.headers.OAuth2BearerToken
+import io.fcomb.crypto.Jwt
+import io.fcomb.models.User
+import io.fcomb.utils.Config
+import java.time.Instant
 
-final case class Organization(
-    id: Option[Int],
-    name: String,
-    ownerUserId: Int,
-    createdAt: OffsetDateTime,
-    updatedAt: Option[OffsetDateTime]
-) extends ModelWithAutoIntPk {
-  def withId(id: Int) = this.copy(id = Some(id))
-}
+object AuthSpec extends RequestBuilding {
+  def bearerToken(user: User): String =
+    Jwt.encode(user, Config.jwt.secret, Instant.now(), Config.jwt.sessionTtl)
 
-object Organization {
-  val nameRegEx = """[A-Za-z][\w\-\.]*""".r
+  def authenticate(user: User) =
+    addHeader(Authorization(OAuth2BearerToken(bearerToken(user))))
 }

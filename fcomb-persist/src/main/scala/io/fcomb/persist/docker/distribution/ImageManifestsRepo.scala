@@ -231,8 +231,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
   }
 
   override def create(manifest: ImageManifest)(
-      implicit ec: ExecutionContext,
-      m: Manifest[ImageManifest]): Future[ValidationModel] =
+      implicit ec: ExecutionContext): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.Serializable)(
       createWithValidationDBIO(manifest).flatMap {
         case res @ Validated.Valid(im) =>

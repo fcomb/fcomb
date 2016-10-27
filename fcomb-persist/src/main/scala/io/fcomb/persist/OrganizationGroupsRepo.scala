@@ -145,9 +145,8 @@ object OrganizationGroupsRepo
     create(group)
   }
 
-  override def updateDBIO(group: OrganizationGroup)(implicit ec: ExecutionContext,
-                                                    m: Manifest[OrganizationGroup]) =
-    existAdminGroupApartFromDBIO(group.getId()).flatMap { exist =>
+  override def updateDBIO(group: OrganizationGroup)(implicit ec: ExecutionContext) =
+    existsAdminGroupApartFromDBIO(group.getId()).flatMap { exist =>
       if (exist) super.updateDBIO(group)
       else cannotUpdateAdminGroup
     }
@@ -158,9 +157,9 @@ object OrganizationGroupsRepo
   def update(id: Int, req: OrganizationGroupRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
-      existAdminGroupApartFromDBIO(id).flatMap { exist =>
+      existsAdminGroupApartFromDBIO(id).flatMap { exist =>
         if (exist)
-          updateDBIO(id)( // TODO: rewrite this with new validation api
+          updateDBIO(id)(
             _.copy(
               name = req.name,
               role = req.role
@@ -169,21 +168,21 @@ object OrganizationGroupsRepo
       }
     }
 
-  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) =
-    existAdminGroupApartFromDBIO(id).flatMap { exist =>
-      if (exist) {
+  def safeDestroyDBIO(id: Int)(implicit ec: ExecutionContext): DBIO[ValidationResultUnit] =
+    existsAdminGroupApartFromDBIO(id).flatMap {
+      case true =>
         for {
           _   <- PermissionsRepo.destroyByOrganizationGroupIdDBIO(id)
           res <- super.destroyDBIO(id)
-        } yield res
-      } else cannotDeleteAdminGroup
+        } yield Validated.Valid(())
+      case _ => cannotDeleteAdminGroup
     }
 
-  override def destroy(id: Int)(implicit ec: ExecutionContext) =
-    runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
+  def safeDestroy(id: Int)(implicit ec: ExecutionContext) =
+    runInTransaction(TransactionIsolation.Serializable)(safeDestroyDBIO(id))
 
   lazy val cannotDeleteAdminGroup =
-    validationErrorAsDBIO("group", "Cannot delete the last admin group")
+    validationErrorAsDBIO("id", "Cannot delete the last admin group")
 
   def findIdsByOrganizationIdDBIO(organizationId: Int) =
     findByOrgIdDBIO(organizationId).map(_.id)
@@ -191,14 +190,12 @@ object OrganizationGroupsRepo
   def destroyByOrganizationIdDBIO(organizationId: Int) =
     table.filter(_.organizationId === organizationId).delete
 
-  def existAdminGroupApartFromDBIO(groupId: Int): DBIOAction[Boolean, NoStream, Effect.Read] =
+  def existsAdminGroupApartFromDBIO(groupId: Int): DBIOAction[Boolean, NoStream, Effect.Read] =
     table
       .join(table)
       .on(_.organizationId === _.organizationId)
-      .join(OrganizationGroupUsersRepo.table)
-      .on(_._2.id === _.groupId)
       .filter {
-        case ((t, ogt), _) =>
+        case (t, ogt) =>
           t.id === groupId && t.id =!= ogt.id && ogt.role === (Role.Admin: Role)
       }
       .exists
