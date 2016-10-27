@@ -51,5 +51,17 @@ final class GroupsHandlerSpec
           .validation("Cannot delete the last admin group", "id")
       }
     }
+
+    "return an accepted when deleting one of admins group" in {
+      val (org, user) = Fixtures.await(for {
+        user <- UsersFixture.create()
+        org  <- OrganizationsFixture.create(userId = user.getId())
+        _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
+      } yield (org, user))
+
+      Delete(s"/v1/organizations/${org.name}/groups/admins") ~> authenticate(user) ~> route ~> check {
+        status shouldEqual StatusCodes.Accepted
+      }
+    }
   }
 }

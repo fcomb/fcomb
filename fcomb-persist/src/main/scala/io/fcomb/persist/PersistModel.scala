@@ -142,7 +142,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     if (q == 0) error
     else Validated.Valid(res)
 
-  def strictDestroyDBIO(q: Int, error: ValidationResultUnit)(
+  def destroyDBIO(q: Int, error: ValidationResultUnit)(
       implicit ec: ExecutionContext): ValidationResultUnit =
     if (q == 0) error
     else Validated.Valid(())
@@ -227,20 +227,11 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
       case None       => recordNotFoundAsFuture(id)
     }
 
-  def destroyDBIO(id: T#PkType) =
-    findByIdQuery(id).delete
-
-  def destroy(id: T#PkType)(implicit ec: ExecutionContext): Future[Int] =
+  def destroy(id: T#PkType)(implicit ec: ExecutionContext): Future[ValidationResultUnit] =
     db.run(destroyDBIO(id))
 
-  def strictDestroy(id: T#PkType)(implicit ec: ExecutionContext): Future[ValidationResultUnit] =
-    db.run {
-      findByIdQuery(id).delete.map(strictDestroyDBIO(id)(_))
-    }
-
-  def strictDestroyDBIO(id: T#PkType)(q: Int)(
-      implicit ec: ExecutionContext): ValidationResultUnit =
-    super.strictDestroyDBIO(q, recordNotFound(id))
+  def destroyDBIO(id: T#PkType)(implicit ec: ExecutionContext): DBIO[ValidationResultUnit] =
+    findByIdQuery(id).delete.map(destroyDBIO(_, recordNotFound(id)))
 }
 
 trait PersistModelWithUuidPk[

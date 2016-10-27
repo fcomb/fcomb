@@ -510,11 +510,14 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
   def updateVisibility(id: Int, visibilityKind: ImageVisibilityKind): Future[_] =
     db.run(table.filter(_.id === id).map(_.visibilityKind).update(visibilityKind))
 
-  def safeDestroyDBIO(id: Int)(implicit ec: ExecutionContext) =
+  override def destroyDBIO(id: Int)(implicit ec: ExecutionContext) =
     for {
       _   <- ImageBlobsRepo.destroyByImageIdDBIO(id)
       res <- super.destroyDBIO(id)
     } yield res
+
+  override def destroy(id: Int)(implicit ec: ExecutionContext) =
+    runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
 
   def destroyByOrganizationIdDBIO(id: Int)(implicit ec: ExecutionContext) =
     for {
@@ -523,9 +526,6 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
         .filter(t => t.ownerId === id && t.ownerKind === (OwnerKind.Organization: OwnerKind))
         .delete
     } yield res
-
-  override def destroy(id: Int)(implicit ec: ExecutionContext) =
-    runInTransaction(TransactionIsolation.Serializable)(safeDestroyDBIO(id))
 
   private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
     exceptIdFilter(id).filter(_.name === name.asColumnOfType[String]("citext")).exists

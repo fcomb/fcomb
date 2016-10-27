@@ -168,7 +168,7 @@ object OrganizationGroupsRepo
       }
     }
 
-  def safeDestroyDBIO(id: Int)(implicit ec: ExecutionContext): DBIO[ValidationResultUnit] =
+  override def destroyDBIO(id: Int)(implicit ec: ExecutionContext): DBIO[ValidationResultUnit] =
     existsAdminGroupApartFromDBIO(id).flatMap {
       case true =>
         for {
@@ -178,8 +178,8 @@ object OrganizationGroupsRepo
       case _ => cannotDeleteAdminGroup
     }
 
-  def safeDestroy(id: Int)(implicit ec: ExecutionContext) =
-    runInTransaction(TransactionIsolation.Serializable)(safeDestroyDBIO(id))
+  override def destroy(id: Int)(implicit ec: ExecutionContext) =
+    runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
 
   lazy val cannotDeleteAdminGroup =
     validationErrorAsDBIO("id", "Cannot delete the last admin group")

@@ -18,12 +18,13 @@ package io.fcomb.persist.docker.distribution
 
 import cats.data.Xor
 import io.fcomb.Db.db
-import io.fcomb.PostgresProfile.api._
-import io.fcomb.models.OwnerKind
 import io.fcomb.models.docker.distribution.ImageManifest.{emptyTar, emptyTarSha256Digest}
 import io.fcomb.models.docker.distribution.{BlobFileState, ImageBlob, ImageBlobState}
+import io.fcomb.models.OwnerKind
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.{PersistModelWithUuidPk, PersistTableWithUuidPk}
+import io.fcomb.PostgresProfile.api._
+import io.fcomb.validation.ValidationResultUnit
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -168,13 +169,11 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         .update((state, length, Some(digest)))
     }
 
-  override def destroy(id: UUID)(implicit ec: ExecutionContext): Future[Int] =
-    db.run {
-      for {
-        res <- destroyDBIO(id)
-        _   <- BlobFilesRepo.markOrDestroyDBIO(id)
-      } yield res
-    }
+  override def destroy(id: UUID)(implicit ec: ExecutionContext): Future[ValidationResultUnit] =
+    db.run(for {
+      res <- destroyDBIO(id)
+      _   <- BlobFilesRepo.markOrDestroyDBIO(id)
+    } yield res)
 
   def duplicateDigestsByImageIdDBIO(imageId: Int) =
     table
