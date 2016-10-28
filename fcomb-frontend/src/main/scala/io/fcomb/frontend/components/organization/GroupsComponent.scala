@@ -21,9 +21,16 @@ import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import diode.data.{Empty, Failed, Pot, Ready}
 import diode.react.ReactPot._
-import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
-import io.fcomb.frontend.components.{LayoutComponent, PaginationOrderState, TableComponent}
+import io.fcomb.frontend.components.Helpers._
+import io.fcomb.frontend.components.Implicits._
+import io.fcomb.frontend.components.{
+  AlertDialogComponent,
+  LayoutComponent,
+  PaginationOrderState,
+  TableComponent
+}
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.acl.Role
 import io.fcomb.models.errors.ErrorsException
@@ -33,15 +40,15 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
+import scala.scalajs.js
 
 object GroupsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
-  final case class FormState(name: String,
-                             role: Role,
-                             errors: Map[String, String],
-                             isDisabled: Boolean)
+  final case class FormState(name: String, role: Role, errors: Map[String, String])
   final case class State(groups: Pot[Seq[OrganizationGroupResponse]],
                          pagination: PaginationOrderState,
+                         error: Option[String],
+                         isDisabled: Boolean,
                          form: FormState) {
     def flipSortColumn(column: String): State = {
       val sortOrder =
@@ -51,11 +58,21 @@ object GroupsComponent {
     }
   }
 
-  private def defaultFormState =
-    FormState("", Role.Member, Map.empty, false)
+  private def defaultFormState = FormState("", Role.Member, Map.empty)
 
   final class Backend($ : BackendScope[Props, State]) {
     val limit = 25
+
+    def modFormState(f: FormState => FormState): Callback =
+      $.modState(st => st.copy(form = f(st.form)))
+
+    def tryAcquireState(f: State => Callback) =
+      $.state.flatMap { state =>
+        if (state.isDisabled) Callback.warn("State is already acquired")
+        else
+          $.setState(state.copy(isDisabled = true)) >> f(state).finallyRun(
+            $.modState(_.copy(isDisabled = false)))
+      }
 
     def getGroups(pos: PaginationOrderState): Callback =
       $.props.flatMap { props =>
@@ -89,7 +106,8 @@ object GroupsComponent {
       e.preventDefaultCB >>
         Callback.future(Rpc.deleteOrganizationGroup(slug, group).map {
           case Xor.Right(_) => $.state.flatMap(st => getGroups(st.pagination))
-          case Xor.Left(e)  => Callback.warn(e)
+          case Xor.Left(errs) =>
+            $.modState(_.copy(isDisabled = false, error = Some(joinErrors(errs))))
         })
 
     def renderGroup(props: Props, group: OrganizationGroupResponse, isDisabled: Boolean) = {
@@ -119,15 +137,108 @@ object GroupsComponent {
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
-    def render(props: Props, state: State) =
-      <.section(state.groups.render(gs =>
-        renderGroups(props, gs, state.pagination, state.form.isDisabled)))
+    def add(props: Props): Callback =
+      tryAcquireState { state =>
+        val fs = state.form
+        Callback.future(Rpc.createOrganizationGroup(props.slug, fs.name, fs.role).map {
+          case Xor.Right(_) =>
+            $.modState(_.copy(form = defaultFormState)) >> getGroups(state.pagination)
+          case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
+        })
+      }
+
+    def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
+      e.preventDefaultCB >> add(props)
+
+    def updateName(e: ReactEventI): Callback = {
+      val name = e.target.value
+      modFormState(_.copy(name = name))
+    }
+
+    def renderFormName(props: Props, state: State) =
+      <.div(^.`class` := "row",
+            ^.key := "name",
+            <.div(^.`class` := "col-xs-6",
+                  MuiTextField(floatingLabelText = "Name",
+                               id = "name",
+                               name = "name",
+                               disabled = state.isDisabled,
+                               errorText = state.form.errors.get("name"),
+                               fullWidth = true,
+                               value = state.form.name,
+                               onChange = updateName _)()),
+            <.div(LayoutComponent.helpBlockClass,
+                  ^.style := App.helpBlockStyle,
+                  <.label(^.`for` := "name", "Unique name of group.")))
+
+    lazy val roleHelpBlock =
+      <.div(
+        "What can a group user do with repositories:",
+        <.ul(<.li(<.strong("Member"), " - pull only;"),
+             <.li(<.strong("Creator"), " - create, pull and push;"),
+             <.li(<.strong("Admin"), " - create, pull, push and manage groups and permissions.")))
+
+    lazy val roles = Role.values.map(r =>
+      MuiMenuItem[Role](key = r.value, value = r, primaryText = r.entryName.capitalize)())
+
+    def updateRole(e: ReactEventI, idx: Int, role: Role): Callback =
+      modFormState(_.copy(role = role))
+
+    def renderFormRole(state: State) =
+      <.div(^.`class` := "row",
+            ^.key := "role",
+            <.div(^.`class` := "col-xs-6",
+                  MuiSelectField[Role](id = "role",
+                                       floatingLabelText = "Role",
+                                       errorText = state.form.errors.get("role"),
+                                       value = state.form.role,
+                                       fullWidth = true,
+                                       onChange = updateRole _)(roles)),
+            <.div(LayoutComponent.helpBlockClass,
+                  ^.style := App.helpBlockStyle,
+                  <.label(^.`for` := "role", roleHelpBlock)))
+
+    def renderFormButton(state: State) = {
+      val submitIsDisabled = state.isDisabled || state.form.name.isEmpty
+      <.div(^.style := App.paddingTopStyle,
+            ^.key := "button",
+            MuiRaisedButton(`type` = "submit",
+                            primary = true,
+                            label = "Add",
+                            disabled = submitIsDisabled)())
+    }
+
+    lazy val headerStyle = js.Dictionary("marginBottom" -> "0px")
+
+    def renderForm(props: Props, state: State) =
+      <.form(App.separateBlock,
+             ^.onSubmit ==> handleOnSubmit(props),
+             ^.disabled := state.isDisabled,
+             <.h3(^.style := headerStyle, "New group"),
+             renderFormName(props, state),
+             renderFormRole(state),
+             renderFormButton(state))
+
+    def render(props: Props, state: State) = {
+      val alertDialog: ReactNode = state.error match {
+        case Some(error) =>
+          AlertDialogComponent("An error occurred while trying to delete this group",
+                               isModal = false,
+                               <.span(error))
+        case _ => <.div()
+      }
+      <.section(
+        alertDialog,
+        state.groups.render(gs => renderGroups(props, gs, state.pagination, state.isDisabled)),
+        renderForm(props, state))
+    }
   }
 
   private val component = ReactComponentB[Props]("Groups")
-    .initialState(State(Empty, PaginationOrderState("name"), defaultFormState))
+    .initialState(
+      State(Empty, PaginationOrderState("name"), None, isDisabled = false, defaultFormState))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getGroups($.state.pagination))
+    .componentDidMount($ => $.backend.getGroups($.state.pagination))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], slug: String) =

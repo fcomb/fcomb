@@ -47,7 +47,7 @@ object DeleteRepositoryComponent {
             Callback.future(Rpc.deleteRepository(props.slug).map {
               case Xor.Right(_) => props.ctl.set(DashboardRoute.Root)
               case Xor.Left(errs) =>
-                $.modState(_.copy(isDisabled = false, error = Some(joinErrors(errs, "; "))))
+                $.modState(_.copy(isDisabled = false, error = Some(joinErrors(errs))))
             })
       }
 

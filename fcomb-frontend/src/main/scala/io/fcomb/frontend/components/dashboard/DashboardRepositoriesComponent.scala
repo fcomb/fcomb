@@ -71,7 +71,7 @@ object DashboardRepositoriesComponent {
   private val component = ReactComponentB[Props]("DashboardRepositories")
     .initialState(State(None))
     .renderBackend[Backend]
-    .componentWillMount(_.backend.setDefaultOwner())
+    .componentDidMount(_.backend.setDefaultOwner())
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute]) =

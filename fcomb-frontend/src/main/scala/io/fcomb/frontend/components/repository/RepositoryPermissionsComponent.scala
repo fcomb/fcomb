@@ -23,12 +23,11 @@ import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.components.{LayoutComponent, PaginationOrderState, TableComponent}
 import io.fcomb.frontend.styles.App
-import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.errors.ErrorsException
 import io.fcomb.models.{OwnerKind, SortOrder}
@@ -57,8 +56,7 @@ object RepositoryPermissionsComponent {
     }
   }
 
-  private def defaultFormState =
-    FormState(None, Action.Read, Map.empty, false)
+  private def defaultFormState = FormState(None, Action.Read, Map.empty, false)
 
   final class Backend($ : BackendScope[Props, State]) {
     val limit = 25
@@ -97,7 +95,7 @@ object RepositoryPermissionsComponent {
       if (prevAction === newAction) Callback.empty
       else
         tryAcquireState { state =>
-          Callback.future(upsertPermission(slug, name, kind, newAction).map {
+          Callback.future(Rpc.upsertPermission(slug, name, kind, newAction).map {
             case Xor.Right(_)   => getPermissions(state.pagination)
             case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
           })
@@ -170,28 +168,17 @@ object RepositoryPermissionsComponent {
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
-    private def upsertPermission(slug: String, name: String, kind: MemberKind, action: Action) = {
-      val member = kind match {
-        case MemberKind.User  => PermissionUsernameRequest(name)
-        case MemberKind.Group => PermissionGroupNameRequest(name)
-      }
-      val req = PermissionCreateRequest(member, action)
-      Rpc.callWith[PermissionCreateRequest, PermissionResponse](
-        RpcMethod.PUT,
-        Resource.repositoryPermissions(slug),
-        req)
-    }
-
     def add(props: Props): Callback =
       tryAcquireState { state =>
         val fs = state.form
         fs.member match {
           case Some(member) =>
-            Callback.future(upsertPermission(props.slug, member.name, member.kind, fs.action).map {
-              case Xor.Right(_) =>
-                $.modState(_.copy(form = defaultFormState)) >> getPermissions(state.pagination)
-              case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
-            })
+            Callback.future(
+              Rpc.upsertPermission(props.slug, member.name, member.kind, fs.action).map {
+                case Xor.Right(_) =>
+                  $.modState(_.copy(form = defaultFormState)) >> getPermissions(state.pagination)
+                case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
+              })
           case _ => Callback.empty
         }
       }
@@ -200,10 +187,10 @@ object RepositoryPermissionsComponent {
       e.preventDefaultCB >> add(props)
 
     def updateMember(member: PermissionMemberResponse): Callback =
-      $.modState(s => s.copy(form = s.form.copy(member = Some(member))))
+      modFormState(_.copy(member = Some(member)))
 
     def updateAction(e: ReactEventI, idx: Int, action: Action): Callback =
-      $.modState(s => s.copy(form = s.form.copy(action = action)))
+      modFormState(_.copy(action = action))
 
     def renderFormMember(props: Props, state: State) =
       <.div(^.`class` := "row",
@@ -269,7 +256,7 @@ object RepositoryPermissionsComponent {
   private val component = ReactComponentB[Props]("RepositoryPermissions")
     .initialState(State(Empty, PaginationOrderState("action", SortOrder.Desc), defaultFormState))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getPermissions($.state.pagination))
+    .componentDidMount($ => $.backend.getPermissions($.state.pagination))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], slug: String, ownerKind: OwnerKind) =

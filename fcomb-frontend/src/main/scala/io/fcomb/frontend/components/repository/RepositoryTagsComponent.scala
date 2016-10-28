@@ -123,7 +123,7 @@ object RepositoryTagsComponent {
   private val component = ReactComponentB[Props]("RepositoryTags")
     .initialState(State(Empty, PaginationOrderState("updatedAt", SortOrder.Desc)))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getTags($.state.pagination))
+    .componentDidMount($ => $.backend.getTags($.state.pagination))
     .build
 
   def apply(slug: String) =

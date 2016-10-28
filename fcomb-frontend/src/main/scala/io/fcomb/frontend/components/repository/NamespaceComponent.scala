@@ -104,7 +104,7 @@ object NamespaceComponent {
     ReactComponentB[Props]("Namespace")
       .initialState(State(None, Seq.empty, js.Array()))
       .renderBackend[Backend]
-      .componentWillMount(_.backend.fetchNamespaces())
+      .componentDidMount(_.backend.fetchNamespaces())
       .build
 
   def apply(namespace: Namespace,

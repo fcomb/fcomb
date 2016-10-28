@@ -116,7 +116,7 @@ object OrganizationsComponent {
   private val component = ReactComponentB[Props]("Organizations")
     .initialState(State(Empty, PaginationOrderState("name")))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getOrgs($.state.pagination))
+    .componentDidMount($ => $.backend.getOrgs($.state.pagination))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute]) =

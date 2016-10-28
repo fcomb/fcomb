@@ -28,6 +28,6 @@ object Helpers {
         m + ((column, value))
     }
 
-  def joinErrors(errors: Seq[Error], joinString: String): String =
+  def joinErrors(errors: Seq[Error], joinString: String = "; "): String =
     foldErrors(errors).values.mkString(joinString)
 }

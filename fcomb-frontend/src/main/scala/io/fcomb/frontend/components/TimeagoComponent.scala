@@ -59,7 +59,7 @@ object TimeAgoComponent {
   private val component = ReactComponentB[Date]("TimeAgo")
     .initialState(State(""))
     .renderBackend[Backend]
-    .componentWillMount(_.backend.updateDistance())
+    .componentDidMount(_.backend.updateDistance())
     .componentDidMount(_.backend.startTimer())
     .componentWillUnmount(_.backend.stopTimer())
     .build

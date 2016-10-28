@@ -30,13 +30,13 @@ import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.json.rpc.Formats._
-import io.fcomb.models.acl.{MemberKind, Role}
+import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
 import io.fcomb.models.{Owner, OwnerKind, PaginationData, SortOrder}
-import io.fcomb.rpc.acl.PermissionResponse
+import io.fcomb.rpc.acl._
 import io.fcomb.rpc.docker.distribution._
-import io.fcomb.rpc.{OrganizationGroupResponse, OrganizationResponse}
+import io.fcomb.rpc._
 import org.scalajs.dom.ext.{Ajax, AjaxException}
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
@@ -121,6 +121,18 @@ object Rpc {
                                              queryParams)
   }
 
+  def upsertPermission(slug: String, name: String, kind: MemberKind, action: Action)(
+      implicit ec: ExecutionContext) = {
+    val member = kind match {
+      case MemberKind.User  => PermissionUsernameRequest(name)
+      case MemberKind.Group => PermissionGroupNameRequest(name)
+    }
+    val req = PermissionCreateRequest(member, action)
+    callWith[PermissionCreateRequest, PermissionResponse](RpcMethod.PUT,
+                                                          Resource.repositoryPermissions(slug),
+                                                          req)
+  }
+
   def deletRepositoryPermission(slug: String, name: String, kind: MemberKind)(
       implicit ec: ExecutionContext) = {
     val url = Resource.repositoryPermission(slug, kind, name)
@@ -174,6 +186,15 @@ object Rpc {
 
   def deleteOrganizationGroup(slug: String, group: String)(implicit ec: ExecutionContext) =
     call[Unit](RpcMethod.DELETE, Resource.organizationGroup(slug, group))
+
+  def createOrganizationGroup(slug: String, name: String, role: Role)(
+      implicit ec: ExecutionContext) = {
+    val req = OrganizationGroupRequest(name, role)
+    callWith[OrganizationGroupRequest, OrganizationGroupResponse](
+      RpcMethod.POST,
+      Resource.organizationGroups(slug),
+      req)
+  }
 
   def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,

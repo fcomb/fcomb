@@ -81,14 +81,12 @@ object EditRepositoryComponent {
     def modFormState(f: FormState => FormState): Callback =
       $.modState(st => st.copy(form = st.form.map(f)))
 
-    def updateVisibilityKind(e: ReactEventI, value: String): Callback = {
-      val kind = ImageVisibilityKind.withName(value)
-      modFormState(_.copy(visibilityKind = kind))
-    }
+    def updateVisibilityKind(e: ReactEventI, value: String): Callback =
+      modFormState(_.copy(visibilityKind = ImageVisibilityKind.withName(value)))
 
     def updateDescription(e: ReactEventI): Callback = {
-      val value = e.target.value
-      modFormState(_.copy(description = value))
+      val description = e.target.value
+      modFormState(_.copy(description = description))
     }
 
     def cancel(e: ReactEventH): Callback =
@@ -143,7 +141,7 @@ object EditRepositoryComponent {
   private val component = ReactComponentB[Props]("EditRepository")
     .initialState(State(None, Map.empty, false))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.applyState($.props))
+    .componentDidMount($ => $.backend.applyState($.props))
     .componentWillReceiveProps(lc => lc.$.backend.applyState(lc.nextProps))
     .build
 

@@ -179,7 +179,7 @@ object GroupComponent {
   private val component = ReactComponentB[Props]("Group")
     .initialState(State(None, Seq.empty, defaultFormState))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getGroupWithMembers($.props.orgName, $.props.name))
+    .componentDidMount($ => $.backend.getGroupWithMembers($.props.orgName, $.props.name))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], orgName: String, name: String) =

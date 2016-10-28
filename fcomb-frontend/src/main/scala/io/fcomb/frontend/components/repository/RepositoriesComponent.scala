@@ -146,7 +146,7 @@ object RepositoriesComponent {
   private val component = ReactComponentB[Props]("Repositories")
     .initialState(State(Empty, defaultPagination))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getRepos($.props.namespace, defaultPagination))
+    .componentDidMount($ => $.backend.getRepos($.props.namespace, defaultPagination))
     .componentWillReceiveProps(lc =>
       lc.$.backend.getRepos(lc.nextProps.namespace, defaultPagination))
     .build
