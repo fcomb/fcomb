@@ -19,16 +19,14 @@ package io.fcomb.frontend.components.auth
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.services.AuthService
 import io.fcomb.frontend.{DashboardRoute, Route}
-import io.fcomb.json.rpc.Formats.encodeUserSignUpRequest
-import io.fcomb.rpc.UserSignUpRequest
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
@@ -54,14 +52,8 @@ object SignUpComponent {
                 case s if s.nonEmpty => Some(s)
                 case _               => None
               }
-              val req = UserSignUpRequest(
-                email = email,
-                password = password,
-                username = state.username.trim(),
-                fullName = fullName
-              )
               Rpc
-                .callWith[UserSignUpRequest, Unit](RpcMethod.POST, Resource.signUp, req)
+                .signUp(email, password, state.username.trim(), fullName)
                 .flatMap {
                   case Xor.Right(_)      => AuthService.authentication(email, password)
                   case res @ Xor.Left(_) => Future.successful(res)
@@ -70,9 +62,6 @@ object SignUpComponent {
                   case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
                   case Xor.Left(errs) =>
                     $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
-                }
-                .recover {
-                  case _ => $.setState(state.copy(isFormDisabled = false))
                 }
             }
           }

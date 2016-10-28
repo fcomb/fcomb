@@ -19,15 +19,13 @@ package io.fcomb.frontend.components.organization
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Rpc, RpcMethod, Resource}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.json.rpc.Formats._
-import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationResponse}
-import japgolly.scalajs.react._
+import io.fcomb.frontend.DashboardRoute
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object NewOrganizationComponent {
@@ -40,25 +38,15 @@ object NewOrganizationComponent {
         if (state.isFormDisabled) Callback.empty
         else {
           $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
-            Callback.future {
-              val req = OrganizationCreateRequest(state.name)
-              Rpc
-                .callWith[OrganizationCreateRequest, OrganizationResponse](RpcMethod.POST,
-                                                                           Resource.organizations,
-                                                                           req)
-                .map {
+            Callback.future(Rpc.createOrganization(state.name).map {
                   case Xor.Right(org) => ctl.set(DashboardRoute.Organization(org.name))
                   case Xor.Left(errs) =>
                     $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
-                }
-                .recover {
-                  case _ => $.setState(state.copy(isFormDisabled = false))
-                }
+                })
             }
           }
         }
       }
-    }
 
     def handleOnSubmit(ctl: RouterCtl[DashboardRoute])(e: ReactEventH): Callback = {
       e.preventDefaultCB >> create(ctl)

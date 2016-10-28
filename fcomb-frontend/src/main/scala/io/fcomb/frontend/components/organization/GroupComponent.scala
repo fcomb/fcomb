@@ -19,17 +19,14 @@ package io.fcomb.frontend.components.organization
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.json.rpc.Formats._
-import io.fcomb.json.models.Formats.decodePaginationData
-import io.fcomb.models.PaginationData
-import io.fcomb.rpc.{MemberUsernameRequest, OrganizationGroupResponse, UserProfileResponse}
-import japgolly.scalajs.react._
+import io.fcomb.frontend.DashboardRoute
+import io.fcomb.rpc.{OrganizationGroupResponse, UserProfileResponse}
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object GroupComponent {
@@ -45,28 +42,17 @@ object GroupComponent {
     FormState("", Map.empty, false)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def getGroup(orgName: String, name: String) =
-      Callback.future {
-        Rpc
-          .call[OrganizationGroupResponse](RpcMethod.GET,
-                                           Resource.organizationGroup(orgName, name))
-          .map {
-            case Xor.Right(group) => $.modState(_.copy(group = Some(group)))
-            case Xor.Left(e)      => Callback.warn(e)
-          }
-      }
+    def getGroup(slug: String, group: String) =
+      Callback.future(Rpc.getOrgaizationGroup(slug, group).map {
+        case Xor.Right(group) => $.modState(_.copy(group = Some(group)))
+        case Xor.Left(e)      => Callback.warn(e)
+      })
 
     def getMembers(orgName: String, name: String) =
-      Callback.future {
-        Rpc
-          .call[PaginationData[UserProfileResponse]](
-            RpcMethod.GET,
-            Resource.organizationGroupMembers(orgName, name))
-          .map {
-            case Xor.Right(pd) => $.modState(_.copy(members = pd.data))
-            case Xor.Left(e)   => Callback.warn(e)
-          }
-      }
+      Callback.future(Rpc.getOrgaizationGroupMembers(orgName, name).map {
+        case Xor.Right(pd) => $.modState(_.copy(members = pd.data))
+        case Xor.Left(e)   => Callback.warn(e)
+      })
 
     def getGroupWithMembers(orgName: String, name: String): Callback =
       for {
@@ -86,15 +72,10 @@ object GroupComponent {
 
     def deleteMember(orgName: String, name: String, username: String)(e: ReactEventI) =
       e.preventDefaultCB >>
-        Callback.future {
-          Rpc
-            .call[Unit](RpcMethod.DELETE,
-                        Resource.organizationGroupMember(orgName, name, username))
-            .map {
-              case Xor.Right(_) => getMembers(orgName, name)
-              case Xor.Left(e)  => ??? // TODO
-            }
-        }
+        Callback.future(Rpc.deleteOrganizationGroupMember(orgName, name, username).map {
+          case Xor.Right(_) => getMembers(orgName, name)
+          case Xor.Left(e)  => ??? // TODO
+        })
 
     def renderMember(orgName: String, name: String, member: UserProfileResponse) =
       <.tr(<.td(member.username),
@@ -119,24 +100,15 @@ object GroupComponent {
         if (fs.isFormDisabled) Callback.empty
         else {
           $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
-            Callback.future {
-              Rpc
-                .callWith[MemberUsernameRequest, Unit](
-                  RpcMethod.PUT,
-                  Resource.organizationGroupMembers(props.orgName, props.name),
-                  MemberUsernameRequest(fs.username))
-                .map {
-                  case Xor.Right(_) =>
-                    $.modState(_.copy(form = defaultFormState)) >>
-                      getMembers(props.orgName, props.name)
-                  case Xor.Left(errs) =>
-                    $.setState(state.copy(
-                      form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
-                }
-                .recover {
-                  case _ => updateFormDisabled(false)
-                }
-            }
+            Callback.future(
+              Rpc.upsertOrganizationGroupMember(props.orgName, props.name, fs.username).map {
+                case Xor.Right(_) =>
+                  $.modState(_.copy(form = defaultFormState)) >>
+                    getMembers(props.orgName, props.name)
+                case Xor.Left(errs) =>
+                  $.setState(state.copy(
+                    form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
+              })
         }
       }
 
