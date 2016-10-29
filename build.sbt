@@ -159,7 +159,7 @@ lazy val persist = project
   .settings(allSettings: _*)
   .settings(libraryDependencies ++= Seq(
     "commons-codec"       % "commons-codec"        % commonsVersion,
-    "io.fcomb"            %% "db-migration"        % "0.3.3-RC1",
+    "io.fcomb"            %% "db-migration"        % "0.3.3",
     "org.postgresql"      % "postgresql"           % "9.4.1211" exclude ("org.slf4j", "slf4j-simple"),
     "com.typesafe.akka"   %% "akka-http"           % akkaHttpVersion,
     "com.typesafe.slick"  %% "slick"               % slickVersion,

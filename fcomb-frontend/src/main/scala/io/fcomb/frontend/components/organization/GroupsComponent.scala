@@ -23,7 +23,7 @@ import diode.data.{Empty, Failed, Pot, Ready}
 import diode.react.ReactPot._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
-import io.fcomb.frontend.components.Implicits._
+import io.fcomb.frontend.components.organization.GroupForm._
 import io.fcomb.frontend.components.{
   AlertDialogComponent,
   LayoutComponent,
@@ -44,7 +44,6 @@ import scala.scalajs.js
 
 object GroupsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
-  final case class FormState(name: String, role: Role, errors: Map[String, String])
   final case class State(groups: Pot[Seq[OrganizationGroupResponse]],
                          pagination: PaginationOrderState,
                          error: Option[String],
@@ -57,8 +56,6 @@ object GroupsComponent {
       this.copy(pagination = pagination.copy(sortColumn = column, sortOrder = sortOrder))
     }
   }
-
-  private def defaultFormState = FormState("", Role.Member, Map.empty)
 
   final class Backend($ : BackendScope[Props, State]) {
     val limit = 25
@@ -155,48 +152,8 @@ object GroupsComponent {
       modFormState(_.copy(name = name))
     }
 
-    def renderFormName(props: Props, state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "name",
-            <.div(^.`class` := "col-xs-6",
-                  MuiTextField(floatingLabelText = "Name",
-                               id = "name",
-                               name = "name",
-                               disabled = state.isDisabled,
-                               errorText = state.form.errors.get("name"),
-                               fullWidth = true,
-                               value = state.form.name,
-                               onChange = updateName _)()),
-            <.div(LayoutComponent.helpBlockClass,
-                  ^.style := App.helpBlockStyle,
-                  <.label(^.`for` := "name", "Unique group name.")))
-
-    lazy val roleHelpBlock =
-      <.div(
-        "What can a group user do with repositories:",
-        <.ul(<.li(<.strong("Member"), " - pull only;"),
-             <.li(<.strong("Creator"), " - create, pull and push;"),
-             <.li(<.strong("Admin"), " - create, pull, push and manage groups and permissions.")))
-
-    lazy val roles = Role.values.map(r =>
-      MuiMenuItem[Role](key = r.value, value = r, primaryText = r.entryName.capitalize)())
-
     def updateRole(e: ReactEventI, idx: Int, role: Role): Callback =
       modFormState(_.copy(role = role))
-
-    def renderFormRole(state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "role",
-            <.div(^.`class` := "col-xs-6",
-                  MuiSelectField[Role](id = "role",
-                                       floatingLabelText = "Role",
-                                       errorText = state.form.errors.get("role"),
-                                       value = state.form.role,
-                                       fullWidth = true,
-                                       onChange = updateRole _)(roles)),
-            <.div(LayoutComponent.helpBlockClass,
-                  ^.style := App.helpBlockStyle,
-                  <.label(^.`for` := "role", roleHelpBlock)))
 
     def renderFormButton(state: State) = {
       val submitIsDisabled = state.isDisabled || state.form.name.isEmpty
@@ -215,8 +172,8 @@ object GroupsComponent {
              ^.onSubmit ==> handleOnSubmit(props),
              ^.disabled := state.isDisabled,
              <.h3(^.style := headerStyle, "New group"),
-             renderFormName(props, state),
-             renderFormRole(state),
+             renderFormName(state.form, state.isDisabled, updateName _),
+             renderFormRole(state.form, state.isDisabled, updateRole _),
              renderFormButton(state))
 
     def render(props: Props, state: State) = {
