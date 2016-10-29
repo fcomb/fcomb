@@ -87,7 +87,7 @@ object GroupsHandler {
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
           entity(as[OrganizationGroupRequest]) { req =>
-            onSuccess(OrganizationGroupsRepo.update(group.getId(), req)) {
+            onSuccess(OrganizationGroupsRepo.update(group.getId(), user.getId(), req)) {
               case Validated.Valid(updated) =>
                 val res = OrganizationGroupHelpers.responseFrom(updated)
                 complete((StatusCodes.Accepted, res))
@@ -102,7 +102,7 @@ object GroupsHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
-          completeAsAccepted(OrganizationGroupsRepo.destroy(group.getId()))
+          completeAsAccepted(OrganizationGroupsRepo.destroy(group.getId(), user.getId()))
         }
       }
     }

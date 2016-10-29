@@ -251,8 +251,6 @@ object OrganizationsRepo
 
   import Validations._
 
-  // TODO: check name format
-
   private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
     exceptIdFilter(id).filter(_.name === name.asColumnOfType[String]("citext")).exists
   }

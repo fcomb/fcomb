@@ -30,6 +30,10 @@ final case class OrganizationGroup(
   def withId(id: Int) = this.copy(id = Some(id))
 }
 
+object OrganizationGroup {
+  val nameRegEx = """[A-Za-z][\w\-\.]*""".r
+}
+
 final case class OrganizationGroupUser(
     groupId: Int,
     userId: Int

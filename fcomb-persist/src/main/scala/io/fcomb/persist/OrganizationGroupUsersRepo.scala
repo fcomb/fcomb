@@ -112,13 +112,13 @@ object OrganizationGroupUsersRepo
       else Validated.Valid(())
     }
 
-  def destroy(groupId: Int, userSlug: Slug)(implicit ec: ExecutionContext) =
+  def destroy(groupId: Int, userId: Int, memberSlug: Slug)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable) {
-      UsersRepo.findBySlugAsValidatedDBIO(userSlug).flatMap {
-        case Validated.Valid(user) =>
-          OrganizationGroupsRepo.existsAdminGroupApartFromDBIO(groupId).flatMap { exist =>
-            if (exist) destroyAsValidatedDBIO(groupId, user.getId())
-            else OrganizationGroupsRepo.cannotDeleteAdminGroup
+      UsersRepo.findBySlugAsValidatedDBIO(memberSlug).flatMap {
+        case Validated.Valid(member) =>
+          OrganizationGroupsRepo.existsAdminGroupApartFromDBIO(groupId, userId).flatMap {
+            case true => destroyAsValidatedDBIO(groupId, member.getId())
+            case _    => OrganizationGroupsRepo.cannotDeleteAdminGroup
           }
         case res @ Validated.Invalid(_) => DBIO.successful(res)
       }

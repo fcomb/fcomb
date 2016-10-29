@@ -169,7 +169,7 @@ object GroupsComponent {
                                onChange = updateName _)()),
             <.div(LayoutComponent.helpBlockClass,
                   ^.style := App.helpBlockStyle,
-                  <.label(^.`for` := "name", "Unique name of group.")))
+                  <.label(^.`for` := "name", "Unique group name.")))
 
     lazy val roleHelpBlock =
       <.div(

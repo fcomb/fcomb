@@ -64,7 +64,7 @@ object MembersHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
-          onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), memberSlug)) {
+          onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), user.getId(), memberSlug)) {
             case Validated.Valid(p)      => completeAccepted()
             case Validated.Invalid(errs) => completeErrors(errs)
           }

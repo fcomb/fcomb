@@ -2,7 +2,7 @@ import com.typesafe.sbt.packager.MappingsHelper._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
-lazy val akkaVersion         = "2.4.11"
+lazy val akkaVersion         = "2.4.12"
 lazy val akkaHttpVersion     = "3.0.0-RC1"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.7.2"

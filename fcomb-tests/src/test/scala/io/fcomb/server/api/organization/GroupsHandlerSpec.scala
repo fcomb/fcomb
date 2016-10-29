@@ -39,29 +39,46 @@ final class GroupsHandlerSpec
 
   "The groups handler" should {
     "return an error when deleting an admins group" in {
-      val (org, user) = Fixtures.await(for {
+      val (user, org) = Fixtures.await(for {
         user <- UsersFixture.create()
         org  <- OrganizationsFixture.create(userId = user.getId())
         _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Creator)
-      } yield (org, user))
+      } yield (user, org))
 
       Delete(s"/v1/organizations/${org.name}/groups/admins") ~> authenticate(user) ~> route ~> check {
         status shouldEqual StatusCodes.BadRequest
         responseAs[Errors].errors.head shouldEqual Errors
-          .validation("Cannot delete the last admin group", "id")
+          .validation("Cannot delete your last admin group", "id")
+      }
+    }
+
+    "return an error when deleting an own admins group" in {
+      val (user, org) = Fixtures.await(for {
+        user <- UsersFixture.create()
+        org  <- OrganizationsFixture.create(userId = user.getId())
+        _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
+      } yield (user, org))
+
+      Delete(s"/v1/organizations/${org.name}/groups/admins") ~> authenticate(user) ~> route ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        responseAs[Errors].errors.head shouldEqual Errors
+          .validation("Cannot delete your last admin group", "id")
       }
     }
 
     "return an accepted when deleting one of admins group" in {
-      val (org, user) = Fixtures.await(for {
-        user <- UsersFixture.create()
-        org  <- OrganizationsFixture.create(userId = user.getId())
-        _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
-      } yield (org, user))
+      val (user, org, group) = Fixtures.await(for {
+        user  <- UsersFixture.create()
+        org   <- OrganizationsFixture.create(userId = user.getId())
+        group <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
+        // TODO: add user as a member to new group
+      } yield (user, org, group))
 
-      Delete(s"/v1/organizations/${org.name}/groups/admins") ~> authenticate(user) ~> route ~> check {
+      Delete(s"/v1/organizations/${org.name}/groups/${group.name}") ~> authenticate(user) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
       }
     }
+
+    // TODO: check update role
   }
 }
