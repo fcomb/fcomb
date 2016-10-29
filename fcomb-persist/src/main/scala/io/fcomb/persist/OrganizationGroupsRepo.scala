@@ -143,7 +143,7 @@ object OrganizationGroupsRepo
   }
 
   private lazy val cannotUpdateAdminGroupRole =
-    validationErrorAsDBIO("role", "Cannot change the last admin group role")
+    validationErrorAsDBIO("role", "Cannot downgrade role of the last admin group")
 
   def updateDBIO(id: Int, userId: Int)(f: OrganizationGroup => OrganizationGroup)(
       implicit ec: ExecutionContext) =

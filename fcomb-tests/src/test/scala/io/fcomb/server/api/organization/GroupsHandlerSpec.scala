@@ -20,8 +20,10 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.fcomb.json.models.errors.Formats.decodeErrors
+import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.errors.Errors
+import io.fcomb.rpc._
 import io.fcomb.server.Api
 import io.fcomb.server.CirceSupport._
 import io.fcomb.tests.AuthSpec._
@@ -38,7 +40,51 @@ final class GroupsHandlerSpec
   val route = Api.routes
 
   "The groups handler" should {
-    "return an error when deleting an admins group" in {
+    "return an error when downgrading the last admin group" in {
+      val (user, org) = Fixtures.await(for {
+        user <- UsersFixture.create()
+        org  <- OrganizationsFixture.create(userId = user.getId())
+        _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Creator)
+      } yield (user, org))
+      val req = OrganizationGroupRequest("admins", Role.Creator)
+
+      Put(s"/v1/organizations/${org.name}/groups/admins", req) ~> authenticate(user) ~> route ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        responseAs[Errors].errors.head shouldEqual Errors
+          .validation("Cannot downgrade role of the last admin group", "role")
+      }
+    }
+
+    "return an error when downgrading the last own admin group" in {
+      val (user, org) = Fixtures.await(for {
+        user <- UsersFixture.create()
+        org  <- OrganizationsFixture.create(userId = user.getId())
+        _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
+      } yield (user, org))
+      val req = OrganizationGroupRequest("admins", Role.Creator)
+
+      Put(s"/v1/organizations/${org.name}/groups/admins", req) ~> authenticate(user) ~> route ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        responseAs[Errors].errors.head shouldEqual Errors
+          .validation("Cannot downgrade role of the last admin group", "role")
+      }
+    }
+
+    "return an accepted when downgrading one of the own admin group" in {
+      val (user, org) = Fixtures.await(for {
+        user  <- UsersFixture.create()
+        org   <- OrganizationsFixture.create(userId = user.getId())
+        group <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
+        _     <- OrganizationGroupUsersFixture.create(group.getId(), user.getId())
+      } yield (user, org))
+      val req = OrganizationGroupRequest("admins", Role.Creator)
+
+      Put(s"/v1/organizations/${org.name}/groups/admins", req) ~> authenticate(user) ~> route ~> check {
+        status shouldEqual StatusCodes.Accepted
+      }
+    }
+
+    "return an error when deleting the last admin group" in {
       val (user, org) = Fixtures.await(for {
         user <- UsersFixture.create()
         org  <- OrganizationsFixture.create(userId = user.getId())
@@ -52,7 +98,7 @@ final class GroupsHandlerSpec
       }
     }
 
-    "return an error when deleting an own admins group" in {
+    "return an error when deleting the last own admin group" in {
       val (user, org) = Fixtures.await(for {
         user <- UsersFixture.create()
         org  <- OrganizationsFixture.create(userId = user.getId())
@@ -66,19 +112,17 @@ final class GroupsHandlerSpec
       }
     }
 
-    "return an accepted when deleting one of admins group" in {
+    "return an accepted when deleting one of the own admin group" in {
       val (user, org, group) = Fixtures.await(for {
         user  <- UsersFixture.create()
         org   <- OrganizationsFixture.create(userId = user.getId())
         group <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
-        // TODO: add user as a member to new group
+        _     <- OrganizationGroupUsersFixture.create(group.getId(), user.getId())
       } yield (user, org, group))
 
       Delete(s"/v1/organizations/${org.name}/groups/${group.name}") ~> authenticate(user) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
       }
     }
-
-    // TODO: check update role
   }
 }

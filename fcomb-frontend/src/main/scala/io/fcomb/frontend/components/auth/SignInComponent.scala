@@ -41,16 +41,11 @@ object SignInComponent {
         else {
           $.setState(state.copy(isDisabled = true)).flatMap { _ =>
             Callback.future {
-              AuthService
-                .authentication(state.email, state.password)
-                .map {
-                  case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
-                  case Xor.Left(errs) =>
-                    $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
-                }
-                .recover {
-                  case _ => $.setState(state.copy(isDisabled = false))
-                }
+              AuthService.authentication(state.email, state.password).map {
+                case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
+                case Xor.Left(errs) =>
+                  $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
+              }
             }
           }
         }
