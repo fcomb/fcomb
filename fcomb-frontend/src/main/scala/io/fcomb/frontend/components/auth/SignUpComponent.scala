@@ -37,14 +37,14 @@ object SignUpComponent {
                          username: String,
                          fullName: String,
                          errors: Map[String, String],
-                         isFormDisabled: Boolean)
+                         isDisabled: Boolean)
 
   final class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def register(ctl: RouterCtl[Route]): Callback =
       $.state.flatMap { state =>
-        if (state.isFormDisabled) Callback.empty
+        if (state.isDisabled) Callback.empty
         else {
-          $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
+          $.setState(state.copy(isDisabled = true)).flatMap { _ =>
             Callback.future {
               val email    = state.email.trim()
               val password = state.password.trim()
@@ -61,7 +61,7 @@ object SignUpComponent {
                 .map {
                   case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
                   case Xor.Left(errs) =>
-                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
+                    $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
                 }
             }
           }
@@ -93,14 +93,14 @@ object SignUpComponent {
 
     def render(ctl: RouterCtl[Route], state: State) =
       <.form(^.onSubmit ==> handleOnSubmit(ctl),
-             ^.disabled := state.isFormDisabled,
+             ^.disabled := state.isDisabled,
              <.div(^.display.flex,
                    ^.flexDirection.column,
                    MuiTextField(floatingLabelText = "Email",
                                 `type` = "email",
                                 id = "email",
                                 name = "email",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("email"),
                                 value = state.email,
                                 onChange = updateEmail _)(),
@@ -108,28 +108,28 @@ object SignUpComponent {
                                 `type` = "password",
                                 id = "password",
                                 name = "password",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("password"),
                                 value = state.password,
                                 onChange = updatePassword _)(),
                    MuiTextField(floatingLabelText = "Username",
                                 id = "username",
                                 name = "username",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("username"),
                                 value = state.username,
                                 onChange = updateUsername _)(),
                    MuiTextField(floatingLabelText = "Full name (optional)",
                                 id = "fullName",
                                 name = "fullName",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("fullName"),
                                 value = state.fullName,
                                 onChange = updateFullName _)(),
                    MuiRaisedButton(`type` = "submit",
                                    primary = true,
                                    label = "Register",
-                                   disabled = state.isFormDisabled)()))
+                                   disabled = state.isDisabled)()))
   }
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignUp")

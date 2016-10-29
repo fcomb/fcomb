@@ -59,7 +59,7 @@ object OrganizationsComponent {
           $.setState(state.copy(pagination = pagination)) >> getOrgs(pagination)
       }
 
-    def setRepositoryRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
     def getOrgs(pos: PaginationOrderState) =
@@ -75,9 +75,7 @@ object OrganizationsComponent {
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
       val actions = Seq(
-        MuiMenuItem(primaryText = "Open",
-                    key = "open",
-                    onTouchTap = setRepositoryRoute(target) _)()
+        MuiMenuItem(primaryText = "Open", key = "open", onTouchTap = setRoute(target) _)()
       )
       MuiTableRow(key = org.id.toString)(
         MuiTableRowColumn(key = "name")(

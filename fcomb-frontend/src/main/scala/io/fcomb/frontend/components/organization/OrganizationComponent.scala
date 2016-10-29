@@ -59,6 +59,15 @@ object OrganizationComponent {
         MuiCardText()(component))
     }
 
+    def renderReposTab(props: Props) = {
+      val component: ReactNode =
+        if (props.tab === OrganizationTab.Repositories)
+          RepositoriesComponent(props.ctl, Namespace.Organization(props.slug))
+        else <.div()
+      MuiTab(key = "repos", label = "Repositories", value = OrganizationTab.Repositories)(
+        MuiCardText()(component))
+    }
+
     def renderTabs(props: Props, isManageable: Boolean) = {
       val manageTabs =
         if (isManageable)
@@ -68,10 +77,8 @@ object OrganizationComponent {
         else Seq.empty
 
       MuiCardMedia(key = "tabs")(
-        MuiTabs[OrganizationTab](value = props.tab, onChange = onChange _)(
-          MuiTab(key = "repos", label = "Repositories", value = OrganizationTab.Repositories)(
-            MuiCardText()(RepositoriesComponent(props.ctl, Namespace.Organization(props.slug)))),
-          manageTabs))
+        MuiTabs[OrganizationTab](value = props.tab, onChange = onChange _)(renderReposTab(props),
+                                                                           manageTabs))
     }
 
     def breadcrumbLink(ctl: RouterCtl[DashboardRoute], target: DashboardRoute, text: String) =

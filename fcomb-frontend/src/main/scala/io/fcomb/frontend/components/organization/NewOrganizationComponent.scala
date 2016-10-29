@@ -30,18 +30,18 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object NewOrganizationComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
-  final case class State(name: String, errors: Map[String, String], isFormDisabled: Boolean)
+  final case class State(name: String, errors: Map[String, String], isDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
     def create(ctl: RouterCtl[DashboardRoute]): Callback = {
       $.state.flatMap { state =>
-        if (state.isFormDisabled) Callback.empty
+        if (state.isDisabled) Callback.empty
         else {
-          $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
+          $.setState(state.copy(isDisabled = true)).flatMap { _ =>
             Callback.future(Rpc.createOrganization(state.name).map {
                   case Xor.Right(org) => ctl.set(DashboardRoute.Organization(org.name))
                   case Xor.Left(errs) =>
-                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
+                    $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
                 })
             }
           }
@@ -61,20 +61,20 @@ object NewOrganizationComponent {
       <.div(<.h2("New organization"),
             <.form(
               ^.onSubmit ==> handleOnSubmit(props.ctl),
-              ^.disabled := state.isFormDisabled,
+              ^.disabled := state.isDisabled,
               <.div(^.display.flex,
                     ^.flexDirection.column,
                     MuiTextField(floatingLabelText = "Name",
                                  id = "name",
                                  name = "name",
-                                 disabled = state.isFormDisabled,
+                                 disabled = state.isDisabled,
                                  errorText = state.errors.get("name"),
                                  value = state.name,
                                  onChange = updateName _)(),
                                  MuiRaisedButton(`type` = "submit",
                                                  primary = true,
                                                  label = "Create",
-                                                 disabled = state.isFormDisabled)())))
+                                                 disabled = state.isDisabled)())))
     }
   }
 

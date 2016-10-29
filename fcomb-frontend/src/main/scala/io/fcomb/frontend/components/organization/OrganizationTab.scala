@@ -21,9 +21,10 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait OrganizationTab extends EnumItem
 
 object OrganizationTab extends Enum[OrganizationTab] {
-  final case object Repositories extends OrganizationTab
-  final case object Groups       extends OrganizationTab
-  final case object Settings     extends OrganizationTab
+  final case object Repositories       extends OrganizationTab
+  final case object Groups             extends OrganizationTab
+  final case class Group(name: String) extends OrganizationTab
+  final case object Settings           extends OrganizationTab
 
   val values = findValues
 }

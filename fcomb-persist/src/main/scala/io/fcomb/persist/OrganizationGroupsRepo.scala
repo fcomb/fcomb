@@ -17,6 +17,7 @@
 package io.fcomb.persist
 
 import cats.data.Validated
+import cats.syntax.eq._
 import io.fcomb.Db.db
 import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.acl.Role
@@ -141,28 +142,31 @@ object OrganizationGroupsRepo
     create(group)
   }
 
+  private lazy val cannotUpdateAdminGroupRole =
+    validationErrorAsDBIO("role", "Cannot change the last admin group role")
+
   def updateDBIO(id: Int, userId: Int)(f: OrganizationGroup => OrganizationGroup)(
       implicit ec: ExecutionContext) =
-    existsAdminGroupApartFromDBIO(id, userId).flatMap {
-      case true => super.updateDBIO(id)(f)
-      case _    => cannotUpdateAdminGroup
+    findByIdQuery(id).result.headOption.flatMap {
+      case Some(item) =>
+        val updatedItem = f(item)
+        if (item.role === Role.Admin && updatedItem.role =!= Role.Admin) {
+          existsAdminGroupApartFromDBIO(id, userId).flatMap {
+            case true => updateDBIOWithValidation(updatedItem)
+            case _    => cannotUpdateAdminGroupRole
+          }
+        } else updateDBIOWithValidation(updatedItem)
+      case _ => DBIO.successful(recordNotFound(id))
     }
-
-  private lazy val cannotUpdateAdminGroup =
-    validationErrorAsDBIO("group", "Cannot update the last admin group")
 
   def update(id: Int, userId: Int, req: OrganizationGroupRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
-      existsAdminGroupApartFromDBIO(id, userId).flatMap {
-        case true =>
-          updateDBIO(id, userId)(
-            _.copy(
-              name = req.name,
-              role = req.role
-            ))
-        case _ => cannotUpdateAdminGroup
-      }
+      updateDBIO(id, userId)(
+        _.copy(
+          name = req.name,
+          role = req.role
+        ))
     }
 
   def destroyDBIO(id: Int, userId: Int)(

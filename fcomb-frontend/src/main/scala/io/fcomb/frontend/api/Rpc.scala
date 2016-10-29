@@ -212,6 +212,15 @@ object Rpc {
   def getOrgaizationGroup(slug: String, group: String)(implicit ec: ExecutionContext) =
     call[OrganizationGroupResponse](RpcMethod.GET, Resource.organizationGroup(slug, group))
 
+  def updateOrganizationGroup(slug: String, group: String, name: String, role: Role)(
+      implicit ec: ExecutionContext) = {
+    val req = OrganizationGroupRequest(name, role)
+    callWith[OrganizationGroupRequest, OrganizationGroupResponse](
+      RpcMethod.PUT,
+      Resource.organizationGroup(slug, group),
+      req)
+  }
+
   def deleteOrganizationGroup(slug: String, group: String)(implicit ec: ExecutionContext) =
     call[Unit](RpcMethod.DELETE, Resource.organizationGroup(slug, group))
 

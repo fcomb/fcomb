@@ -76,7 +76,9 @@ object RouterComponent {
     dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~>
       dynRenderR((o, ctl) => org(ctl, OrganizationTab.Groups, o.slug)) |
     dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat)).caseClass[DashboardRoute.OrganizationGroup]) ~>
-      dynRenderR((og, ctl) => GroupComponent(ctl, og.slug, og.groupName))
+      dynRenderR((og, ctl) => GroupComponent(ctl, og.slug, og.group)) |
+    dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat) / "edit").caseClass[DashboardRoute.EditOrganizationGroup]) ~>
+      dynRenderR((og, ctl) => EditGroupComponent(ctl, og.slug, og.group))
     // format: ON
   }
 

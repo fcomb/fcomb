@@ -40,9 +40,7 @@ object EditRepositoryComponent {
                          repositories: ModelProxy[PotMap[String, RepositoryResponse]],
                          slug: String)
   final case class FormState(visibilityKind: ImageVisibilityKind, description: String)
-  final case class State(form: Option[FormState],
-                         errors: Map[String, String],
-                         isFormDisabled: Boolean)
+  final case class State(form: Option[FormState], errors: Map[String, String], isDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
     import RepositoryForm._
@@ -59,15 +57,15 @@ object EditRepositoryComponent {
       $.state.zip($.props).flatMap {
         case (state, props) =>
           state.form match {
-            case Some(fs) if !state.isFormDisabled =>
+            case Some(fs) if !state.isDisabled =>
               for {
-                _ <- $.modState(_.copy(isFormDisabled = true))
+                _ <- $.modState(_.copy(isDisabled = true))
                 _ <- Callback.future {
                   Rpc.updateRepository(props.slug, fs.visibilityKind, fs.description).map {
                     case Xor.Right(repo) =>
                       AppCircuit.dispatchCB(UpsertRepository(repo)) >>
                         props.ctl.set(DashboardRoute.Repository(repo.slug))
-                    case Xor.Left(e) => $.modState(_.copy(isFormDisabled = false))
+                    case Xor.Left(e) => $.modState(_.copy(isDisabled = false))
                   }
                 }
               } yield ()
@@ -92,8 +90,6 @@ object EditRepositoryComponent {
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.props.flatMap(p => p.ctl.set(DashboardRoute.Repository(p.slug)))
 
-    lazy val cancelStyle = js.Dictionary("marginRight" -> App.paddingTopLength)
-
     def renderActions(state: State) =
       <.div(^.`class` := "row",
             ^.style := App.paddingTopStyle,
@@ -102,14 +98,14 @@ object EditRepositoryComponent {
                   MuiRaisedButton(`type` = "button",
                                   primary = false,
                                   label = "Cancel",
-                                  style = cancelStyle,
-                                  disabled = state.isFormDisabled,
+                                  style = App.cancelStyle,
+                                  disabled = state.isDisabled,
                                   onTouchTap = cancel _,
                                   key = "cancel")(),
                   MuiRaisedButton(`type` = "submit",
                                   primary = true,
                                   label = "Update",
-                                  disabled = state.isFormDisabled,
+                                  disabled = state.isDisabled,
                                   key = "update")()))
 
     def renderForm(state: State): ReactNode =
@@ -119,14 +115,14 @@ object EditRepositoryComponent {
                           App.formTitleBlock,
                           MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit repository"))),
                     <.form(^.onSubmit ==> handleOnSubmit,
-                           ^.disabled := state.isFormDisabled,
+                           ^.disabled := state.isDisabled,
                            ^.key := "form",
                            MuiCardText(key = "form")(renderDescription(form.description,
                                                                        state.errors,
-                                                                       state.isFormDisabled,
+                                                                       state.isDisabled,
                                                                        updateDescription),
                                                      renderVisiblity(form.visibilityKind,
-                                                                     state.isFormDisabled,
+                                                                     state.isDisabled,
                                                                      updateVisibilityKind),
                                                      renderActions(state))))
         case _ => <.div()

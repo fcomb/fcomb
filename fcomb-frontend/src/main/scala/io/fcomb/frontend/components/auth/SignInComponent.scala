@@ -32,24 +32,24 @@ object SignInComponent {
   final case class State(email: String,
                          password: String,
                          errors: Map[String, String],
-                         isFormDisabled: Boolean)
+                         isDisabled: Boolean)
 
   final class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def authenticate(ctl: RouterCtl[Route]): Callback =
       $.state.flatMap { state =>
-        if (state.isFormDisabled) Callback.empty
+        if (state.isDisabled) Callback.empty
         else {
-          $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
+          $.setState(state.copy(isDisabled = true)).flatMap { _ =>
             Callback.future {
               AuthService
                 .authentication(state.email, state.password)
                 .map {
                   case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
                   case Xor.Left(errs) =>
-                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
+                    $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
                 }
                 .recover {
-                  case _ => $.setState(state.copy(isFormDisabled = false))
+                  case _ => $.setState(state.copy(isDisabled = false))
                 }
             }
           }
@@ -71,14 +71,14 @@ object SignInComponent {
 
     def render(ctl: RouterCtl[Route], state: State) =
       <.form(^.onSubmit ==> handleOnSubmit(ctl),
-             ^.disabled := state.isFormDisabled,
+             ^.disabled := state.isDisabled,
              <.div(^.display.flex,
                    ^.flexDirection.column,
                    MuiTextField(floatingLabelText = "Email",
                                 `type` = "email",
                                 id = "email",
                                 name = "email",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("email"),
                                 value = state.email,
                                 onChange = updateEmail _)(),
@@ -86,14 +86,14 @@ object SignInComponent {
                                 `type` = "password",
                                 id = "password",
                                 name = "password",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("password"),
                                 value = state.password,
                                 onChange = updatePassword _)(),
                    MuiRaisedButton(`type` = "submit",
                                    primary = true,
                                    label = "Login",
-                                   disabled = state.isFormDisabled)()))
+                                   disabled = state.isDisabled)()))
   }
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignIn")

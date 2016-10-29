@@ -80,7 +80,7 @@ object RepositoriesComponent {
               })
       }
 
-    def setRepositoryRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
     def renderRepository(ctl: RouterCtl[DashboardRoute],
@@ -91,13 +91,10 @@ object RepositoriesComponent {
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
       val actions = Seq(
-        MuiMenuItem(primaryText = "Open",
-                    key = "open",
-                    onTouchTap = setRepositoryRoute(target) _)(),
+        MuiMenuItem(primaryText = "Open", key = "open", onTouchTap = setRoute(target) _)(),
         MuiMenuItem(primaryText = "Edit",
                     key = "edit",
-                    onTouchTap =
-                      setRepositoryRoute(DashboardRoute.EditRepository(repository.slug)) _)()
+                    onTouchTap = setRoute(DashboardRoute.EditRepository(repository.slug)) _)()
       )
       val name = if (showNamespace) repository.slug else repository.name
       MuiTableRow(key = repository.id.toString)(

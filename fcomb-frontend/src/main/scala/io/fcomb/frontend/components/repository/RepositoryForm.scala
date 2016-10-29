@@ -27,7 +27,7 @@ import japgolly.scalajs.react._
 
 object RepositoryForm {
   def renderVisiblity(visibilityKind: ImageVisibilityKind,
-                      isFormDisabled: Boolean,
+                      isDisabled: Boolean,
                       updateVisibilityKind: (ReactEventI, String) => Callback) = {
     val label = <.label(
       ^.`for` := "visibilityKind",
@@ -43,14 +43,14 @@ object RepositoryForm {
                     key = "public",
                     value = ImageVisibilityKind.Public.value,
                     label = "Public",
-                    disabled = isFormDisabled
+                    disabled = isDisabled
                   )(),
                   MuiRadioButton(
                     style = App.paddingTopStyle,
                     key = "private",
                     value = ImageVisibilityKind.Private.value,
                     label = "Private",
-                    disabled = isFormDisabled
+                    disabled = isDisabled
                   )()
                 )),
           <.div(LayoutComponent.helpBlockClass, label))
@@ -58,7 +58,7 @@ object RepositoryForm {
 
   def renderDescription(description: String,
                         errors: Map[String, String],
-                        isFormDisabled: Boolean,
+                        isDisabled: Boolean,
                         updateDescription: ReactEventI => Callback) = {
     val link = <.a(LayoutComponent.linkAsTextStyle,
                    ^.href := "https://daringfireball.net/projects/markdown/syntax",
@@ -74,7 +74,7 @@ object RepositoryForm {
                          multiLine = true,
                          fullWidth = true,
                          rowsMax = 15,
-                         disabled = isFormDisabled,
+                         disabled = isDisabled,
                          errorText = errors.get("description"),
                          value = description,
                          onChange = updateDescription)()),

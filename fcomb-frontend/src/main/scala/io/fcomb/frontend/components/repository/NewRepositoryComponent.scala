@@ -40,7 +40,7 @@ object NewRepositoryComponent {
                          visibilityKind: ImageVisibilityKind,
                          description: String,
                          errors: Map[String, String],
-                         isFormDisabled: Boolean)
+                         isDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
     import RepositoryForm._
@@ -48,8 +48,8 @@ object NewRepositoryComponent {
     def create(props: Props): Callback =
       $.state.flatMap { state =>
         state.owner match {
-          case Some(owner) if !state.isFormDisabled =>
-            $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
+          case Some(owner) if !state.isDisabled =>
+            $.setState(state.copy(isDisabled = true)).flatMap { _ =>
               Callback.future {
                 Rpc
                   .createRepository(owner, state.name, state.visibilityKind, state.description)
@@ -57,7 +57,7 @@ object NewRepositoryComponent {
                     case Xor.Right(repository) =>
                       props.ctl.set(DashboardRoute.Repository(repository.slug))
                     case Xor.Left(errs) =>
-                      $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
+                      $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
                   }
               }
             }
@@ -97,7 +97,7 @@ object NewRepositoryComponent {
               NamespaceComponent(props.namespace,
                                  canCreateRoleOnly = true,
                                  isAllNamespace = false,
-                                 isDisabled = state.isFormDisabled,
+                                 isDisabled = state.isDisabled,
                                  isFullWidth = true,
                                  cb = updateNamespace _)),
         <.div(
@@ -112,7 +112,7 @@ object NewRepositoryComponent {
                   MuiTextField(floatingLabelText = "Name",
                                id = "name",
                                name = "name",
-                               disabled = state.isFormDisabled,
+                               disabled = state.isDisabled,
                                errorText = state.errors.get("name"),
                                fullWidth = true,
                                value = state.name,
@@ -123,7 +123,7 @@ object NewRepositoryComponent {
                           "Enter a name for repository that will be used by docker or rkt.")))
 
     def renderActions(state: State) = {
-      val createIsDisabled = state.isFormDisabled || state.owner.isEmpty
+      val createIsDisabled = state.isDisabled || state.owner.isEmpty
       <.div(^.`class` := "row",
             ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
@@ -140,16 +140,16 @@ object NewRepositoryComponent {
                       App.formTitleBlock,
                       MuiCardTitle(key = "title")(<.h1(App.cardTitle, "New repository"))),
                 <.form(^.onSubmit ==> handleOnSubmit(props),
-                       ^.disabled := state.isFormDisabled,
+                       ^.disabled := state.isDisabled,
                        ^.key := "form",
                        MuiCardText(key = "form")(renderNamespace(props, state),
                                                  renderName(state),
                                                  renderDescription(state.description,
                                                                    state.errors,
-                                                                   state.isFormDisabled,
+                                                                   state.isDisabled,
                                                                    updateDescription),
                                                  renderVisiblity(state.visibilityKind,
-                                                                 state.isFormDisabled,
+                                                                 state.isDisabled,
                                                                  updateVisibilityKind),
                                                  renderActions(state))))
   }

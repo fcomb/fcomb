@@ -31,9 +31,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object GroupComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String, name: String)
-  final case class FormState(username: String,
-                             errors: Map[String, String],
-                             isFormDisabled: Boolean)
+  final case class FormState(username: String, errors: Map[String, String], isDisabled: Boolean)
   final case class State(group: Option[OrganizationGroupResponse],
                          members: Seq[UserProfileResponse],
                          form: FormState)
@@ -91,15 +89,15 @@ object GroupComponent {
         <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
                 <.tbody(members.map(renderMember(orgName, name, _))))
 
-    def updateFormDisabled(isFormDisabled: Boolean): Callback =
-      $.modState(s => s.copy(form = s.form.copy(isFormDisabled = isFormDisabled)))
+    def updateFormDisabled(isDisabled: Boolean): Callback =
+      $.modState(s => s.copy(form = s.form.copy(isDisabled = isDisabled)))
 
     def add(props: Props): Callback =
       $.state.flatMap { state =>
         val fs = state.form
-        if (fs.isFormDisabled) Callback.empty
+        if (fs.isDisabled) Callback.empty
         else {
-          $.setState(state.copy(form = fs.copy(isFormDisabled = true))) >>
+          $.setState(state.copy(form = fs.copy(isDisabled = true))) >>
             Callback.future(
               Rpc.upsertOrganizationGroupMember(props.orgName, props.name, fs.username).map {
                 case Xor.Right(_) =>
@@ -107,7 +105,7 @@ object GroupComponent {
                     getMembers(props.orgName, props.name)
                 case Xor.Left(errs) =>
                   $.setState(state.copy(
-                    form = state.form.copy(isFormDisabled = false, errors = foldErrors(errs))))
+                    form = state.form.copy(isDisabled = false, errors = foldErrors(errs))))
               })
         }
       }
@@ -123,20 +121,20 @@ object GroupComponent {
     def renderForm(props: Props, state: State) = {
       val form = state.form
       <.form(^.onSubmit ==> handleOnSubmit(props),
-             ^.disabled := form.isFormDisabled,
+             ^.disabled := form.isDisabled,
              <.div(^.display.flex,
                    ^.flexDirection.column,
                    MuiTextField(floatingLabelText = "Username",
                                 id = "username",
                                 name = "username",
-                                disabled = form.isFormDisabled,
+                                disabled = form.isDisabled,
                                 errorText = form.errors.get("username"),
                                 value = form.username,
                                 onChange = updateUsername _)(),
                    MuiRaisedButton(`type` = "submit",
                                    primary = true,
                                    label = "Create",
-                                   disabled = form.isFormDisabled)()))
+                                   disabled = form.isDisabled)()))
     }
 
     def render(props: Props, state: State) =

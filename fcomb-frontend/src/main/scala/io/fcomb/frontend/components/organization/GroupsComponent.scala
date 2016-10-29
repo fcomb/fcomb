@@ -107,17 +107,31 @@ object GroupsComponent {
             $.modState(_.copy(isDisabled = false, error = Some(joinErrors(errs))))
         })
 
+    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+      $.props.flatMap(_.ctl.set(route))
+
     def renderGroup(props: Props, group: OrganizationGroupResponse, isDisabled: Boolean) = {
       val target = DashboardRoute.OrganizationGroup(props.slug, group.name)
+      val menuBtn =
+        MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
+      val actions = Seq(
+        MuiMenuItem(primaryText = "Open", key = "open", onTouchTap = setRoute(target) _)(),
+        MuiMenuItem(primaryText = "Edit",
+                    key = "edit",
+                    onTouchTap =
+                      setRoute(DashboardRoute.EditOrganizationGroup(props.slug, group.name)) _)(),
+        MuiMenuItem(primaryText = "Delete",
+                    key = "Delete",
+                    onTouchTap = deleteGroup(props.slug, group.name) _)()
+      )
       MuiTableRow(key = group.id.toString)(
         MuiTableRowColumn(key = "name")(
           <.a(LayoutComponent.linkAsTextStyle,
               ^.href := props.ctl.urlFor(target).value,
               props.ctl.setOnLinkClick(target))(group.name)),
         MuiTableRowColumn(key = "role")(group.role.toString),
-        MuiTableRowColumn(style = App.menuColumnStyle, key = "buttons")(
-          MuiIconButton(disabled = isDisabled, onTouchTap = deleteGroup(props.slug, group.name) _)(
-            Mui.SvgIcons.ActionDelete(color = Mui.Styles.colors.lightBlack)())
+        MuiTableRowColumn(style = App.menuColumnStyle, key = "menu")(
+          MuiIconMenu(iconButtonElement = menuBtn)(actions)
         ))
     }
 
