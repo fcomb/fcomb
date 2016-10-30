@@ -20,17 +20,20 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
+import io.fcomb.frontend.components.BreadcrumbsComponent
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.styles.App
 import io.fcomb.rpc.{OrganizationGroupResponse, UserProfileResponse}
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scalacss.ScalaCssReact._
 
 object GroupComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String, name: String)
+  final case class Props(ctl: RouterCtl[DashboardRoute], slug: String, group: String)
   final case class FormState(username: String, errors: Map[String, String], isDisabled: Boolean)
   final case class State(group: Option[OrganizationGroupResponse],
                          members: Seq[UserProfileResponse],
@@ -46,48 +49,38 @@ object GroupComponent {
         case Xor.Left(e)      => Callback.warn(e)
       })
 
-    def getMembers(orgName: String, name: String) =
-      Callback.future(Rpc.getOrgaizationGroupMembers(orgName, name).map {
+    def getMembers(slug: String, group: String) =
+      Callback.future(Rpc.getOrgaizationGroupMembers(slug, group).map {
         case Xor.Right(pd) => $.modState(_.copy(members = pd.data))
         case Xor.Left(e)   => Callback.warn(e)
       })
 
-    def getGroupWithMembers(orgName: String, name: String): Callback =
+    def getGroupWithMembers(slug: String, group: String): Callback =
       for {
-        _ <- getGroup(orgName, name)
-        _ <- getMembers(orgName, name)
+        _ <- getGroup(slug, group)
+        _ <- getMembers(slug, group)
       } yield ()
 
-    def renderGroup(groupOpt: Option[OrganizationGroupResponse]) =
-      groupOpt match {
-        case Some(group) =>
-          <.div(
-            <.h2(s"Group ${group.name}"),
-            <.label("Role: ", <.span(group.role.toString()))
-          )
-        case None => EmptyTag
-      }
-
-    def deleteMember(orgName: String, name: String, username: String)(e: ReactEventI) =
+    def deleteMember(slug: String, group: String, username: String)(e: ReactEventI) =
       e.preventDefaultCB >>
-        Callback.future(Rpc.deleteOrganizationGroupMember(orgName, name, username).map {
-          case Xor.Right(_) => getMembers(orgName, name)
+        Callback.future(Rpc.deleteOrganizationGroupMember(slug, group, username).map {
+          case Xor.Right(_) => getMembers(slug, group)
           case Xor.Left(e)  => ??? // TODO
         })
 
-    def renderMember(orgName: String, name: String, member: UserProfileResponse) =
+    def renderMember(slug: String, group: String, member: UserProfileResponse) =
       <.tr(<.td(member.username),
            <.td(member.email),
            <.td(
              <.button(^.`type` := "button",
-                      ^.onClick ==> deleteMember(orgName, name, member.username),
+                      ^.onClick ==> deleteMember(slug, group, member.username),
                       "Delete")))
 
-    def renderMembers(orgName: String, name: String, members: Seq[UserProfileResponse]) =
+    def renderMembers(slug: String, group: String, members: Seq[UserProfileResponse]) =
       if (members.isEmpty) <.span("No members. Create one!")
       else
         <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
-                <.tbody(members.map(renderMember(orgName, name, _))))
+                <.tbody(members.map(renderMember(slug, group, _))))
 
     def updateFormDisabled(isDisabled: Boolean): Callback =
       $.modState(s => s.copy(form = s.form.copy(isDisabled = isDisabled)))
@@ -99,10 +92,10 @@ object GroupComponent {
         else {
           $.setState(state.copy(form = fs.copy(isDisabled = true))) >>
             Callback.future(
-              Rpc.upsertOrganizationGroupMember(props.orgName, props.name, fs.username).map {
+              Rpc.upsertOrganizationGroupMember(props.slug, props.group, fs.username).map {
                 case Xor.Right(_) =>
                   $.modState(_.copy(form = defaultFormState)) >>
-                    getMembers(props.orgName, props.name)
+                    getMembers(props.slug, props.group)
                 case Xor.Left(errs) =>
                   $.setState(state.copy(
                     form = state.form.copy(isDisabled = false, errors = foldErrors(errs))))
@@ -137,21 +130,36 @@ object GroupComponent {
                                    disabled = form.isDisabled)()))
     }
 
-    def render(props: Props, state: State) =
+    def renderHeader(props: Props) = {
+      val breadcrumbs = BreadcrumbsComponent(
+        props.ctl,
+        Seq((props.slug, DashboardRoute.Organization(props.slug)),
+            ("Groups", DashboardRoute.OrganizationGroups(props.slug)),
+            (props.group, DashboardRoute.OrganizationGroup(props.slug, props.group))))
+
+      <.div(^.key := "header",
+            App.cardTitleBlock,
+            MuiCardTitle(key = "title")(
+              <.div(^.`class` := "row",
+                    ^.key := "title",
+                    <.div(^.`class` := "col-xs-12", breadcrumbs))))
+    }
+
+    def render(props: Props, state: State): ReactElement =
       <.section(
-        renderGroup(state.group),
-        <.div(<.h3("Members"), renderMembers(props.orgName, props.name, state.members)),
-        <.hr,
-        renderForm(props, state)
-      )
+        MuiCard(key = "repos")(
+          renderHeader(props),
+          <.div(<.h3("Members"), renderMembers(props.slug, props.group, state.members)),
+          <.hr,
+          renderForm(props, state)))
   }
 
   private val component = ReactComponentB[Props]("Group")
     .initialState(State(None, Seq.empty, defaultFormState))
     .renderBackend[Backend]
-    .componentDidMount($ => $.backend.getGroupWithMembers($.props.orgName, $.props.name))
+    .componentDidMount($ => $.backend.getGroupWithMembers($.props.slug, $.props.group))
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], orgName: String, name: String) =
-    component(Props(ctl, orgName, name))
+  def apply(ctl: RouterCtl[DashboardRoute], slug: String, name: String) =
+    component(Props(ctl, slug, name))
 }

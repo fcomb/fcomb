@@ -23,7 +23,7 @@ import diode.data.PotMap
 import diode.react.ModelProxy
 import diode.react.ReactPot._
 import io.fcomb.frontend.components.repository.{Namespace, RepositoriesComponent}
-import io.fcomb.frontend.components.{FloatActionButtonComponent, LayoutComponent}
+import io.fcomb.frontend.components.{BreadcrumbsComponent, FloatActionButtonComponent}
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.acl.Role
@@ -81,15 +81,9 @@ object OrganizationComponent {
                                                                            manageTabs))
     }
 
-    def breadcrumbLink(ctl: RouterCtl[DashboardRoute], target: DashboardRoute, text: String) =
-      <.a(LayoutComponent.linkAsTextStyle,
-          ^.href := ctl.urlFor(target).value,
-          ctl.setOnLinkClick(target))(text)
-
     def renderHeader(props: Props) = {
-      val breadcrumbs = <.h1(
-        App.cardTitle,
-        breadcrumbLink(props.ctl, DashboardRoute.Organization(props.slug), props.slug))
+      val breadcrumbs =
+        BreadcrumbsComponent(props.ctl, Seq((props.slug, DashboardRoute.Organization(props.slug))))
 
       <.div(^.key := "header",
             App.cardTitleBlock,

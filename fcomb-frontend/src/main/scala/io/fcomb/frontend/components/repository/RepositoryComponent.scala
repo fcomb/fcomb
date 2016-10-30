@@ -23,7 +23,7 @@ import diode.data.PotMap
 import diode.react.ModelProxy
 import diode.react.ReactPot._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.LayoutComponent
+import io.fcomb.frontend.components.{BreadcrumbsComponent, LayoutComponent}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.OwnerKind
@@ -89,11 +89,6 @@ object RepositoryComponent {
     def setEditRepositoryRoute(props: Props)(e: ReactEventH): Callback =
       props.ctl.set(DashboardRoute.EditRepository(props.slug))
 
-    def breadcrumbLink(ctl: RouterCtl[DashboardRoute], target: DashboardRoute, text: String) =
-      <.a(LayoutComponent.linkAsTextStyle,
-          ^.href := ctl.urlFor(target).value,
-          ctl.setOnLinkClick(target))(text)
-
     def renderHeader(props: Props, repo: RepositoryResponse, isManageable: Boolean) = {
       val route = repo.owner.kind match {
         case OwnerKind.Organization => DashboardRoute.Organization(repo.namespace)
@@ -111,12 +106,11 @@ object RepositoryComponent {
                       onTouchTap = setEditRepositoryRoute(props) _)())
         Seq(MuiIconMenu(iconButtonElement = menuIconBtn)(actions))
       } else Seq.empty
-      val breadcrumbs = <.h1(
-        App.cardTitle,
-        visiblityIcon(repo.visibilityKind, Some(App.visibilityIconTitle.htmlClass)),
-        breadcrumbLink(props.ctl, route, repo.namespace),
-        " / ",
-        breadcrumbLink(props.ctl, DashboardRoute.Repository(repo.slug), repo.name))
+      val icon = visiblityIcon(repo.visibilityKind, Some(App.visibilityIconTitle.htmlClass))
+      val breadcrumbs = BreadcrumbsComponent(
+        props.ctl,
+        Seq((repo.namespace, route), (repo.name, DashboardRoute.Repository(repo.slug))),
+        Some(icon))
 
       <.div(^.key := "header",
             App.cardTitleBlock,
