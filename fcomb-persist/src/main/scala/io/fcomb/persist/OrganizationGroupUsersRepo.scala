@@ -18,9 +18,9 @@ package io.fcomb.persist
 
 import cats.data.Validated
 import io.fcomb.Db.db
-import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{OrganizationGroupUser, Pagination, PaginationData}
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.rpc.{MemberUserRequest, UserProfileResponse}
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
@@ -54,6 +54,24 @@ object OrganizationGroupUsersRepo
     findByGroupIdScopeDBIO(groupId).length
   }
 
+  private lazy val findSuggestionsUsersCompiled = Compiled {
+    (groupId: Rep[Int], q: Rep[String], limit: ConstColumn[Long]) =>
+      val query = q.asColumnOfType[String]("citext")
+      UsersRepo.table
+        .filter { t =>
+          (t.username.like(query) || t.email.like(query) || t.fullName.like(query)) &&
+          !t.id.in(table.filter(_.groupId === groupId).map(_.userId))
+        }
+        .map(t => (t.id, t.email, t.username, t.fullName))
+        .take(limit)
+  }
+
+  def findSuggestionsUsers(groupId: Int, q: String, limit: Long = 16L)(
+      implicit ec: ExecutionContext): Future[Seq[UserProfileResponse]] =
+    db.run(
+      findSuggestionsUsersCompiled((groupId, s"$q%".trim, limit)).result
+        .map(_.map(UserProfileResponse.tupled)))
+
   def paginateByGroupId(groupId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[UserProfileResponse]] =
     db.run {
@@ -72,9 +90,11 @@ object OrganizationGroupUsersRepo
 
   private lazy val existByGroupAndUserIdCompiled = Compiled {
     (groupId: Rep[Int], userId: Rep[Int]) =>
-      table.filter { t =>
-        t.groupId === groupId && t.userId === userId
-      }.exists
+      table
+        .filter { t =>
+          t.groupId === groupId && t.userId === userId
+        }
+        .exists
   }
 
   def upsertDBIO(groupId: Int, req: MemberUserRequest)(implicit ec: ExecutionContext) =
@@ -98,9 +118,11 @@ object OrganizationGroupUsersRepo
     db.run(upsertDBIO(groupId, req))
 
   private def destroyDBIO(groupId: Int, userId: Int) =
-    table.filter { t =>
-      t.groupId === groupId && t.userId === userId
-    }.delete
+    table
+      .filter { t =>
+        t.groupId === groupId && t.userId === userId
+      }
+      .delete
 
   private def destroyAsValidatedDBIO(groupId: Int, userId: Int)(implicit ec: ExecutionContext) =
     destroyDBIO(groupId, userId).map { res =>
@@ -108,13 +130,13 @@ object OrganizationGroupUsersRepo
       else Validated.Valid(())
     }
 
-  def destroy(groupId: Int, userSlug: Slug)(implicit ec: ExecutionContext) =
+  def destroy(groupId: Int, userId: Int, memberSlug: Slug)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable) {
-      UsersRepo.findBySlugAsValidatedDBIO(userSlug).flatMap {
-        case Validated.Valid(user) =>
-          OrganizationGroupsRepo.existAdminGroupApartFromDBIO(groupId).flatMap { exist =>
-            if (exist) destroyAsValidatedDBIO(groupId, user.getId())
-            else OrganizationGroupsRepo.cannotDeleteAdminGroup
+      UsersRepo.findBySlugAsValidatedDBIO(memberSlug).flatMap {
+        case Validated.Valid(member) =>
+          OrganizationGroupsRepo.existsAdminGroupApartFromDBIO(groupId, userId).flatMap {
+            case true => destroyAsValidatedDBIO(groupId, member.getId())
+            case _    => OrganizationGroupsRepo.cannotDeleteAdminGroup
           }
         case res @ Validated.Invalid(_) => DBIO.successful(res)
       }

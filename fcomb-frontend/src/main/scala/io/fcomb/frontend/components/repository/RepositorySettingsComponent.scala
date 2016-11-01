@@ -24,7 +24,7 @@ import japgolly.scalajs.react._
 object RepositorySettingsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
 
-  class Backend($ : BackendScope[Props, Unit]) {
+  final class Backend($ : BackendScope[Props, Unit]) {
     def render(props: Props): ReactElement =
       <.section(DeleteRepositoryComponent(props.ctl, props.slug))
   }

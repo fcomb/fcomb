@@ -24,7 +24,7 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 object OrganizationSettingsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
 
-  class Backend($ : BackendScope[Props, Unit]) {
+  final class Backend($ : BackendScope[Props, Unit]) {
     def render(props: Props) =
       <.section(
         <.h1("Settings"),

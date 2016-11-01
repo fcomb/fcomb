@@ -26,9 +26,8 @@ import io.fcomb.frontend.components.{
   CopyToClipboardComponent,
   PaginationOrderState,
   SizeInBytesComponent,
-  Table,
-  TimeAgoComponent,
-  ToolbarPaginationComponent
+  TableComponent,
+  TimeAgoComponent
 }
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.errors.ErrorsException
@@ -52,7 +51,7 @@ object RepositoryTagsComponent {
     }
   }
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     val digestLength = 12
     val limit        = 25
 
@@ -108,28 +107,13 @@ object RepositoryTagsComponent {
     def renderTags(props: Props, tags: Seq[RepositoryTagResponse], p: PaginationOrderState) =
       if (tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
       else {
-        val columns = MuiTableRow()(
-          Table.renderHeader("Tag", "tag", p, updateSort _),
-          Table.renderHeader("Last modified", "updatedAt", p, updateSort _),
-          Table.renderHeader("Size", "length", p, updateSort _),
-          Table.renderHeader("Image", "digest", p, updateSort _),
-          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
+        val columns = Seq(TableComponent.header("Tag", "tag", p, updateSort _),
+                          TableComponent.header("Last modified", "updatedAt", p, updateSort _),
+                          TableComponent.header("Size", "length", p, updateSort _),
+                          TableComponent.header("Image", "digest", p, updateSort _),
+                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
         val rows = tags.map(renderTagRow(props, _))
-        <.section(
-          MuiTable(selectable = false, multiSelectable = false)(MuiTableHeader(
-                                                                  adjustForCheckbox = false,
-                                                                  displaySelectAll = false,
-                                                                  enableSelectAll = false,
-                                                                  key = "header"
-                                                                )(columns),
-                                                                MuiTableBody(
-                                                                  deselectOnClickaway = false,
-                                                                  displayRowCheckbox = false,
-                                                                  showRowHover = false,
-                                                                  stripedRows = false,
-                                                                  key = "body"
-                                                                )(rows)),
-          ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
+        TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
     def render(props: Props, state: State): ReactElement =
@@ -139,7 +123,7 @@ object RepositoryTagsComponent {
   private val component = ReactComponentB[Props]("RepositoryTags")
     .initialState(State(Empty, PaginationOrderState("updatedAt", SortOrder.Desc)))
     .renderBackend[Backend]
-    .componentWillMount($ => $.backend.getTags($.state.pagination))
+    .componentDidMount($ => $.backend.getTags($.state.pagination))
     .build
 
   def apply(slug: String) =

@@ -23,5 +23,5 @@ import io.fcomb.rpc.OrganizationResponse
 
 final case class RootModel(session: Option[String],
                            currentUser: Option[SessionPayload.User],
-                           repositories: PotMap[String, RepositoryResponse],
-                           organizations: PotMap[String, OrganizationResponse])
+                           repos: PotMap[String, RepositoryResponse],
+                           orgs: PotMap[String, OrganizationResponse])

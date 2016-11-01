@@ -21,7 +21,7 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait RepositoryTab extends EnumItem
 
 object RepositoryTab extends Enum[RepositoryTab] {
-  final case object Description extends RepositoryTab
+  final case object Info        extends RepositoryTab
   final case object Tags        extends RepositoryTab
   final case object Permissions extends RepositoryTab
   final case object Settings    extends RepositoryTab

@@ -16,26 +16,24 @@
 
 package io.fcomb.frontend.components.dashboard
 
-import chandu0101.scalajs.react.components.materialui.Mui.SvgIcons.ContentAdd
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.components.FloatActionButtonComponent
 import io.fcomb.frontend.components.repository.{
   Namespace,
   NamespaceComponent,
   RepositoriesComponent
 }
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.frontend.styles.App
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import scalacss.ScalaCssReact._
+import japgolly.scalajs.react._
 
 object DashboardRepositoriesComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
   final case class State(namespace: Option[Namespace])
 
-  final case class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def setDefaultOwner(): Callback =
       AppCircuit.currentUser match {
         case Some(p) =>
@@ -47,15 +45,12 @@ object DashboardRepositoriesComponent {
     def updateNamespace(namespace: Namespace) =
       $.modState(_.copy(namespace = Some(namespace)))
 
-    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
-      $.props.flatMap(_.ctl.set(route))
-
     def render(props: Props, state: State) = {
       val repositoriesSection = state.namespace match {
         case Some(namespace) =>
           MuiCard()(MuiCardTitle(key = "title")(
                       NamespaceComponent(namespace,
-                                         isAdminRoleOnly = false,
+                                         canCreateRoleOnly = false,
                                          isAllNamespace = true,
                                          isDisabled = false,
                                          isFullWidth = false,
@@ -68,10 +63,7 @@ object DashboardRepositoriesComponent {
           DashboardRoute.NewOrganizationRepository(slug)
         case _ => DashboardRoute.NewRepository
       }
-      <.section(<.div(App.floatActionButton,
-                      ^.title := "New repository",
-                      MuiFloatingActionButton(secondary = true, onTouchTap = setRoute(route) _)(
-                        ContentAdd()())),
+      <.section(FloatActionButtonComponent(props.ctl, route, "New repository"),
                 repositoriesSection)
     }
   }
@@ -79,7 +71,7 @@ object DashboardRepositoriesComponent {
   private val component = ReactComponentB[Props]("DashboardRepositories")
     .initialState(State(None))
     .renderBackend[Backend]
-    .componentWillMount(_.backend.setDefaultOwner())
+    .componentDidMount(_.backend.setDefaultOwner())
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute]) =

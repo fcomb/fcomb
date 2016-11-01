@@ -19,12 +19,8 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.dispatcher.AppCircuit
-import io.fcomb.json.rpc.Formats.decodeOrganizationResponse
-import io.fcomb.json.models.Formats.decodePaginationData
-import io.fcomb.models.PaginationData
-import io.fcomb.rpc.OrganizationResponse
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
@@ -32,7 +28,7 @@ import scala.scalajs.js.JSConverters._
 
 object NamespaceComponent {
   final case class Props(namespace: Namespace,
-                         isAdminRoleOnly: Boolean,
+                         canCreateRoleOnly: Boolean,
                          isAllNamespace: Boolean,
                          isDisabled: Boolean,
                          isFullWidth: Boolean,
@@ -51,35 +47,24 @@ object NamespaceComponent {
 
     def fetchNamespaces(): Callback =
       $.props.flatMap { props =>
-        Callback.future {
-          val role = if (props.isAdminRoleOnly) "admin" else ""
-          val params = Map(
-            "role"  -> role,
-            "limit" -> limit.toString()
-          ).filter(_._2.nonEmpty)
-          Rpc
-            .call[PaginationData[OrganizationResponse]](RpcMethod.GET,
-                                                        Resource.userSelfOrganizations,
-                                                        params)
-            .map {
-              case Xor.Right(res) =>
-                val orgs       = res.data.map(o => Namespace.Organization(o.name, Some(o.id)))
-                val namespaces = currentUser ++ orgs
-                val data       = js.Array(namespaces.map(_.slug): _*)
-                val namespace = (props.namespace match {
-                  case on: OwnerNamespace =>
-                    namespaces.collectFirst { case o: OwnerNamespace if o.slug == on.slug => o }
-                  case _ => None
-                }).orElse(currentUser.headOption)
-                $.modState(
-                  _.copy(
-                    namespace = namespace,
-                    namespaces = namespaces,
-                    data = data
-                  )) >> namespace.map(props.cb(_)).getOrElse(Callback.empty)
-              case Xor.Left(e) => Callback.warn(e)
-            }
-        }
+        Callback.future(Rpc.getUserSelfOrganizations(props.canCreateRoleOnly, limit).map {
+          case Xor.Right(res) =>
+            val orgs       = res.data.map(o => Namespace.Organization(o.name, Some(o.id)))
+            val namespaces = currentUser ++ orgs
+            val data       = js.Array(namespaces.map(_.slug): _*)
+            val namespace = (props.namespace match {
+              case on: OwnerNamespace =>
+                namespaces.collectFirst { case o: OwnerNamespace if o.slug == on.slug => o }
+              case _ => None
+            }).orElse(currentUser.headOption)
+            $.modState(
+              _.copy(
+                namespace = namespace,
+                namespaces = namespaces,
+                data = data
+              )) >> namespace.map(props.cb(_)).getOrElse(Callback.empty)
+          case Xor.Left(e) => Callback.warn(e)
+        })
       }
 
     private def onChange(e: ReactEventI, idx: Int, namespace: Namespace): Callback =
@@ -119,14 +104,15 @@ object NamespaceComponent {
     ReactComponentB[Props]("Namespace")
       .initialState(State(None, Seq.empty, js.Array()))
       .renderBackend[Backend]
-      .componentWillMount(_.backend.fetchNamespaces())
+      .componentDidMount(_.backend.fetchNamespaces())
       .build
 
   def apply(namespace: Namespace,
-            isAdminRoleOnly: Boolean,
+            canCreateRoleOnly: Boolean,
             isAllNamespace: Boolean,
             isDisabled: Boolean,
             isFullWidth: Boolean,
             cb: Namespace => Callback) =
-    component.apply(Props(namespace, isAdminRoleOnly, isAllNamespace, isDisabled, isFullWidth, cb))
+    component.apply(
+      Props(namespace, canCreateRoleOnly, isAllNamespace, isDisabled, isFullWidth, cb))
 }

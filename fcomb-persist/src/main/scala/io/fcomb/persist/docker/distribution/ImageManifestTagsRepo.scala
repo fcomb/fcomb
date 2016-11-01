@@ -73,10 +73,13 @@ object ImageManifestTagsRepo
                 updated_at = ${OffsetDateTime.now()}
             WHERE id = ${imt.imageManifestId}
           """
-      _ <- table.filter { q =>
-        q.imageId === imt.imageId && q.imageManifestId === imt.imageManifestId &&
-        q.tag === imt.tag
-      }.map(t => (t.imageManifestId, t.updatedAt)).update((imageManifestId, OffsetDateTime.now()))
+      _ <- table
+        .filter { q =>
+          q.imageId === imt.imageId && q.imageManifestId === imt.imageManifestId &&
+          q.tag === imt.tag
+        }
+        .map(t => (t.imageManifestId, t.updatedAt))
+        .update((imageManifestId, OffsetDateTime.now()))
     } yield ()
 
   private def findByImageIdDBIO(imageId: Rep[Int]) =

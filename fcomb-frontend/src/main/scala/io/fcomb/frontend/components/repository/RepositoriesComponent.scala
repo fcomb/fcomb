@@ -27,9 +27,8 @@ import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{
   LayoutComponent,
   PaginationOrderState,
-  Table,
-  TimeAgoComponent,
-  ToolbarPaginationComponent
+  TableComponent,
+  TimeAgoComponent
 }
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.errors.ErrorsException
@@ -61,44 +60,43 @@ object RepositoriesComponent {
       $.state.zip($.props).flatMap {
         case (state, props) =>
           val pagination = state.pagination.copy(page = page)
-          $.setState(state.copy(pagination = pagination)) >> getRepositories(props.namespace,
-                                                                             pagination)
+          $.setState(state.copy(pagination = pagination)) >> getRepos(props.namespace, pagination)
       }
 
-    def getRepositories(namespace: Namespace, pos: PaginationOrderState) =
-      Callback.future(
-        Rpc
-          .getNamespaceRepositories(namespace, pos.sortColumn, pos.sortOrder, pos.page, limit)
-          .map {
-            case Xor.Right(pd) =>
-              $.modState(
-                st =>
-                  st.copy(repositories = Ready(pd.data),
-                          pagination = st.pagination.copy(total = pd.total)))
-            case Xor.Left(errs) => $.modState(_.copy(repositories = Failed(ErrorsException(errs))))
-          })
+    def getRepos(namespace: Namespace, pos: PaginationOrderState) =
+      $.state.flatMap { state =>
+        if (state.repositories.isPending) Callback.empty
+        else
+          $.setState(state.copy(repositories = state.repositories.pending())) >>
+            Callback.future(Rpc
+              .getNamespaceRepositories(namespace, pos.sortColumn, pos.sortOrder, pos.page, limit)
+              .map {
+                case Xor.Right(pd) =>
+                  $.modState(st =>
+                    st.copy(repositories = Ready(pd.data),
+                            pagination = st.pagination.copy(total = pd.total)))
+                case Xor.Left(errs) =>
+                  $.modState(_.copy(repositories = Failed(ErrorsException(errs))))
+              })
+      }
 
-    def setRepositoryRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
 
     def renderRepository(ctl: RouterCtl[DashboardRoute],
                          repository: RepositoryResponse,
                          showNamespace: Boolean) = {
+      val target         = DashboardRoute.Repository(repository.slug)
       val lastModifiedAt = repository.updatedAt.getOrElse(repository.createdAt)
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
       val actions = Seq(
-        MuiMenuItem(
-          primaryText = "Open",
-          key = "open",
-          onTouchTap = setRepositoryRoute(DashboardRoute.Repository(repository.slug)) _)(),
+        MuiMenuItem(primaryText = "Open", key = "open", onTouchTap = setRoute(target) _)(),
         MuiMenuItem(primaryText = "Edit",
                     key = "edit",
-                    onTouchTap =
-                      setRepositoryRoute(DashboardRoute.EditRepository(repository.slug)) _)()
+                    onTouchTap = setRoute(DashboardRoute.EditRepository(repository.slug)) _)()
       )
-      val name   = if (showNamespace) repository.slug else repository.name
-      val target = DashboardRoute.Repository(repository.slug)
+      val name = if (showNamespace) repository.slug else repository.name
       MuiTableRow(key = repository.id.toString)(
         MuiTableRowColumn(style = App.visibilityColumnStyle, key = "visibilityKind")(
           RepositoryComponent.visiblityIcon(repository.visibilityKind)),
@@ -117,11 +115,8 @@ object RepositoriesComponent {
         state     <- $.state.map(_.flipSortColumn(column))
         _         <- $.setState(state)
         namespace <- $.props.map(_.namespace)
-        _         <- getRepositories(namespace, state.pagination)
+        _         <- getRepos(namespace, state.pagination)
       } yield ()
-
-    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
-      $.props.flatMap(_.ctl.set(route))
 
     def renderRepositories(props: Props,
                            repositories: Seq[RepositoryResponse],
@@ -129,33 +124,16 @@ object RepositoriesComponent {
       if (repositories.isEmpty) <.div(App.infoMsg, "There are no repositories to show yet")
       else {
         val showNamespace = props.namespace === Namespace.All
-        val columns =
-          MuiTableRow()(Table.renderHeader("Visibility",
-                                           "visibilityKind",
-                                           p,
-                                           updateSort _,
-                                           style = App.visibilityColumnStyle),
-                        Table.renderHeader("Name", "slug", p, updateSort _),
-                        Table.renderHeader("Last modified", "updatedAt", p, updateSort _),
-                        MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
+        val columns = Seq(TableComponent.header("Visibility",
+                                                "visibilityKind",
+                                                p,
+                                                updateSort _,
+                                                style = App.visibilityColumnStyle),
+                          TableComponent.header("Name", "slug", p, updateSort _),
+                          TableComponent.header("Last modified", "updatedAt", p, updateSort _),
+                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
         val rows = repositories.map(renderRepository(props.ctl, _, showNamespace))
-
-        <.div(MuiTable(selectable = false, multiSelectable = false)(
-                MuiTableHeader(
-                  adjustForCheckbox = false,
-                  displaySelectAll = false,
-                  enableSelectAll = false,
-                  key = "header"
-                )(columns),
-                MuiTableBody(
-                  deselectOnClickaway = false,
-                  displayRowCheckbox = false,
-                  showRowHover = false,
-                  stripedRows = false,
-                  key = "body"
-                )(rows)
-              ),
-              ToolbarPaginationComponent(p.page, limit, p.total, updatePage _))
+        TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
     def render(props: Props, state: State): ReactElement =
@@ -165,8 +143,9 @@ object RepositoriesComponent {
   private val component = ReactComponentB[Props]("Repositories")
     .initialState(State(Empty, defaultPagination))
     .renderBackend[Backend]
+    .componentDidMount($ => $.backend.getRepos($.props.namespace, defaultPagination))
     .componentWillReceiveProps(lc =>
-      lc.$.backend.getRepositories(lc.nextProps.namespace, defaultPagination))
+      lc.$.backend.getRepos(lc.nextProps.namespace, defaultPagination))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], namespace: Namespace) =

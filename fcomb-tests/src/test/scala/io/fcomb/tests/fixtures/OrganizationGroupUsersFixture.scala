@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package io.fcomb.server
+package io.fcomb.tests.fixtures
 
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.PathMatcher._
-import akka.http.scaladsl.model.Uri.Path
-import io.fcomb.models.common.Slug
+import akka.http.scaladsl.util.FastFuture._
+import io.fcomb.models.OrganizationGroupUser
+import io.fcomb.persist.OrganizationGroupUsersRepo
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-object SlugPath extends PathMatcher1[Slug] {
-  def apply(path: Path) = path match {
-    case Path.Segment(segment, tail) => Matched(tail, Tuple1(Slug.parse(segment)))
-    case _                           => Unmatched
-  }
+object OrganizationGroupUsersFixture {
+  def create(groupId: Int, userId: Int): Future[OrganizationGroupUser] =
+    OrganizationGroupUsersRepo
+      .create(OrganizationGroupUser(groupId = groupId, userId = userId))
+      .fast
+      .map(Fixtures.get)
 }

@@ -165,7 +165,7 @@ object SchemaV1 {
           )
           manifestV1.asJson.asObject match {
             case Some(obj) => Xor.Right(prettyPrint(obj.remove("signatures").asJson))
-            case None      => Xor.Left("manifestV1 not an JSON object")
+            case None      => Xor.Left("manifestV1 not a JSON object")
           }
         }
       case Xor.Left(e) => Xor.Left(e.show)

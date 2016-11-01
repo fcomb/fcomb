@@ -37,8 +37,11 @@ object RouterComponent {
     val slugFormat           = """[\w\-\.]+"""
     val organizationNamePath = "organizations" / string(slugFormat)
 
-    def repository(ctl: RouterCtl[DashboardRoute], tab: RepositoryTab, slug: String) =
-      AC.repositories(RepositoryComponent(ctl, tab, _, slug))
+    def repo(ctl: RouterCtl[DashboardRoute], tab: RepositoryTab, slug: String) =
+      AC.repos(RepositoryComponent(ctl, tab, _, slug))
+
+    def org(ctl: RouterCtl[DashboardRoute], tab: OrganizationTab, slug: String) =
+      AC.orgs(OrganizationComponent(ctl, tab, _, slug))
 
     // format: OFF
     trimSlashes |
@@ -50,32 +53,32 @@ object RouterComponent {
     staticRoute("repositories" / "new", DashboardRoute.NewRepository) ~>
       renderR(ctl => UserNewRepositoryComponent(ctl)) |
     dynamicRouteCT(repositoryNamePath.caseClass[DashboardRoute.Repository]) ~>
-      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Description, r.slug)) |
+      dynRenderR((r, ctl) => repo(ctl, RepositoryTab.Info, r.slug)) |
     dynamicRouteCT((repositoryNamePath / "edit").caseClass[DashboardRoute.EditRepository]) ~>
-      dynRenderR((r, ctl) => AC.repositories(EditRepositoryComponent(ctl, _, r.slug))) |
+      dynRenderR((r, ctl) => AC.repos(EditRepositoryComponent(ctl, _, r.slug))) |
     dynamicRouteCT((repositoryNamePath / "tags").caseClass[DashboardRoute.RepositoryTags]) ~>
-      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Tags, r.slug)) |
+      dynRenderR((r, ctl) => repo(ctl, RepositoryTab.Tags, r.slug)) |
     dynamicRouteCT((repositoryNamePath / "settings").caseClass[DashboardRoute.RepositorySettings]) ~>
-      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Settings, r.slug)) |
+      dynRenderR((r, ctl) => repo(ctl, RepositoryTab.Settings, r.slug)) |
     dynamicRouteCT((repositoryNamePath / "permissions").caseClass[DashboardRoute.RepositoryPermissions]) ~>
-      dynRenderR((r, ctl) => repository(ctl, RepositoryTab.Permissions, r.slug)) |
+      dynRenderR((r, ctl) => repo(ctl, RepositoryTab.Permissions, r.slug)) |
     // orgs
     staticRoute("organizations", DashboardRoute.Organizations) ~>
       renderR(ctl => OrganizationsComponent(ctl)) |
     staticRoute("organizations" / "new", DashboardRoute.NewOrganization) ~>
       renderR(ctl => NewOrganizationComponent(ctl)) |
     dynamicRouteCT((organizationNamePath / "settings").caseClass[DashboardRoute.OrganizationSettings]) ~>
-      dynRenderR((o, ctl) => OrganizationSettingsComponent(ctl, o.slug)) |
+      dynRenderR((o, ctl) => org(ctl, OrganizationTab.Settings, o.slug)) |
     dynamicRouteCT((organizationNamePath / "repositories" / "new").caseClass[DashboardRoute.NewOrganizationRepository]) ~>
       dynRenderR((o, ctl) => NewOrganizationRepositoryComponent(ctl, o.slug)) |
     dynamicRouteCT(organizationNamePath.caseClass[DashboardRoute.Organization]) ~>
-      dynRenderR((o, ctl) => OrganizationComponent(ctl, o.slug)) |
-    dynamicRouteCT((organizationNamePath / "groups" / "new").caseClass[DashboardRoute.NewOrganizationGroup]) ~>
-      dynRenderR((o, ctl) => NewGroupComponent(ctl, o.slug)) |
+      dynRenderR((o, ctl) => org(ctl, OrganizationTab.Repositories, o.slug)) |
     dynamicRouteCT((organizationNamePath / "groups").caseClass[DashboardRoute.OrganizationGroups]) ~>
-      dynRenderR((o, ctl) => GroupsComponent(ctl, o.slug)) |
+      dynRenderR((o, ctl) => org(ctl, OrganizationTab.Groups, o.slug)) |
     dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat)).caseClass[DashboardRoute.OrganizationGroup]) ~>
-      dynRenderR((og, ctl) => GroupComponent(ctl, og.slug, og.groupName))
+      dynRenderR((og, ctl) => GroupComponent(ctl, og.slug, og.group)) |
+    dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat) / "edit").caseClass[DashboardRoute.EditOrganizationGroup]) ~>
+      dynRenderR((og, ctl) => EditGroupComponent(ctl, og.slug, og.group))
     // format: ON
   }
 

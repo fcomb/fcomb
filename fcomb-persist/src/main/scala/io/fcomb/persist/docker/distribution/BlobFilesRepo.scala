@@ -102,24 +102,31 @@ object BlobFilesRepo {
           case Some(digest) => isDuplicateByDigestDBIO(uuid, digest).map(_.nonEmpty)
           case _            => DBIO.successful(false)
         }).flatMap {
-          case true => findByUuidDBIO(uuid).delete
-          case _    => findByUuidDBIO(uuid).map(_.state).update(BlobFileState.Deleting)
-        }.map(_ => ())
+            case true => findByUuidDBIO(uuid).delete
+            case _    => findByUuidDBIO(uuid).map(_.state).update(BlobFileState.Deleting)
+          }
+          .map(_ => ())
       case _ => DBIO.successful(())
     }
 
   def markOrDestroyByImageIdDBIO(imageId: Int)(implicit ec: ExecutionContext) =
-    table.filter { t =>
-      t.uuid.in(ImageBlobsRepo.findIdsByImageIdDBIO(imageId)) &&
-      (t.digest.isEmpty ||
-      !t.digest.in(ImageBlobsRepo.duplicateDigestsByImageIdDBIO(imageId)))
-    }.map(_.state).update(BlobFileState.Deleting)
+    table
+      .filter { t =>
+        t.uuid.in(ImageBlobsRepo.findIdsByImageIdDBIO(imageId)) &&
+        (t.digest.isEmpty ||
+        !t.digest.in(ImageBlobsRepo.duplicateDigestsByImageIdDBIO(imageId)))
+      }
+      .map(_.state)
+      .update(BlobFileState.Deleting)
 
   def markOrDestroyByOrganizationIdDBIO(orgId: Int)(implicit ec: ExecutionContext) =
-    table.filter { q =>
-      q.uuid.in(ImageBlobsRepo.findIdsWithEmptyDigestsByOrganizationIdDBIO(orgId)) ||
-      q.digest.in(ImageBlobsRepo.uniqueDigestsByOrganizationIdDBIO(orgId))
-    }.map(_.state).update(BlobFileState.Deleting)
+    table
+      .filter { q =>
+        q.uuid.in(ImageBlobsRepo.findIdsWithEmptyDigestsByOrganizationIdDBIO(orgId)) ||
+        q.digest.in(ImageBlobsRepo.uniqueDigestsByOrganizationIdDBIO(orgId))
+      }
+      .map(_.state)
+      .update(BlobFileState.Deleting)
 
   def markOutdatedUploadsDBIO(until: Rep[OffsetDateTime]) =
     table

@@ -25,6 +25,7 @@ import io.fcomb.models.{Organization, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.docker.distribution.ImagesRepo
+import io.fcomb.persist.Filters._
 import io.fcomb.rpc.acl.{
   PermissionGroupMemberResponse,
   PermissionMemberResponse,
@@ -51,7 +52,9 @@ final class OrganizationTable(tag: Tag)
       ((Organization.apply _).tupled, Organization.unapply)
 }
 
-object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, OrganizationTable] {
+object OrganizationsRepo
+    extends PersistModelWithAutoIntPk[Organization, OrganizationTable]
+    with PaginationActions {
   val table = TableQuery[OrganizationTable]
   val label = "organizations"
 
@@ -88,9 +91,12 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     table.filter(_.ownerUserId === userId).map(t => (t, (Role.Admin: Rep[Role]).asColumnOf[Role]))
 
   private def availableByUserGroupsDBIO(userId: Rep[Int]) =
-    groupsScope.filter {
-      case (_, ogut) => ogut.userId === userId
-    }.map { case ((t, ogt), _) => (t, ogt.role) }.subquery
+    groupsScope
+      .filter {
+        case (_, ogut) => ogut.userId === userId
+      }
+      .map { case ((t, ogt), _) => (t, ogt.role) }
+      .subquery
 
   private type AvailableScopeQuery =
     Query[(OrganizationTable, Rep[Role]), (Organization, Role), Seq]
@@ -100,55 +106,45 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
 
   private def availableByUserIdScopeDBIO(
       userId: Rep[Int],
-      filter: immutable.Map[String, String]): AvailableScopeQuery = {
-    val q = filter.foldLeft(availableByUserIdScopeDBIO(userId)) {
-      case (s, (column, value)) =>
-        s.filter { q =>
-          column match {
-            case "name" =>
-              q._1.name.like(value.replaceAll("\\*", "%").asColumnOfType[String]("citext"))
-            case "role" => q._2 === Role.withName(value)
-            case _      => LiteralColumn(false)
+      filter: immutable.Map[String, String]): AvailableScopeQuery =
+    filter
+      .foldLeft(availableByUserIdScopeDBIO(userId)) {
+        case (s, (column, value)) =>
+          s.filter {
+            case (t, role) =>
+              column match {
+                case "name" => filterCitextByMask(t.name, value)
+                case "role" => filterByEnum(role, Role, value)
+                case _      => LiteralColumn(false)
+              }
           }
-        }
-    }
-    q.sortBy(_._1.name).subquery
-  }
+      }
+      .subquery
 
-  private lazy val availableByUserIdCompiled = Compiled {
-    (userId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      availableByUserIdScopeDBIO(userId).drop(offset).take(limit)
-  }
+  type OrganizationResponseTupleRep = (OrganizationTable, Rep[Role])
 
-  private lazy val availableByUserIdTotalCompiled = Compiled { (userId: Rep[Int]) =>
-    availableByUserIdScopeDBIO(userId).length
+  private def sortByPF(q: OrganizationResponseTupleRep): PartialFunction[String, Rep[_]] = {
+    case "id"   => q._1.id
+    case "name" => q._1.name
   }
-
-  private def availableByUserIdDBIO(userId: Int, p: Pagination) =
-    if (p.filter.isEmpty)
-      (availableByUserIdCompiled((userId, p.offset, p.limit)).result,
-       availableByUserIdTotalCompiled(userId).result)
-    else {
-      val scope = availableByUserIdScopeDBIO(userId, p.filter)
-      (scope.drop(p.offset).take(p.limit).result, scope.length.result)
-    }
 
   def paginateAvailableByUserId(userId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[OrganizationResponse]] = {
-    val (orgsQ, totalQ) = availableByUserIdDBIO(userId, p)
-    db.run {
-      for {
-        orgs  <- orgsQ
-        total <- totalQ
-        data = orgs.map { case (org, role) => OrganizationHelpers.responseFrom(org, role) }
-      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
-    }
+    val scope = availableByUserIdScopeDBIO(userId, p.filter)
+    db.run(for {
+      orgs  <- sortByQuery(scope.drop(p.offset).take(p.limit), p)(sortByPF, _._1.name).result
+      total <- scope.length.result
+      data = orgs.map { case (org, role) => OrganizationHelpers.responseFrom(org, role) }
+    } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
   }
 
   private lazy val findRoleByIdAndUserIdCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
-    groupsScope.filter {
-      case ((t, _), ogut) => t.id === id && ogut.userId === userId
-    }.map(_._1._2.role).take(1)
+    groupsScope
+      .filter {
+        case ((t, _), ogut) => t.id === id && ogut.userId === userId
+      }
+      .map(_._1._2.role)
+      .take(1)
   }
 
   def findWithRoleBySlugDBIO(slug: Slug, userId: Int)(implicit ec: ExecutionContext) =
@@ -176,10 +172,12 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     db.run(findBySlugWithAclDBIO(slug, userId, role))
 
   private lazy val isAdminCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
-    groupsScope.filter {
-      case ((t, ogt), ogut) =>
-        t.id === id && ogut.userId === userId && ogt.role === (Role.Admin: Role)
-    }.exists
+    groupsScope
+      .filter {
+        case ((t, ogt), ogut) =>
+          t.id === id && ogut.userId === userId && ogt.role === (Role.Admin: Role)
+      }
+      .exists
   }
 
   def isAdminDBIO(id: Int, userId: Int) =
@@ -207,7 +205,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
   //   update(id)(_.copy(name = req.name))
   // }
 
-  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) =
+  override def destroyDBIO(id: Int)(implicit ec: ExecutionContext) =
     for {
       _   <- PermissionsRepo.destroyByOrganizationIdDBIO(id)
       _   <- OrganizationGroupsRepo.destroyByOrganizationIdDBIO(id)
@@ -254,15 +252,14 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
 
   import Validations._
 
-  // TODO: check name format
-
   private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
     exceptIdFilter(id).filter(_.name === name.asColumnOfType[String]("citext")).exists
   }
 
   override def validate(org: Organization)(implicit ec: ExecutionContext): ValidationDBIOResult = {
     val plainValidations = validatePlain(
-      "name" -> List(lengthRange(org.name, 1, 255))
+      "name" -> List(lengthRange(org.name, 1, 255),
+                     matches(org.name, Organization.nameRegEx, "invalid name format"))
     )
     val dbioValidations = validateDBIO(
       "name" -> List(unique(uniqueNameCompiled((org.id, org.name))))

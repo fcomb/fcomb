@@ -27,7 +27,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object ImageManifestsRepoFixture {
+object ImageManifestsFixture {
   def createV1(
       userId: Int,
       imageSlug: String,

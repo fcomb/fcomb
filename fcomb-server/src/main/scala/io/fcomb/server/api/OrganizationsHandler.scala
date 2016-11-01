@@ -33,7 +33,7 @@ import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._
-import io.fcomb.server.SlugPath
+import io.fcomb.server.Path
 
 object OrganizationsHandler {
   val handlerPath = "organizations"
@@ -104,7 +104,7 @@ object OrganizationsHandler {
       pathEnd {
         post(create)
       } ~
-      pathPrefix(SlugPath) { slug =>
+      pathPrefix(Path.Slug) { slug =>
         pathEnd {
           get(show(slug)) ~
           // put(update(slug)) ~

@@ -34,7 +34,9 @@ final case class UserProfileResponse(
     email: String,
     username: String,
     fullName: Option[String]
-)
+) {
+  def title = username + fullName.map(n => s" ($n)").getOrElse("")
+}
 
 final case class UserResponse(
     id: Int,

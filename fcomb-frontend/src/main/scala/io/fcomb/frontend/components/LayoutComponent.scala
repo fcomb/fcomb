@@ -84,12 +84,12 @@ object LayoutComponent {
 
   private val signInRedirectComponent = ReactComponentB[RouterCtl[Route]]("SignInRedirect")
     .render_P(_ => <.div("Unauthorized"))
-    .componentWillMount(_.props.set(Route.SignIn).delayMs(1).void)
+    .componentDidMount(_.props.set(Route.SignIn).delayMs(1).void)
     .build
 
   private val dashboardRedirectComponent = ReactComponentB[RouterCtl[Route]]("DashboardRedirect")
     .render_P(_ => <.div("Authorized"))
-    .componentWillMount(_.props.set(Route.Dashboard(DashboardRoute.Root)).delayMs(1).void)
+    .componentDidMount(_.props.set(Route.Dashboard(DashboardRoute.Root)).delayMs(1).void)
     .build
 
   private val sessionConn = AppCircuit.connect(_.session)

@@ -93,4 +93,8 @@ object App extends StyleSheet.Inline {
   val paddingTopStyle = js.Dictionary("paddingTop" -> paddingTopLength)
 
   val helpBlockStyle = js.Dictionary("paddingTop" -> "48px")
+
+  val cancelStyle = js.Dictionary("marginRight" -> paddingTopLength)
+
+  val formHeaderStyle = js.Dictionary("marginBottom" -> "0px")
 }

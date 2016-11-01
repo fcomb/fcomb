@@ -28,7 +28,8 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
     new AuthenticationHandler(zoomRW(m => (m.session, m.currentUser)) {
       case (m, (sv, scu)) => m.copy(session = sv, currentUser = scu)
     }),
-    new RepositoriesHandler(zoomRW(_.repositories)((m, v) => m.copy(repositories = v)))
+    new RepositoriesHandler(zoomRW(_.repos)((m, v) => m.copy(repos = v))),
+    new OrganizationsHandler(zoomRW(_.orgs)((m, v) => m.copy(orgs = v)))
   )
 
   private lazy val repositoryFetcher   = RepositoryFetcher(this)
@@ -37,8 +38,8 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   protected def initialModel = RootModel(
     session = None,
     currentUser = None,
-    repositories = PotMap(repositoryFetcher),
-    organizations = PotMap(organizationFetcher)
+    repos = PotMap(repositoryFetcher),
+    orgs = PotMap(organizationFetcher)
   )
 
   def dispatchCB(action: Action): Callback =
@@ -50,5 +51,7 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
 
   def currentUser = currentState.currentUser
 
-  lazy val repositories = connect(_.repositories)
+  lazy val repos = connect(_.repos)
+
+  lazy val orgs = connect(_.orgs)
 }

@@ -78,8 +78,8 @@ object DashboardRoute {
   final case class Organization(slug: String)                         extends OrganizationRoute
   final case class OrganizationSettings(slug: String)                 extends OrganizationRoute
   final case class OrganizationGroups(slug: String)                   extends OrganizationRoute
-  final case class NewOrganizationGroup(slug: String)                 extends OrganizationRoute
-  final case class OrganizationGroup(slug: String, groupName: String) extends OrganizationRoute
+  final case class OrganizationGroup(slug: String, group: String)     extends OrganizationRoute
+  final case class EditOrganizationGroup(slug: String, group: String) extends OrganizationRoute
   final case class NewOrganizationRepository(slug: String)            extends OrganizationRoute
 
   sealed trait UserRoute extends DashboardRoute {

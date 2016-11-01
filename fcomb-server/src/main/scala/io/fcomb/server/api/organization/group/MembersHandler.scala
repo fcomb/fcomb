@@ -29,14 +29,15 @@ import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationGroupDirectives._
 import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.Path
 
 object MembersHandler {
   val handlerPath = "members"
 
-  def index(slug: Slug, groupSlug: Slug) =
+  def index(slug: Slug, group: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
+        groupBySlugWithAcl(slug, group, user.getId()) { group =>
           extractPagination { pg =>
             onSuccess(OrganizationGroupUsersRepo.paginateByGroupId(group.getId(), pg)) { p =>
               completePagination(OrganizationGroupUsersRepo.label, p)
@@ -46,10 +47,10 @@ object MembersHandler {
       }
     }
 
-  def upsert(slug: Slug, groupSlug: Slug) =
+  def upsert(slug: Slug, group: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
+        groupBySlugWithAcl(slug, group, user.getId()) { group =>
           entity(as[MemberUserRequest]) { req =>
             onSuccess(OrganizationGroupUsersRepo.upsert(group.getId(), req)) {
               case Validated.Valid(p)      => completeAccepted()
@@ -60,11 +61,11 @@ object MembersHandler {
       }
     }
 
-  def destroy(slug: Slug, groupSlug: Slug, memberSlug: Slug) =
+  def destroy(slug: Slug, group: Slug, memberSlug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        groupBySlugWithAcl(slug, groupSlug, user.getId()) { group =>
-          onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), memberSlug)) {
+        groupBySlugWithAcl(slug, group, user.getId()) { group =>
+          onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), user.getId(), memberSlug)) {
             case Validated.Valid(p)      => completeAccepted()
             case Validated.Invalid(errs) => completeErrors(errs)
           }
@@ -72,17 +73,14 @@ object MembersHandler {
       }
     }
 
-  def routes(slug: Slug, groupSlug: Slug): Route =
+  def routes(slug: Slug, group: Slug): Route =
     // format: OFF
     pathPrefix(handlerPath) {
       pathEnd {
-        get(index(slug, groupSlug)) ~
-        put(upsert(slug, groupSlug))
+        get(index(slug, group)) ~
+        put(upsert(slug, group))
       } ~
-      path(Segment) { memberSlugSegment =>
-        val memberSlug = Slug.parse(memberSlugSegment)
-        delete(destroy(slug, groupSlug, memberSlug))
-      }
+      path(Path.Slug)(member => delete(destroy(slug, group, member)))
     }
     // format: ON
 }

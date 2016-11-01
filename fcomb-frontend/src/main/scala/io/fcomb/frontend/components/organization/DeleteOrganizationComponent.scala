@@ -20,7 +20,7 @@ import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -31,7 +31,7 @@ object DeleteOrganizationComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
   final case class State(isOpen: Boolean, isValid: Boolean, isDisabled: Boolean)
 
-  class Backend($ : BackendScope[Props, State]) {
+  final class Backend($ : BackendScope[Props, State]) {
     def delete(e: ReactTouchEventH): Callback =
       $.state.flatMap { state =>
         if (state.isDisabled) Callback.empty
@@ -39,19 +39,12 @@ object DeleteOrganizationComponent {
           for {
             _     <- $.setState(state.copy(isDisabled = true))
             props <- $.props
-            _ <- Callback.future {
-              Rpc
-                .call[Unit](RpcMethod.DELETE, Resource.organization(props.orgName))
-                .map {
-                  case Xor.Right(_) => props.ctl.set(DashboardRoute.Root)
-                  case Xor.Left(e)  =>
-                    // TODO
-                    updateDisabled(false)
-                }
-                .recover {
-                  case _ => updateDisabled(false)
-                }
-            }
+            _ <- Callback.future(Rpc.deleteOrganization(props.orgName).map {
+              case Xor.Right(_) => props.ctl.set(DashboardRoute.Root)
+              case Xor.Left(e)  =>
+                // TODO
+                updateDisabled(false)
+            })
           } yield ()
         }
       }

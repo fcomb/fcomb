@@ -18,23 +18,20 @@ package io.fcomb.server.api.repository
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Directive1, Route}
+import akka.http.scaladsl.server.Route
 import cats.data.Validated
-import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.acl.Formats._
-import io.fcomb.json.rpc.Formats.encodeDataResponse
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.common.Slug
-import io.fcomb.models.errors.Errors
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.acl.PermissionCreateRequest
-import io.fcomb.rpc.DataResponse
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.Path
 
 object PermissionsHandler {
   val handlerPath = "permissions"
@@ -81,11 +78,9 @@ object PermissionsHandler {
   def suggestions(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
-        image(slug, user.getId(), Action.Manage) { image =>
-          parameter('q) { q =>
-            onSuccess(PermissionsRepo.findSuggestions(image, q)) { p =>
-              completeWithEtag(StatusCodes.OK, DataResponse(p))
-            }
+        parameter('q) { q =>
+          image(slug, user.getId(), Action.Manage) { image =>
+            onSuccess(PermissionsRepo.findSuggestions(image, q))(completeData)
           }
         }
       }
@@ -98,20 +93,10 @@ object PermissionsHandler {
         get(index(slug)) ~
         put(upsert(slug))
       } ~
-      path("members_suggestions")(get(suggestions(slug))) ~
-      path(Segment / Segment) { (kind, memberSlugSegment) =>
-        extractMemberKind(kind) { memberKind =>
-          val memberSlug = Slug.parse(memberSlugSegment)
-          delete(destroy(slug, memberKind, memberSlug))
-        }
+      path("suggestions" / "members")(get(suggestions(slug))) ~
+      path(Path.MemberKind / Path.Slug) { (kind, member) =>
+        delete(destroy(slug, kind, member))
       }
     }
     // format: ON
-
-  private def extractMemberKind(kind: String): Directive1[MemberKind] =
-    MemberKind.withNameOption(kind) match {
-      case Some(memberKind) => provide(memberKind)
-      case None =>
-        complete((StatusCodes.BadRequest, Errors.from(Errors.unknownEnumItem(kind, MemberKind))))
-    }
 }

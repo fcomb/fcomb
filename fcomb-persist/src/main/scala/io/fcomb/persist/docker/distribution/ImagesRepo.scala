@@ -165,10 +165,12 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
     }
 
   def findIdsByOrganizationIdDBIO(organizationId: Int) =
-    table.filter { q =>
-      q.ownerId === organizationId &&
-      q.ownerKind === (OwnerKind.Organization: OwnerKind)
-    }.map(_.id)
+    table
+      .filter { q =>
+        q.ownerId === organizationId &&
+        q.ownerKind === (OwnerKind.Organization: OwnerKind)
+      }
+      .map(_.id)
 
   private def availableByUserOwnerDBIO(userId: Rep[Int]) =
     table
@@ -199,11 +201,14 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
       .on { case ((_, ogt), ogut) => ogt.id === ogut.groupId }
 
   private def availableByUserOrganizationsDBIO(userId: Rep[Int]) =
-    organizationAdminsScope.filter {
-      case ((_, _), ogut) => ogut.userId === userId
-    }.subquery.map {
-      case ((t, _), _) => (t, (Action.Manage: Rep[Action]).asColumnOf[Action])
-    }
+    organizationAdminsScope
+      .filter {
+        case ((_, _), ogut) => ogut.userId === userId
+      }
+      .subquery
+      .map {
+        case ((t, _), _) => (t, (Action.Manage: Rep[Action]).asColumnOf[Action])
+      }
 
   /** Returns group images scope with sorted by role members */
   def groupsScope =
@@ -227,11 +232,14 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
       }
 
   private def availableByUserGroupsDBIO(userId: Rep[Int]) =
-    groupsScope.filter {
-      case (_, gut) => gut.userId === userId
-    }.subquery.map {
-      case ((t, pt), _) => (t, pt.action)
-    }
+    groupsScope
+      .filter {
+        case (_, gut) => gut.userId === userId
+      }
+      .subquery
+      .map {
+        case ((t, pt), _) => (t, pt.action)
+      }
 
   private def availableScope(userId: Rep[Int]) =
     availableByUserOwnerDBIO(userId)
@@ -344,6 +352,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
   private type ImageResponseTupleRep = (ImageTable, Rep[Action])
 
   private def sortByPF(q: ImageResponseTupleRep): PartialFunction[String, Rep[_]] = {
+    case "id"             => q._1.id
     case "name"           => q._1.name
     case "slug"           => q._1.slug
     case "updatedAt"      => q._1.updatedAt
@@ -361,10 +370,13 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
   }
 
   private def findPublicByOwnerDBIO(ownerId: Rep[Int], ownerKind: Rep[OwnerKind]) =
-    table.filter { q =>
-      q.ownerId === ownerId && q.ownerKind === ownerKind &&
-      q.visibilityKind === (ImageVisibilityKind.Public: ImageVisibilityKind)
-    }.map(t => (t, (Action.Read: Rep[Action]).asColumnOf[Action])).subquery
+    table
+      .filter { q =>
+        q.ownerId === ownerId && q.ownerKind === ownerKind &&
+        q.visibilityKind === (ImageVisibilityKind.Public: ImageVisibilityKind)
+      }
+      .map(t => (t, (Action.Read: Rep[Action]).asColumnOf[Action]))
+      .subquery
 
   private lazy val findPublicByOwnerTotalCompiled = Compiled {
     (ownerId: Rep[Int], ownerKind: Rep[OwnerKind]) =>
@@ -442,19 +454,27 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
   }
 
   private def availableByOrganizationAndUserDBIO(orgId: Rep[Int], userId: Rep[Int]) =
-    organizationAdminsScope.filter {
-      case ((_, ogt), ogut) =>
-        ogt.organizationId === orgId && ogut.userId === userId
-    }.subquery.map {
-      case ((t, _), _) => (t, Action.Manage: Action)
-    }.subquery
+    organizationAdminsScope
+      .filter {
+        case ((_, ogt), ogut) =>
+          ogt.organizationId === orgId && ogut.userId === userId
+      }
+      .subquery
+      .map {
+        case ((t, _), _) => (t, Action.Manage: Action)
+      }
+      .subquery
 
   private def availableByOrganizationAndUserGroupsDBIO(orgId: Rep[Int], userId: Rep[Int]) =
-    groupsScope.filter {
-      case ((t, _), gut) => t.ownerId === orgId && gut.userId === userId
-    }.subquery.map {
-      case ((t, pt), _) => (t, pt.action)
-    }.subquery
+    groupsScope
+      .filter {
+        case ((t, _), gut) => t.ownerId === orgId && gut.userId === userId
+      }
+      .subquery
+      .map {
+        case ((t, pt), _) => (t, pt.action)
+      }
+      .subquery
 
   private def findAvailableByOrganizationOwnerDBIO(orgId: Rep[Int], currentUserId: Rep[Int]) =
     findPublicByOwnerDBIO(orgId, OwnerKind.Organization)
@@ -490,11 +510,14 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
   def updateVisibility(id: Int, visibilityKind: ImageVisibilityKind): Future[_] =
     db.run(table.filter(_.id === id).map(_.visibilityKind).update(visibilityKind))
 
-  def destroyDBIO(id: Int)(implicit ec: ExecutionContext) =
+  override def destroyDBIO(id: Int)(implicit ec: ExecutionContext) =
     for {
       _   <- ImageBlobsRepo.destroyByImageIdDBIO(id)
       res <- super.destroyDBIO(id)
     } yield res
+
+  override def destroy(id: Int)(implicit ec: ExecutionContext) =
+    runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
 
   def destroyByOrganizationIdDBIO(id: Int)(implicit ec: ExecutionContext) =
     for {
@@ -503,9 +526,6 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
         .filter(t => t.ownerId === id && t.ownerKind === (OwnerKind.Organization: OwnerKind))
         .delete
     } yield res
-
-  override def destroy(id: Int)(implicit ec: ExecutionContext) =
-    runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id))
 
   private lazy val uniqueNameCompiled = Compiled { (id: Rep[Option[Int]], name: Rep[String]) =>
     exceptIdFilter(id).filter(_.name === name.asColumnOfType[String]("citext")).exists

@@ -30,7 +30,7 @@ import scalacss.ScalaCssReact._
 object RepositoryInfoComponent {
   final case class Props(repo: RepositoryResponse)
 
-  class Backend($ : BackendScope[Props, Unit]) {
+  final class Backend($ : BackendScope[Props, Unit]) {
     def selectAllText(e: ReactEventI): Callback =
       e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
 

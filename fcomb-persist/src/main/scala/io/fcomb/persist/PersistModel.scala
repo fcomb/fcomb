@@ -84,20 +84,18 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     DBIO.successful(Validated.Valid(()))
 
   protected def validateThenApply(result: ValidationDBIOResult)(
-      f: => DBIOAction[T, NoStream, Effect.All])(implicit ec: ExecutionContext,
-                                                 m: Manifest[T]): Future[ValidationModel] =
+      f: => DBIOAction[T, NoStream, Effect.All])(
+      implicit ec: ExecutionContext): Future[ValidationModel] =
     validateThenApplyVM(result)(f.map(Validated.Valid(_)))
 
   protected def validateThenApplyDBIO(result: ValidationDBIOResult)(
       f: => DBIOAction[T, NoStream, Effect.All])(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]): DBIOAction[ValidationModel, NoStream, Effect.All] =
+      implicit ec: ExecutionContext): DBIOAction[ValidationModel, NoStream, Effect.All] =
     validateThenApplyVMDBIO(result)(f.map(Validated.Valid(_)))
 
   protected def validateThenApplyVMDBIO(result: ValidationDBIOResult)(
       f: => DBIOAction[ValidationModel, NoStream, Effect.All])(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]): DBIOAction[ValidationModel, NoStream, Effect.All] =
+      implicit ec: ExecutionContext): DBIOAction[ValidationModel, NoStream, Effect.All] =
     result.flatMap {
       case Validated.Valid(_)       => f
       case e @ Validated.Invalid(_) => DBIO.successful(e)
@@ -105,8 +103,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
 
   protected def validateThenApplyVM(result: ValidationDBIOResult)(
       f: => DBIOAction[ValidationModel, NoStream, Effect.All])(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]): Future[ValidationModel] =
+      implicit ec: ExecutionContext): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted)(validateThenApplyVMDBIO(result)(f))
 
   def all() =
@@ -130,13 +127,12 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     }
 
   def createWithValidationDBIO(item: T)(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]): DBIOAction[ValidationModel, NoStream, Effect.All] = {
+      implicit ec: ExecutionContext): DBIOAction[ValidationModel, NoStream, Effect.All] = {
     val mappedItem = mapModel(item)
     validateThenApplyDBIO(validate(mappedItem))(createDBIO(mappedItem))
   }
 
-  def create(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] =
+  def create(item: T)(implicit ec: ExecutionContext): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.ReadCommitted)(
       createWithValidationDBIO(item)
     )
@@ -146,7 +142,7 @@ trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
     if (q == 0) error
     else Validated.Valid(res)
 
-  def strictDestroyDBIO(q: Int, error: ValidationResultUnit)(
+  def destroyDBIO(q: Int, error: ValidationResultUnit)(
       implicit ec: ExecutionContext): ValidationResultUnit =
     if (q == 0) error
     else Validated.Valid(())
@@ -198,57 +194,44 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
   def exceptIdFilter(id: Rep[Option[T#PkType]]): Query[Q, T, Seq]
 
   def updateDBIO(item: T)(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]
-  ): DBIOAction[ValidationModel, NoStream, Effect.All] =
+      implicit ec: ExecutionContext): DBIOAction[ValidationModel, NoStream, Effect.All] =
     findByIdQuery(item.getId()).update(item).map(strictUpdateDBIO(item.getId(), item))
+
+  def updateDBIOWithValidation(item: T)(implicit ec: ExecutionContext): DBIO[ValidationModel] = {
+    val mappedItem = mapModel(item)
+    validateThenApplyVMDBIO(validate(mappedItem))(updateDBIO(mappedItem))
+  }
 
   // TODO: replace
   def updateDBIO(id: T#PkType)(f: T => T)(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]): DBIOAction[ValidationModel, NoStream, Effect.All] =
+      implicit ec: ExecutionContext): DBIOAction[ValidationModel, NoStream, Effect.All] =
     findByIdQuery(id).result.headOption.flatMap {
-      case Some(item) =>
-        val mappedItem = f(mapModel(item))
-        validateThenApplyVMDBIO(validate(mappedItem))(updateDBIO(mappedItem))
-      case _ => DBIO.successful(recordNotFound(id))
+      case Some(item) => updateDBIOWithValidation(item)
+      case _          => DBIO.successful(recordNotFound(id))
     }
 
   def strictUpdateDBIO[R](id: T#PkType, res: R)(q: Int)(
-      implicit ec: ExecutionContext
-  ): ValidationResult[R] =
+      implicit ec: ExecutionContext): ValidationResult[R] =
     super.strictUpdateDBIO(res)(q, recordNotFound(id))
 
-  def update(item: T)(implicit ec: ExecutionContext, m: Manifest[T]): Future[ValidationModel] = {
+  def update(item: T)(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val mappedItem = mapModel(item)
     validateThenApplyVM(validate(mappedItem)) {
       updateDBIO(mappedItem)
     }
   }
 
-  def update(id: T#PkType)(f: T => T)(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]
-  ): Future[ValidationModel] =
+  def update(id: T#PkType)(f: T => T)(implicit ec: ExecutionContext): Future[ValidationModel] =
     findById(id).flatMap {
       case Some(item) => update(f(item))
       case None       => recordNotFoundAsFuture(id)
     }
 
-  def destroyDBIO(id: T#PkType) =
-    findByIdQuery(id).delete
-
-  def destroy(id: T#PkType)(implicit ec: ExecutionContext): Future[Int] =
+  def destroy(id: T#PkType)(implicit ec: ExecutionContext): Future[ValidationResultUnit] =
     db.run(destroyDBIO(id))
 
-  def strictDestroy(id: T#PkType)(implicit ec: ExecutionContext): Future[ValidationResultUnit] =
-    db.run {
-      findByIdQuery(id).delete.map(strictDestroyDBIO(id)(_))
-    }
-
-  def strictDestroyDBIO(id: T#PkType)(q: Int)(
-      implicit ec: ExecutionContext): ValidationResultUnit =
-    super.strictDestroyDBIO(q, recordNotFound(id))
+  def destroyDBIO(id: T#PkType)(implicit ec: ExecutionContext): DBIO[ValidationResultUnit] =
+    findByIdQuery(id).delete.map(destroyDBIO(_, recordNotFound(id)))
 }
 
 trait PersistModelWithUuidPk[

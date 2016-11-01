@@ -16,13 +16,13 @@
 
 package io.fcomb.tests.fixtures
 
-import cats.data.Validated
+import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.models.{User, UserRole}
 import io.fcomb.persist.UsersRepo
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-object UsersRepoFixture {
+object UsersFixture {
   val email    = "test@fcomb.io"
   val username = "test"
   val password = "password"
@@ -35,13 +35,14 @@ object UsersRepoFixture {
       fullName: Option[String] = fullName,
       role: UserRole = UserRole.Developer
   ): Future[User] =
-    for {
-      Validated.Valid(user) <- UsersRepo.create(
+    UsersRepo
+      .create(
         email = email,
         username = username,
         password = password,
         fullName = fullName,
         role = role
       )
-    } yield user
+      .fast
+      .map(Fixtures.get)
 }

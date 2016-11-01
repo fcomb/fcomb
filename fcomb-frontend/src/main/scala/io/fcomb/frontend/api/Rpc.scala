@@ -30,13 +30,13 @@ import io.fcomb.json.models.Formats._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.json.rpc.Formats._
-import io.fcomb.models.acl.MemberKind
+import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
-import io.fcomb.models.{Owner, OwnerKind, PaginationData, SortOrder}
-import io.fcomb.rpc.acl.PermissionResponse
+import io.fcomb.models.{Owner, OwnerKind, PaginationData, Session, SortOrder}
+import io.fcomb.rpc.acl._
 import io.fcomb.rpc.docker.distribution._
-import io.fcomb.rpc.OrganizationResponse
+import io.fcomb.rpc._
 import org.scalajs.dom.ext.{Ajax, AjaxException}
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
@@ -121,6 +121,24 @@ object Rpc {
                                              queryParams)
   }
 
+  def getRepositoryPermissionsMembers(slug: String, q: String)(implicit ec: ExecutionContext) =
+    call[DataResponse[PermissionMemberResponse]](
+      RpcMethod.GET,
+      Resource.repositoryPermissionsSuggestionsMembers(slug),
+      Map("q" -> q))
+
+  def upsertPermission(slug: String, name: String, kind: MemberKind, action: Action)(
+      implicit ec: ExecutionContext) = {
+    val member = kind match {
+      case MemberKind.User  => PermissionUsernameRequest(name)
+      case MemberKind.Group => PermissionGroupNameRequest(name)
+    }
+    val req = PermissionCreateRequest(member, action)
+    callWith[PermissionCreateRequest, PermissionResponse](RpcMethod.PUT,
+                                                          Resource.repositoryPermissions(slug),
+                                                          req)
+  }
+
   def deletRepositoryPermission(slug: String, name: String, kind: MemberKind)(
       implicit ec: ExecutionContext) = {
     val url = Resource.repositoryPermission(slug, kind, name)
@@ -136,10 +154,125 @@ object Rpc {
                             limit: Int): Map[String, String] =
     PaginationUtils.getParams(page, limit) ++ SortOrder.toQueryParams(Seq((sortColumn, sortOrder)))
 
+  def createOrganization(name: String)(implicit ec: ExecutionContext) = {
+    val req = OrganizationCreateRequest(name)
+    callWith[OrganizationCreateRequest, OrganizationResponse](RpcMethod.POST,
+                                                              Resource.organizations,
+                                                              req)
+  }
+
   def getOrganization(slug: String)(implicit ec: ExecutionContext) =
     call[OrganizationResponse](RpcMethod.GET, Resource.organization(slug)).map(toPot)
 
-  def callWith[T: Encoder, U: Decoder](
+  def getOrganizations(sortColumn: String, sortOrder: SortOrder, page: Int, limit: Int)(
+      implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[OrganizationResponse]](RpcMethod.GET,
+                                               Resource.userSelfOrganizations,
+                                               queryParams)
+  }
+
+  def getUserSelfOrganizations(canCreateRoleOnly: Boolean, limit: Int)(
+      implicit ec: ExecutionContext) = {
+    val role =
+      if (canCreateRoleOnly) Seq(Role.Admin, Role.Creator).map(_.entryName).mkString(",")
+      else ""
+    val params = Map(
+      "role"  -> role,
+      "limit" -> limit.toString()
+    ).filter(_._2.nonEmpty)
+    call[PaginationData[OrganizationResponse]](RpcMethod.GET,
+                                               Resource.userSelfOrganizations,
+                                               params)
+  }
+
+  def deleteOrganization(slug: String)(implicit ec: ExecutionContext) =
+    call[Unit](RpcMethod.DELETE, Resource.organization(slug))
+
+  def getOrgaizationGroups(slug: String,
+                           sortColumn: String,
+                           sortOrder: SortOrder,
+                           page: Int,
+                           limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[OrganizationGroupResponse]](RpcMethod.GET,
+                                                    Resource.organizationGroups(slug),
+                                                    queryParams)
+  }
+
+  def createOrganizationGroup(slug: String, group: String, role: Role)(
+      implicit ec: ExecutionContext) = {
+    val req = OrganizationGroupRequest(group, role)
+    callWith[OrganizationGroupRequest, OrganizationGroupResponse](
+      RpcMethod.POST,
+      Resource.organizationGroups(slug),
+      req)
+  }
+
+  def getOrgaizationGroup(slug: String, group: String)(implicit ec: ExecutionContext) =
+    call[OrganizationGroupResponse](RpcMethod.GET, Resource.organizationGroup(slug, group))
+
+  def updateOrganizationGroup(slug: String, group: String, name: String, role: Role)(
+      implicit ec: ExecutionContext) = {
+    val req = OrganizationGroupRequest(name, role)
+    callWith[OrganizationGroupRequest, OrganizationGroupResponse](
+      RpcMethod.PUT,
+      Resource.organizationGroup(slug, group),
+      req)
+  }
+
+  def deleteOrganizationGroup(slug: String, group: String)(implicit ec: ExecutionContext) =
+    call[Unit](RpcMethod.DELETE, Resource.organizationGroup(slug, group))
+
+  def getOrgaizationGroupMembers(slug: String,
+                                 group: String,
+                                 sortColumn: String,
+                                 sortOrder: SortOrder,
+                                 page: Int,
+                                 limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[UserProfileResponse]](RpcMethod.GET,
+                                              Resource.organizationGroupMembers(slug, group),
+                                              queryParams)
+  }
+
+  def upsertOrganizationGroupMember(slug: String, group: String, username: String)(
+      implicit ec: ExecutionContext) =
+    callWith[MemberUsernameRequest, Unit](RpcMethod.PUT,
+                                          Resource.organizationGroupMembers(slug, group),
+                                          MemberUsernameRequest(username))
+
+  def deleteOrganizationGroupMember(slug: String, group: String, username: String)(
+      implicit ec: ExecutionContext) =
+    call[Unit](RpcMethod.DELETE, Resource.organizationGroupMember(slug, group, username))
+
+  def getOrganizationGroupMembers(slug: String, group: String, q: String)(
+      implicit ec: ExecutionContext) =
+    call[DataResponse[UserProfileResponse]](
+      RpcMethod.GET,
+      Resource.organizationGroupSuggestionsMembers(slug, group),
+      Map("q" -> q))
+
+  def signUp(email: String, password: String, username: String, fullName: Option[String])(
+      implicit ec: ExecutionContext) = {
+    val req = UserSignUpRequest(
+      email = email,
+      password = password,
+      username = username,
+      fullName = fullName
+    )
+    callWith[UserSignUpRequest, Unit](RpcMethod.POST, Resource.signUp, req)
+  }
+
+  def signIn(email: String, password: String)(implicit ec: ExecutionContext) = {
+    val req = SessionCreateRequest(
+      email = email.trim(),
+      password = password.trim()
+    )
+    callWith[SessionCreateRequest, Session](RpcMethod.POST, Resource.sessions, req)
+  }
+
+  private def callWith[T: Encoder, U: Decoder](
       method: RpcMethod,
       url: String,
       req: T,
@@ -178,12 +311,12 @@ object Rpc {
     decodeJs[U](json).leftMap(_ => Seq(Errors.deserialization()))
   }
 
-  def call[U](method: RpcMethod,
-              url: String,
-              queryParams: Map[String, String] = Map.empty,
-              headers: Map[String, String] = Map.empty,
-              timeout: Int = 0)(implicit ec: ExecutionContext,
-                                decoder: Decoder[U]): Future[Xor[Seq[Error], U]] =
+  private def call[U](method: RpcMethod,
+                      url: String,
+                      queryParams: Map[String, String] = Map.empty,
+                      headers: Map[String, String] = Map.empty,
+                      timeout: Int = 0)(implicit ec: ExecutionContext,
+                                        decoder: Decoder[U]): Future[Xor[Seq[Error], U]] =
     callWith[Unit, U](method, url, (), queryParams, headers, timeout)
 
   private def unauthorized[U](): Xor[Seq[Error], U] = {

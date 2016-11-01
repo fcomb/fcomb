@@ -27,3 +27,7 @@ final case class Organization(
 ) extends ModelWithAutoIntPk {
   def withId(id: Int) = this.copy(id = Some(id))
 }
+
+object Organization {
+  val nameRegEx = """[A-Za-z][\w\-\.]*""".r
+}

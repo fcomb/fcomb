@@ -34,6 +34,7 @@ import java.security.MessageDigest
 import java.util.UUID
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
 
 sealed trait EntityMessage
@@ -71,10 +72,8 @@ trait ProcessorClustedSharding[Id] extends LazyLogging {
     actorRef
   }
 
-  protected def askRef[T](id: Id, entity: Entity, timeout: Timeout)(
-      implicit ec: ExecutionContext,
-      m: Manifest[T]
-  ): Future[T] =
+  protected def askRef[T](id: Id, entity: Entity, timeout: Timeout)(implicit ec: ExecutionContext,
+                                                                    m: ClassTag[T]): Future[T] =
     Option(actorRef) match {
       case Some(ref) =>
         ask(ref, EntityEnvelope(id, entity))(timeout).mapTo[T].recover {

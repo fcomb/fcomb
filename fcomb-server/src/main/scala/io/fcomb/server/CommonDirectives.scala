@@ -27,7 +27,9 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.circe.Encoder
+import io.fcomb.json.rpc.Formats.encodeDataResponse
 import io.fcomb.models.IdLens
+import io.fcomb.rpc.DataResponse
 import io.fcomb.server.CirceSupport._
 import scala.collection.immutable
 
@@ -56,6 +58,9 @@ object CommonDirectives {
         }
     }
   }
+
+  def completeData[T: Encoder](data: Seq[T]): Route =
+    completeWithEtag(StatusCodes.OK, DataResponse(data))
 
   def completeCreated[T: Encoder](item: T, prefix: String)(implicit idLens: IdLens[T]): Route = {
     val uri     = prefix + idLens.get(item)

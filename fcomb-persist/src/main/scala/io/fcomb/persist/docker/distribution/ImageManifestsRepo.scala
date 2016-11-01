@@ -231,8 +231,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
   }
 
   override def create(manifest: ImageManifest)(
-      implicit ec: ExecutionContext,
-      m: Manifest[ImageManifest]): Future[ValidationModel] =
+      implicit ec: ExecutionContext): Future[ValidationModel] =
     runInTransaction(TransactionIsolation.Serializable)(
       createWithValidationDBIO(manifest).flatMap {
         case res @ Validated.Valid(im) =>
@@ -266,16 +265,23 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
 
   private lazy val findIdAndTagsByImageIdAndTagCompiled = Compiled {
     (imageId: Rep[Int], tag: Rep[String]) =>
-      table.filter { q =>
-        q.imageId === imageId && tag === q.tags.any
-      }.map(m => (m.id, m.tags))
+      table
+        .filter { q =>
+          q.imageId === imageId && tag === q.tags.any
+        }
+        .map(m => (m.id, m.tags))
   }
 
   private lazy val findTagsByImageIdCompiled = Compiled {
     (imageId: Rep[Int], limit: ConstColumn[Long], id: Rep[Int], offset: ConstColumn[Long]) =>
-      table.filter { q =>
-        q.imageId === imageId && q.id >= id
-      }.sortBy(_.id.asc).map(_.tags.unnest).drop(offset).take(limit)
+      table
+        .filter { q =>
+          q.imageId === imageId && q.id >= id
+        }
+        .sortBy(_.id.asc)
+        .map(_.tags.unnest)
+        .drop(offset)
+        .take(limit)
   }
 
   val fetchLimit = 256

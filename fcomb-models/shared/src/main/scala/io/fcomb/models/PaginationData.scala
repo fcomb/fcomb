@@ -33,10 +33,12 @@ object SortOrder {
   }
 
   def toQueryParams(params: Seq[(String, SortOrder)]): Map[String, String] = {
-    val value = params.map {
-      case (column, SortOrder.Asc)  => column
-      case (column, SortOrder.Desc) => s"-$column"
-    }.mkString(",")
+    val value = params
+      .map {
+        case (column, SortOrder.Asc)  => column
+        case (column, SortOrder.Desc) => s"-$column"
+      }
+      .mkString(",")
     Map("sort" -> value)
   }
 

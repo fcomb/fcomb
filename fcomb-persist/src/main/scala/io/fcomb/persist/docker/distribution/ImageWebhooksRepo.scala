@@ -71,26 +71,30 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
 
   private lazy val findByImageIdAndUrlCompiled = Compiled {
     (imageId: Rep[Int], url: Rep[String]) =>
-      table.filter { t =>
-        t.imageId === imageId && t.url === t.url
-      }.take(1)
+      table
+        .filter { t =>
+          t.imageId === imageId && t.url === t.url
+        }
+        .take(1)
   }
 
   def upsert(imageId: Int, url: String)(implicit ec: ExecutionContext): Future[ValidationModel] = {
     val cleanUrl = url.trim
     db.run {
-      findByImageIdAndUrlCompiled((imageId, cleanUrl)).result.headOption.flatMap {
-        case Some(webhook) =>
-          val updated = webhook.copy(url = cleanUrl)
-          updateDBIO(updated).map(_ => updated)
-        case _ =>
-          createDBIO(
-            ImageWebhook(
-              id = None,
-              imageId = imageId,
-              url = url
-            ))
-      }.map(Validated.Valid(_)) // TODO: add url validation
+      findByImageIdAndUrlCompiled((imageId, cleanUrl)).result.headOption
+        .flatMap {
+          case Some(webhook) =>
+            val updated = webhook.copy(url = cleanUrl)
+            updateDBIO(updated).map(_ => updated)
+          case _ =>
+            createDBIO(
+              ImageWebhook(
+                id = None,
+                imageId = imageId,
+                url = url
+              ))
+        }
+        .map(Validated.Valid(_)) // TODO: add url validation
     }
   }
 }

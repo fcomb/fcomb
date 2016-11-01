@@ -23,7 +23,7 @@ import diode.data.PotMap
 import diode.react.ModelProxy
 import diode.react.ReactPot._
 import io.fcomb.frontend.DashboardRoute
-import io.fcomb.frontend.components.LayoutComponent
+import io.fcomb.frontend.components.{BreadcrumbsComponent, LayoutComponent}
 import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.OwnerKind
@@ -38,14 +38,14 @@ import scalacss.ScalaCssReact._
 object RepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute],
                          tab: RepositoryTab,
-                         repositories: ModelProxy[PotMap[String, RepositoryResponse]],
+                         repos: ModelProxy[PotMap[String, RepositoryResponse]],
                          slug: String)
 
   final class Backend($ : BackendScope[Props, Unit]) {
     def onChange(tab: RepositoryTab, e: ReactEventH, el: ReactElement): Callback =
       $.props.flatMap { props =>
         val route = tab match {
-          case RepositoryTab.Description => DashboardRoute.Repository(props.slug)
+          case RepositoryTab.Info        => DashboardRoute.Repository(props.slug)
           case RepositoryTab.Tags        => DashboardRoute.RepositoryTags(props.slug)
           case RepositoryTab.Permissions => DashboardRoute.RepositoryPermissions(props.slug)
           case RepositoryTab.Settings    => DashboardRoute.RepositorySettings(props.slug)
@@ -80,19 +80,14 @@ object RepositoryComponent {
 
       MuiCardMedia(key = "tabs")(
         MuiTabs[RepositoryTab](value = props.tab, onChange = onChange _)(
-          MuiTab(key = "info", label = "Info", value = RepositoryTab.Description)(
+          MuiTab(key = "info", label = "Info", value = RepositoryTab.Info)(
             MuiCardText()(RepositoryInfoComponent(repo))),
           renderTagsTab(props, repo),
           manageTabs))
     }
 
-    def setEditRepositoryRoute(props: Props)(e: ReactEventH): Callback =
+    def setEditRoute(props: Props)(e: ReactEventH): Callback =
       props.ctl.set(DashboardRoute.EditRepository(props.slug))
-
-    def breadcrumbLink(ctl: RouterCtl[DashboardRoute], target: DashboardRoute, text: String) =
-      <.a(LayoutComponent.linkAsTextStyle,
-          ^.href := ctl.urlFor(target).value,
-          ctl.setOnLinkClick(target))(text)
 
     def renderHeader(props: Props, repo: RepositoryResponse, isManageable: Boolean) = {
       val route = repo.owner.kind match {
@@ -102,21 +97,18 @@ object RepositoryComponent {
             DashboardRoute.Repositories
           else DashboardRoute.User(repo.namespace)
       }
-      val buttons: Seq[ReactNode] = if (isManageable) {
+      val menu: ReactNode = if (isManageable) {
         val menuIconBtn =
           MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
         val actions = Seq(
-          MuiMenuItem(primaryText = "Edit",
-                      key = "edit",
-                      onTouchTap = setEditRepositoryRoute(props) _)())
-        Seq(MuiIconMenu(iconButtonElement = menuIconBtn)(actions))
-      } else Seq.empty
-      val breadcrumbs = <.h1(
-        App.cardTitle,
-        visiblityIcon(repo.visibilityKind, Some(App.visibilityIconTitle.htmlClass)),
-        breadcrumbLink(props.ctl, route, repo.namespace),
-        " / ",
-        breadcrumbLink(props.ctl, DashboardRoute.Repository(repo.slug), repo.name))
+          MuiMenuItem(primaryText = "Edit", key = "edit", onTouchTap = setEditRoute(props) _)())
+        MuiIconMenu(iconButtonElement = menuIconBtn)(actions)
+      } else <.div()
+      val icon = visiblityIcon(repo.visibilityKind, Some(App.visibilityIconTitle.htmlClass))
+      val breadcrumbs = BreadcrumbsComponent(
+        props.ctl,
+        Seq((repo.namespace, route), (repo.name, DashboardRoute.Repository(repo.slug))),
+        Some(icon))
 
       <.div(^.key := "header",
             App.cardTitleBlock,
@@ -124,11 +116,11 @@ object RepositoryComponent {
               <.div(^.`class` := "row",
                     ^.key := "title",
                     <.div(^.`class` := "col-xs-11", breadcrumbs),
-                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, buttons)))))
+                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, menu)))))
     }
 
     def render(props: Props): ReactElement = {
-      val repository = props.repositories().get(props.slug)
+      val repository = props.repos().get(props.slug)
       <.section(repository.render { repo =>
         val isManageable = repo.action === Action.Manage
         MuiCard()(renderHeader(props, repo, isManageable), renderTabs(props, repo, isManageable))
@@ -150,7 +142,7 @@ object RepositoryComponent {
 
   def apply(ctl: RouterCtl[DashboardRoute],
             tab: RepositoryTab,
-            repositories: ModelProxy[PotMap[String, RepositoryResponse]],
+            repos: ModelProxy[PotMap[String, RepositoryResponse]],
             slug: String) =
-    component(Props(ctl, tab, repositories, slug))
+    component(Props(ctl, tab, repos, slug))
 }

@@ -28,7 +28,7 @@ object ConfirmationDialogComponent {
                          isOpen: Boolean,
                          cb: Boolean => Callback)
 
-  class Backend($ : BackendScope[Props, Unit]) {
+  final class Backend($ : BackendScope[Props, Unit]) {
     def updateOpenState(isOpen: Boolean) = $.props.flatMap(_.cb(isOpen))
 
     def closeDialog(e: ReactTouchEventH): Callback = updateOpenState(false)

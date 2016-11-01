@@ -19,16 +19,14 @@ package io.fcomb.frontend.components.auth
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.services.AuthService
 import io.fcomb.frontend.{DashboardRoute, Route}
-import io.fcomb.json.rpc.Formats.encodeUserSignUpRequest
-import io.fcomb.rpc.UserSignUpRequest
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
@@ -39,14 +37,14 @@ object SignUpComponent {
                          username: String,
                          fullName: String,
                          errors: Map[String, String],
-                         isFormDisabled: Boolean)
+                         isDisabled: Boolean)
 
   final class Backend($ : BackendScope[RouterCtl[Route], State]) {
     def register(ctl: RouterCtl[Route]): Callback =
       $.state.flatMap { state =>
-        if (state.isFormDisabled) Callback.empty
+        if (state.isDisabled) Callback.empty
         else {
-          $.setState(state.copy(isFormDisabled = true)).flatMap { _ =>
+          $.setState(state.copy(isDisabled = true)).flatMap { _ =>
             Callback.future {
               val email    = state.email.trim()
               val password = state.password.trim()
@@ -54,14 +52,8 @@ object SignUpComponent {
                 case s if s.nonEmpty => Some(s)
                 case _               => None
               }
-              val req = UserSignUpRequest(
-                email = email,
-                password = password,
-                username = state.username.trim(),
-                fullName = fullName
-              )
               Rpc
-                .callWith[UserSignUpRequest, Unit](RpcMethod.POST, Resource.signUp, req)
+                .signUp(email, password, state.username.trim(), fullName)
                 .flatMap {
                   case Xor.Right(_)      => AuthService.authentication(email, password)
                   case res @ Xor.Left(_) => Future.successful(res)
@@ -69,10 +61,7 @@ object SignUpComponent {
                 .map {
                   case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
                   case Xor.Left(errs) =>
-                    $.setState(state.copy(isFormDisabled = false, errors = foldErrors(errs)))
-                }
-                .recover {
-                  case _ => $.setState(state.copy(isFormDisabled = false))
+                    $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
                 }
             }
           }
@@ -104,14 +93,14 @@ object SignUpComponent {
 
     def render(ctl: RouterCtl[Route], state: State) =
       <.form(^.onSubmit ==> handleOnSubmit(ctl),
-             ^.disabled := state.isFormDisabled,
+             ^.disabled := state.isDisabled,
              <.div(^.display.flex,
                    ^.flexDirection.column,
                    MuiTextField(floatingLabelText = "Email",
                                 `type` = "email",
                                 id = "email",
                                 name = "email",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("email"),
                                 value = state.email,
                                 onChange = updateEmail _)(),
@@ -119,28 +108,28 @@ object SignUpComponent {
                                 `type` = "password",
                                 id = "password",
                                 name = "password",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("password"),
                                 value = state.password,
                                 onChange = updatePassword _)(),
                    MuiTextField(floatingLabelText = "Username",
                                 id = "username",
                                 name = "username",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("username"),
                                 value = state.username,
                                 onChange = updateUsername _)(),
                    MuiTextField(floatingLabelText = "Full name (optional)",
                                 id = "fullName",
                                 name = "fullName",
-                                disabled = state.isFormDisabled,
+                                disabled = state.isDisabled,
                                 errorText = state.errors.get("fullName"),
                                 value = state.fullName,
                                 onChange = updateFullName _)(),
                    MuiRaisedButton(`type` = "submit",
                                    primary = true,
                                    label = "Register",
-                                   disabled = state.isFormDisabled)()))
+                                   disabled = state.isDisabled)()))
   }
 
   private val component = ReactComponentB[RouterCtl[Route]]("SignUp")

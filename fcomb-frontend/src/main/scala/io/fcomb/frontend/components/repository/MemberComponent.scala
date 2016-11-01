@@ -19,12 +19,9 @@ package io.fcomb.frontend.components.repository
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.api.{Resource, Rpc, RpcMethod}
+import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.json.rpc.Formats.decodeDataResponse
-import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.OwnerKind
-import io.fcomb.rpc.DataResponse
 import io.fcomb.rpc.acl._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -47,23 +44,16 @@ object MemberComponent {
     private def getSuggestions(q: String): Callback =
       for {
         props <- $.props
-        _ <- Callback.future {
-          Rpc
-            .call[DataResponse[PermissionMemberResponse]](
-              RpcMethod.GET,
-              Resource.repositoryPermissionsMembersSuggestions(props.slug),
-              Map("q" -> q.trim))
-            .map {
-              case Xor.Right(res) =>
-                val data = js.Array(res.data.map(_.title): _*)
-                $.modState(
-                  _.copy(
-                    members = res.data,
-                    data = data
-                  ))
-              case Xor.Left(e) => Callback.warn(e)
-            }
-        }
+        _ <- Callback.future(Rpc.getRepositoryPermissionsMembers(props.slug, q.trim).map {
+          case Xor.Right(res) =>
+            val data = js.Array(res.data.map(_.title): _*)
+            $.modState(
+              _.copy(
+                members = res.data,
+                data = data
+              ))
+          case Xor.Left(e) => Callback.warn(e)
+        })
       } yield ()
 
     private def onNewRequest(chosen: Value, idx: js.UndefOr[Int], ds: js.Array[String]): Callback =
@@ -94,7 +84,7 @@ object MemberComponent {
       MuiAutoComplete(
         id = "member",
         floatingLabelText = label,
-        filter = MuiAutoCompleteFilters.caseInsensitiveFilter,
+        filter = MuiAutoCompleteFilters.noFilter,
         fullWidth = props.isFullWidth,
         disabled = props.isDisabled,
         dataSource = state.data,
