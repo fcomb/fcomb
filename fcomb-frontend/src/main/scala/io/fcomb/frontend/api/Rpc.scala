@@ -124,7 +124,7 @@ object Rpc {
   def getRepositoryPermissionsMembers(slug: String, q: String)(implicit ec: ExecutionContext) =
     call[DataResponse[PermissionMemberResponse]](
       RpcMethod.GET,
-      Resource.repositoryPermissionsMembersSuggestions(slug),
+      Resource.repositoryPermissionsSuggestionsMembers(slug),
       Map("q" -> q))
 
   def upsertPermission(slug: String, name: String, kind: MemberKind, action: Action)(
@@ -224,9 +224,17 @@ object Rpc {
   def deleteOrganizationGroup(slug: String, group: String)(implicit ec: ExecutionContext) =
     call[Unit](RpcMethod.DELETE, Resource.organizationGroup(slug, group))
 
-  def getOrgaizationGroupMembers(slug: String, group: String)(implicit ec: ExecutionContext) =
+  def getOrgaizationGroupMembers(slug: String,
+                                 group: String,
+                                 sortColumn: String,
+                                 sortOrder: SortOrder,
+                                 page: Int,
+                                 limit: Int)(implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
     call[PaginationData[UserProfileResponse]](RpcMethod.GET,
-                                              Resource.organizationGroupMembers(slug, group))
+                                              Resource.organizationGroupMembers(slug, group),
+                                              queryParams)
+  }
 
   def upsertOrganizationGroupMember(slug: String, group: String, username: String)(
       implicit ec: ExecutionContext) =
@@ -237,6 +245,13 @@ object Rpc {
   def deleteOrganizationGroupMember(slug: String, group: String, username: String)(
       implicit ec: ExecutionContext) =
     call[Unit](RpcMethod.DELETE, Resource.organizationGroupMember(slug, group, username))
+
+  def getOrganizationGroupMembers(slug: String, group: String, q: String)(
+      implicit ec: ExecutionContext) =
+    call[DataResponse[UserProfileResponse]](
+      RpcMethod.GET,
+      Resource.organizationGroupSuggestionsMembers(slug, group),
+      Map("q" -> q))
 
   def signUp(email: String, password: String, username: String, fullName: Option[String])(
       implicit ec: ExecutionContext) = {

@@ -19,13 +19,21 @@ package io.fcomb.frontend.components.organization
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
+import diode.data.{Empty, Failed, Pot, Ready}
+import diode.react.ReactPot._
 import io.fcomb.frontend.api.Rpc
-import io.fcomb.frontend.components.BreadcrumbsComponent
+import io.fcomb.frontend.components.{
+  AlertDialogComponent,
+  BreadcrumbsComponent,
+  LayoutComponent,
+  PaginationOrderState,
+  TableComponent
+}
 import io.fcomb.frontend.components.Helpers._
-import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
-import io.fcomb.rpc.{OrganizationGroupResponse, UserProfileResponse}
+import io.fcomb.models.errors.ErrorsException
+import io.fcomb.rpc.UserProfileResponse
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
@@ -34,101 +42,156 @@ import scalacss.ScalaCssReact._
 
 object GroupComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String, group: String)
-  final case class FormState(username: String, errors: Map[String, String], isDisabled: Boolean)
-  final case class State(group: Option[OrganizationGroupResponse],
-                         members: Seq[UserProfileResponse],
-                         form: FormState)
+  final case class FormState(member: Option[UserProfileResponse], errors: Map[String, String])
+  final case class State(members: Pot[Seq[UserProfileResponse]],
+                         pagination: PaginationOrderState,
+                         error: Option[String],
+                         form: FormState,
+                         isDisabled: Boolean) {
+    def flipSortColumn(column: String): State = {
+      val sortOrder =
+        if (pagination.sortColumn == column) pagination.sortOrder.flip
+        else pagination.sortOrder
+      this.copy(pagination = pagination.copy(sortColumn = column, sortOrder = sortOrder))
+    }
+  }
 
-  private def defaultFormState =
-    FormState("", Map.empty, false)
+  private def defaultFormState = FormState(None, Map.empty)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def getGroup(slug: String, group: String) =
-      Callback.future(Rpc.getOrgaizationGroup(slug, group).map {
-        case Xor.Right(group) => $.modState(_.copy(group = Some(group)))
-        case Xor.Left(e)      => Callback.warn(e)
-      })
+    val limit = 25
 
-    def getMembers(slug: String, group: String) =
-      Callback.future(Rpc.getOrgaizationGroupMembers(slug, group).map {
-        case Xor.Right(pd) => $.modState(_.copy(members = pd.data))
-        case Xor.Left(e)   => Callback.warn(e)
-      })
+    def getMembers(pos: PaginationOrderState) =
+      $.props.flatMap { props =>
+        Callback.future(
+          Rpc
+            .getOrgaizationGroupMembers(props.slug,
+                                        props.group,
+                                        pos.sortColumn,
+                                        pos.sortOrder,
+                                        pos.page,
+                                        limit)
+            .map {
+              case Xor.Right(pd)  => $.modState(_.copy(members = Ready(pd.data)))
+              case Xor.Left(errs) => $.modState(_.copy(members = Failed(ErrorsException(errs))))
+            })
+      }
 
-    def getGroupWithMembers(slug: String, group: String): Callback =
+    def modFormState(f: FormState => FormState): Callback =
+      $.modState(st => st.copy(form = f(st.form)))
+
+    def tryAcquireState(f: State => Callback) =
+      $.state.flatMap { state =>
+        if (state.isDisabled) Callback.warn("State is already acquired")
+        else
+          $.setState(state.copy(isDisabled = true)) >> f(state).finallyRun(
+            $.modState(_.copy(isDisabled = false)))
+      }
+
+    def updateSort(column: String)(e: ReactEventH): Callback =
       for {
-        _ <- getGroup(slug, group)
-        _ <- getMembers(slug, group)
+        _     <- e.preventDefaultCB
+        state <- $.state.map(_.flipSortColumn(column))
+        _     <- $.setState(state)
+        _     <- getMembers(state.pagination)
       } yield ()
 
-    def deleteMember(slug: String, group: String, username: String)(e: ReactEventI) =
-      e.preventDefaultCB >>
-        Callback.future(Rpc.deleteOrganizationGroupMember(slug, group, username).map {
-          case Xor.Right(_) => getMembers(slug, group)
-          case Xor.Left(e)  => ??? // TODO
-        })
+    def updatePage(page: Int): Callback =
+      $.state.flatMap { state =>
+        val pagination = state.pagination.copy(page = page)
+        $.setState(state.copy(pagination = pagination)) >> getMembers(pagination)
+      }
 
-    def renderMember(slug: String, group: String, member: UserProfileResponse) =
-      <.tr(<.td(member.username),
-           <.td(member.email),
-           <.td(
-             <.button(^.`type` := "button",
-                      ^.onClick ==> deleteMember(slug, group, member.username),
-                      "Delete")))
+    def deleteMember(username: String)(e: ReactTouchEventH) =
+      $.props.flatMap { props =>
+        tryAcquireState { state =>
+          Callback.future(
+            Rpc.deleteOrganizationGroupMember(props.slug, props.group, username).map {
+              case Xor.Right(_)   => getMembers(state.pagination)
+              case Xor.Left(errs) => $.modState(_.copy(error = Some(joinErrors(errs))))
+            })
+        }
+      }
 
-    def renderMembers(slug: String, group: String, members: Seq[UserProfileResponse]) =
-      if (members.isEmpty) <.span("No members. Create one!")
-      else
-        <.table(<.thead(<.tr(<.th("Username"), <.th("Email"), <.th())),
-                <.tbody(members.map(renderMember(slug, group, _))))
+    def renderMember(props: Props, member: UserProfileResponse, isDisabled: Boolean) = {
+      val button =
+        MuiIconButton(disabled = isDisabled, onTouchTap = deleteMember(member.username) _)(
+          Mui.SvgIcons.ActionDelete(color = Mui.Styles.colors.lightBlack)())
+      MuiTableRow(key = member.id.toString)(
+        MuiTableRowColumn(key = "username")(member.title),
+        MuiTableRowColumn(key = "email")(member.email),
+        MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")(button))
+    }
 
-    def updateFormDisabled(isDisabled: Boolean): Callback =
-      $.modState(s => s.copy(form = s.form.copy(isDisabled = isDisabled)))
+    def renderMembers(props: Props,
+                      members: Seq[UserProfileResponse],
+                      p: PaginationOrderState,
+                      isDisabled: Boolean) =
+      if (members.isEmpty) <.div(App.infoMsg, "There are no members to show yet")
+      else {
+        val columns = Seq(TableComponent.header("User", "username", p, updateSort _),
+                          TableComponent.header("Email", "email", p, updateSort _),
+                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
+        val rows = members.map(renderMember(props, _, isDisabled))
+        TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
+      }
 
     def add(props: Props): Callback =
-      $.state.flatMap { state =>
-        val fs = state.form
-        if (fs.isDisabled) Callback.empty
-        else {
-          $.setState(state.copy(form = fs.copy(isDisabled = true))) >>
+      tryAcquireState { state =>
+        state.form.member.map(_.username) match {
+          case Some(username) =>
             Callback.future(
-              Rpc.upsertOrganizationGroupMember(props.slug, props.group, fs.username).map {
+              Rpc.upsertOrganizationGroupMember(props.slug, props.group, username).map {
                 case Xor.Right(_) =>
-                  $.modState(_.copy(form = defaultFormState)) >>
-                    getMembers(props.slug, props.group)
-                case Xor.Left(errs) =>
-                  $.setState(state.copy(
-                    form = state.form.copy(isDisabled = false, errors = foldErrors(errs))))
+                  $.modState(_.copy(form = defaultFormState)) >> getMembers(state.pagination)
+                case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
               })
+          case _ => Callback.empty
         }
       }
 
     def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> add(props)
 
-    def updateUsername(e: ReactEventI): Callback = {
-      val value = e.target.value
-      $.modState(s => s.copy(form = s.form.copy(username = value)))
+    def updateMember(member: UserProfileResponse): Callback =
+      modFormState(_.copy(member = Some(member)))
+
+    def renderFormUsername(props: Props, state: State) =
+      <.div(^.`class` := "row",
+            ^.key := "username",
+            <.div(^.`class` := "col-xs-6",
+                  UserMemberComponent(props.slug,
+                                      props.group,
+                                      state.form.member.map(_.title),
+                                      state.isDisabled,
+                                      state.form.errors.get("username"),
+                                      isFullWidth = true,
+                                      updateMember _)),
+            <.div(LayoutComponent.helpBlockClass,
+                  ^.style := App.helpBlockStyle,
+                  <.label(^.`for` := "username", "Who will be added to this group.")))
+
+    def renderFormButton(state: State) = {
+      val submitIsDisabled = state.isDisabled || state.form.member.isEmpty
+      <.div(^.style := App.paddingTopStyle,
+            ^.key := "button",
+            MuiRaisedButton(`type` = "submit",
+                            primary = true,
+                            label = "Add",
+                            disabled = submitIsDisabled)())
     }
 
-    def renderForm(props: Props, state: State) = {
-      val form = state.form
-      <.form(^.onSubmit ==> handleOnSubmit(props),
-             ^.disabled := form.isDisabled,
-             <.div(^.display.flex,
-                   ^.flexDirection.column,
-                   MuiTextField(floatingLabelText = "Username",
-                                id = "username",
-                                name = "username",
-                                disabled = form.isDisabled,
-                                errorText = form.errors.get("username"),
-                                value = form.username,
-                                onChange = updateUsername _)(),
-                   MuiRaisedButton(`type` = "submit",
-                                   primary = true,
-                                   label = "Create",
-                                   disabled = form.isDisabled)()))
-    }
+    def renderForm(props: Props, state: State) =
+      <.form(App.separateBlock,
+             ^.onSubmit ==> handleOnSubmit(props),
+             ^.disabled := state.isDisabled,
+             ^.key := "form",
+             <.h3(^.style := App.formHeaderStyle, "New member"),
+             renderFormUsername(props, state),
+             renderFormButton(state))
+
+    def setEditRoute(props: Props)(e: ReactEventH): Callback =
+      props.ctl.set(DashboardRoute.EditOrganizationGroup(props.slug, props.group))
 
     def renderHeader(props: Props) = {
       val breadcrumbs = BreadcrumbsComponent(
@@ -136,28 +199,43 @@ object GroupComponent {
         Seq((props.slug, DashboardRoute.Organization(props.slug)),
             ("Groups", DashboardRoute.OrganizationGroups(props.slug)),
             (props.group, DashboardRoute.OrganizationGroup(props.slug, props.group))))
+      val menuIconBtn =
+        MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
+      val actions = Seq(
+        MuiMenuItem(primaryText = "Edit", key = "edit", onTouchTap = setEditRoute(props) _)())
+      val menu = MuiIconMenu(iconButtonElement = menuIconBtn)(actions)
 
       <.div(^.key := "header",
             App.cardTitleBlock,
             MuiCardTitle(key = "title")(
               <.div(^.`class` := "row",
                     ^.key := "title",
-                    <.div(^.`class` := "col-xs-12", breadcrumbs))))
+                    <.div(^.`class` := "col-xs-11", breadcrumbs),
+                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, menu)))))
     }
 
-    def render(props: Props, state: State): ReactElement =
-      <.section(
-        MuiCard(key = "repos")(
-          renderHeader(props),
-          <.div(<.h3("Members"), renderMembers(props.slug, props.group, state.members)),
-          <.hr,
-          renderForm(props, state)))
+    def render(props: Props, state: State): ReactElement = {
+      val alertDialog: ReactNode = state.error match {
+        case Some(error) =>
+          AlertDialogComponent("An error occurred while trying to delete this member",
+                               isModal = false,
+                               <.span(error))
+        case _ => <.div()
+      }
+      <.section(alertDialog, state.members.render { members =>
+        MuiCard(key = "repos")(renderHeader(props),
+                               MuiCardText(key = "members")(
+                                 renderMembers(props, members, state.pagination, state.isDisabled),
+                                 renderForm(props, state)))
+      })
+    }
   }
 
   private val component = ReactComponentB[Props]("Group")
-    .initialState(State(None, Seq.empty, defaultFormState))
+    .initialState(
+      State(Empty, PaginationOrderState("username"), None, defaultFormState, isDisabled = false))
     .renderBackend[Backend]
-    .componentDidMount($ => $.backend.getGroupWithMembers($.props.slug, $.props.group))
+    .componentDidMount($ => $.backend.getMembers($.state.pagination))
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute], slug: String, name: String) =

@@ -17,6 +17,7 @@
 package io.fcomb.server
 
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.models.User
@@ -46,6 +47,12 @@ object AuthenticationDirectives {
             case _           => reject(AuthorizationFailedRejection)
           }
       }
+    }
+
+  def authorizeAdminUser: Directive1[User] =
+    authenticateUser.flatMap { user =>
+      if (user.isAdmin) provide(user)
+      else complete(HttpResponse(StatusCodes.Forbidden))
     }
 
   private def tryFindByToken(token: String)(

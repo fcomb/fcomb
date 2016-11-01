@@ -18,15 +18,15 @@ package io.fcomb.persist
 
 import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.{Pagination, SortOrder}
-import scala.util.control.NoStackTrace
+import io.fcomb.models.errors.FcombException
 import slick.ast.Ordering
 import slick.lifted.ColumnOrdered
 
-final case class UnknownSortColumnException(message: String) extends Throwable with NoStackTrace
+final case class UnknownSortColumnException(message: String) extends FcombException
 
 trait PaginationActions {
   private val unknownSortColumnPF: PartialFunction[String, Rep[_]] = {
-    case column => throw UnknownSortColumnException(column)
+    case column => throw UnknownSortColumnException(s"Unknown sort column: $column")
   }
 
   protected def sortByQuery[E, U](scope: Query[E, U, Seq], p: Pagination)(

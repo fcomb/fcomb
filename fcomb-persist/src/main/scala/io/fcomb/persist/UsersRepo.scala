@@ -171,8 +171,8 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       implicit ec: ExecutionContext
   ): Future[Option[User]] = {
     val q =
-      if (username.indexOf('@') == -1) findByUsernameCompiled(username)
-      else findByEmailCompiled(username)
+      if (username.contains('@')) findByEmailCompiled(username)
+      else findByUsernameCompiled(username)
     db.run(q.result.headOption).fast.map {
       case res @ Some(user) if user.isValidPassword(password) => res
       case _                                                  => None

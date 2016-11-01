@@ -28,7 +28,7 @@ import io.fcomb.rpc.UserSignUpRequest
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
-import io.fcomb.server.SlugPath
+import io.fcomb.server.Path
 import io.fcomb.utils.Config
 
 object UsersHandler {
@@ -51,7 +51,7 @@ object UsersHandler {
     // format: OFF
     pathPrefix(handlerPath) {
       path("sign_up")(post(signUp)) ~
-      pathPrefix(SlugPath) { slug =>
+      pathPrefix(Path.Slug) { slug =>
         users.RepositoriesHandler.routes(slug)
       }
     }

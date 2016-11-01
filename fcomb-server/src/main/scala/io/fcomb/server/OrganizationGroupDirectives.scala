@@ -26,10 +26,17 @@ import io.fcomb.persist.OrganizationGroupsRepo
 import io.fcomb.server.OrganizationDirectives._
 
 object OrganizationGroupDirectives {
-  def groupBySlugWithAcl(slug: Slug, groupSlug: Slug, userId: Int): Directive1[OrganizationGroup] =
+  def groupBySlug(slug: Slug, group: Slug): Directive1[OrganizationGroup] =
+    organizationBySlug(slug).flatMap { org =>
+      extractExecutionContext.flatMap { implicit ec =>
+        onSuccess(OrganizationGroupsRepo.findBySlug(org.getId(), group)).flatMap(provideGroup)
+      }
+    }
+
+  def groupBySlugWithAcl(slug: Slug, group: Slug, userId: Int): Directive1[OrganizationGroup] =
     organizationBySlugWithAcl(slug, userId, Role.Admin).flatMap { org =>
       extractExecutionContext.flatMap { implicit ec =>
-        onSuccess(OrganizationGroupsRepo.findBySlug(org.getId(), groupSlug)).flatMap(provideGroup)
+        onSuccess(OrganizationGroupsRepo.findBySlug(org.getId(), group)).flatMap(provideGroup)
       }
     }
 

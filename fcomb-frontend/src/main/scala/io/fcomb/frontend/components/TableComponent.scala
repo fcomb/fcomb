@@ -53,7 +53,8 @@ object TableComponent {
             limit: Int,
             total: Int,
             cb: Int => Callback) =
-    <.div(MuiTable(selectable = false, multiSelectable = false)(
+    <.div(^.key := "table",
+          MuiTable(selectable = false, multiSelectable = false, key = "table")(
             MuiTableHeader(
               adjustForCheckbox = false,
               displaySelectAll = false,

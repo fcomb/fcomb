@@ -86,7 +86,7 @@ object RepositoryComponent {
           manageTabs))
     }
 
-    def setEditRepositoryRoute(props: Props)(e: ReactEventH): Callback =
+    def setEditRoute(props: Props)(e: ReactEventH): Callback =
       props.ctl.set(DashboardRoute.EditRepository(props.slug))
 
     def renderHeader(props: Props, repo: RepositoryResponse, isManageable: Boolean) = {
@@ -97,15 +97,13 @@ object RepositoryComponent {
             DashboardRoute.Repositories
           else DashboardRoute.User(repo.namespace)
       }
-      val buttons: Seq[ReactNode] = if (isManageable) {
+      val menu: ReactNode = if (isManageable) {
         val menuIconBtn =
           MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
         val actions = Seq(
-          MuiMenuItem(primaryText = "Edit",
-                      key = "edit",
-                      onTouchTap = setEditRepositoryRoute(props) _)())
-        Seq(MuiIconMenu(iconButtonElement = menuIconBtn)(actions))
-      } else Seq.empty
+          MuiMenuItem(primaryText = "Edit", key = "edit", onTouchTap = setEditRoute(props) _)())
+        MuiIconMenu(iconButtonElement = menuIconBtn)(actions)
+      } else <.div()
       val icon = visiblityIcon(repo.visibilityKind, Some(App.visibilityIconTitle.htmlClass))
       val breadcrumbs = BreadcrumbsComponent(
         props.ctl,
@@ -118,7 +116,7 @@ object RepositoryComponent {
               <.div(^.`class` := "row",
                     ^.key := "title",
                     <.div(^.`class` := "col-xs-11", breadcrumbs),
-                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, buttons)))))
+                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, menu)))))
     }
 
     def render(props: Props): ReactElement = {

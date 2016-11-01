@@ -14,44 +14,39 @@
  * limitations under the License.
  */
 
-package io.fcomb.frontend.components.repository
+package io.fcomb.frontend.components.organization
 
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.models.OwnerKind
-import io.fcomb.rpc.acl._
+import io.fcomb.rpc.UserProfileResponse
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-object MemberComponent {
+object UserMemberComponent {
   final case class Props(slug: String,
-                         ownerKind: OwnerKind,
+                         group: String,
                          searchText: Option[String],
                          isDisabled: Boolean,
                          errorText: Option[String],
                          isFullWidth: Boolean,
-                         cb: PermissionMemberResponse => Callback)
-  final case class State(member: Option[PermissionMemberResponse],
-                         members: Seq[PermissionMemberResponse],
+                         cb: UserProfileResponse => Callback)
+  final case class State(member: Option[UserProfileResponse],
+                         members: Seq[UserProfileResponse],
                          data: js.Array[String])
 
   final class Backend($ : BackendScope[Props, State]) {
     private def getSuggestions(q: String): Callback =
       for {
         props <- $.props
-        _ <- Callback.future(Rpc.getRepositoryPermissionsMembers(props.slug, q.trim).map {
+        _ <- Callback.future(Rpc.getOrganizationGroupMembers(props.slug, props.group, q.trim).map {
           case Xor.Right(res) =>
             val data = js.Array(res.data.map(_.title): _*)
-            $.modState(
-              _.copy(
-                members = res.data,
-                data = data
-              ))
+            $.modState(_.copy(members = res.data, data = data))
           case Xor.Left(e) => Callback.warn(e)
         })
       } yield ()
@@ -76,14 +71,10 @@ object MemberComponent {
     private def onUpdateInput(search: SearchText, ds: js.Array[Value]): Callback =
       getSuggestions(search)
 
-    def render(props: Props, state: State) = {
-      val label = props.ownerKind match {
-        case OwnerKind.User         => "Username"
-        case OwnerKind.Organization => "Username or group name"
-      }
+    def render(props: Props, state: State) =
       MuiAutoComplete(
         id = "member",
-        floatingLabelText = label,
+        floatingLabelText = "Username",
         filter = MuiAutoCompleteFilters.noFilter,
         fullWidth = props.isFullWidth,
         disabled = props.isDisabled,
@@ -94,21 +85,20 @@ object MemberComponent {
         onNewRequest = onNewRequest _,
         onUpdateInput = onUpdateInput _
       )()
-    }
   }
 
   private val component =
-    ReactComponentB[Props]("Member")
+    ReactComponentB[Props]("UserMember")
       .initialState(State(None, Seq.empty, js.Array()))
       .renderBackend[Backend]
       .build
 
   def apply(slug: String,
-            ownerKind: OwnerKind,
+            group: String,
             searchText: Option[String],
             isDisabled: Boolean,
             errorText: Option[String],
             isFullWidth: Boolean,
-            cb: PermissionMemberResponse => Callback) =
-    component.apply(Props(slug, ownerKind, searchText, isDisabled, errorText, isFullWidth, cb))
+            cb: UserProfileResponse => Callback) =
+    component.apply(Props(slug, group, searchText, isDisabled, errorText, isFullWidth, cb))
 }

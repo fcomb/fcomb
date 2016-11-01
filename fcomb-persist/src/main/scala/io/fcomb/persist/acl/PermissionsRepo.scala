@@ -214,12 +214,10 @@ object PermissionsRepo
       implicit ec: ExecutionContext): Future[PaginationData[PermissionResponse]] = {
     val imageId = image.getId()
     val f       = applyResponse(image)(_)
-    db.run {
-      for {
-        permissions <- findByImageIdAsReponseDBIO(imageId, p).result
-        total       <- findByImageIdTotalCompiled(imageId).result
-      } yield PaginationData(permissions.map(f), total = total, offset = p.offset, limit = p.limit)
-    }
+    db.run(for {
+      permissions <- findByImageIdAsReponseDBIO(imageId, p).result
+      total       <- findByImageIdTotalCompiled(imageId).result
+    } yield PaginationData(permissions.map(f), total = total, offset = p.offset, limit = p.limit))
   }
 
   private def applyResponse(image: Image)(t: PermissionResponseTuple): PermissionResponse =

@@ -18,9 +18,9 @@ package io.fcomb.persist
 
 import cats.data.Validated
 import io.fcomb.Db.db
-import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{OrganizationGroupUser, Pagination, PaginationData}
+import io.fcomb.PostgresProfile.api._
 import io.fcomb.rpc.{MemberUserRequest, UserProfileResponse}
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
@@ -53,6 +53,24 @@ object OrganizationGroupUsersRepo
   private lazy val findByGroupIdTotalCompiled = Compiled { groupId: Rep[Int] =>
     findByGroupIdScopeDBIO(groupId).length
   }
+
+  private lazy val findSuggestionsUsersCompiled = Compiled {
+    (groupId: Rep[Int], q: Rep[String], limit: ConstColumn[Long]) =>
+      val query = q.asColumnOfType[String]("citext")
+      UsersRepo.table
+        .filter { t =>
+          (t.username.like(query) || t.email.like(query) || t.fullName.like(query)) &&
+          !t.id.in(table.filter(_.groupId === groupId).map(_.userId))
+        }
+        .map(t => (t.id, t.email, t.username, t.fullName))
+        .take(limit)
+  }
+
+  def findSuggestionsUsers(groupId: Int, q: String, limit: Long = 16L)(
+      implicit ec: ExecutionContext): Future[Seq[UserProfileResponse]] =
+    db.run(
+      findSuggestionsUsersCompiled((groupId, s"$q%".trim, limit)).result
+        .map(_.map(UserProfileResponse.tupled)))
 
   def paginateByGroupId(groupId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[UserProfileResponse]] =

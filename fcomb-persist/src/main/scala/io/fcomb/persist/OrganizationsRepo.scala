@@ -25,6 +25,7 @@ import io.fcomb.models.{Organization, Pagination, PaginationData}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.docker.distribution.ImagesRepo
+import io.fcomb.persist.Filters._
 import io.fcomb.rpc.acl.{
   PermissionGroupMemberResponse,
   PermissionMemberResponse,
@@ -109,13 +110,13 @@ object OrganizationsRepo
     filter
       .foldLeft(availableByUserIdScopeDBIO(userId)) {
         case (s, (column, value)) =>
-          s.filter { q =>
-            column match {
-              case "name" =>
-                q._1.name.like(value.replaceAll("\\*", "%").asColumnOfType[String]("citext"))
-              case "role" => q._2.inSetBind(value.split(',').map(Role.withName))
-              case _      => LiteralColumn(false)
-            }
+          s.filter {
+            case (t, role) =>
+              column match {
+                case "name" => filterCitextByMask(t.name, value)
+                case "role" => filterByEnum(role, Role, value)
+                case _      => LiteralColumn(false)
+              }
           }
       }
       .subquery

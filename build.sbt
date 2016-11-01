@@ -61,6 +61,8 @@ lazy val commonSettings =
         "-Ybackend:GenBCode",
         "-Ydelambdafy:method",
         "-Yno-adapted-args",
+        // "-Yno-imports",
+        // "-Yno-predef",
         "-Yopt-warnings",
         "-Yopt:l:classpath",
         "-Yopt:unreachable-code",

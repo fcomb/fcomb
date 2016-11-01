@@ -40,7 +40,6 @@ import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
-import scala.scalajs.js
 
 object GroupsComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
@@ -100,12 +99,12 @@ object GroupsComponent {
       }
 
     def deleteGroup(slug: String, group: String)(e: ReactTouchEventH) =
-      e.preventDefaultCB >>
+      tryAcquireState { state =>
         Callback.future(Rpc.deleteOrganizationGroup(slug, group).map {
-          case Xor.Right(_) => $.state.flatMap(st => getGroups(st.pagination))
-          case Xor.Left(errs) =>
-            $.modState(_.copy(isDisabled = false, error = Some(joinErrors(errs))))
+          case Xor.Right(_)   => getGroups(state.pagination)
+          case Xor.Left(errs) => $.modState(_.copy(error = Some(joinErrors(errs))))
         })
+      }
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
       $.props.flatMap(_.ctl.set(route))
@@ -179,13 +178,11 @@ object GroupsComponent {
                             disabled = submitIsDisabled)())
     }
 
-    lazy val headerStyle = js.Dictionary("marginBottom" -> "0px")
-
     def renderForm(props: Props, state: State) =
       <.form(App.separateBlock,
              ^.onSubmit ==> handleOnSubmit(props),
              ^.disabled := state.isDisabled,
-             <.h3(^.style := headerStyle, "New group"),
+             <.h3(^.style := App.formHeaderStyle, "New group"),
              renderFormName(state.form, state.isDisabled, updateName _),
              renderFormRole(state.form, state.isDisabled, updateRole _),
              renderFormButton(state))

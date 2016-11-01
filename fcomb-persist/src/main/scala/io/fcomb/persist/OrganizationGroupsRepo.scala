@@ -106,13 +106,11 @@ object OrganizationGroupsRepo
 
   def paginateByOrgId(orgId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[OrganizationGroupResponse]] =
-    db.run {
-      for {
-        groups <- findByOrgIdCompiled((orgId, p.offset, p.limit)).result
-        total  <- findByOrgIdTotalCompiled(orgId).result
-        data = groups.map(OrganizationGroupHelpers.responseFrom)
-      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
-    }
+    db.run(for {
+      groups <- findByOrgIdCompiled((orgId, p.offset, p.limit)).result
+      total  <- findByOrgIdTotalCompiled(orgId).result
+      data = groups.map(OrganizationGroupHelpers.responseFrom)
+    } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
 
   def createAdminsDBIO(organizationId: Int, ownerUserId: Int)(implicit ec: ExecutionContext) = {
     val group = OrganizationGroup(

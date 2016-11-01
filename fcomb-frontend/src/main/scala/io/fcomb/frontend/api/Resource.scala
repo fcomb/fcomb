@@ -22,38 +22,40 @@ import io.fcomb.models.docker.distribution.ImageVisibilityKind
 object Resource {
   val prefix = "/v1"
 
-  val sessions = prefix + "/sessions"
+  val sessions = s"$prefix/sessions"
 
-  val repositories                                  = prefix + "/repositories"
+  val repositories                                  = s"$prefix/repositories"
   def repository(imageName: String)                 = s"$repositories/$imageName"
-  def repositoryTags(imageName: String)             = repository(imageName) + "/tags"
-  def repositoryTag(imageName: String, tag: String) = repositoryTags(imageName) + s"/$tag"
-  def repositoryPermissions(imageName: String)      = repository(imageName) + "/permissions"
-  def repositoryPermissionsMembersSuggestions(imageName: String) =
-    repositoryPermissions(imageName) + "/members_suggestions"
+  def repositoryTags(imageName: String)             = s"${repository(imageName)}/tags"
+  def repositoryTag(imageName: String, tag: String) = s"${repositoryTags(imageName)}/$tag"
+  def repositoryPermissions(imageName: String)      = s"${repository(imageName)}/permissions"
+  def repositoryPermissionsSuggestionsMembers(imageName: String) =
+    s"${repositoryPermissions(imageName)}/suggestions/members"
   def repositoryPermission(imageName: String, kind: MemberKind, slug: String) =
-    repositoryPermissions(imageName) + s"/${kind.entryName}/$slug"
+    s"${repositoryPermissions(imageName)}/${kind.entryName}/$slug"
   def repositoryVisibility(imageName: String, kind: ImageVisibilityKind) =
-    repository(imageName) + s"/visibility/${kind.entryName}"
+    s"${repository(imageName)}/visibility/${kind.entryName}"
 
-  val organizations                                    = prefix + "/organizations"
-  def organization(orgName: String)                    = s"$organizations/$orgName"
-  def organizationGroups(orgName: String)              = organization(orgName) + "/groups"
-  def organizationGroup(orgName: String, name: String) = organizationGroups(orgName) + s"/$name"
-  def organizationGroupMembers(orgName: String, name: String) =
-    organizationGroup(orgName, name) + "/members"
-  def organizationGroupMember(orgName: String, name: String, slug: String) =
-    organizationGroupMembers(orgName, name) + s"/$slug"
-  def organizationRepositories(orgName: String) = organization(orgName) + "/repositories"
+  val organizations                                     = s"$prefix/organizations"
+  def organization(orgName: String)                     = s"$organizations/$orgName"
+  def organizationGroups(orgName: String)               = s"${organization(orgName)}/groups"
+  def organizationGroup(orgName: String, group: String) = s"${organizationGroups(orgName)}/$group"
+  def organizationGroupMembers(orgName: String, group: String) =
+    s"${organizationGroup(orgName, group)}/members"
+  def organizationGroupMember(orgName: String, group: String, slug: String) =
+    s"${organizationGroupMembers(orgName, group)}/$slug"
+  def organizationGroupSuggestionsMembers(orgName: String, group: String) =
+    s"${organizationGroup(orgName, group)}/suggestions/members"
+  def organizationRepositories(orgName: String) = s"${organization(orgName)}/repositories"
 
-  val users  = prefix + "/users"
-  val signUp = users + "/sign_up"
+  val users  = s"$prefix/users"
+  val signUp = s"$users/sign_up"
 
-  val userSelf                      = prefix + "/user"
-  val userSelfRepositories          = userSelf + "/repositories"
-  val userSelfRepositoriesAvailable = userSelf + "/repositories/available"
-  val userSelfOrganizations         = userSelf + "/organizations"
+  val userSelf                      = s"$prefix/user"
+  val userSelfRepositories          = s"$userSelf/repositories"
+  val userSelfRepositoriesAvailable = s"$userSelf/repositories/available"
+  val userSelfOrganizations         = s"$userSelf/organizations"
 
-  def user(slug: String)             = users + s"/$slug"
-  def userRepositories(slug: String) = user(slug) + "/repositories"
+  def user(slug: String)             = s"$users/$slug"
+  def userRepositories(slug: String) = s"${user(slug)}/repositories"
 }
