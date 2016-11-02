@@ -181,7 +181,7 @@ object OrganizationGroupsRepo
   def destroy(id: Int, userId: Int)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id, userId))
 
-  lazy val cannotDeleteAdminGroup =
+  private lazy val cannotDeleteAdminGroup =
     validationErrorAsDBIO("id", "Cannot delete your last admin group")
 
   def findIdsByOrganizationIdDBIO(organizationId: Int) =

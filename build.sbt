@@ -41,8 +41,8 @@ lazy val commonSettings =
       ),
       libraryDependencies ++= Seq(
         "com.chuusai"                %% "shapeless"     % "2.3.2",
-        "org.typelevel"              %% "cats"          % catsVersion,
-        "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
+        "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
+        "org.typelevel"              %% "cats"          % catsVersion
       ),
       scalacOptions ++= Seq(
         "-encoding",

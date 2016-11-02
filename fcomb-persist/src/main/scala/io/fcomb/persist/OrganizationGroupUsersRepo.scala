@@ -134,13 +134,20 @@ object OrganizationGroupUsersRepo
     runInTransaction(TransactionIsolation.Serializable) {
       UsersRepo.findBySlugAsValidatedDBIO(memberSlug).flatMap {
         case Validated.Valid(member) =>
-          OrganizationGroupsRepo.existsAdminGroupApartFromDBIO(groupId, userId).flatMap {
-            case true => destroyAsValidatedDBIO(groupId, member.getId())
-            case _    => OrganizationGroupsRepo.cannotDeleteAdminGroup
-          }
+          def destroy() = destroyAsValidatedDBIO(groupId, member.getId())
+
+          if (member.getId() == userId) {
+            OrganizationGroupsRepo.existsAdminGroupApartFromDBIO(groupId, userId).flatMap {
+              case true => destroy()
+              case _    => cannotDeleteAdminGroupMember
+            }
+          } else destroy()
         case res @ Validated.Invalid(_) => DBIO.successful(res)
       }
     }
+
+  private lazy val cannotDeleteAdminGroupMember =
+    validationErrorAsDBIO("user", "Cannot remove yourself from the last own admin group")
 
   private lazy val notFound = validationError("member", "Not found")
 }
