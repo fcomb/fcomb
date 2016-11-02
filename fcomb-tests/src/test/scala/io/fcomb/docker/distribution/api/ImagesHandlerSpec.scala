@@ -47,6 +47,7 @@ import io.fcomb.tests.fixtures._
 import io.fcomb.tests.fixtures.docker.distribution._
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time._
 import org.scalatest.{Matchers, WordSpec}
 
 final class ImagesHandlerSpec
@@ -65,6 +66,8 @@ final class ImagesHandlerSpec
   val apiVersionHeader = `Docker-Distribution-Api-Version`("2.0")
   val eventServiceRef  = EventService.start()
 
+  override implicit val patienceConfig = PatienceConfig(timeout = Span(1500, Millis))
+
   override def afterAll(): Unit = {
     super.afterAll()
     eventServiceRef ! PoisonPill
@@ -72,7 +75,7 @@ final class ImagesHandlerSpec
 
   "The image handler" should {
     "return list of repositories for GET request to the catalog path" in {
-      val (image1Slug, image2Slug, image3Slug) = Fixtures.await(for {
+      val (image1Slug, image2Slug, image3Slug) = (for {
         user   <- UsersFixture.create()
         image1 <- ImagesFixture.create(user, "test1", ImageVisibilityKind.Private)
         _      <- ImageBlobsFixture.create(user.getId(), image1.getId())
@@ -80,7 +83,7 @@ final class ImagesHandlerSpec
         _      <- ImageBlobsFixture.create(user.getId(), image2.getId())
         image3 <- ImagesFixture.create(user, "test3", ImageVisibilityKind.Private)
         _      <- ImageBlobsFixture.create(user.getId(), image3.getId())
-      } yield (image1.slug, image2.slug, image3.slug))
+      } yield (image1.slug, image2.slug, image3.slug)).futureValue
 
       Get(s"/v2/_catalog") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
@@ -106,7 +109,7 @@ final class ImagesHandlerSpec
     }
 
     "return list of tags for GET request to the tags path" in {
-      val imageSlug = Fixtures.await(for {
+      val imageSlug = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsFixture.createAs(user.getId(),
@@ -120,7 +123,7 @@ final class ImagesHandlerSpec
                                             bs ++ bs,
                                             ImageBlobState.Uploaded)
         _ <- ImageManifestsFixture.createV2(user.getId(), imageSlug, blob2, List("2.0", "2.1"))
-      } yield imageSlug)
+      } yield imageSlug).futureValue
 
       Get(s"/v2/$imageSlug/tags/list") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
@@ -149,7 +152,7 @@ final class ImagesHandlerSpec
       val manifestV1 = ByteString(getFixture("docker/distribution/manifestV1.json"))
       val digest     = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
-      val image = Fixtures.await(for {
+      val image = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsFixture.createAs(
@@ -158,7 +161,7 @@ final class ImagesHandlerSpec
           ByteString.empty,
           ImageBlobState.Uploaded,
           digestOpt = Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
-      } yield image)
+      } yield image).futureValue
 
       Put(
         s"/v2/${image.slug}/manifests/sha256:$digest",
@@ -176,10 +179,10 @@ final class ImagesHandlerSpec
       val manifestV1 = ByteString(getFixture("docker/distribution/manifestV1.json"))
       val digest     = "d3632f682f32ad9e7a66570167bf3b7c60fb2ea2f4ed9c3311023d38c2e1b2f3"
 
-      val imageSlug = Fixtures.await(for {
+      val imageSlug = (for {
         u     <- UsersFixture.create()
         image <- ImagesFixture.create(u, imageName, ImageVisibilityKind.Private)
-      } yield image.slug)
+      } yield image.slug).futureValue
 
       Put(
         s"/v2/$imageSlug/manifests/sha256:$digest",
@@ -199,7 +202,7 @@ final class ImagesHandlerSpec
       val configBlobBs = ByteString(getFixture(
         "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
 
-      val (configBlob, imageSlug) = Fixtures.await(for {
+      val (configBlob, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsFixture.createAs(
@@ -212,7 +215,7 @@ final class ImagesHandlerSpec
                                          image.getId(),
                                          configBlobBs,
                                          ImageBlobState.Uploaded)
-      } yield (cb, image.slug))
+      } yield (cb, image.slug)).futureValue
       configBlob.digest should contain(
         "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
 
@@ -240,13 +243,13 @@ final class ImagesHandlerSpec
           state,
           digestOpt = Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
 
-      val imageSlug = Fixtures.await(for {
+      val imageSlug = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         _     <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploading)
         blob1 <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploaded)
         _     <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploading)
-      } yield image.slug)
+      } yield image.slug).futureValue
 
       Put(s"/v2/$imageSlug/manifests/sha256:$digest", HttpEntity(`application/json`, manifestV2)) ~> addCredentials(
         credentials) ~> route ~> check {
@@ -268,7 +271,7 @@ final class ImagesHandlerSpec
           state,
           digestOpt = Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
 
-      val imageSlug = Fixtures.await(for {
+      val imageSlug = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         _     <- createBlob(user.getId(), image.getId(), ImageBlobState.Uploading)
@@ -278,7 +281,7 @@ final class ImagesHandlerSpec
                                           image.getId(),
                                           configBlobBs,
                                           ImageBlobState.Uploaded)
-      } yield image.slug)
+      } yield image.slug).futureValue
 
       Put(s"/v2/$imageSlug/manifests/sha256:$digest", HttpEntity(`application/json`, manifestV2)) ~> addCredentials(
         credentials) ~> route ~> check {
@@ -293,10 +296,10 @@ final class ImagesHandlerSpec
         "docker/distribution/blob_sha256_13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08.json"))
       val configBlobDigest = "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08"
 
-      val (user, image) = Fixtures.await(for {
+      val (user, image) = (for {
         u     <- UsersFixture.create()
         image <- ImagesFixture.create(u, imageName, ImageVisibilityKind.Private)
-      } yield (u, image))
+      } yield (u, image)).futureValue
       val imageSlug = image.slug
 
       Put(
@@ -309,14 +312,14 @@ final class ImagesHandlerSpec
         resp.errors.head shouldEqual DistributionError.unknown(msg)
       }
 
-      val configBlob = Fixtures.await(for {
+      val configBlob = (for {
         res <- ImageBlobsFixture.createAs(
           user.getId(),
           image.getId(),
           configBlobBs,
           ImageBlobState.Uploaded
         )
-      } yield res)
+      } yield res).futureValue
       configBlob.digest should contain(
         "13e1761bf172304ecf9b3fe05a653ceb7540973525e8ef83fb16c650b5410a08")
 
@@ -333,7 +336,7 @@ final class ImagesHandlerSpec
     }
 
     "return manifest v1 for GET request to manifest path by tag and digest" in {
-      val (im, image, imageSlug) = Fixtures.await(for {
+      val (im, image, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsFixture.createAs(user.getId(),
@@ -342,7 +345,7 @@ final class ImagesHandlerSpec
                                             ImageBlobState.Uploaded)
         imageSlug = image.slug
         im <- ImageManifestsFixture.createV1(user.getId(), imageSlug, blob1, "1.0")
-      } yield (im, image, imageSlug))
+      } yield (im, image, imageSlug)).futureValue
 
       def checkResponse() = {
         status shouldEqual StatusCodes.OK
@@ -370,7 +373,7 @@ final class ImagesHandlerSpec
     }
 
     "return manifest v2 for GET request to manifest path by tag and digest" in {
-      val (im, image, imageSlug) = Fixtures.await(for {
+      val (im, image, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsFixture.createAs(user.getId(),
@@ -379,7 +382,7 @@ final class ImagesHandlerSpec
                                             ImageBlobState.Uploaded)
         imageSlug = image.slug
         im <- ImageManifestsFixture.createV2(user.getId(), imageSlug, blob1, List("1.0"))
-      } yield (im, image, imageSlug))
+      } yield (im, image, imageSlug)).futureValue
 
       Get(s"/v2/$imageSlug/manifests/1.0") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
@@ -420,7 +423,7 @@ final class ImagesHandlerSpec
     }
 
     "return accepted response for DELETE request to manifest path by digest" in {
-      val (im, imageSlug) = Fixtures.await(for {
+      val (im, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob1 <- ImageBlobsFixture.createAs(user.getId(),
@@ -429,7 +432,7 @@ final class ImagesHandlerSpec
                                             ImageBlobState.Uploaded)
         imageSlug = image.slug
         im <- ImageManifestsFixture.createV2(user.getId(), imageSlug, blob1, List("1.0"))
-      } yield (im, imageSlug))
+      } yield (im, imageSlug)).futureValue
 
       Delete(s"/v2/$imageSlug/manifests/sha256:${im.digest}") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted

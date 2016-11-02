@@ -17,15 +17,10 @@
 package io.fcomb.tests.fixtures
 
 import cats.data.Validated
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 
 object Fixtures {
   def get[T](res: Validated[_, T]): T = {
     val (Validated.Valid(item)) = res
     item
   }
-
-  def await[T](fut: Future[T])(implicit timeout: Duration = 10.seconds): T =
-    Await.result(fut, timeout)
 }

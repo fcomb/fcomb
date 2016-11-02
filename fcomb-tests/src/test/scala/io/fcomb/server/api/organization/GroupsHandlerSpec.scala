@@ -32,6 +32,8 @@ import io.fcomb.server.CirceSupport._
 import io.fcomb.tests.AuthSpec._
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests._
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time._
 import org.scalatest.{Matchers, WordSpec}
 
 final class GroupsHandlerSpec
@@ -39,16 +41,19 @@ final class GroupsHandlerSpec
     with Matchers
     with ScalatestRouteTest
     with SpecHelpers
+    with ScalaFutures
     with PersistSpec {
   val route = Api.routes
 
+  override implicit val patienceConfig = PatienceConfig(timeout = Span(1500, Millis))
+
   "The groups handler" should {
     "return an error when downgrading the last admin group" in {
-      val (user, org) = Fixtures.await(for {
+      val (user, org) = (for {
         user <- UsersFixture.create()
         org  <- OrganizationsFixture.create(userId = user.getId())
         _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Creator)
-      } yield (user, org))
+      } yield (user, org)).futureValue
       val req = OrganizationGroupRequest("admins", Role.Creator)
 
       Put(s"/v1/organizations/${org.name}/groups/admins", req) ~> authenticate(user) ~> route ~> check {
@@ -59,11 +64,11 @@ final class GroupsHandlerSpec
     }
 
     "return an error when downgrading the last own admin group" in {
-      val (user, org) = Fixtures.await(for {
+      val (user, org) = (for {
         user <- UsersFixture.create()
         org  <- OrganizationsFixture.create(userId = user.getId())
         _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
-      } yield (user, org))
+      } yield (user, org)).futureValue
       val req = OrganizationGroupRequest("admins", Role.Creator)
 
       Put(s"/v1/organizations/${org.name}/groups/admins", req) ~> authenticate(user) ~> route ~> check {
@@ -74,12 +79,12 @@ final class GroupsHandlerSpec
     }
 
     "return an accepted when downgrading one of the own admin group" in {
-      val (user, org) = Fixtures.await(for {
+      val (user, org) = (for {
         user  <- UsersFixture.create()
         org   <- OrganizationsFixture.create(userId = user.getId())
         group <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
         _     <- OrganizationGroupUsersFixture.create(group.getId(), user.getId())
-      } yield (user, org))
+      } yield (user, org)).futureValue
       val req = OrganizationGroupRequest("admins", Role.Creator)
 
       Put(s"/v1/organizations/${org.name}/groups/admins", req) ~> authenticate(user) ~> route ~> check {
@@ -88,11 +93,11 @@ final class GroupsHandlerSpec
     }
 
     "return an error when deleting the last admin group" in {
-      val (user, org) = Fixtures.await(for {
+      val (user, org) = (for {
         user <- UsersFixture.create()
         org  <- OrganizationsFixture.create(userId = user.getId())
         _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Creator)
-      } yield (user, org))
+      } yield (user, org)).futureValue
 
       Delete(s"/v1/organizations/${org.name}/groups/admins") ~> authenticate(user) ~> route ~> check {
         status shouldEqual StatusCodes.BadRequest
@@ -102,11 +107,11 @@ final class GroupsHandlerSpec
     }
 
     "return an error when deleting the last own admin group" in {
-      val (user, org) = Fixtures.await(for {
+      val (user, org) = (for {
         user <- UsersFixture.create()
         org  <- OrganizationsFixture.create(userId = user.getId())
         _    <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
-      } yield (user, org))
+      } yield (user, org)).futureValue
 
       Delete(s"/v1/organizations/${org.name}/groups/admins") ~> authenticate(user) ~> route ~> check {
         status shouldEqual StatusCodes.BadRequest
@@ -116,12 +121,12 @@ final class GroupsHandlerSpec
     }
 
     "return an accepted when deleting one of the own admin group" in {
-      val (user, org, group) = Fixtures.await(for {
+      val (user, org, group) = (for {
         user  <- UsersFixture.create()
         org   <- OrganizationsFixture.create(userId = user.getId())
         group <- OrganizationGroupsFixture.create(orgId = org.getId(), role = Role.Admin)
         _     <- OrganizationGroupUsersFixture.create(group.getId(), user.getId())
-      } yield (user, org, group))
+      } yield (user, org, group)).futureValue
 
       Delete(s"/v1/organizations/${org.name}/groups/${group.name}") ~> authenticate(user) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
@@ -129,7 +134,7 @@ final class GroupsHandlerSpec
     }
 
     "return a list of suggested users which not in group" in {
-      val (user, org, user1, user2) = Fixtures.await(for {
+      val (user, org, user1, user2) = (for {
         user        <- UsersFixture.create()
         org         <- OrganizationsFixture.create(userId = user.getId())
         user1       <- UsersFixture.create(email = "user1@fcomb.io", username = "user1")
@@ -137,7 +142,7 @@ final class GroupsHandlerSpec
         user3       <- UsersFixture.create(email = "user3@fcomb.io", username = "user3")
         Some(group) <- OrganizationGroupsRepo.findBySlug(org.getId(), Slug.Name("admins"))
         _           <- OrganizationGroupUsersFixture.create(group.getId(), user3.getId())
-      } yield (user, org, user1, user2))
+      } yield (user, org, user1, user2)).futureValue
 
       Get(s"/v1/organizations/${org.name}/groups/admins/suggestions/members?q=user") ~> authenticate(
         user) ~> route ~> check {

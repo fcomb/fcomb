@@ -17,10 +17,10 @@
 package io.fcomb.docker.distribution.server.api
 
 import akka.actor.PoisonPill
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
@@ -34,12 +34,13 @@ import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution._
-import io.fcomb.tests._
-import io.fcomb.tests.fixtures._
 import io.fcomb.tests.fixtures.docker.distribution.{ImageBlobsFixture, ImagesFixture}
+import io.fcomb.tests.fixtures._
+import io.fcomb.tests._
 import java.io.FileInputStream
 import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
 
@@ -48,9 +49,9 @@ final class ImageBlobUploadsHandlerSpec
     with Matchers
     with ScalatestRouteTest
     with SpecHelpers
+    with ScalaFutures
     with PersistSpec
-    with ActorClusterSpec
-    with FutureSpec {
+    with ActorClusterSpec {
   implicit val routeTimeout = RouteTestTimeout(5.seconds)
 
   val route            = Api.routes
@@ -74,10 +75,10 @@ final class ImageBlobUploadsHandlerSpec
 
   "The image blob upload handler" should {
     "return an uuid for POST request to the start upload path" in {
-      val imageSlug = Fixtures.await(for {
+      val imageSlug = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
-      } yield image.slug)
+      } yield image.slug).futureValue
 
       Post(s"/v2/$imageSlug/blobs/uploads/") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
@@ -90,10 +91,10 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return successful response for POST request to initiate monolithic blob upload path" in {
-      val imageSlug = Fixtures.await(for {
+      val imageSlug = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
-      } yield image.slug)
+      } yield image.slug).futureValue
 
       Post(
         s"/v2/$imageSlug/blobs/uploads/?digest=sha256:$bsDigest",
@@ -106,7 +107,7 @@ final class ImageBlobUploadsHandlerSpec
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
 
-        val blob = await(ImageBlobsRepo.findById(uuid)).get
+        val blob = ImageBlobsRepo.findById(uuid).futureValue.get
         blob.length shouldEqual bs.length
         blob.state shouldEqual ImageBlobState.Uploaded
         blob.digest shouldEqual Some(bsDigest)
@@ -120,10 +121,10 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return failed response for POST request to initiate monolithic blob upload path" in {
-      val imageSlug = Fixtures.await(for {
+      val imageSlug = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
-      } yield image.slug)
+      } yield image.slug).futureValue
 
       Post(
         s"/v2/$imageSlug/blobs/uploads/?digest=sha256:333f96719cd9297b942f67578f7e7fe0a4472f9c68c30aff78db728316279e6f",
@@ -136,7 +137,7 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return successful response for PUT request to mount blob upload path" in {
-      val (imageSlug, mountImage) = Fixtures.await(for {
+      val (imageSlug, mountImage) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsFixture.createAs(
@@ -148,7 +149,7 @@ final class ImageBlobUploadsHandlerSpec
         mountImage <- ImagesFixture.create(user,
                                            s"${imageName}-mount",
                                            ImageVisibilityKind.Private)
-      } yield (image.slug, mountImage))
+      } yield (image.slug, mountImage)).futureValue
 
       Post(
         s"/v2/${mountImage.slug}/blobs/uploads/?mount=sha256:$bsDigest&from=$imageSlug",
@@ -160,7 +161,7 @@ final class ImageBlobUploadsHandlerSpec
         header[`Docker-Content-Digest`] should contain(`Docker-Content-Digest`("sha256", bsDigest))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val Some(newBlob) = await(ImageBlobsRepo.findUploaded(mountImage.getId(), bsDigest))
+        val newBlob = ImageBlobsRepo.findUploaded(mountImage.getId(), bsDigest).futureValue.get
         newBlob.length shouldEqual bs.length
         newBlob.state shouldEqual ImageBlobState.Uploaded
         newBlob.digest shouldEqual Some(bsDigest)
@@ -168,11 +169,11 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return successful response for PUT request to monolithic blob upload path" in {
-      val (blob, imageSlug) = Fixtures.await(for {
+      val (blob, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob  <- ImageBlobsFixture.create(user.getId(), image.getId())
-      } yield (blob, image.slug))
+      } yield (blob, image.slug)).futureValue
 
       Put(
         s"/v2/$imageSlug/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
@@ -185,7 +186,7 @@ final class ImageBlobUploadsHandlerSpec
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
         val uuid = header[`Docker-Upload-Uuid`].map(h => UUID.fromString(h.value)).get
 
-        val blob = await(ImageBlobsRepo.findById(uuid)).get
+        val blob = ImageBlobsRepo.findById(uuid).futureValue.get
         blob.length shouldEqual bs.length
         blob.state shouldEqual ImageBlobState.Uploaded
         blob.digest shouldEqual Some(bsDigest)
@@ -199,11 +200,11 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return successful response for PATCH requests to blob upload path" in {
-      val (blob, imageSlug) = Fixtures.await(for {
+      val (blob, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob  <- ImageBlobsFixture.create(user.getId(), image.getId())
-      } yield (blob, image.slug))
+      } yield (blob, image.slug)).futureValue
 
       val blobPart1       = bs.take(bs.length / 2)
       val blobPart1Digest = DigestUtils.sha256Hex(blobPart1.toArray)
@@ -220,7 +221,7 @@ final class ImageBlobUploadsHandlerSpec
         header[RangeCustom] should contain(RangeCustom(0L, blobPart1.length - 1L))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val updatedBlob = await(ImageBlobsRepo.findById(blob.getId())).get
+        val updatedBlob = ImageBlobsRepo.findById(blob.getId()).futureValue.get
         updatedBlob.length shouldEqual blobPart1.length
         updatedBlob.state shouldEqual ImageBlobState.Uploading
         updatedBlob.digest shouldEqual Some(blobPart1Digest)
@@ -246,7 +247,7 @@ final class ImageBlobUploadsHandlerSpec
         header[RangeCustom] should contain(RangeCustom(0L, bs.length - 1L))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val updatedBlob = await(ImageBlobsRepo.findById(blob.getId())).get
+        val updatedBlob = ImageBlobsRepo.findById(blob.getId()).futureValue.get
         updatedBlob.length shouldEqual bs.length
         updatedBlob.state shouldEqual ImageBlobState.Uploading
         updatedBlob.digest shouldEqual Some(bsDigest)
@@ -260,7 +261,7 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return successful response for PUT request without final chunk to complete blob upload path" in {
-      val (blob, imageSlug) = Fixtures.await(for {
+      val (blob, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsFixture.createAs(
@@ -270,7 +271,7 @@ final class ImageBlobUploadsHandlerSpec
           ImageBlobState.Uploading
         )
         _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs))
-      } yield (blob, image.slug))
+      } yield (blob, image.slug)).futureValue
 
       Put(
         s"/v2/$imageSlug/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
@@ -282,7 +283,7 @@ final class ImageBlobUploadsHandlerSpec
         header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findById(blob.getId())).get
+        val b = ImageBlobsRepo.findById(blob.getId()).futureValue.get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.digest shouldEqual Some(bsDigest)
@@ -290,7 +291,7 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return successful response for PUT request with final chunk to complete blob upload path" in {
-      val (blob, imageSlug) = Fixtures.await(for {
+      val (blob, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsFixture.createAs(
@@ -300,7 +301,7 @@ final class ImageBlobUploadsHandlerSpec
           ImageBlobState.Uploading
         )
         _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
-      } yield (blob, image.slug))
+      } yield (blob, image.slug)).futureValue
 
       Put(
         s"/v2/$imageSlug/blobs/uploads/${blob.getId}?digest=sha256:$bsDigest",
@@ -312,7 +313,7 @@ final class ImageBlobUploadsHandlerSpec
         header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findById(blob.getId())).get
+        val b = ImageBlobsRepo.findById(blob.getId()).futureValue.get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.digest shouldEqual Some(bsDigest)
@@ -320,7 +321,7 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return successful response for PUT request without final chunk to complete blob path" in {
-      val (blob, imageSlug) = Fixtures.await(for {
+      val (blob, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsFixture.createAs(
@@ -330,7 +331,7 @@ final class ImageBlobUploadsHandlerSpec
           ImageBlobState.Uploading
         )
         _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs))
-      } yield (blob, image.slug))
+      } yield (blob, image.slug)).futureValue
 
       Put(
         s"/v2/$imageSlug/blobs/${blob.getId}?digest=sha256:$bsDigest",
@@ -342,7 +343,7 @@ final class ImageBlobUploadsHandlerSpec
         header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findById(blob.getId())).get
+        val b = ImageBlobsRepo.findById(blob.getId()).futureValue.get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.digest shouldEqual Some(bsDigest)
@@ -350,7 +351,7 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return successful response for PUT request with final chunk to complete blob path" in {
-      val (blob, imageSlug) = Fixtures.await(for {
+      val (blob, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsFixture.createAs(
@@ -360,7 +361,7 @@ final class ImageBlobUploadsHandlerSpec
           ImageBlobState.Uploading
         )
         _ <- BlobFileUtils.uploadBlobChunk(blob.getId(), Source.single(bs.take(1)))
-      } yield (blob, image.slug))
+      } yield (blob, image.slug)).futureValue
 
       Put(
         s"/v2/$imageSlug/blobs/${blob.getId}?digest=sha256:$bsDigest",
@@ -372,7 +373,7 @@ final class ImageBlobUploadsHandlerSpec
         header[`Docker-Upload-Uuid`] should contain(`Docker-Upload-Uuid`(blob.getId()))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
 
-        val b = await(ImageBlobsRepo.findById(blob.getId())).get
+        val b = ImageBlobsRepo.findById(blob.getId()).futureValue.get
         b.length shouldEqual bs.length
         b.state shouldEqual ImageBlobState.Uploaded
         b.digest shouldEqual Some(bsDigest)
@@ -380,7 +381,7 @@ final class ImageBlobUploadsHandlerSpec
     }
 
     "return successful response for DELETE request to the blob upload path" in {
-      val (blob, imageSlug) = Fixtures.await(for {
+      val (blob, imageSlug) = (for {
         user  <- UsersFixture.create()
         image <- ImagesFixture.create(user, imageName, ImageVisibilityKind.Private)
         blob <- ImageBlobsFixture.createAs(
@@ -389,7 +390,7 @@ final class ImageBlobUploadsHandlerSpec
           bs,
           ImageBlobState.Uploading
         )
-      } yield (blob, image.slug))
+      } yield (blob, image.slug)).futureValue
 
       Delete(s"/v2/$imageSlug/blobs/uploads/${blob.getId}") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.NoContent

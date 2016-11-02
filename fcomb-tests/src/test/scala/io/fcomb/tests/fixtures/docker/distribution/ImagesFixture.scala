@@ -16,33 +16,48 @@
 
 package io.fcomb.tests.fixtures.docker.distribution
 
-import cats.data.Validated
-import io.fcomb.models.{Owner, OwnerKind, User}
+import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
+import io.fcomb.models.{Organization, Owner, OwnerKind, User}
 import io.fcomb.persist.docker.distribution.ImagesRepo
+import io.fcomb.tests.fixtures.Fixtures
+import java.time.OffsetDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import java.time.OffsetDateTime
 
 object ImagesFixture {
-  def create(user: User,
-             imageName: String,
-             visibilityKind: ImageVisibilityKind,
-             description: String = ""): Future[Image] = {
-    val owner = Owner(user.getId(), OwnerKind.User)
+  private def create(owner: Owner,
+                     userId: Int,
+                     namespace: String,
+                     imageName: String,
+                     visibilityKind: ImageVisibilityKind): Future[Image] = {
     val image = Image(
       id = None,
       name = imageName,
-      slug = s"${user.username}/$imageName",
+      slug = s"$namespace/$imageName",
       owner = owner,
       visibilityKind = visibilityKind,
-      description = description,
-      createdByUserId = user.getId(),
+      description = "*test description*",
+      createdByUserId = userId,
       createdAt = OffsetDateTime.now,
       updatedAt = None
     )
-    for {
-      Validated.Valid(res) <- ImagesRepo.create(image)
-    } yield res
+    ImagesRepo.create(image).fast.map(Fixtures.get)
   }
+
+  def create(user: User, imageName: String, visibilityKind: ImageVisibilityKind): Future[Image] =
+    create(Owner(user.getId(), OwnerKind.User),
+           user.getId(),
+           user.username,
+           imageName,
+           visibilityKind)
+
+  def create(org: Organization,
+             imageName: String,
+             visibilityKind: ImageVisibilityKind): Future[Image] =
+    create(Owner(org.getId(), OwnerKind.Organization),
+           org.ownerUserId,
+           org.name,
+           imageName,
+           visibilityKind)
 }

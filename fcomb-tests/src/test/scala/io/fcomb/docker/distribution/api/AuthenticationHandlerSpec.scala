@@ -25,11 +25,13 @@ import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers.`Docker-Distribution-Api-Version`
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests._
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 
 final class AuthenticationHandlerSpec
     extends WordSpec
     with Matchers
+    with ScalaFutures
     with ScalatestRouteTest
     with PersistSpec {
   val route       = Api.routes
@@ -37,7 +39,7 @@ final class AuthenticationHandlerSpec
 
   "The authentication handler" should {
     "return a version for GET requests to the version path" in {
-      Fixtures.await(UsersFixture.create())
+      UsersFixture.create().futureValue
 
       Get("/v2/") ~> addCredentials(credentials) ~> route ~> check {
         status shouldEqual StatusCodes.OK
