@@ -29,10 +29,10 @@ trait PaginationActions {
     case column => throw UnknownSortColumnException(s"Unknown sort column: $column")
   }
 
-  protected def sortByQuery[E, U](scope: Query[E, U, Seq], p: Pagination)(
+  protected def sort[E, U](scope: Query[E, U, Seq], order: List[(String, SortOrder)])(
       f: E => PartialFunction[String, Rep[_]],
       default: E => ColumnOrdered[_]) =
-    p.sort match {
+    order match {
       case Nil => scope.sortBy(default)
       case xs =>
         xs.foldLeft(scope) {
@@ -47,4 +47,12 @@ trait PaginationActions {
             }
         }
     }
+
+  protected def sortPaginate[E, U](scope: Query[E, U, Seq], p: Pagination)(
+      f: E => PartialFunction[String, Rep[_]],
+      default: E => ColumnOrdered[_]) =
+    sort(paginate(scope, p), p.sort)(f, default)
+
+  protected def paginate[E, U](scope: Query[E, U, Seq], p: Pagination): Query[E, U, Seq] =
+    scope.drop(p.offset).take(p.limit)
 }

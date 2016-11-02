@@ -201,10 +201,8 @@ object PermissionsRepo
     case "member.username" => q._6._1
   }
 
-  private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) = {
-    val q = findByImageIdScopeDBIO(imageId).drop(p.offset).take(p.limit)
-    sortByQuery(q, p)(sortByPF, _._5.asc)
-  }
+  private def findByImageIdAsReponseDBIO(imageId: Int, p: Pagination) =
+    sortPaginate(findByImageIdScopeDBIO(imageId), p)(sortByPF, _._5.asc)
 
   private lazy val findByImageIdTotalCompiled = Compiled { (imageId: Rep[Int]) =>
     findByImageIdScopeDBIO(imageId).length

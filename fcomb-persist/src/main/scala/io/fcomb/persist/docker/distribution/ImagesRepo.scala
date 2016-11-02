@@ -360,14 +360,12 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
   }
 
   def paginateAvailableByUserId(userId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
-    val scope = availableScope(userId).drop(p.offset).take(p.limit)
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] =
     db.run(for {
-      images <- sortByQuery(scope, p)(sortByPF, _._1.slug).result
+      images <- sortPaginate(availableScope(userId), p)(sortByPF, _._1.slug).result
       total  <- availableScopeTotalCompiled(userId).result
       data = images.map((ImageHelpers.responseFrom _).tupled)
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
-  }
 
   private def findPublicByOwnerDBIO(ownerId: Rep[Int], ownerKind: Rep[OwnerKind]) =
     table
@@ -384,13 +382,11 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
   }
 
   private def paginatePublicByOwnerDBIO(ownerId: Int, ownerKind: OwnerKind, p: Pagination)(
-      implicit ec: ExecutionContext) = {
-    val scope = findPublicByOwnerDBIO(ownerId, ownerKind).drop(p.offset).take(p.limit)
+      implicit ec: ExecutionContext) =
     for {
-      images <- sortByQuery(scope, p)(sortByPF, _._1.slug).result
+      images <- sortPaginate(findPublicByOwnerDBIO(ownerId, ownerKind), p)(sortByPF, _._1.slug).result
       total  <- findPublicByOwnerTotalCompiled((ownerId, ownerKind)).result
     } yield (images, total)
-  }
 
   private def findAvailableByUserOwnerAsMemberDBIO(ownerId: Rep[Int], currentUserId: Rep[Int]) =
     table
@@ -444,14 +440,12 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
   }
 
   def paginateByUser(userId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
-    val scope = availableByUserOwnerDBIO(userId).drop(p.offset).take(p.limit)
+      implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] =
     db.run(for {
-      images <- sortByQuery(scope, p)(sortByPF, _._1.slug).result
+      images <- sortPaginate(availableByUserOwnerDBIO(userId), p)(sortByPF, _._1.slug).result
       total  <- availableByUserOwnerTotalCompiled(userId).result
       data = images.map((ImageHelpers.responseFrom _).tupled)
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
-  }
 
   private def availableByOrganizationAndUserDBIO(orgId: Rep[Int], userId: Rep[Int]) =
     organizationAdminsScope
@@ -493,10 +487,11 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with Pagi
       p: Pagination)(implicit ec: ExecutionContext): Future[PaginationData[RepositoryResponse]] = {
     val q = currentUserIdOpt match {
       case Some(id) =>
-        val scope = findAvailableByOrganizationOwnerDBIO(orgId, id).drop(p.offset).take(p.limit)
         for {
-          images <- sortByQuery(scope, p)(sortByPF, _._1.slug).result
-          total  <- findAvailableByOrganizationOwnerTotalCompiled((orgId, id)).result
+          images <- sortPaginate(findAvailableByOrganizationOwnerDBIO(orgId, id), p)(
+            sortByPF,
+            _._1.slug).result
+          total <- findAvailableByOrganizationOwnerTotalCompiled((orgId, id)).result
         } yield (images, total)
       case _ => paginatePublicByOwnerDBIO(orgId, OwnerKind.Organization, p)
     }

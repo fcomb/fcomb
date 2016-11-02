@@ -132,7 +132,7 @@ object OrganizationsRepo
       implicit ec: ExecutionContext): Future[PaginationData[OrganizationResponse]] = {
     val scope = availableByUserIdScopeDBIO(userId, p.filter)
     db.run(for {
-      orgs  <- sortByQuery(scope.drop(p.offset).take(p.limit), p)(sortByPF, _._1.name).result
+      orgs  <- sortPaginate(scope, p)(sortByPF, _._1.name).result
       total <- scope.length.result
       data = orgs.map { case (org, role) => OrganizationHelpers.responseFrom(org, role) }
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))

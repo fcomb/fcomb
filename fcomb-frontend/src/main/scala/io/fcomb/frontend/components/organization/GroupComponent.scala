@@ -33,7 +33,7 @@ import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.errors.ErrorsException
-import io.fcomb.rpc.UserProfileResponse
+import io.fcomb.rpc.UserResponse
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
@@ -42,8 +42,8 @@ import scalacss.ScalaCssReact._
 
 object GroupComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String, group: String)
-  final case class FormState(member: Option[UserProfileResponse], errors: Map[String, String])
-  final case class State(members: Pot[Seq[UserProfileResponse]],
+  final case class FormState(member: Option[UserResponse], errors: Map[String, String])
+  final case class State(members: Pot[Seq[UserResponse]],
                          pagination: PaginationOrderState,
                          error: Option[String],
                          form: FormState,
@@ -113,18 +113,19 @@ object GroupComponent {
         }
       }
 
-    def renderMember(props: Props, member: UserProfileResponse, isDisabled: Boolean) = {
+    def renderMember(props: Props, member: UserResponse, isDisabled: Boolean) = {
       val button =
         MuiIconButton(disabled = isDisabled, onTouchTap = deleteMember(member.username) _)(
           Mui.SvgIcons.ActionDelete(color = Mui.Styles.colors.lightBlack)())
+      val fullName: String = member.fullName.getOrElse("")
       MuiTableRow(key = member.id.toString)(
-        MuiTableRowColumn(key = "username")(member.title),
-        MuiTableRowColumn(key = "email")(member.email),
+        MuiTableRowColumn(key = "username")(member.username),
+        MuiTableRowColumn(key = "fullName")(fullName),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")(button))
     }
 
     def renderMembers(props: Props,
-                      members: Seq[UserProfileResponse],
+                      members: Seq[UserResponse],
                       p: PaginationOrderState,
                       isDisabled: Boolean) =
       if (members.isEmpty) <.div(App.infoMsg, "There are no members to show yet")
@@ -153,7 +154,7 @@ object GroupComponent {
     def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> add(props)
 
-    def updateMember(member: UserProfileResponse): Callback =
+    def updateMember(member: UserResponse): Callback =
       modFormState(_.copy(member = Some(member)))
 
     def renderFormUsername(props: Props, state: State) =

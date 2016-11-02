@@ -23,6 +23,7 @@ import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.errors.Errors
+import io.fcomb.rpc.helpers.UserHelpers
 import io.fcomb.rpc._
 import io.fcomb.server.Api
 import io.fcomb.server.CirceSupport._
@@ -122,6 +123,23 @@ final class GroupsHandlerSpec
 
       Delete(s"/v1/organizations/${org.name}/groups/${group.name}") ~> authenticate(user) ~> route ~> check {
         status shouldEqual StatusCodes.Accepted
+      }
+    }
+
+    "return a list of suggested users" in {
+      val (user, org, user1, user2) = Fixtures.await(for {
+        user  <- UsersFixture.create()
+        org   <- OrganizationsFixture.create(userId = user.getId())
+        user1 <- UsersFixture.create(email = "user1@fcomb.io", username = "user1")
+        user2 <- UsersFixture.create(email = "user2@fcomb.io", username = "user2")
+      } yield (user, org, user1, user2))
+
+      Get(s"/v1/organizations/${org.name}/groups/admins/suggestions/members?q=user") ~> authenticate(
+        user) ~> route ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[DataResponse[UserResponse]].data should contain theSameElementsAs Seq(
+          UserHelpers.responseFrom(user1),
+          UserHelpers.responseFrom(user2))
       }
     }
   }

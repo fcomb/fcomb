@@ -100,7 +100,7 @@ object ImageManifestTagsRepo
     val q = findByImageIdDBIO(imageId).map {
       case (t, imt) => (t.tag, imt.digest, imt.length, t.updatedAt)
     }
-    sortByQuery(q, p)(sortByPF, _._4.desc).drop(p.offset).take(p.limit)
+    sortPaginate(q, p)(sortByPF, _._4.desc)
   }
 
   private lazy val findByImageIdTotalCompiled = Compiled { imageId: Rep[Int] =>

@@ -110,9 +110,9 @@ object GroupsHandler {
 
   def suggestions(slug: Slug, group: Slug) =
     extractExecutionContext { implicit ec =>
-      authorizeAdminUser { user =>
+      authenticateUser { user =>
         parameter('q) { q =>
-          groupBySlug(slug, group) { group =>
+          groupBySlugWithAcl(slug, group, user.getId()) { group =>
             onSuccess(OrganizationGroupUsersRepo.findSuggestionsUsers(group.getId(), q))(
               completeData)
           }

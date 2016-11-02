@@ -19,7 +19,7 @@ package io.fcomb.server.api.organization.group
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
-import io.fcomb.json.rpc.Formats.{decodeMemberUserRequest, encodeUserProfileResponse}
+import io.fcomb.json.rpc.Formats.{decodeMemberUserRequest, encodeUserResponse}
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupUsersRepo
 import io.fcomb.rpc.MemberUserRequest

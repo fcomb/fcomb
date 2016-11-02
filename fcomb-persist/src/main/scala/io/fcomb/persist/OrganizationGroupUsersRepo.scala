@@ -21,7 +21,7 @@ import io.fcomb.Db.db
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{OrganizationGroupUser, Pagination, PaginationData}
 import io.fcomb.PostgresProfile.api._
-import io.fcomb.rpc.{MemberUserRequest, UserProfileResponse}
+import io.fcomb.rpc.{MemberUserRequest, UserResponse}
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
@@ -36,51 +36,54 @@ final class OrganizationGroupUserTable(tag: Tag)
 }
 
 object OrganizationGroupUsersRepo
-    extends PersistModel[OrganizationGroupUser, OrganizationGroupUserTable] {
+    extends PersistModel[OrganizationGroupUser, OrganizationGroupUserTable]
+    with PaginationActions {
   val table = TableQuery[OrganizationGroupUserTable]
   val label = "members"
-
-  private def findByGroupIdScopeDBIO(groupId: Rep[Int]) =
-    table.join(UsersRepo.table).on(_.userId === _.id).filter(_._1.groupId === groupId).map {
-      case (_, u) => (u.id, u.email, u.username, u.fullName)
-    }
-
-  private lazy val findByGroupIdCompiled = Compiled {
-    (groupId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      findByGroupIdScopeDBIO(groupId).sortBy(_._3).drop(offset).take(limit)
-  }
-
-  private lazy val findByGroupIdTotalCompiled = Compiled { groupId: Rep[Int] =>
-    findByGroupIdScopeDBIO(groupId).length
-  }
 
   private lazy val findSuggestionsUsersCompiled = Compiled {
     (groupId: Rep[Int], q: Rep[String], limit: ConstColumn[Long]) =>
       val query = q.asColumnOfType[String]("citext")
       UsersRepo.table
         .filter { t =>
-          (t.username.like(query) || t.email.like(query) || t.fullName.like(query)) &&
+          (t.username.like(query) || t.fullName.like(query)) &&
           !t.id.in(table.filter(_.groupId === groupId).map(_.userId))
         }
-        .map(t => (t.id, t.email, t.username, t.fullName))
+        .map(t => (t.id, t.username, t.fullName))
+        .sortBy(_._2)
         .take(limit)
   }
 
   def findSuggestionsUsers(groupId: Int, q: String, limit: Long = 16L)(
-      implicit ec: ExecutionContext): Future[Seq[UserProfileResponse]] =
+      implicit ec: ExecutionContext): Future[Seq[UserResponse]] =
     db.run(
       findSuggestionsUsersCompiled((groupId, s"$q%".trim, limit)).result
-        .map(_.map(UserProfileResponse.tupled)))
+        .map(_.map(UserResponse.tupled)))
+
+  type UserResponseTupleRep = (Rep[Int], Rep[String], Rep[Option[String]])
+
+  private def findByGroupIdScopeDBIO(groupId: Rep[Int]) =
+    table.join(UsersRepo.table).on(_.userId === _.id).filter(_._1.groupId === groupId).map {
+      case (_, u) => (u.id, u.username, u.fullName)
+    }
+
+  private lazy val findByGroupIdTotalCompiled = Compiled { groupId: Rep[Int] =>
+    findByGroupIdScopeDBIO(groupId).length
+  }
+
+  private def sortByPF(q: UserResponseTupleRep): PartialFunction[String, Rep[_]] = {
+    case "id"       => q._1
+    case "username" => q._2
+    case "fullName" => q._3
+  }
 
   def paginateByGroupId(groupId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[UserProfileResponse]] =
-    db.run {
-      for {
-        members <- findByGroupIdCompiled((groupId, p.offset, p.limit)).result
-        total   <- findByGroupIdTotalCompiled(groupId).result
-        data = members.map(UserProfileResponse.tupled)
-      } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
-    }
+      implicit ec: ExecutionContext): Future[PaginationData[UserResponse]] =
+    db.run(for {
+      members <- sortPaginate(findByGroupIdScopeDBIO(groupId), p)(sortByPF, _._2).result
+      total   <- findByGroupIdTotalCompiled(groupId).result
+      data = members.map(UserResponse.tupled)
+    } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
 
   def createDBIO(groupId: Int, userId: Int) =
     table += OrganizationGroupUser(
