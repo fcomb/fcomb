@@ -16,7 +16,7 @@
     "fsevents": "^1.0.14",
     "gulp-decompress": "^2.0.1",
     "html-minify-loader": "^1.1.0",
-    "html-webpack-plugin": "^2.24.0",
+    "html-webpack-plugin": "^2.24.1",
     "image-webpack-loader": "^3.0.0",
     "imagemin": "^5.2.2",
     "json-loader": "^0.5.4",
