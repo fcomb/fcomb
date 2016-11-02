@@ -60,10 +60,11 @@ object DeleteRepositoryComponent {
     lazy val actions = js.Array(
       MuiFlatButton(key = "destroy", label = "Destroy", primary = true, onTouchTap = delete _)())
 
+    lazy val helpBlock = <.label(
+      ^.`for` := "delete",
+      "Once you delete a repository, there is no going back. Please be certain.")
+
     def render(props: Props, state: State) = {
-      val helpBlock = <.label(
-        ^.`for` := "delete",
-        "Once you delete a repository, there is no going back. Please be certain.")
       val confirmationDialog = ConfirmationDialogComponent("Are you sure you want to delete this?",
                                                            actions,
                                                            isModal = false,

@@ -26,7 +26,8 @@ object ConfirmationDialogComponent {
                          actions: js.Array[ReactComponentU_],
                          isModal: Boolean,
                          isOpen: Boolean,
-                         cb: Boolean => Callback)
+                         cb: Boolean => Callback,
+                         children: ReactNode*)
 
   final class Backend($ : BackendScope[Props, Unit]) {
     def updateOpenState(isOpen: Boolean) = $.props.flatMap(_.cb(isOpen))
@@ -48,7 +49,7 @@ object ConfirmationDialogComponent {
         open = props.isOpen,
         modal = props.isModal,
         onRequestClose = onRequestClose _
-      )()
+      )(props.children)
   }
 
   private val component = ReactComponentB[Props]("ConfirmationDialog").renderBackend[Backend].build
@@ -57,6 +58,7 @@ object ConfirmationDialogComponent {
             actions: js.Array[ReactComponentU_],
             isModal: Boolean,
             isOpen: Boolean,
-            cb: Boolean => Callback) =
-    component.apply(Props(title, actions, isModal, isOpen, cb))
+            cb: Boolean => Callback,
+            children: ReactNode*) =
+    component.apply(Props(title, actions, isModal, isOpen, cb, children))
 }

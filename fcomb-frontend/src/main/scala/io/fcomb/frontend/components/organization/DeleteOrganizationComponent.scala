@@ -21,6 +21,12 @@ import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
+import io.fcomb.frontend.components.Helpers._
+import io.fcomb.frontend.components.{
+  AlertDialogComponent,
+  ConfirmationDialogComponent,
+  LayoutComponent
+}
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -28,85 +34,92 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 
 object DeleteOrganizationComponent {
-  final case class Props(ctl: RouterCtl[DashboardRoute], orgName: String)
-  final case class State(isOpen: Boolean, isValid: Boolean, isDisabled: Boolean)
+  final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)
+  final case class State(isValid: Boolean,
+                         isDisabled: Boolean,
+                         isConfirmationOpen: Boolean,
+                         error: Option[String])
 
   final class Backend($ : BackendScope[Props, State]) {
     def delete(e: ReactTouchEventH): Callback =
-      $.state.flatMap { state =>
-        if (state.isDisabled) Callback.empty
-        else {
-          for {
-            _     <- $.setState(state.copy(isDisabled = true))
-            props <- $.props
-            _ <- Callback.future(Rpc.deleteOrganization(props.orgName).map {
-              case Xor.Right(_) => props.ctl.set(DashboardRoute.Root)
-              case Xor.Left(e)  =>
-                // TODO
-                updateDisabled(false)
+      (for {
+        props <- $.props
+        state <- $.state
+      } yield (props, state)).flatMap {
+        case (props, state) if !state.isDisabled =>
+          $.setState(state.copy(isDisabled = true)) >>
+            Callback.future(Rpc.deleteOrganization(props.slug).map {
+              case Xor.Right(_) => props.ctl.set(DashboardRoute.Organizations)
+              case Xor.Left(errs) =>
+                $.modState(_.copy(isDisabled = false, error = Some(joinErrors(errs))))
             })
-          } yield ()
-        }
       }
 
-    def updateDisabled(isDisabled: Boolean): Callback =
-      $.modState(_.copy(isDisabled = isDisabled))
+    def updateConfirmationState(isOpen: Boolean): Callback =
+      $.modState(_.copy(isConfirmationOpen = isOpen))
 
     def openDialog(e: ReactTouchEventH): Callback =
-      $.modState(_.copy(isOpen = true))
-
-    def closeDialog(e: ReactTouchEventH): Callback =
-      $.modState(_.copy(isOpen = false))
-
-    def onRequestClose(buttonClicked: Boolean): Callback =
-      $.modState(_.copy(isOpen = false))
+      updateConfirmationState(true)
 
     def validateName(e: ReactEventI): Callback = {
       val value = e.target.value.trim()
-      $.props.flatMap { props =>
-        $.modState(_.copy(isValid = props.orgName == value))
-      }
+      $.props.flatMap(props => $.modState(_.copy(isValid = props.slug == value)))
     }
+
+    lazy val helpBlock = <.label(
+      ^.`for` := "delete",
+      "Once you delete an organization, there is no going back. It will be deleted forever. Please be certain.")
 
     def render(props: Props, state: State) = {
       val actions = js.Array(
-        MuiFlatButton(key = "cancel",
-                      label = "Cancel",
-                      primary = true,
-                      onTouchTap = closeDialog _)(),
         MuiFlatButton(key = "delete",
                       label = "Delete",
                       secondary = true,
                       disabled = !state.isValid,
-                      onTouchTap = delete _)()
-      )
-      <.div(<.h2("Delete repository"),
-            MuiDialog(
-              title = "Are you sure you want to delete this?",
-              actions = actions,
-              open = state.isOpen,
-              modal = false,
-              onRequestClose = onRequestClose _
-            )(
-              <.div(<.p("Enter this organization’s name to confirm"),
-                    MuiTextField(
-                      floatingLabelText = "Organization name",
-                      onChange = validateName _
-                    )())
-            ),
-            MuiRaisedButton(`type` = "submit",
-                            secondary = true,
-                            label = "Delete",
-                            disabled = state.isDisabled,
-                            onTouchTap = openDialog _)())
+                      onTouchTap = delete _)())
+      val validateBlock = <.div(
+        <.p(
+          s"Please note that deleting this organization account will delete any and all repositories under the ",
+          <.strong(props.slug),
+          " account."),
+        <.p("Enter this organization’s name to confirm"),
+        MuiTextField(
+          floatingLabelText = "Organization name",
+          onChange = validateName _
+        )())
+      val confirmationDialog = ConfirmationDialogComponent("Are you sure you want to delete this?",
+                                                           actions,
+                                                           isModal = false,
+                                                           state.isConfirmationOpen,
+                                                           updateConfirmationState _,
+                                                           validateBlock)
+      val alertDialog: ReactNode = state.error match {
+        case Some(error) =>
+          AlertDialogComponent("An error occurred while trying to delete this repository",
+                               isModal = false,
+                               <.span(error))
+        case _ => <.div()
+      }
+      <.div(<.h3("Delete this repository"),
+            <.div(^.`class` := "row",
+                  ^.key := "delete",
+                  <.div(^.`class` := "col-xs-6",
+                        MuiRaisedButton(`type` = "submit",
+                                        secondary = true,
+                                        label = "Delete",
+                                        disabled = state.isDisabled,
+                                        onTouchTap = openDialog _)()),
+                  <.div(LayoutComponent.helpBlockClass, helpBlock)),
+            alertDialog,
+            confirmationDialog)
     }
   }
 
   private val component = ReactComponentB[Props]("DeleteOrganization")
-    .initialState(State(false, false, false))
+    .initialState(State(isValid = false, isDisabled = false, isConfirmationOpen = false, None))
     .renderBackend[Backend]
     .build
 
-  def apply(ctl: RouterCtl[DashboardRoute], orgName: String) =
-    component.apply(Props(ctl, orgName))
+  def apply(ctl: RouterCtl[DashboardRoute], slug: String) =
+    component.apply(Props(ctl, slug))
 }

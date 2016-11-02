@@ -26,10 +26,7 @@ object OrganizationSettingsComponent {
 
   final class Backend($ : BackendScope[Props, Unit]) {
     def render(props: Props) =
-      <.section(
-        <.h1("Settings"),
-        DeleteOrganizationComponent.apply(props.ctl, props.orgName)
-      )
+      <.section(DeleteOrganizationComponent.apply(props.ctl, props.orgName))
   }
 
   private val component =
