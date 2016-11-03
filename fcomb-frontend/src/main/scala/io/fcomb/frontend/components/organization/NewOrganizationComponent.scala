@@ -19,63 +19,98 @@ package io.fcomb.frontend.components.organization
 import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
+import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.components.LayoutComponent
+import io.fcomb.frontend.styles.App
+import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scalacss.ScalaCssReact._
 
 object NewOrganizationComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
   final case class State(name: String, errors: Map[String, String], isDisabled: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def create(ctl: RouterCtl[DashboardRoute]): Callback = {
-      $.state.flatMap { state =>
-        if (state.isDisabled) Callback.empty
-        else {
-          $.setState(state.copy(isDisabled = true)).flatMap { _ =>
-            Callback.future(Rpc.createOrganization(state.name).map {
-                  case Xor.Right(org) => ctl.set(DashboardRoute.Organization(org.name))
-                  case Xor.Left(errs) =>
-                    $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
+    def create(): Callback =
+      $.state.zip($.props).flatMap {
+        case (state, props) =>
+          if (state.isDisabled) Callback.empty
+          else {
+            $.modState(_.copy(isDisabled = true)) >>
+              Callback
+                .future(Rpc.createOrganization(state.name).map {
+                  case Xor.Right(org) => props.ctl.set(DashboardRoute.Organization(org.name))
+                  case Xor.Left(errs) => $.setState(state.copy(errors = foldErrors(errs)))
                 })
-            }
+                .finallyRun($.modState(_.copy(isDisabled = false)))
           }
-        }
       }
 
-    def handleOnSubmit(ctl: RouterCtl[DashboardRoute])(e: ReactEventH): Callback = {
-      e.preventDefaultCB >> create(ctl)
-    }
+    def handleOnSubmit(e: ReactEventH): Callback =
+      e.preventDefaultCB >> create()
 
     def updateName(e: ReactEventI): Callback = {
       val value = e.target.value
       $.modState(_.copy(name = value))
     }
 
-    def render(props: Props, state: State) = {
-      <.div(<.h2("New organization"),
-            <.form(
-              ^.onSubmit ==> handleOnSubmit(props.ctl),
-              ^.disabled := state.isDisabled,
-              <.div(^.display.flex,
-                    ^.flexDirection.column,
-                    MuiTextField(floatingLabelText = "Name",
-                                 id = "name",
-                                 name = "name",
-                                 disabled = state.isDisabled,
-                                 errorText = state.errors.get("name"),
-                                 value = state.name,
-                                 onChange = updateName _)(),
-                                 MuiRaisedButton(`type` = "submit",
-                                                 primary = true,
-                                                 label = "Create",
-                                                 disabled = state.isDisabled)())))
+    def renderFormName(state: State, cb: ReactEventI => Callback) =
+      <.div(^.`class` := "row",
+            ^.key := "name",
+            <.div(^.`class` := "col-xs-6",
+                  MuiTextField(floatingLabelText = "Name",
+                               id = "name",
+                               name = "name",
+                               disabled = state.isDisabled,
+                               errorText = state.errors.get("name"),
+                               fullWidth = true,
+                               value = state.name,
+                               onChange = updateName _)()),
+            <.div(LayoutComponent.helpBlockClass,
+                  ^.style := App.helpBlockStyle,
+                  <.label(^.`for` := "name", "Unique organization name.")))
+
+    def cancel(e: ReactEventH): Callback =
+      e.preventDefaultCB >> $.props.flatMap(_.ctl.set(DashboardRoute.Organizations))
+
+    def renderFormButtons(state: State) = {
+      val submitIsDisabled = state.isDisabled || state.name.isEmpty
+      <.div(^.`class` := "row",
+            ^.style := App.paddingTopStyle,
+            ^.key := "actionsRow",
+            <.div(^.`class` := "col-xs-12",
+                  MuiRaisedButton(`type` = "button",
+                                  primary = false,
+                                  label = "Cancel",
+                                  style = App.cancelStyle,
+                                  disabled = state.isDisabled,
+                                  onTouchTap = cancel _,
+                                  key = "cancel")(),
+                  MuiRaisedButton(`type` = "submit",
+                                  primary = true,
+                                  label = "Create",
+                                  disabled = submitIsDisabled,
+                                  key = "update")()))
     }
+
+    def renderForm(props: Props, state: State) =
+      <.form(
+        ^.onSubmit ==> handleOnSubmit,
+        ^.disabled := state.isDisabled,
+        ^.key := "form",
+        MuiCardText(key = "form")(renderFormName(state, updateName _), renderFormButtons(state)))
+
+    def render(props: Props, state: State) =
+      MuiCard()(<.div(^.key := "header",
+                      App.formTitleBlock,
+                      MuiCardTitle(key = "title")(<.h1(App.cardTitle, "New organization"))),
+                renderForm(props, state))
   }
 
   private val component = ReactComponentB[Props]("NewOrganization")

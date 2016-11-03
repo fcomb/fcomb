@@ -21,10 +21,8 @@ lazy val buildSettings = Seq(
   startYear := Option(2016),
   homepage := Option(url("https://fcomb.io")),
   organizationHomepage := Option(new URL("https://fcomb.io")),
-  scalaVersion := "2.11.8",
-  headers := Map(
-    "scala" -> Apache2_0("2016", "fcomb. <https://fcomb.io>")
-  ),
+  scalaVersion in ThisBuild := "2.11.8",
+  headers := Map("scala" -> Apache2_0("2016", "fcomb. <https://fcomb.io>")),
   scalafmtConfig := Some(file(".scalafmt.conf"))
 )
 

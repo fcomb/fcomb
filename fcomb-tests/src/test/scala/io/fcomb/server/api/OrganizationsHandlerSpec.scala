@@ -20,10 +20,13 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
+import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.docker.distribution.{ImageBlobState, ImageVisibilityKind}
 import io.fcomb.persist.OrganizationsRepo
+import io.fcomb.rpc._
 import io.fcomb.server.Api
+import io.fcomb.server.CirceSupport._
 import io.fcomb.tests.AuthSpec._
 import io.fcomb.tests.fixtures.docker.distribution._
 import io.fcomb.tests.fixtures._
@@ -44,6 +47,20 @@ final class OrganizationsHandlerSpec
   override implicit val patienceConfig = PatienceConfig(timeout = Span(1500, Millis))
 
   "The organizations handler" should {
+    "return an created when creating" in {
+      val user = UsersFixture.create().futureValue
+      val req  = OrganizationCreateRequest("new_test_group")
+
+      Post("/v1/organizations", req) ~> authenticate(user) ~> route ~> check {
+        status shouldEqual StatusCodes.Created
+        val org = responseAs[OrganizationResponse]
+        org.name shouldEqual req.name
+        org.ownerUserId shouldEqual user.id
+        org.role should contain(Role.Admin)
+        OrganizationsRepo.findById(org.id).futureValue should not be empty
+      }
+    }
+
     "return an accepted when deleting" in {
       val (user, org) = (for {
         user  <- UsersFixture.create()
