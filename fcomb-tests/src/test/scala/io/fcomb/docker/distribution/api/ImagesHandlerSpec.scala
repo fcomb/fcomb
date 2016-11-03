@@ -25,7 +25,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import cats.scalatest.EitherMatchers._
 import cats.syntax.either._
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.circe.jawn._
 import io.circe.syntax._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}

@@ -19,7 +19,7 @@ package io.fcomb.server.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats._

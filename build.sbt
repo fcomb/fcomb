@@ -91,8 +91,7 @@ lazy val publishSettings = Seq(
   homepage := Some(url("https://fcomb.io")),
   scmInfo := Some(
     ScmInfo(url("https://github.com/fcomb/fcomb"), "https://github.com/fcomb/fcomb.git")),
-  licenses := Seq(
-    "Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+  licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 )
 
 lazy val noPublishSettings = Seq(
@@ -235,10 +234,12 @@ lazy val server = project
   .dependsOn(persist, utils, jsonJVM, validation, services)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "server")
-  .settings(allSettings)
-  .settings(libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
-  ))
+  .settings(allSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-http"       % akkaHttpVersion,
+      "io.fcomb"          %% "akka-http-circe" % "1.0-RC2"
+    ))
 
 lazy val dockerDistribution = project
   .in(file("fcomb-docker-distribution"))
@@ -376,6 +377,8 @@ lazy val root = project
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
+      "ch.qos.logback"    % "logback-classic" % "1.1.7",
+      "com.lihaoyi"       % "ammonite-repl"   % "0.7.9" % "test" cross CrossVersion.full,
       "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
       "com.lihaoyi"       % "ammonite-repl"   % "0.8.0" % "test" cross CrossVersion.full,

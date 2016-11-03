@@ -24,7 +24,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor

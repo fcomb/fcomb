@@ -30,7 +30,7 @@ import io.circe.Encoder
 import io.fcomb.json.rpc.Formats.encodeDataResponse
 import io.fcomb.models.IdLens
 import io.fcomb.rpc.DataResponse
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import scala.collection.immutable
 
 object CommonDirectives {

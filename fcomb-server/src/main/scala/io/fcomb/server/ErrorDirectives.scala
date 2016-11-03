@@ -24,7 +24,7 @@ import io.circe.Encoder
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.models.errors.{Error, Errors}
 import io.fcomb.models.IdLens
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.validation.ValidationResult
 import scala.concurrent.Future

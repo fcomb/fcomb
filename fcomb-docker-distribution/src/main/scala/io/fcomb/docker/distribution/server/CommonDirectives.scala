@@ -22,7 +22,7 @@ import akka.http.scaladsl.server.Route
 import io.fcomb.json.models.errors.docker.distribution.Formats._
 import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrors}
 import io.fcomb.models.errors.docker.distribution.DistributionErrorCode._
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 
 object CommonDirectives {
   def completeError(error: DistributionError): Route = {

@@ -42,7 +42,7 @@ import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImagesRepo}
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 

@@ -28,7 +28,7 @@ import akka.http.scaladsl.model.headers.{
   Range,
   RangeUnits
 }
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.circe.Encoder
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.json.models.Formats._

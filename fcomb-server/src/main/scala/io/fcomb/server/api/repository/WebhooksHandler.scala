@@ -27,7 +27,7 @@ import io.fcomb.persist.docker.distribution.ImageWebhooksRepo
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._

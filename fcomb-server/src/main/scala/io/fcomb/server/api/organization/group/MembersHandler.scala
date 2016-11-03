@@ -24,7 +24,7 @@ import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupUsersRepo
 import io.fcomb.rpc.MemberUserRequest
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationGroupDirectives._
