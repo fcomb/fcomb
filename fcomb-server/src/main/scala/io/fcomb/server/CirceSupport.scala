@@ -16,17 +16,32 @@
 
 package io.fcomb.server
 
-import de.heikoseeberger.akkahttpcirce
-import io.circe.{Json, Printer}
-import scala.language.implicitConversions
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.{ContentTypes, MediaTypes}
+import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
+import cats.syntax.either._
+import io.circe.jawn._
+import io.circe.syntax._
+import io.circe.{Decoder, Encoder, Printer}
 
-object CirceSupport extends akkahttpcirce.CirceSupport {
-  private val compactPrinter: Printer = Printer(
+object CirceSupport {
+  private val printer: Printer = Printer(
     preserveOrder = false,
     dropNullKeys = true,
     indent = ""
   )
 
-  final implicit def printer(json: Json): String =
-    compactPrinter.pretty(json)
+  final implicit def jsonUnmarshaller[T: Decoder]: FromEntityUnmarshaller[T] =
+    Unmarshaller.byteArrayUnmarshaller
+      .forContentTypes(ContentTypes.`application/json`)
+      .mapWithCharset {
+        case (bytes, charset) =>
+          if (bytes.isEmpty) throw Unmarshaller.NoContentException
+          else decode(new String(bytes, charset.nioCharset.name)).valueOr(throw _)
+      }
+
+  final implicit def jsonMarshaller[T: Encoder]: ToEntityMarshaller[T] =
+    Marshaller
+      .stringMarshaller(MediaTypes.`application/json`)
+      .compose(obj => printer.pretty(obj.asJson))
 }

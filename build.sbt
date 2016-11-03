@@ -227,7 +227,6 @@ lazy val services = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka"  %% "akka-distributed-data-experimental" % akkaVersion,
       "com.typesafe.akka"  %% "akka-http"                          % akkaHttpVersion,
-      "de.heikoseeberger"  %% "akka-http-circe"                    % "1.10.1",
       "org.apache.commons" % "commons-email"                       % "1.4"
     ))
 
