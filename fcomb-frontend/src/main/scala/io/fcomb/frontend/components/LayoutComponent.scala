@@ -54,23 +54,26 @@ object LayoutComponent {
                                            ^.target := "_blank",
                                            "© 2016 fcomb"))
 
-    def renderRightMenu(page: Route, isLogged: Boolean) =
-      if (isLogged)
-        MuiIconMenu(iconButtonElement = MuiIconButton()(Mui.SvgIcons.NavigationMoreVert()()))(
-          MuiMenuItem(primaryText = "Sign out",
-                      key = "signout",
-                      onTouchTap = setRoute(Route.SignOut) _)())
-      else if (page === Route.SignIn)
-        MuiFlatButton(key = "signup",
-                      label = "Registration",
-                      onTouchTap = setRoute(Route.SignUp) _)()
-      else MuiFlatButton(key = "signin", label = "Login", onTouchTap = setRoute(Route.SignIn) _)()
+    def renderRightMenu(page: Route) =
+      page match {
+        case Route.Dashboard(_) =>
+          MuiIconMenu(iconButtonElement = MuiIconButton()(Mui.SvgIcons.NavigationMoreVert()()))(
+            MuiMenuItem(primaryText = "Sign out",
+                        key = "signout",
+                        onTouchTap = setRoute(Route.SignOut) _)())
+        case Route.SignIn =>
+          MuiFlatButton(key = "signup",
+                        label = "Registration",
+                        onTouchTap = setRoute(Route.SignUp) _)()
+        case _ =>
+          MuiFlatButton(key = "signin", label = "Login", onTouchTap = setRoute(Route.SignIn) _)()
+      }
 
     def renderHeader(title: String, page: Route, isLogged: Boolean) =
       <.header(App.appBarHeader,
                MuiAppBar(title = title,
                          onLeftIconButtonTouchTap = openDrawer _,
-                         iconElementRight = renderRightMenu(page, isLogged),
+                         iconElementRight = renderRightMenu(page),
                          showMenuIconButton = isLogged)())
 
     def renderDrawer(state: State) =
