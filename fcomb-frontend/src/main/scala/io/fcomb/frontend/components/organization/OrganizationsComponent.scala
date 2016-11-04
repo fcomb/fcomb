@@ -79,9 +79,7 @@ object OrganizationsComponent {
       )
       MuiTableRow(key = org.id.toString)(
         MuiTableRowColumn(key = "name")(
-          <.a(LayoutComponent.linkAsTextStyle,
-              ^.href := ctl.urlFor(target).value,
-              ctl.setOnLinkClick(target))(org.name)),
+          ctl.link(target)(LayoutComponent.linkAsTextStyle, org.name)),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "menu")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)))
     }

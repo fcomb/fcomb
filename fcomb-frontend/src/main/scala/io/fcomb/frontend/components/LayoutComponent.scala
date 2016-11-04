@@ -62,11 +62,9 @@ object LayoutComponent {
                         key = "signout",
                         onTouchTap = setRoute(Route.SignOut) _)())
         case Route.SignIn =>
-          MuiFlatButton(key = "signup",
-                        label = "Registration",
-                        onTouchTap = setRoute(Route.SignUp) _)()
+          MuiFlatButton(key = "signup", label = "Sign up", onTouchTap = setRoute(Route.SignUp) _)()
         case _ =>
-          MuiFlatButton(key = "signin", label = "Login", onTouchTap = setRoute(Route.SignIn) _)()
+          MuiFlatButton(key = "signin", label = "Sign in", onTouchTap = setRoute(Route.SignIn) _)()
       }
 
     def renderHeader(title: String, page: Route, isLogged: Boolean) =
@@ -93,14 +91,16 @@ object LayoutComponent {
         val body = props.res.page match {
           case Route.Dashboard(_) =>
             if (isLogged) props.res.render()
-            else signInRedirectComponent.apply(props.ctl)
+            else signInRedirectComponent(props.ctl)
           case _ =>
             if (!isLogged || props.res.page === Route.SignOut) props.res.render()
-            else dashboardRedirectComponent.apply(props.ctl)
+            else dashboardRedirectComponent(props.ctl)
         }
-        val drawer = if (isLogged) Some(renderDrawer(state)) else None
+        val (title, drawer) =
+          if (isLogged) (props.res.page.title, Some(renderDrawer(state)))
+          else ("fcomb", None)
         MuiMuiThemeProvider(muiTheme = theme)(
-          <.div(renderHeader(props.res.page.title, props.res.page, isLogged),
+          <.div(renderHeader(title, props.res.page, isLogged),
                 drawer,
                 <.main(App.main, ^.`class` := "container", body),
                 copyrightBlock))
@@ -125,6 +125,9 @@ object LayoutComponent {
 
   lazy val linkAsTextStyle =
     Seq(^.textDecoration := "none", ^.color := style.palette.textColor.toString)
+
+  lazy val linkStyle =
+    Seq(^.textDecoration := "none", ^.color := style.palette.primary1Color.toString)
 
   lazy val helpBlockClass = (^.`class` := s"col-xs-6 ${App.helpBlock.htmlClass}")
 

@@ -22,16 +22,20 @@ import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
+import io.fcomb.frontend.components.LayoutComponent
 import io.fcomb.frontend.services.AuthService
+import io.fcomb.frontend.styles.App
 import io.fcomb.frontend.{DashboardRoute, Route}
+import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import japgolly.scalajs.react._
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scalacss.ScalaCssReact._
 
 // TODO: check Config.security.isOpenSignUp
 object SignUpComponent {
+  final case class Props(ctl: RouterCtl[Route])
   final case class State(email: String,
                          password: String,
                          username: String,
@@ -39,37 +43,39 @@ object SignUpComponent {
                          errors: Map[String, String],
                          isDisabled: Boolean)
 
-  final class Backend($ : BackendScope[RouterCtl[Route], State]) {
-    def register(ctl: RouterCtl[Route]): Callback =
+  final class Backend($ : BackendScope[Props, State]) {
+    def register(): Callback =
       $.state.flatMap { state =>
         if (state.isDisabled) Callback.empty
         else {
-          $.setState(state.copy(isDisabled = true)).flatMap { _ =>
-            Callback.future {
-              val email    = state.email.trim()
-              val password = state.password.trim()
-              val fullName = state.fullName.trim() match {
-                case s if s.nonEmpty => Some(s)
-                case _               => None
+          $.setState(state.copy(isDisabled = true)) >>
+            Callback
+              .future {
+                val email    = state.email.trim()
+                val password = state.password.trim()
+                val fullName = state.fullName.trim() match {
+                  case s if s.nonEmpty => Some(s)
+                  case _               => None
+                }
+                Rpc
+                  .signUp(email, password, state.username.trim(), fullName)
+                  .flatMap {
+                    case Xor.Right(_)      => AuthService.authentication(email, password)
+                    case res @ Xor.Left(_) => Future.successful(res)
+                  }
+                  .map {
+                    case Xor.Right(_) =>
+                      $.props.flatMap(_.ctl.set(Route.Dashboard(DashboardRoute.Root)))
+                    case Xor.Left(errs) => $.setState(state.copy(errors = foldErrors(errs)))
+                  }
+
               }
-              Rpc
-                .signUp(email, password, state.username.trim(), fullName)
-                .flatMap {
-                  case Xor.Right(_)      => AuthService.authentication(email, password)
-                  case res @ Xor.Left(_) => Future.successful(res)
-                }
-                .map {
-                  case Xor.Right(_) => ctl.set(Route.Dashboard(DashboardRoute.Root))
-                  case Xor.Left(errs) =>
-                    $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
-                }
-            }
-          }
+              .finallyRun($.modState(_.copy(isDisabled = false)))
         }
       }
 
-    def handleOnSubmit(ctl: RouterCtl[Route])(e: ReactEventH): Callback =
-      e.preventDefaultCB >> register(ctl)
+    def handleOnSubmit(e: ReactEventH): Callback =
+      e.preventDefaultCB >> register()
 
     def updateEmail(e: ReactEventI): Callback = {
       val value = e.target.value
@@ -91,51 +97,103 @@ object SignUpComponent {
       $.modState(_.copy(fullName = value))
     }
 
-    def render(ctl: RouterCtl[Route], state: State) =
-      <.form(^.onSubmit ==> handleOnSubmit(ctl),
+    def renderFormEmail(state: State) =
+      <.div(^.`class` := "row",
+            ^.key := "email",
+            <.div(^.`class` := "col-xs-12",
+                  MuiTextField(floatingLabelText = "Email",
+                               `type` = "email",
+                               id = "email",
+                               name = "email",
+                               disabled = state.isDisabled,
+                               errorText = state.errors.get("email"),
+                               fullWidth = true,
+                               value = state.email,
+                               onChange = updateEmail _)()))
+
+    def renderFormPassword(state: State) =
+      <.div(^.`class` := "row",
+            ^.key := "password",
+            <.div(^.`class` := "col-xs-12",
+                  MuiTextField(floatingLabelText = "Password",
+                               `type` = "password",
+                               id = "password",
+                               name = "password",
+                               disabled = state.isDisabled,
+                               errorText = state.errors.get("password"),
+                               fullWidth = true,
+                               value = state.password,
+                               onChange = updatePassword _)()))
+
+    def renderFormUsername(state: State) =
+      <.div(^.`class` := "row",
+            ^.key := "username",
+            <.div(^.`class` := "col-xs-12",
+                  MuiTextField(floatingLabelText = "Username",
+                               id = "username",
+                               name = "username",
+                               disabled = state.isDisabled,
+                               errorText = state.errors.get("username"),
+                               fullWidth = true,
+                               value = state.username,
+                               onChange = updateUsername _)()))
+
+    def renderFormFullName(state: State) =
+      <.div(^.`class` := "row",
+            ^.key := "fullName",
+            <.div(^.`class` := "col-xs-12",
+                  MuiTextField(floatingLabelText = "Full name (optional)",
+                               id = "fullName",
+                               name = "fullName",
+                               disabled = state.isDisabled,
+                               errorText = state.errors.get("fullName"),
+                               fullWidth = true,
+                               value = state.fullName,
+                               onChange = updateFullName _)()))
+
+    def renderFormButtons(props: Props, state: State) = {
+      val submitIsDisabled = state.isDisabled || state.email.isEmpty || state.password.isEmpty || state.username.isEmpty
+      <.div(^.`class` := "row",
+            ^.style := App.paddingTopStyle,
+            ^.key := "actionsRow",
+            <.div(^.`class` := "col-xs-2",
+                  MuiRaisedButton(`type` = "submit",
+                                  primary = true,
+                                  label = "Create",
+                                  disabled = submitIsDisabled)()),
+            <.div(^.`class` := "col-xs-10",
+                  <.p(App.authRightTipBlock,
+                      "Have an account? ",
+                      props.ctl.link(Route.SignIn)(LayoutComponent.linkStyle, "Sign in"),
+                      ".")))
+    }
+
+    def renderForm(props: Props, state: State) =
+      <.form(^.onSubmit ==> handleOnSubmit,
              ^.disabled := state.isDisabled,
-             <.div(^.display.flex,
-                   ^.flexDirection.column,
-                   MuiTextField(floatingLabelText = "Email",
-                                `type` = "email",
-                                id = "email",
-                                name = "email",
-                                disabled = state.isDisabled,
-                                errorText = state.errors.get("email"),
-                                value = state.email,
-                                onChange = updateEmail _)(),
-                   MuiTextField(floatingLabelText = "Password",
-                                `type` = "password",
-                                id = "password",
-                                name = "password",
-                                disabled = state.isDisabled,
-                                errorText = state.errors.get("password"),
-                                value = state.password,
-                                onChange = updatePassword _)(),
-                   MuiTextField(floatingLabelText = "Username",
-                                id = "username",
-                                name = "username",
-                                disabled = state.isDisabled,
-                                errorText = state.errors.get("username"),
-                                value = state.username,
-                                onChange = updateUsername _)(),
-                   MuiTextField(floatingLabelText = "Full name (optional)",
-                                id = "fullName",
-                                name = "fullName",
-                                disabled = state.isDisabled,
-                                errorText = state.errors.get("fullName"),
-                                value = state.fullName,
-                                onChange = updateFullName _)(),
-                   MuiRaisedButton(`type` = "submit",
-                                   primary = true,
-                                   label = "Register",
-                                   disabled = state.isDisabled)()))
+             ^.key := "form",
+             MuiCardText(key = "form")(renderFormEmail(state),
+                                       renderFormPassword(state),
+                                       renderFormUsername(state),
+                                       renderFormFullName(state),
+                                       renderFormButtons(props, state)))
+
+    def render(props: Props, state: State) =
+      <.div(
+        ^.`class` := "row",
+        <.div(
+          ^.`class` := "col-xs-6 col-xs-offset-3",
+          MuiCard()(
+            <.div(^.key := "header",
+                  App.formTitleBlock,
+                  MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Create your fcomb account"))),
+            renderForm(props, state))))
   }
 
-  private val component = ReactComponentB[RouterCtl[Route]]("SignUp")
+  private val component = ReactComponentB[Props]("SignUp")
     .initialState(State("", "", "", "", Map.empty, false))
     .renderBackend[Backend]
     .build
 
-  def apply(ctl: RouterCtl[Route]) = component(ctl)
+  def apply(ctl: RouterCtl[Route]) = component(Props(ctl))
 }

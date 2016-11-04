@@ -100,10 +100,7 @@ object RepositoriesComponent {
       MuiTableRow(key = repository.id.toString)(
         MuiTableRowColumn(style = App.visibilityColumnStyle, key = "visibilityKind")(
           RepositoryComponent.visiblityIcon(repository.visibilityKind)),
-        MuiTableRowColumn(key = "name")(
-          <.a(LayoutComponent.linkAsTextStyle,
-              ^.href := ctl.urlFor(target).value,
-              ctl.setOnLinkClick(target))(name)),
+        MuiTableRowColumn(key = "name")(ctl.link(target)(LayoutComponent.linkAsTextStyle, name)),
         MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt)),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "menu")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)))

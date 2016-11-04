@@ -28,15 +28,15 @@ object Route {
   }
 
   final case object SignIn extends Route {
-    def title = "Login"
+    def title = "Sign in"
   }
 
   final case object SignUp extends Route {
-    def title = "Registration"
+    def title = "Sign up"
   }
 
   final case object SignOut extends Route {
-    def title = "Sign Out"
+    def title = "Sign out"
   }
 
   final implicit val valueEq: Eq[Route] = Eq.fromUniversalEquals

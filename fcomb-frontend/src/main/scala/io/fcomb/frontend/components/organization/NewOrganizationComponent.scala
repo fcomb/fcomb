@@ -38,18 +38,18 @@ object NewOrganizationComponent {
 
   final class Backend($ : BackendScope[Props, State]) {
     def create(): Callback =
-      $.state.zip($.props).flatMap {
-        case (state, props) =>
-          if (state.isDisabled) Callback.empty
-          else {
-            $.modState(_.copy(isDisabled = true)) >>
-              Callback
-                .future(Rpc.createOrganization(state.name).map {
-                  case Xor.Right(org) => props.ctl.set(DashboardRoute.Organization(org.name))
-                  case Xor.Left(errs) => $.setState(state.copy(errors = foldErrors(errs)))
-                })
-                .finallyRun($.modState(_.copy(isDisabled = false)))
-          }
+      $.state.flatMap { state =>
+        if (state.isDisabled) Callback.empty
+        else {
+          $.modState(_.copy(isDisabled = true)) >>
+            Callback
+              .future(Rpc.createOrganization(state.name).map {
+                case Xor.Right(org) =>
+                  $.props.flatMap(_.ctl.set(DashboardRoute.Organization(org.name)))
+                case Xor.Left(errs) => $.setState(state.copy(errors = foldErrors(errs)))
+              })
+              .finallyRun($.modState(_.copy(isDisabled = false)))
+        }
       }
 
     def handleOnSubmit(e: ReactEventH): Callback =
@@ -60,7 +60,7 @@ object NewOrganizationComponent {
       $.modState(_.copy(name = value))
     }
 
-    def renderFormName(state: State, cb: ReactEventI => Callback) =
+    def renderFormName(state: State) =
       <.div(^.`class` := "row",
             ^.key := "name",
             <.div(^.`class` := "col-xs-6",
@@ -100,11 +100,10 @@ object NewOrganizationComponent {
     }
 
     def renderForm(props: Props, state: State) =
-      <.form(
-        ^.onSubmit ==> handleOnSubmit,
-        ^.disabled := state.isDisabled,
-        ^.key := "form",
-        MuiCardText(key = "form")(renderFormName(state, updateName _), renderFormButtons(state)))
+      <.form(^.onSubmit ==> handleOnSubmit,
+             ^.disabled := state.isDisabled,
+             ^.key := "form",
+             MuiCardText(key = "form")(renderFormName(state), renderFormButtons(state)))
 
     def render(props: Props, state: State) =
       MuiCard()(<.div(^.key := "header",

@@ -94,9 +94,9 @@ object RouterComponent {
       // format: OFF
       trimSlashes |
       dashboardRoutes |
-      staticRoute("sign_in", Route.SignIn) ~> renderR(AuthComponent(_, AuthTab.SignIn)) |
-      staticRoute("sign_up", Route.SignUp) ~> renderR(AuthComponent(_, AuthTab.SignUp)) |
-      staticRoute("sign_out", Route.SignOut) ~> renderR(SignOutComponent.apply)
+      staticRoute("sign_in", Route.SignIn) ~> renderR(SignInComponent(_)) |
+      staticRoute("sign_up", Route.SignUp) ~> renderR(SignUpComponent(_)) |
+      staticRoute("sign_out", Route.SignOut) ~> renderR(SignOutComponent(_))
       // format: ON
 
     routes

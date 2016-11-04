@@ -78,6 +78,8 @@ object App extends StyleSheet.Inline {
 
   val digest = style(fontFamily :=! "monospace")
 
+  val authRightTipBlock = style(textAlign.right, padding(6.px, 0.px, 0.px, 0.px), margin(0.px))
+
   // raw
 
   val menuColumnStyle = js.Dictionary("width" -> "48px", "padding" -> "0px")

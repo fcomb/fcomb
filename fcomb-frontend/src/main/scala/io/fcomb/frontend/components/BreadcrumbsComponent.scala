@@ -30,9 +30,7 @@ object BreadcrumbsComponent {
 
   final class Backend($ : BackendScope[Props, Unit]) {
     def breadcrumbLink(ctl: RouterCtl[DashboardRoute], target: DashboardRoute, text: String) =
-      <.a(LayoutComponent.linkAsTextStyle,
-          ^.href := ctl.urlFor(target).value,
-          ctl.setOnLinkClick(target))(text)
+      ctl.link(target)(LayoutComponent.linkAsTextStyle, text)
 
     lazy val slashElement: TagMod = " / "
 

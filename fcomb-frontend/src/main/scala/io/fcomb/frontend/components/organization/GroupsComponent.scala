@@ -125,9 +125,7 @@ object GroupsComponent {
       )
       MuiTableRow(key = group.id.toString)(
         MuiTableRowColumn(key = "name")(
-          <.a(LayoutComponent.linkAsTextStyle,
-              ^.href := props.ctl.urlFor(target).value,
-              props.ctl.setOnLinkClick(target))(group.name)),
+          props.ctl.link(target)(LayoutComponent.linkAsTextStyle, group.name)),
         MuiTableRowColumn(key = "role")(group.role.toString),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "menu")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)
