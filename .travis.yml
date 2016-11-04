@@ -5,7 +5,7 @@ scala:
 jdk:
   - oraclejdk8
 script:
-  - sbt clean coverage test coverageReport
+  - sbt clean test
 before_install:
   - sudo /etc/init.d/postgresql stop
   - sudo apt-get -y remove --purge postgresql-9.1
@@ -22,5 +22,3 @@ before_install:
   - sudo /etc/init.d/postgresql restart
 before_script:
   - psql -U postgres -c 'create database "fcomb-test";'
-after_success:
-  - bash <(curl -s https://codecov.io/bash)

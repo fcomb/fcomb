@@ -264,7 +264,6 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % "test",
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
       "org.scalacheck"     %% "scalacheck"        % "1.13.4" % "test",
-      "org.specs2"         %% "specs2-core"       % "3.8.5.1" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.0" % "test",
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.0.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),

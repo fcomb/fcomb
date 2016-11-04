@@ -28,20 +28,13 @@ import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
 object SessionsService {
-  private val invalidEmailOrPassword = Xor.Left(
-    Errors(
-      Seq(
-        Errors.validation("email", "invalid"),
-        Errors.validation("password", "invalid")
-      )))
-
   def create(req: SessionCreateRequest)(
       implicit ec: ExecutionContext): Future[Xor[Errors, Session]] =
     UsersRepo.findByEmail(req.email).fast.map {
       case Some(user) if user.isValidPassword(req.password) =>
         val timeNow = Instant.now()
-        val jwt     = Jwt.encode(user, Config.jwt.secret, timeNow, Config.jwt.sessionTtl)
-        Xor.Right(Session(jwt))
+        val token   = Jwt.encode(user, Config.jwt.secret, timeNow, Config.jwt.sessionTtl)
+        Xor.Right(Session(token))
       case _ => invalidEmailOrPassword
     }
 
@@ -50,4 +43,11 @@ object SessionsService {
       case Xor.Right(payload) => UsersRepo.findById(payload.id)
       case _                  => FastFuture.successful(None)
     }
+
+  private lazy val invalidEmailOrPassword = Xor.Left(
+    Errors(
+      Seq(
+        Errors.validation("invalid", "email"),
+        Errors.validation("invalid", "password")
+      )))
 }

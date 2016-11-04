@@ -47,7 +47,7 @@ final class OrganizationsHandlerSpec
   override implicit val patienceConfig = PatienceConfig(timeout = Span(1500, Millis))
 
   "The organizations handler" should {
-    "return an created when creating" in {
+    "return a created when creating" in {
       val user = UsersFixture.create().futureValue
       val req  = OrganizationCreateRequest("new_test_group")
 

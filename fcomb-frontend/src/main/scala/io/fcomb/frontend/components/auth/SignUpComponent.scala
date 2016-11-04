@@ -97,59 +97,24 @@ object SignUpComponent {
       $.modState(_.copy(fullName = value))
     }
 
-    def renderFormEmail(state: State) =
+    def renderTextField(state: State,
+                        value: String,
+                        key: String,
+                        label: String,
+                        cb: ReactEventI => Callback,
+                        `type`: String = "text") =
       <.div(^.`class` := "row",
-            ^.key := "email",
+            ^.key := key,
             <.div(^.`class` := "col-xs-12",
-                  MuiTextField(floatingLabelText = "Email",
-                               `type` = "email",
-                               id = "email",
-                               name = "email",
+                  MuiTextField(floatingLabelText = label,
+                               `type` = `type`,
+                               id = key,
+                               name = key,
                                disabled = state.isDisabled,
-                               errorText = state.errors.get("email"),
+                               errorText = state.errors.get(key),
                                fullWidth = true,
-                               value = state.email,
-                               onChange = updateEmail _)()))
-
-    def renderFormPassword(state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "password",
-            <.div(^.`class` := "col-xs-12",
-                  MuiTextField(floatingLabelText = "Password",
-                               `type` = "password",
-                               id = "password",
-                               name = "password",
-                               disabled = state.isDisabled,
-                               errorText = state.errors.get("password"),
-                               fullWidth = true,
-                               value = state.password,
-                               onChange = updatePassword _)()))
-
-    def renderFormUsername(state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "username",
-            <.div(^.`class` := "col-xs-12",
-                  MuiTextField(floatingLabelText = "Username",
-                               id = "username",
-                               name = "username",
-                               disabled = state.isDisabled,
-                               errorText = state.errors.get("username"),
-                               fullWidth = true,
-                               value = state.username,
-                               onChange = updateUsername _)()))
-
-    def renderFormFullName(state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "fullName",
-            <.div(^.`class` := "col-xs-12",
-                  MuiTextField(floatingLabelText = "Full name (optional)",
-                               id = "fullName",
-                               name = "fullName",
-                               disabled = state.isDisabled,
-                               errorText = state.errors.get("fullName"),
-                               fullWidth = true,
-                               value = state.fullName,
-                               onChange = updateFullName _)()))
+                               value = value,
+                               onChange = cb)()))
 
     def renderFormButtons(props: Props, state: State) = {
       val submitIsDisabled = state.isDisabled || state.email.isEmpty || state.password.isEmpty || state.username.isEmpty
@@ -172,11 +137,21 @@ object SignUpComponent {
       <.form(^.onSubmit ==> handleOnSubmit,
              ^.disabled := state.isDisabled,
              ^.key := "form",
-             MuiCardText(key = "form")(renderFormEmail(state),
-                                       renderFormPassword(state),
-                                       renderFormUsername(state),
-                                       renderFormFullName(state),
-                                       renderFormButtons(props, state)))
+             MuiCardText(key = "form")(
+               renderTextField(state, state.email, "email", "Email", updateEmail _, "email"),
+               renderTextField(state,
+                               state.password,
+                               "password",
+                               "Password",
+                               updatePassword _,
+                               "password"),
+               renderTextField(state, state.username, "username", "Username", updateUsername _),
+               renderTextField(state,
+                               state.fullName,
+                               "fullName",
+                               "Full name (optional)",
+                               updateFullName _),
+               renderFormButtons(props, state)))
 
     def render(props: Props, state: State) =
       <.div(
