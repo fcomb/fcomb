@@ -29,7 +29,7 @@ final case class Errors(errors: Seq[Error])
 object Errors {
   val unauthorized = Error("Unauthorized", ErrorCode.Session)
   val registrationIsDisabled =
-    Error("User registration is disabled by administrator", ErrorCode.Securiy)
+    Error("User registration is disabled by administrator", ErrorCode.Security)
   val unknown = internal("Unknown error")
 
   def deserialization(msg: String = "Deserialization error", param: Option[String] = None) =

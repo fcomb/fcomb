@@ -25,7 +25,7 @@ object ErrorCode extends Enum[ErrorCode] {
   final case object Internal        extends ErrorCode
   final case object Deserialization extends ErrorCode
   final case object Session         extends ErrorCode
-  final case object Securiy         extends ErrorCode
+  final case object Security        extends ErrorCode
 
   val values = findValues
 }
