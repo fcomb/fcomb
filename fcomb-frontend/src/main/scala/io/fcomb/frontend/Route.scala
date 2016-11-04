@@ -16,6 +16,8 @@
 
 package io.fcomb.frontend
 
+import cats.Eq
+
 sealed trait Route {
   def title: String
 }
@@ -36,6 +38,8 @@ object Route {
   final case object SignOut extends Route {
     def title = "Sign Out"
   }
+
+  final implicit val valueEq: Eq[Route] = Eq.fromUniversalEquals
 }
 
 sealed trait DashboardRoute {
@@ -88,4 +92,6 @@ object DashboardRoute {
     def title = s"Users – $slug"
   }
   final case class User(slug: String) extends UserRoute
+
+  final implicit val valueEq: Eq[DashboardRoute] = Eq.fromUniversalEquals
 }

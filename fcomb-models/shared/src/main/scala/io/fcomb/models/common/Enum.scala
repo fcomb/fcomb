@@ -23,7 +23,7 @@ trait EnumItem extends enumeratum.EnumEntry with enumeratum.EnumEntry.Snakecase 
 }
 
 trait Enum[T <: EnumItem] extends enumeratum.Enum[T] {
-  implicit val valueEq: Eq[T] = Eq.fromUniversalEquals
+  final implicit val valueEq: Eq[T] = Eq.fromUniversalEquals
 
   final lazy val entryNames = values.map(_.entryName).mkString(", ")
 }

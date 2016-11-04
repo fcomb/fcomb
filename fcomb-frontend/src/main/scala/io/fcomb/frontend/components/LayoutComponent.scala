@@ -16,6 +16,7 @@
 
 package io.fcomb.frontend.components
 
+import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.dispatcher.AppCircuit
@@ -40,44 +41,67 @@ object LayoutComponent {
     def closeDrawer(open: Boolean, reason: String): Callback =
       closeDrawerCB()
 
-    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
-      closeDrawerCB() >> $.props.flatMap(_.ctl.set(Route.Dashboard(route)))
+    def setRoute(route: Route)(e: ReactEventH): Callback =
+      closeDrawerCB() >> $.props.flatMap(_.ctl.set(route))
 
-    def render(props: Props, state: State) = {
-      val body = sessionConn { sessionProxy =>
-        val session = sessionProxy.apply()
-        props.res.page match {
+    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+      setRoute(Route.Dashboard(route))(e)
+
+    lazy val copyrightBlock = <.footer(App.footer,
+                                       <.a(App.footerLink,
+                                           Seq(^.color := style.palette.primary3Color.toString),
+                                           ^.href := "https://github.com/fcomb/fcomb",
+                                           ^.target := "_blank",
+                                           "© 2016 fcomb"))
+
+    def renderRightMenu(page: Route, isLogged: Boolean) =
+      if (isLogged)
+        MuiIconMenu(iconButtonElement = MuiIconButton()(Mui.SvgIcons.NavigationMoreVert()()))(
+          MuiMenuItem(primaryText = "Sign out",
+                      key = "signout",
+                      onTouchTap = setRoute(Route.SignOut) _)())
+      else if (page === Route.SignIn)
+        MuiFlatButton(key = "signup",
+                      label = "Registration",
+                      onTouchTap = setRoute(Route.SignUp) _)()
+      else MuiFlatButton(key = "signin", label = "Login", onTouchTap = setRoute(Route.SignIn) _)()
+
+    def renderHeader(title: String, page: Route, isLogged: Boolean) =
+      <.header(App.appBarHeader,
+               MuiAppBar(title = title,
+                         onLeftIconButtonTouchTap = openDrawer _,
+                         iconElementRight = renderRightMenu(page, isLogged),
+                         showMenuIconButton = isLogged)())
+
+    def renderDrawer(state: State) =
+      MuiDrawer(docked = false, open = state.isOpen, onRequestChange = closeDrawer _)(
+        MuiMenuItem(key = "repos",
+                    primaryText = "Repositories",
+                    onTouchTap = setRoute(DashboardRoute.Repositories) _)(),
+        MuiMenuItem(key = "orgs",
+                    primaryText = "Organizations",
+                    onTouchTap = setRoute(DashboardRoute.Organizations) _)()
+      )
+
+    def render(props: Props, state: State) =
+      sessionConn { sessionProxy =>
+        val session  = sessionProxy.apply()
+        val isLogged = session.nonEmpty
+        val body = props.res.page match {
           case Route.Dashboard(_) =>
-            session match {
-              case Some(session) => props.res.render()
-              case _             => signInRedirectComponent.apply(props.ctl)
-            }
+            if (isLogged) props.res.render()
+            else signInRedirectComponent.apply(props.ctl)
           case _ =>
-            if (session.isEmpty || props.res.page == Route.SignOut) props.res.render()
+            if (!isLogged || props.res.page === Route.SignOut) props.res.render()
             else dashboardRedirectComponent.apply(props.ctl)
         }
+        val drawer = if (isLogged) Some(renderDrawer(state)) else None
+        MuiMuiThemeProvider(muiTheme = theme)(
+          <.div(renderHeader(props.res.page.title, props.res.page, isLogged),
+                drawer,
+                <.main(App.main, ^.`class` := "container", body),
+                copyrightBlock))
       }
-      val copyrightLink = <.a(App.footerLink,
-                              Seq(^.color := style.palette.primary3Color.toString),
-                              ^.href := "https://github.com/fcomb/fcomb",
-                              ^.target := "_blank",
-                              "© 2016 fcomb")
-      MuiMuiThemeProvider(muiTheme = theme)(
-        <.div(<.header(App.appBarHeader,
-                       MuiAppBar(title = props.res.page.title,
-                                 onLeftIconButtonTouchTap = openDrawer _,
-                                 showMenuIconButton = true)()),
-              MuiDrawer(docked = false, open = state.isOpen, onRequestChange = closeDrawer _)(
-                MuiMenuItem(key = "repos",
-                            primaryText = "Repositories",
-                            onTouchTap = setRoute(DashboardRoute.Repositories) _)(),
-                MuiMenuItem(key = "orgs",
-                            primaryText = "Organizations",
-                            onTouchTap = setRoute(DashboardRoute.Organizations) _)()
-              ),
-              <.main(App.main, ^.`class` := "container", body),
-              <.footer(App.footer, copyrightLink)))
-    }
   }
 
   val style = Mui.Styles.LightRawTheme
