@@ -314,6 +314,8 @@ lazy val frontend = project
     }
   )
 
+lazy val docs = project.in(file("fcomb-docs")).enablePlugins(MicrositesPlugin)
+
 lazy val javaRunOptions = Seq(
   "-server",
   "-Xms1g",
