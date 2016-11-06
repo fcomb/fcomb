@@ -45,17 +45,6 @@ object Validations {
       else Validated.Valid(())
     }
 
-  val uuidRegEx = """(?i)\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z""".r
-
-  def uuid(value: String): PlainValidation =
-    if (uuidRegEx.findFirstIn(value).isDefined) Validated.Valid(())
-    else Validated.Invalid("invalid UUID format")
-
-  def notUuid(value: String): PlainValidation =
-    if (uuidRegEx.findFirstIn(value).isDefined)
-      Validated.Invalid("cannot be an UUID format")
-    else Validated.Valid(())
-
   def lengthRange(value: String, from: Int, to: Int): PlainValidation =
     if (value.length >= from && value.length <= to) Validated.Valid(())
     else Validated.Invalid(s"length is less than $from or greater than $to")

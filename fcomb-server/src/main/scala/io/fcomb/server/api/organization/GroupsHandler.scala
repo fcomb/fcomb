@@ -48,7 +48,7 @@ object GroupsHandler {
       authenticateUser { user =>
         organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
           extractPagination { pg =>
-            onSuccess(OrganizationGroupsRepo.paginateByOrgId(org.getId(), pg)) { p =>
+            onSuccess(OrganizationGroupsRepo.paginate(org.getId(), pg)) { p =>
               completePagination(OrganizationGroupsRepo.label, p)
             }
           }

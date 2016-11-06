@@ -2,12 +2,13 @@
 
 var webpack = require('webpack'),
     CommonsChunkPlugin = webpack.optimize.CommonsChunkPlugin,
+    CompressionPlugin = require("compression-webpack-plugin"),
     HtmlWebpackPlugin = require('html-webpack-plugin'),
     webPath = __dirname + '/src/main/resources/public';
 
 module.exports = {
   entry: {
-    frontend: './bundles/frontend.js'
+    app: './bundles/app.js'
   },
   output: {
     path: webPath,
@@ -18,15 +19,51 @@ module.exports = {
     new HtmlWebpackPlugin({
       filename: 'index.html',
       template: 'src/main/assets/index.html',
-      inject: false
+      inject: true,
+      hash: true,
+      minify: {
+        collapseBooleanAttributes: true,
+        collapseInlineTagWhitespace: true,
+        collapseWhitespace: true,
+        decodeEntities: true,
+        html5: true,
+        minifyCSS: true,
+        minifyJS: true,
+        removeAttributeQuotes: true,
+        removeComments: true,
+        removeEmptyAttributes: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        sortAttributes: true,
+        useShortDoctype: true
+      }
     }),
     new webpack.NoErrorsPlugin(),
     new CommonsChunkPlugin({
-      name: 'frontend'
+      name: 'app'
     }),
     new webpack.optimize.DedupePlugin(),
-    new webpack.optimize.UglifyJsPlugin(),
-    new webpack.optimize.AggressiveMergingPlugin()
+    new webpack.DefinePlugin({
+      'process.env':{
+        'NODE_ENV': JSON.stringify('production')
+      }
+    }),
+    new webpack.optimize.UglifyJsPlugin({
+      output: {
+        comments: false
+      },
+      compressor: {
+        warnings: false
+      }
+    }),
+    new webpack.optimize.AggressiveMergingPlugin(),
+    new CompressionPlugin({
+      asset: "[path].gz",
+      algorithm: "gzip",
+      test: /\.(js|html|css|ttf)$/,
+      threshold: 10240
+    })
   ],
   module: {
     loaders: [

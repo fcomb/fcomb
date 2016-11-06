@@ -27,9 +27,6 @@
     "webpack": "^1.13.3",
     "webpack-dev-server": "^1.16.2"
   },
-  "optionalDependencies": {
-    "fsevents": "^1.0.15"
-  },
   "dependencies": {
     "bootstrap-grid": "^2.0.1",
     "material-ui": "^v0.16.1",

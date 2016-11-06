@@ -21,6 +21,7 @@ import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.docker.distribution.ImageManifestTag
 import io.fcomb.models.{Pagination, PaginationData}
 import io.fcomb.persist._
+import io.fcomb.persist.PaginationActions._
 import io.fcomb.rpc.docker.distribution.RepositoryTagResponse
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,9 +38,7 @@ final class ImageManifestTagTable(_tag: Tag)
       ((ImageManifestTag.apply _).tupled, ImageManifestTag.unapply)
 }
 
-object ImageManifestTagsRepo
-    extends PersistModel[ImageManifestTag, ImageManifestTagTable]
-    with PaginationActions {
+object ImageManifestTagsRepo extends PersistModel[ImageManifestTag, ImageManifestTagTable] {
   val table = TableQuery[ImageManifestTagTable]
   val label = "tags"
 

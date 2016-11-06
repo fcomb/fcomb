@@ -119,8 +119,7 @@ object SignInComponent {
                                "password"),
                renderFormButtons(props, state)))
 
-    def render(props: Props, state: State) = {
-      println(state.errors)
+    def render(props: Props, state: State) =
       <.div(^.`class` := "row",
             <.div(^.`class` := "col-xs-6 col-xs-offset-3",
                   MuiCard()(<.div(^.key := "header",
@@ -128,7 +127,6 @@ object SignInComponent {
                                   MuiCardTitle(key = "title")(
                                     <.h1(App.cardTitle, "Sign in to continue to fcomb"))),
                             renderForm(props, state))))
-    }
   }
 
   private val component = ReactComponentB[Props]("SignIn")

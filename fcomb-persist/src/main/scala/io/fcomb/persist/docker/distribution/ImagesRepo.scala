@@ -27,11 +27,11 @@ import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.models.{Organization, Owner, OwnerKind, Pagination, PaginationData, User}
 import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
+import io.fcomb.persist.PaginationActions._
 import io.fcomb.persist.{
   EventsRepo,
   OrganizationGroupUsersRepo,
   OrganizationGroupsRepo,
-  PaginationActions,
   PersistModelWithAutoIntPk,
   PersistTableWithAutoIntPk
 }
@@ -105,7 +105,7 @@ final class ImageTable(tag: Tag)
       })
 }
 
-object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] with PaginationActions {
+object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   val table = TableQuery[ImageTable]
   val label = "images"
 

@@ -22,10 +22,11 @@ import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.acl.{MemberKind, Role}
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{Organization, Pagination, PaginationData}
-import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.persist.docker.distribution.ImagesRepo
+import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.Filters._
+import io.fcomb.persist.PaginationActions._
 import io.fcomb.rpc.acl.{
   PermissionGroupMemberResponse,
   PermissionMemberResponse,
@@ -52,9 +53,7 @@ final class OrganizationTable(tag: Tag)
       ((Organization.apply _).tupled, Organization.unapply)
 }
 
-object OrganizationsRepo
-    extends PersistModelWithAutoIntPk[Organization, OrganizationTable]
-    with PaginationActions {
+object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, OrganizationTable] {
   val table = TableQuery[OrganizationTable]
   val label = "organizations"
 

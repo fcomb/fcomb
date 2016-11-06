@@ -102,7 +102,6 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     update(id)(
       _.copy(
         email = req.email,
-        // username = req.username,
         fullName = req.fullName,
         updatedAt = Some(OffsetDateTime.now())
       ))
@@ -168,8 +167,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     db.run(findBySlugDBIO(slug))
 
   def matchByUsernameAndPassword(username: String, password: String)(
-      implicit ec: ExecutionContext
-  ): Future[Option[User]] = {
+      implicit ec: ExecutionContext): Future[Option[User]] = {
     val q =
       if (username.contains('@')) findByEmailCompiled(username)
       else findByUsernameCompiled(username)
@@ -249,15 +247,13 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
   }
 
   def validatePassword(password: String) =
-    validatePlain(
-      "password" -> List(lengthRange(password, 6, 50))
-    )
+    validatePlain("password" -> List(lengthRange(password, 6, 50)))
 
   def userValidation(user: User, passwordOpt: Option[String])(implicit ec: ExecutionContext) = {
     val plainValidations = validatePlain(
       "username" -> List(
         lengthRange(user.username, 1, 255),
-        notUuid(user.username)
+        matches(user.username, User.nameRegEx, "invalid name format")
       ),
       "email" -> List(maxLength(user.email, 255), email(user.email))
     )

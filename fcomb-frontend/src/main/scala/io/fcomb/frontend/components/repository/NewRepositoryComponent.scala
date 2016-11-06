@@ -122,12 +122,22 @@ object NewRepositoryComponent {
                   <.label(^.`for` := "name",
                           "Enter a name for repository that will be used by docker or rkt.")))
 
-    def renderActions(state: State) = {
+    def cancel(e: ReactEventH): Callback =
+      e.preventDefaultCB >> $.props.flatMap(_.ctl.set(DashboardRoute.Repositories))
+
+    def renderFormButtons(state: State) = {
       val createIsDisabled = state.isDisabled || state.owner.isEmpty
       <.div(^.`class` := "row",
             ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
             <.div(^.`class` := "col-xs-12",
+                  MuiRaisedButton(`type` = "button",
+                                  primary = false,
+                                  label = "Cancel",
+                                  style = App.cancelStyle,
+                                  disabled = state.isDisabled,
+                                  onTouchTap = cancel _,
+                                  key = "cancel")(),
                   MuiRaisedButton(`type` = "submit",
                                   primary = true,
                                   label = "Create",
@@ -135,23 +145,23 @@ object NewRepositoryComponent {
                                   key = "submit")()))
     }
 
+    def renderForm(props: Props, state: State) =
+      <.form(
+        ^.onSubmit ==> handleOnSubmit(props),
+        ^.disabled := state.isDisabled,
+        ^.key := "form",
+        MuiCardText(key = "form")(
+          renderNamespace(props, state),
+          renderName(state),
+          renderDescription(state.description, state.errors, state.isDisabled, updateDescription),
+          renderVisiblity(state.visibilityKind, state.isDisabled, updateVisibilityKind),
+          renderFormButtons(state)))
+
     def render(props: Props, state: State) =
       MuiCard()(<.div(^.key := "header",
                       App.formTitleBlock,
                       MuiCardTitle(key = "title")(<.h1(App.cardTitle, "New repository"))),
-                <.form(^.onSubmit ==> handleOnSubmit(props),
-                       ^.disabled := state.isDisabled,
-                       ^.key := "form",
-                       MuiCardText(key = "form")(renderNamespace(props, state),
-                                                 renderName(state),
-                                                 renderDescription(state.description,
-                                                                   state.errors,
-                                                                   state.isDisabled,
-                                                                   updateDescription),
-                                                 renderVisiblity(state.visibilityKind,
-                                                                 state.isDisabled,
-                                                                 updateVisibilityKind),
-                                                 renderActions(state))))
+                renderForm(props, state))
   }
 
   private val component =

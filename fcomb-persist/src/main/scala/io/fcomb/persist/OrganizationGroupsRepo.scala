@@ -23,8 +23,9 @@ import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{OrganizationGroup, Pagination, PaginationData}
-import io.fcomb.persist.EnumsMapping._
 import io.fcomb.persist.acl.PermissionsRepo
+import io.fcomb.persist.EnumsMapping._
+import io.fcomb.persist.PaginationActions._
 import io.fcomb.rpc.helpers.OrganizationGroupHelpers
 import io.fcomb.rpc.{OrganizationGroupRequest, OrganizationGroupResponse}
 import io.fcomb.validation._
@@ -76,11 +77,6 @@ object OrganizationGroupsRepo
   private def findByOrgIdDBIO(orgId: Rep[Int]) =
     table.filter(_.organizationId === orgId)
 
-  private lazy val findByOrgIdCompiled = Compiled {
-    (orgId: Rep[Int], offset: ConstColumn[Long], limit: ConstColumn[Long]) =>
-      findByOrgIdDBIO(orgId).sortBy(_.name).drop(offset).take(limit)
-  }
-
   private lazy val findByOrgIdTotalCompiled = Compiled { orgId: Rep[Int] =>
     findByOrgIdDBIO(orgId).length
   }
@@ -104,10 +100,16 @@ object OrganizationGroupsRepo
       case Slug.Name(name) => findByNameAsValidatedDBIO(orgId, name)
     }
 
-  def paginateByOrgId(orgId: Int, p: Pagination)(
+  private def sortByPF(q: OrganizationGroupTable): PartialFunction[String, Rep[_]] = {
+    case "id"   => q.id
+    case "name" => q.name
+    case "role" => q.role
+  }
+
+  def paginate(orgId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[OrganizationGroupResponse]] =
     db.run(for {
-      groups <- findByOrgIdCompiled((orgId, p.offset, p.limit)).result
+      groups <- sortPaginate(findByOrgIdDBIO(orgId), p)(sortByPF, _.name).result
       total  <- findByOrgIdTotalCompiled(orgId).result
       data = groups.map(OrganizationGroupHelpers.responseFrom)
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))

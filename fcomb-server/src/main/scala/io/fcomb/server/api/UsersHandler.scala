@@ -25,6 +25,7 @@ import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.errors.Errors
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.UserSignUpRequest
+import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
@@ -33,6 +34,13 @@ import io.fcomb.utils.Config
 
 object UsersHandler {
   val handlerPath = "users"
+
+  def index =
+    extractExecutionContext { implicit ec =>
+      authorizeAdminUser { user =>
+        ???
+      }
+    }
 
   def signUp =
     if (Config.security.isOpenSignUp) {
@@ -50,6 +58,9 @@ object UsersHandler {
   val routes: Route = {
     // format: OFF
     pathPrefix(handlerPath) {
+      pathEnd {
+        get(index)
+      } ~
       path("sign_up")(post(signUp)) ~
       pathPrefix(Path.Slug) { slug =>
         users.RepositoriesHandler.routes(slug)

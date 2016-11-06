@@ -20,6 +20,7 @@ import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.models.common.Slug
 import io.fcomb.models.{OrganizationGroupUser, Pagination, PaginationData}
+import io.fcomb.persist.PaginationActions._
 import io.fcomb.PostgresProfile.api._
 import io.fcomb.rpc.{MemberUserRequest, UserResponse}
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,8 +37,7 @@ final class OrganizationGroupUserTable(tag: Tag)
 }
 
 object OrganizationGroupUsersRepo
-    extends PersistModel[OrganizationGroupUser, OrganizationGroupUserTable]
-    with PaginationActions {
+    extends PersistModel[OrganizationGroupUser, OrganizationGroupUserTable] {
   val table = TableQuery[OrganizationGroupUserTable]
   val label = "members"
 

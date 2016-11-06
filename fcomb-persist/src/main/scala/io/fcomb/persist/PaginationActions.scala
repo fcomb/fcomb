@@ -24,12 +24,8 @@ import slick.lifted.ColumnOrdered
 
 final case class UnknownSortColumnException(message: String) extends FcombException
 
-trait PaginationActions {
-  private val unknownSortColumnPF: PartialFunction[String, Rep[_]] = {
-    case column => throw UnknownSortColumnException(s"Unknown sort column: $column")
-  }
-
-  protected def sort[E, U](scope: Query[E, U, Seq], order: List[(String, SortOrder)])(
+object PaginationActions {
+  def sort[E, U](scope: Query[E, U, Seq], order: List[(String, SortOrder)])(
       f: E => PartialFunction[String, Rep[_]],
       default: E => ColumnOrdered[_]) =
     order match {
@@ -48,11 +44,15 @@ trait PaginationActions {
         }
     }
 
-  protected def sortPaginate[E, U](scope: Query[E, U, Seq], p: Pagination)(
+  def sortPaginate[E, U](scope: Query[E, U, Seq], p: Pagination)(
       f: E => PartialFunction[String, Rep[_]],
       default: E => ColumnOrdered[_]) =
     sort(paginate(scope, p), p.sort)(f, default)
 
-  protected def paginate[E, U](scope: Query[E, U, Seq], p: Pagination): Query[E, U, Seq] =
+  def paginate[E, U](scope: Query[E, U, Seq], p: Pagination): Query[E, U, Seq] =
     scope.drop(p.offset).take(p.limit)
+
+  private val unknownSortColumnPF: PartialFunction[String, Rep[_]] = {
+    case column => throw UnknownSortColumnException(s"Unknown sort column: $column")
+  }
 }

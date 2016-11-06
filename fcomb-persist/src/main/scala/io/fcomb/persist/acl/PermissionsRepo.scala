@@ -30,11 +30,11 @@ import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.persist.{
   OrganizationGroupsRepo,
   OrganizationsRepo,
-  PaginationActions,
   PersistModelWithAutoIntPk,
   PersistTableWithAutoIntPk,
   UsersRepo
 }
+import io.fcomb.persist.PaginationActions._
 import io.fcomb.rpc.acl._
 import io.fcomb.validation.{ValidationResult, ValidationResultUnit}
 import java.time.OffsetDateTime
@@ -56,9 +56,7 @@ final class PermissionTable(tag: Tag)
       ((Permission.apply _).tupled, Permission.unapply)
 }
 
-object PermissionsRepo
-    extends PersistModelWithAutoIntPk[Permission, PermissionTable]
-    with PaginationActions {
+object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionTable] {
   val table = TableQuery[PermissionTable]
   val label = "permissions"
 

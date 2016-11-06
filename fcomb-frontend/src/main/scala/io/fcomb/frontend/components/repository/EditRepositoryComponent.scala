@@ -89,7 +89,7 @@ object EditRepositoryComponent {
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.props.flatMap(p => p.ctl.set(DashboardRoute.Repository(p.slug)))
 
-    def renderActions(state: State) =
+    def renderFormButtons(state: State) =
       <.div(^.`class` := "row",
             ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
@@ -123,7 +123,7 @@ object EditRepositoryComponent {
                                                      renderVisiblity(form.visibilityKind,
                                                                      state.isDisabled,
                                                                      updateVisibilityKind),
-                                                     renderActions(state))))
+                                                     renderFormButtons(state))))
         case _ => <.div()
       }
 

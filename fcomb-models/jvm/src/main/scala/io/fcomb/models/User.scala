@@ -38,3 +38,7 @@ final case class User(
   def isAdmin =
     role === UserRole.Admin
 }
+
+object User {
+  val nameRegEx = """[A-Za-z0-9][\w\-\.]*""".r
+}

@@ -291,22 +291,20 @@ lazy val frontend = project
     },
     libraryDependencies ++= Seq(
       "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.5.0",
-      "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.2",
+      "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.3",
       "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.5.0",
       "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
       "org.typelevel"                                  %%% "cats"          % catsVersion,
-      "me.chrons"                                      %%% "diode-react"   % "1.0.0",
+      "me.chrons"                                      %%% "diode-react"   % "1.1.0-SNAPSHOT",
       "io.circe"                                       %%% "circe-scalajs" % circeVersion
     ),
     skip in packageJSDependencies := false,
     persistLauncher in Compile := true,
     persistLauncher in Test := false,
-    crossTarget in (Compile, fullOptJS) := frontendAssetsDirectory.value,
-    crossTarget in (Compile, fastOptJS) := frontendAssetsDirectory.value,
     artifactPath in (Compile, fastOptJS) := ((crossTarget in (Compile, fastOptJS)).value /
       ((moduleName in fastOptJS).value + "-opt.js")),
     mappings in (Compile, packageBin) ~= { (ms: Seq[(File, String)]) =>
-      val exts = Set(".js", ".html", ".ttf", ".woff", ".woff2")
+      val exts = Set(".js", ".html", ".ttf", ".woff", ".woff2", ".css", ".gz")
       ms.filter { case (_, p) => exts.exists(p.endsWith) }
     },
     mappings in (Compile, packageBin) ++= {
@@ -338,7 +336,7 @@ lazy val root = project
   .in(file("."))
   .aggregate(tests)
   .dependsOn(server, dockerDistribution, frontend)
-  .enablePlugins(JavaAppPackaging)
+  .enablePlugins(AutomateHeaderPlugin, JavaAppPackaging)
   .settings(allSettings: _*)
   .settings(noPublishSettings)
   .settings(RevolverPlugin.settings)

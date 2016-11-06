@@ -7,7 +7,7 @@ var webpack = require('webpack'),
 
 module.exports = {
   entry: {
-    frontend: './bundles/frontend.js'
+    app: './bundles/app.js'
   },
   output: {
     path: webPath,
@@ -18,11 +18,11 @@ module.exports = {
     new HtmlWebpackPlugin({
       filename: 'index.html',
       template: 'src/main/assets/index.html',
-      inject: false
+      inject: true
     }),
     new webpack.NoErrorsPlugin(),
     new CommonsChunkPlugin({
-      name: 'frontend'
+      name: 'app'
     })
   ],
   module: {
