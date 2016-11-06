@@ -48,7 +48,7 @@ object SignUpComponent {
       $.state.flatMap { state =>
         if (state.isDisabled) Callback.empty
         else {
-          $.setState(state.copy(isDisabled = true)) >>
+          $.modState(_.copy(isDisabled = true)) >>
             Callback
               .future {
                 val email    = state.email.trim()
@@ -66,7 +66,7 @@ object SignUpComponent {
                   .map {
                     case Xor.Right(_) =>
                       $.props.flatMap(_.ctl.set(Route.Dashboard(DashboardRoute.Root)))
-                    case Xor.Left(errs) => $.setState(state.copy(errors = foldErrors(errs)))
+                    case Xor.Left(errs) => $.modState(_.copy(errors = foldErrors(errs)))
                   }
 
               }

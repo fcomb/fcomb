@@ -94,14 +94,14 @@ object RepositoryTagsComponent {
       for {
         _     <- e.preventDefaultCB
         state <- $.state.map(_.flipSortColumn(column))
-        _     <- $.setState(state)
+        _     <- $.modState(_.copy(pagination = state.pagination))
         _     <- getTags(state.pagination)
       } yield ()
 
     def updatePage(page: Int): Callback =
       $.state.flatMap { state =>
         val pagination = state.pagination.copy(page = page)
-        $.setState(state.copy(pagination = pagination)) >> getTags(pagination)
+        $.modState(_.copy(pagination = pagination)) >> getTags(pagination)
       }
 
     def renderTags(props: Props, tags: Seq[RepositoryTagResponse], p: PaginationOrderState) =

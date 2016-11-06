@@ -47,7 +47,7 @@ object DeleteOrganizationComponent {
         state <- $.state
       } yield (props, state)).flatMap {
         case (props, state) if !state.isDisabled =>
-          $.setState(state.copy(isDisabled = true)) >>
+          $.modState(_.copy(isDisabled = true)) >>
             Callback.future(Rpc.deleteOrganization(props.slug).map {
               case Xor.Right(_) => props.ctl.set(DashboardRoute.Organizations)
               case Xor.Left(errs) =>

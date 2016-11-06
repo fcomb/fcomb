@@ -56,7 +56,7 @@ object OrganizationsComponent {
       $.state.zip($.props).flatMap {
         case (state, props) =>
           val pagination = state.pagination.copy(page = page)
-          $.setState(state.copy(pagination = pagination)) >> getOrgs(pagination)
+          $.modState(_.copy(pagination = pagination)) >> getOrgs(pagination)
       }
 
     def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
@@ -88,7 +88,7 @@ object OrganizationsComponent {
       for {
         _     <- e.preventDefaultCB
         state <- $.state.map(_.flipSortColumn(column))
-        _     <- $.setState(state)
+        _     <- $.modState(_.copy(pagination = state.pagination))
         _     <- getOrgs(state.pagination)
       } yield ()
 

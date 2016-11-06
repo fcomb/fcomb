@@ -36,7 +36,7 @@ object TimeAgoComponent {
         _ <- {
           val newDistance = DateUtils.distance(date, new Date())
           if (state.distance == newDistance) Callback.empty
-          else $.setState(State(newDistance))
+          else $.modState(_.copy(distance = newDistance))
         }
       } yield ()
 

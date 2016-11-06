@@ -66,7 +66,7 @@ object GroupsComponent {
       $.state.flatMap { state =>
         if (state.isDisabled) Callback.warn("State is already acquired")
         else
-          $.setState(state.copy(isDisabled = true)) >> f(state).finallyRun(
+          $.modState(_.copy(isDisabled = true)) >> f(state).finallyRun(
             $.modState(_.copy(isDisabled = false)))
       }
 
@@ -88,14 +88,14 @@ object GroupsComponent {
       for {
         _     <- e.preventDefaultCB
         state <- $.state.map(_.flipSortColumn(column))
-        _     <- $.setState(state)
+        _     <- $.modState(_.copy(pagination = state.pagination))
         _     <- getGroups(state.pagination)
       } yield ()
 
     def updatePage(page: Int): Callback =
       $.state.flatMap { state =>
         val pagination = state.pagination.copy(page = page)
-        $.setState(state.copy(pagination = pagination)) >> getGroups(pagination)
+        $.modState(_.copy(pagination = pagination)) >> getGroups(pagination)
       }
 
     def deleteGroup(slug: String, group: String)(e: ReactTouchEventH) =

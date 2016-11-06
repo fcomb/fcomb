@@ -49,7 +49,7 @@ object EditGroupComponent {
       $.state.flatMap { state =>
         if (state.isDisabled) Callback.warn("State is already acquired")
         else
-          $.setState(state.copy(isDisabled = true)) >> f(state).finallyRun(
+          $.modState(_.copy(isDisabled = true)) >> f(state).finallyRun(
             $.modState(_.copy(isDisabled = false)))
       }
 

@@ -68,7 +68,7 @@ object RepositoryPermissionsComponent {
       $.state.flatMap { state =>
         if (state.form.isDisabled) Callback.warn("State is already acquired")
         else
-          $.setState(state.copy(form = state.form.copy(isDisabled = true))) >>
+          $.modState(_.copy(form = state.form.copy(isDisabled = true))) >>
             f(state).finallyRun(modFormState(_.copy(isDisabled = false)))
       }
 
@@ -147,14 +147,14 @@ object RepositoryPermissionsComponent {
       for {
         _     <- e.preventDefaultCB
         state <- $.state.map(_.flipSortColumn(column))
-        _     <- $.setState(state)
+        _     <- $.modState(_.copy(pagination = state.pagination))
         _     <- getPermissions(state.pagination)
       } yield ()
 
     def updatePage(page: Int): Callback =
       $.state.flatMap { state =>
         val pagination = state.pagination.copy(page = page)
-        $.setState(state.copy(pagination = pagination)) >> getPermissions(pagination)
+        $.modState(_.copy(pagination = pagination)) >> getPermissions(pagination)
       }
 
     def renderPermissions(slug: String, state: State, permissions: Seq[PermissionResponse]) =

@@ -46,7 +46,7 @@ object NewOrganizationComponent {
               .future(Rpc.createOrganization(state.name).map {
                 case Xor.Right(org) =>
                   $.props.flatMap(_.ctl.set(DashboardRoute.Organization(org.name)))
-                case Xor.Left(errs) => $.setState(state.copy(errors = foldErrors(errs)))
+                case Xor.Left(errs) => $.modState(_.copy(errors = foldErrors(errs)))
               })
               .finallyRun($.modState(_.copy(isDisabled = false)))
         }

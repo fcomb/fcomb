@@ -60,14 +60,14 @@ object RepositoriesComponent {
       $.state.zip($.props).flatMap {
         case (state, props) =>
           val pagination = state.pagination.copy(page = page)
-          $.setState(state.copy(pagination = pagination)) >> getRepos(props.namespace, pagination)
+          $.modState(_.copy(pagination = pagination)) >> getRepos(props.namespace, pagination)
       }
 
     def getRepos(namespace: Namespace, pos: PaginationOrderState) =
       $.state.flatMap { state =>
         if (state.repositories.isPending) Callback.empty
         else
-          $.setState(state.copy(repositories = state.repositories.pending())) >>
+          $.modState(_.copy(repositories = state.repositories.pending())) >>
             Callback.future(Rpc
               .getNamespaceRepositories(namespace, pos.sortColumn, pos.sortOrder, pos.page, limit)
               .map {
@@ -110,7 +110,7 @@ object RepositoriesComponent {
       for {
         _         <- e.preventDefaultCB
         state     <- $.state.map(_.flipSortColumn(column))
-        _         <- $.setState(state)
+        _         <- $.modState(_.copy(pagination = state.pagination))
         namespace <- $.props.map(_.namespace)
         _         <- getRepos(namespace, state.pagination)
       } yield ()

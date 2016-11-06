@@ -49,7 +49,7 @@ object NewRepositoryComponent {
       $.state.flatMap { state =>
         state.owner match {
           case Some(owner) if !state.isDisabled =>
-            $.setState(state.copy(isDisabled = true)).flatMap { _ =>
+            $.modState(_.copy(isDisabled = true)).flatMap { _ =>
               Callback.future {
                 Rpc
                   .createRepository(owner, state.name, state.visibilityKind, state.description)
@@ -57,7 +57,7 @@ object NewRepositoryComponent {
                     case Xor.Right(repository) =>
                       props.ctl.set(DashboardRoute.Repository(repository.slug))
                     case Xor.Left(errs) =>
-                      $.setState(state.copy(isDisabled = false, errors = foldErrors(errs)))
+                      $.modState(_.copy(isDisabled = false, errors = foldErrors(errs)))
                   }
               }
             }

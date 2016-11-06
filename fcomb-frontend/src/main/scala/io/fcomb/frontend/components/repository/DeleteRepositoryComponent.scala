@@ -43,7 +43,7 @@ object DeleteRepositoryComponent {
         state <- $.state
       } yield (props, state)).flatMap {
         case (props, state) if !state.isDisabled =>
-          $.setState(state.copy(isDisabled = true)) >>
+          $.modState(_.copy(isDisabled = true)) >>
             Callback.future(Rpc.deleteRepository(props.slug).map {
               case Xor.Right(_) => props.ctl.set(DashboardRoute.Root)
               case Xor.Left(errs) =>
