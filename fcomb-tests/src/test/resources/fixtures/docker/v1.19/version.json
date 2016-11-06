@@ -1,9 +1,0 @@
-{
-"Version": "1.7.1",
-"ApiVersion": "1.19",
-"GitCommit": "df2f73d-dirty",
-"GoVersion": "go1.4.2",
-"Os": "linux",
-"Arch": "amd64",
-"KernelVersion": "4.1.7-coreos"
-}

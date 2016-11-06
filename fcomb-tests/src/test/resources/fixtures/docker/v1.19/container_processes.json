@@ -1,1 +1,0 @@
-{"Processes":[["root","1022","742","0","16:33","?","00:00:00","nginx: master process nginx -g daemon off;"],["104","1027","1022","0","16:33","?","00:00:00","nginx: worker process"]],"Titles":["UID","PID","PPID","C","STIME","TTY","TIME","CMD"]}
