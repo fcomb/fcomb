@@ -321,8 +321,6 @@ lazy val docSettings = Seq(
   micrositeAuthor := "Timothy Klim",
   micrositeHighlightTheme := "atom-one-light",
   micrositeHomepage := "https://fcomb.io",
-  micrositeBaseUrl := "fcomb",
-  micrositeDocumentationUrl := "api",
   micrositeGithubOwner := "fcomb",
   // micrositeExtraMdFiles := Map(file("CONTRIBUTING.md") -> "contributing.md"),
   micrositeGithubRepo := "fcomb",
@@ -335,6 +333,7 @@ lazy val docSettings = Seq(
                           "gray-lighter"    -> "#F4F3F4",
                           "white-color"     -> "#FFFFFF"),
   ghpagesNoJekyll := false,
+  excludeFilter in cleanSite := "CNAME",
   fork in tut := true,
   git.remoteRepo := "git@github.com:fcomb/fcomb.git",
   includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.yml" | "*.md"
