@@ -1,4 +1,5 @@
 import com.typesafe.sbt.packager.MappingsHelper._
+import com.typesafe.sbt.SbtGhPages.GhPagesKeys._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
@@ -106,7 +107,7 @@ lazy val utils = project
   .in(file("fcomb-utils"))
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "utils")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe"      % "config"       % "1.3.1",
@@ -118,7 +119,7 @@ lazy val models = crossProject
   .in(file("fcomb-models"))
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "models")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(libraryDependencies ++= Seq(
     "com.beachape" %%% "enumeratum" % enumeratumVersion
   ))
@@ -134,7 +135,7 @@ lazy val rpc = crossProject
   .dependsOn(models)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "rpc")
-  .settings(allSettings: _*)
+  .settings(allSettings)
 
 lazy val rpcJVM = rpc.jvm
 lazy val rpcJS  = rpc.js
@@ -144,7 +145,7 @@ lazy val validation = project
   .dependsOn(modelsJVM)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "validation")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.slick" %% "slick"     % slickVersion,
@@ -156,7 +157,7 @@ lazy val persist = project
   .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "persist")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(libraryDependencies ++= Seq(
     "commons-codec"       % "commons-codec"        % commonsVersion,
     "io.fcomb"            %% "db-migration"        % "0.3.3",
@@ -175,7 +176,7 @@ lazy val json = crossProject
   .dependsOn(models, rpc)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "json")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.beachape" %%% "enumeratum-circe" % enumeratumVersion,
@@ -197,7 +198,7 @@ lazy val crypto = project
   .dependsOn(modelsJVM, jsonJVM)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "crypto")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
       "commons-codec"     % "commons-codec"  % commonsVersion,
@@ -213,7 +214,7 @@ lazy val templates = project
   .dependsOn(utils)
   .enablePlugins(AutomateHeaderPlugin, SbtTwirl)
   .settings(moduleName := "templates")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(TwirlKeys.templateImports += "io.fcomb.templates._, io.fcomb.utils._")
 
 lazy val services = project
@@ -221,7 +222,7 @@ lazy val services = project
   .dependsOn(persist, utils, crypto, templates)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "services")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka"  %% "akka-distributed-data-experimental" % akkaVersion,
@@ -235,7 +236,7 @@ lazy val server = project
   .dependsOn(persist, utils, jsonJVM, validation, services)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "server")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(libraryDependencies ++= Seq(
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
   ))
@@ -245,7 +246,7 @@ lazy val dockerDistribution = project
   .dependsOn(server)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "docker-distribution")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
@@ -257,7 +258,7 @@ lazy val tests = project
   .dependsOn(server, dockerDistribution)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "tests")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % "test",
@@ -283,7 +284,7 @@ lazy val frontend = project
   .dependsOn(modelsJS, rpcJS, jsonJS)
   .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
   .settings(moduleName := "frontend")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(
     frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "public",
     frontendBundleBuild := {
@@ -314,7 +315,39 @@ lazy val frontend = project
     }
   )
 
-lazy val docs = project.in(file("fcomb-docs")).enablePlugins(MicrositesPlugin)
+lazy val docSettings = Seq(
+  micrositeName := "fcomb",
+  micrositeDescription := "Alternative to docker trusted registry and quay written in Scala",
+  micrositeAuthor := "Timothy Klim",
+  micrositeHighlightTheme := "atom-one-light",
+  micrositeHomepage := "https://fcomb.io",
+  micrositeBaseUrl := "fcomb",
+  micrositeDocumentationUrl := "api",
+  micrositeGithubOwner := "fcomb",
+  // micrositeExtraMdFiles := Map(file("CONTRIBUTING.md") -> "contributing.md"),
+  micrositeGithubRepo := "fcomb",
+  micrositePalette := Map("brand-primary"   -> "#E05236",
+                          "brand-secondary" -> "#3F3242",
+                          "brand-tertiary"  -> "#2D232F",
+                          "gray-dark"       -> "#453E46",
+                          "gray"            -> "#837F84",
+                          "gray-light"      -> "#E3E2E3",
+                          "gray-lighter"    -> "#F4F3F4",
+                          "white-color"     -> "#FFFFFF"),
+  ghpagesNoJekyll := false,
+  fork in tut := true,
+  git.remoteRepo := "git@github.com:fcomb/fcomb.git",
+  includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.yml" | "*.md"
+)
+
+lazy val docs = project
+  .in(file("fcomb-docs"))
+  .enablePlugins(MicrositesPlugin)
+  .settings(allSettings)
+  .settings(noPublishSettings)
+  .settings(ghpages.settings)
+  .settings(docSettings)
+  .settings(tutScalacOptions ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))))
 
 lazy val javaRunOptions = Seq(
   "-server",
@@ -339,7 +372,7 @@ lazy val root = project
   .aggregate(tests)
   .dependsOn(server, dockerDistribution, frontend)
   .enablePlugins(AutomateHeaderPlugin, JavaAppPackaging)
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(noPublishSettings)
   .settings(RevolverPlugin.settings)
   .settings(
