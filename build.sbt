@@ -335,6 +335,9 @@ lazy val docSettings = Seq(
                           "gray-lighter"    -> "#F4F3F4",
                           "white-color"     -> "#FFFFFF"),
   ghpagesNoJekyll := false,
+  excludeFilter in cleanSite := new FileFilter{
+    def accept(f: File) = (GhPagesKeys.repository.value / "CNAME").getCanonicalPath == f.getCanonicalPath
+  },
   fork in tut := true,
   git.remoteRepo := "git@github.com:fcomb/fcomb.git",
   includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.yml" | "*.md"
