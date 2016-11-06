@@ -79,8 +79,7 @@ object NewOrganizationComponent {
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.props.flatMap(_.ctl.set(DashboardRoute.Organizations))
 
-    def renderFormButtons(state: State) = {
-      val submitIsDisabled = state.isDisabled || state.name.isEmpty
+    def renderFormButtons(state: State) =
       <.div(^.`class` := "row",
             ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
@@ -95,9 +94,8 @@ object NewOrganizationComponent {
                   MuiRaisedButton(`type` = "submit",
                                   primary = true,
                                   label = "Create",
-                                  disabled = submitIsDisabled,
+                                  disabled = state.isDisabled,
                                   key = "update")()))
-    }
 
     def renderForm(props: Props, state: State) =
       <.form(^.onSubmit ==> handleOnSubmit,

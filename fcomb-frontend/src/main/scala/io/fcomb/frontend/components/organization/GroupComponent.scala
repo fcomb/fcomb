@@ -172,15 +172,13 @@ object GroupComponent {
                   ^.style := App.helpBlockStyle,
                   <.label(^.`for` := "username", "Who will be added to this group.")))
 
-    def renderFormButton(state: State) = {
-      val submitIsDisabled = state.isDisabled || state.form.member.isEmpty
+    def renderFormButton(state: State) =
       <.div(^.style := App.paddingTopStyle,
             ^.key := "button",
             MuiRaisedButton(`type` = "submit",
                             primary = true,
                             label = "Add",
-                            disabled = submitIsDisabled)())
-    }
+                            disabled = state.isDisabled)())
 
     def renderForm(props: Props, state: State) =
       <.form(App.separateBlock,

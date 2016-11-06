@@ -116,8 +116,7 @@ object SignUpComponent {
                                value = value,
                                onChange = cb)()))
 
-    def renderFormButtons(props: Props, state: State) = {
-      val submitIsDisabled = state.isDisabled || state.email.isEmpty || state.password.isEmpty || state.username.isEmpty
+    def renderFormButtons(props: Props, state: State) =
       <.div(^.`class` := "row",
             ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
@@ -125,13 +124,12 @@ object SignUpComponent {
                   MuiRaisedButton(`type` = "submit",
                                   primary = true,
                                   label = "Create",
-                                  disabled = submitIsDisabled)()),
+                                  disabled = state.isDisabled)()),
             <.div(^.`class` := "col-xs-10",
                   <.p(App.authRightTipBlock,
                       "Have an account? ",
                       props.ctl.link(Route.SignIn)(LayoutComponent.linkStyle, "Sign in"),
                       ".")))
-    }
 
     def renderForm(props: Props, state: State) =
       <.form(^.onSubmit ==> handleOnSubmit,

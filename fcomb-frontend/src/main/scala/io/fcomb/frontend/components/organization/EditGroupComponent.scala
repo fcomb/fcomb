@@ -94,8 +94,7 @@ object EditGroupComponent {
       e.preventDefaultCB >> $.props.flatMap(p =>
         p.ctl.set(DashboardRoute.OrganizationGroups(p.slug)))
 
-    def renderFormButtons(state: State) = {
-      val submitIsDisabled = state.isDisabled || !state.form.exists(_.name.nonEmpty)
+    def renderFormButtons(state: State) =
       <.div(^.`class` := "row",
             ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
@@ -110,9 +109,8 @@ object EditGroupComponent {
                   MuiRaisedButton(`type` = "submit",
                                   primary = true,
                                   label = "Update",
-                                  disabled = submitIsDisabled,
+                                  disabled = state.isDisabled,
                                   key = "update")()))
-    }
 
     def renderForm(props: Props, state: State): ReactNode =
       state.form match {

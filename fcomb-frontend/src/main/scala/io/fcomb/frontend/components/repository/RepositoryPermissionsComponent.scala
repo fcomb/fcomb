@@ -227,15 +227,13 @@ object RepositoryPermissionsComponent {
                   ^.style := App.helpBlockStyle,
                   <.label(^.`for` := "action", actionHelpBlock)))
 
-    def renderFormButton(state: State) = {
-      val submitIsDisabled = state.form.isDisabled || state.form.member.isEmpty
+    def renderFormButton(state: State) =
       <.div(^.style := App.paddingTopStyle,
             ^.key := "button",
             MuiRaisedButton(`type` = "submit",
                             primary = true,
                             label = "Add",
-                            disabled = submitIsDisabled)())
-    }
+                            disabled = state.form.isDisabled)())
 
     lazy val headerStyle = js.Dictionary("marginBottom" -> "0px")
 

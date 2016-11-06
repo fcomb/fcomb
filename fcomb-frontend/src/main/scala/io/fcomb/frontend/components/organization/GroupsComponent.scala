@@ -166,15 +166,13 @@ object GroupsComponent {
     def updateRole(e: ReactEventI, idx: Int, role: Role): Callback =
       modFormState(_.copy(role = role))
 
-    def renderFormButton(state: State) = {
-      val submitIsDisabled = state.isDisabled || state.form.name.isEmpty
+    def renderFormButton(state: State) =
       <.div(^.style := App.paddingTopStyle,
             ^.key := "button",
             MuiRaisedButton(`type` = "submit",
                             primary = true,
                             label = "Add",
-                            disabled = submitIsDisabled)())
-    }
+                            disabled = state.isDisabled)())
 
     def renderForm(props: Props, state: State) =
       <.form(App.separateBlock,
