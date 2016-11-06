@@ -31,8 +31,8 @@ object PaginationActions {
     order match {
       case Nil => scope.sortBy(default)
       case xs =>
-        xs.foldLeft(scope) {
-          case (q, (column, order)) =>
+        xs.foldRight(scope) {
+          case ((column, order), q) =>
             q.sortBy { t =>
               val c = f(t).applyOrElse(column, unknownSortColumnPF)
               val sortOrder = order match {
