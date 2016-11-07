@@ -296,7 +296,7 @@ lazy val frontend = project
       "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.5.0",
       "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
       "org.typelevel"                                  %%% "cats"          % catsVersion,
-      "me.chrons"                                      %%% "diode-react"   % "1.1.0-SNAPSHOT",
+      "me.chrons"                                      %%% "diode-react"   % "1.1.0",
       "io.circe"                                       %%% "circe-scalajs" % circeVersion
     ),
     skip in packageJSDependencies := false,
