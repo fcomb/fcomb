@@ -37,7 +37,6 @@ import io.fcomb.rpc.{OrganizationCreateRequest, OrganizationResponse}
 import io.fcomb.validation._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
-import scala.collection.immutable
 import slick.jdbc.TransactionIsolation
 
 final class OrganizationTable(tag: Tag)
@@ -103,22 +102,13 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
   private def availableByUserIdScopeDBIO(userId: Rep[Int]): AvailableScopeQuery =
     availableByUserOwnerDBIO(userId).union(availableByUserGroupsDBIO(userId)).subquery
 
-  private def availableByUserIdScopeDBIO(
-      userId: Rep[Int],
-      filter: immutable.Map[String, String]): AvailableScopeQuery =
-    filter
-      .foldLeft(availableByUserIdScopeDBIO(userId)) {
-        case (s, (column, value)) =>
-          s.filter {
-            case (t, role) =>
-              column match {
-                case "name" => filterCitextByMask(t.name, value)
-                case "role" => filterByEnum(role, Role, value)
-                case _      => LiteralColumn(false)
-              }
-          }
+  private def availableByUserIdScopeDBIO(userId: Rep[Int], p: Pagination): AvailableScopeQuery =
+    filter(availableByUserIdScopeDBIO(userId), p) {
+      case ((t, role), value) => {
+        case "name" => filterCitextByMask(t.name, value)
+        case "role" => filterByEnum(role, Role, value)
       }
-      .subquery
+    }.subquery
 
   type OrganizationResponseTupleRep = (OrganizationTable, Rep[Role])
 
@@ -129,7 +119,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
 
   def paginateAvailableByUserId(userId: Int, p: Pagination)(
       implicit ec: ExecutionContext): Future[PaginationData[OrganizationResponse]] = {
-    val scope = availableByUserIdScopeDBIO(userId, p.filter)
+    val scope = availableByUserIdScopeDBIO(userId, p)
     db.run(for {
       orgs  <- sortPaginate(scope, p)(sortByPF, _._1.name).result
       total <- scope.length.result

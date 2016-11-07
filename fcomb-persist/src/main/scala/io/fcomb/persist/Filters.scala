@@ -18,8 +18,27 @@ package io.fcomb.persist
 
 import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.common.{Enum, EnumItem}
+import io.fcomb.models.Pagination
+import scala.collection.immutable
 
 object Filters {
+  def filter[E, U](query: Query[E, U, Seq], filters: immutable.Map[String, String])(
+      f: (E, String) => PartialFunction[String, Rep[Boolean]]): Query[E, U, Seq] =
+    filters.foldLeft(query) {
+      case (q, (column, value)) =>
+        q.filter { t =>
+          f(t, value).orElse(defaultFilter).apply(column)
+        }
+    }
+
+  def filter[E, U](query: Query[E, U, Seq], p: Pagination)(
+      f: (E, String) => PartialFunction[String, Rep[Boolean]]): Query[E, U, Seq] =
+    filter(query, p.filter)(f)
+
+  private val defaultFilter: PartialFunction[String, Rep[Boolean]] = {
+    case _ => LiteralColumn(false)
+  }
+
   def filterByMask(q: Rep[String], value: String): Rep[Boolean] =
     q.like(parseMask(value))
 
