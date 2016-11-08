@@ -26,7 +26,7 @@ import io.fcomb.models.docker.distribution.{ImageBlobState, ImageVisibilityKind}
 import io.fcomb.persist.OrganizationsRepo
 import io.fcomb.rpc._
 import io.fcomb.server.Api
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.tests.AuthSpec._
 import io.fcomb.tests.fixtures.docker.distribution._
 import io.fcomb.tests.fixtures._

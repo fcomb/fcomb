@@ -234,7 +234,7 @@ lazy val server = project
   .dependsOn(persist, utils, jsonJVM, validation, services)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "server")
-  .settings(allSettings: _*)
+  .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"       % akkaHttpVersion,

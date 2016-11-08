@@ -23,7 +23,7 @@ import io.fcomb.json.rpc.Formats._
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.UserSignUpRequest
 import io.fcomb.server.Api
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.tests._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}

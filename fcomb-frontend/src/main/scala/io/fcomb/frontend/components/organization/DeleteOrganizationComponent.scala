@@ -49,8 +49,8 @@ object DeleteOrganizationComponent {
         case (props, state) if !state.isDisabled =>
           $.modState(_.copy(isDisabled = true)) >>
             Callback.future(Rpc.deleteOrganization(props.slug).map {
-              case Xor.Right(_) => props.ctl.set(DashboardRoute.Organizations)
-              case Xor.Left(errs) =>
+              case Right(_) => props.ctl.set(DashboardRoute.Organizations)
+              case Left(errs) =>
                 $.modState(_.copy(isDisabled = false, error = Some(joinErrors(errs))))
             })
       }

@@ -46,9 +46,9 @@ object SignInComponent {
             $.modState(_.copy(isDisabled = true)) >>
               Callback
                 .future(AuthService.authentication(state.email, state.password).map {
-                  case Xor.Right(_) =>
+                  case Right(_) =>
                     $.props.flatMap(_.ctl.set(Route.Dashboard(DashboardRoute.Root)))
-                  case Xor.Left(errs) => $.modState(_.copy(errors = foldErrors(errs)))
+                  case Left(errs) => $.modState(_.copy(errors = foldErrors(errs)))
                 })
                 .finallyRun($.modState(_.copy(isDisabled = false)))
 

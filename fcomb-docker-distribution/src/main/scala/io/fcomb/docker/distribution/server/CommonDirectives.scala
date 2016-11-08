@@ -19,10 +19,10 @@ package io.fcomb.docker.distribution.server
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import io.fcomb.json.models.errors.docker.distribution.Formats._
-import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrors}
-import io.fcomb.models.errors.docker.distribution.DistributionErrorCode._
 import io.fcomb.akka.http.CirceSupport._
+import io.fcomb.json.models.errors.docker.distribution.Formats._
+import io.fcomb.models.errors.docker.distribution.DistributionErrorCode._
+import io.fcomb.models.errors.docker.distribution.{DistributionError, DistributionErrors}
 
 object CommonDirectives {
   def completeError(error: DistributionError): Route = {

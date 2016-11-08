@@ -22,7 +22,7 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.ByteString
-import scala.util.Either
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.docker.distribution.manifest.{
   SchemaV1 => SchemaV1Manifest,
   SchemaV2 => SchemaV2Manifest
@@ -42,9 +42,9 @@ import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImagesRepo}
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
+import scala.util.Either
 
 object ImagesHandler {
   def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
