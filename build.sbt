@@ -205,7 +205,7 @@ lazy val crypto = project
       "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
       "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
       "io.circe"          %% "circe-parser"  % circeVersion,
-      "com.pauldijou"     %% "jwt-circe"     % "0.9.0"
+      "com.pauldijou"     %% "jwt-circe"     % "0.9.2"
     ))
 
 lazy val templates = project
