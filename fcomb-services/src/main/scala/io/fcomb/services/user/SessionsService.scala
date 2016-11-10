@@ -17,7 +17,6 @@
 package io.fcomb.services.user
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
-import cats.data.Xor
 import io.fcomb.crypto.Jwt
 import io.fcomb.models.errors.Errors
 import io.fcomb.models.{Session, User}
@@ -26,25 +25,26 @@ import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.utils.Config
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Either, Left, Right}
 
 object SessionsService {
   def create(req: SessionCreateRequest)(
-      implicit ec: ExecutionContext): Future[Xor[Errors, Session]] =
+      implicit ec: ExecutionContext): Future[Either[Errors, Session]] =
     UsersRepo.findByEmail(req.email).fast.map {
       case Some(user) if user.isValidPassword(req.password) =>
         val timeNow = Instant.now()
         val token   = Jwt.encode(user, Config.jwt.secret, timeNow, Config.jwt.sessionTtl)
-        Xor.Right(Session(token))
+        Right(Session(token))
       case _ => invalidEmailOrPassword
     }
 
   def find(token: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     Jwt.decode(token, Config.jwt.secret) match {
-      case Xor.Right(payload) => UsersRepo.findById(payload.id)
-      case _                  => FastFuture.successful(None)
+      case Right(payload) => UsersRepo.findById(payload.id)
+      case _              => FastFuture.successful(None)
     }
 
-  private lazy val invalidEmailOrPassword = Xor.Left(
+  private lazy val invalidEmailOrPassword = Left(
     Errors(
       Seq(
         Errors.validation("invalid", "email"),

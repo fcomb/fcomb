@@ -19,7 +19,8 @@ package io.fcomb.docker.distribution.manifest
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl.FileIO
-import cats.data.{Validated, Xor}
+import cats.data.Validated
+import cats.syntax.either._
 import io.circe.Json
 import io.circe.jawn.CirceSupportParser._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
@@ -34,6 +35,7 @@ import java.io.File
 import jawn.{AsyncParser, Parser}
 import org.apache.commons.codec.digest.DigestUtils
 import scala.concurrent.Future
+import scala.util.{Either, Left, Right}
 
 object SchemaV2 {
   def upsertAsImageManifest(
@@ -42,12 +44,12 @@ object SchemaV2 {
       manifest: ManifestV2,
       rawManifest: String,
       createdByUserId: Int
-  )(implicit mat: Materializer): Future[Xor[DistributionError, String]] = {
+  )(implicit mat: Materializer): Future[Either[DistributionError, String]] = {
     import mat.executionContext
     val digest = DigestUtils.sha256Hex(rawManifest)
     ImageManifestsRepo.findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
-        ImageManifestsRepo.updateTagsByReference(im, reference).fast.map(_ => Xor.Right(im.digest))
+        ImageManifestsRepo.updateTagsByReference(im, reference).fast.map(_ => Right(im.digest))
       case None =>
         val configDigest = manifest.config.getDigest
         ImageBlobsRepo.findUploaded(image.getId(), configDigest).flatMap {
@@ -57,9 +59,9 @@ object SchemaV2 {
             else {
               val configFile = BlobFileUtils.getBlobFilePath(configDigest)
               getImageConfig(configFile).flatMap {
-                case Xor.Right(imageConfig) =>
+                case Right(imageConfig) =>
                   SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
-                    case Xor.Right(schemaV1JsonBlob) =>
+                    case Right(schemaV1JsonBlob) =>
                       ImageManifestsRepo
                         .upsertSchemaV2(image,
                                         manifest,
@@ -75,12 +77,12 @@ object SchemaV2 {
                                                        imageManifest.getId(),
                                                        reference.value,
                                                        createdByUserId)
-                            Xor.Right(digest)
+                            Right(digest)
                           case Validated.Invalid(e) => unknowError(e.map(_.message).mkString(";"))
                         }
-                    case Xor.Left(e) => FastFuture.successful(unknowError(e))
+                    case Left(e) => FastFuture.successful(unknowError(e))
                   }
-                case Xor.Left(e) => FastFuture.successful(unknowError(e))
+                case Left(e) => FastFuture.successful(unknowError(e))
               }
             }
           case None =>
@@ -91,27 +93,27 @@ object SchemaV2 {
   }
 
   private def unknowError(msg: String) =
-    Xor.left[DistributionError, String](DistributionError.unknown(msg))
+    Left[DistributionError, String](DistributionError.unknown(msg))
 
   private def getImageConfig(configFile: File)(
-      implicit mat: Materializer): Future[Xor[String, Json]] = {
+      implicit mat: Materializer): Future[Either[String, Json]] = {
     import mat.executionContext
-    val p = Parser.async[Json](mode = AsyncParser.SingleValue)
+    val p                                 = Parser.async[Json](mode = AsyncParser.SingleValue)
+    val acc: Either[String, Option[Json]] = Right(None)
     FileIO
       .fromPath(configFile.toPath)
-      .runFold(Xor.right[String, Option[Json]](None)) {
-        case (Xor.Right(None), bs) =>
+      .runFold(acc) {
+        case (Right(None), bs) =>
           p.absorb(bs.asByteBuffer) match {
-            case Right(res) => Xor.Right(res.headOption)
-            case Left(e)    => Xor.Left(e.msg)
+            case Right(res) => Right(res.headOption)
+            case Left(e)    => Left(e.msg)
           }
         case (res, _) => res
       }
       .fast
       .map(_.flatMap {
-        case Some(res) => Xor.Right(res)
-        case _ =>
-          Xor.fromEither(p.finish).map(_.headOption.getOrElse(Json.Null)).leftMap(_.msg)
+        case Some(res) => Right(res)
+        case _         => p.finish.map(_.headOption.getOrElse(Json.Null)).leftMap(_.msg)
       })
   }
 }

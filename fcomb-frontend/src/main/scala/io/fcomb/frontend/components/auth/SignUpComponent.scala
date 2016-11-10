@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.auth
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
@@ -60,13 +59,13 @@ object SignUpComponent {
                 Rpc
                   .signUp(email, password, state.username.trim(), fullName)
                   .flatMap {
-                    case Xor.Right(_)      => AuthService.authentication(email, password)
-                    case res @ Xor.Left(_) => Future.successful(res)
+                    case Right(_)      => AuthService.authentication(email, password)
+                    case res @ Left(_) => Future.successful(res)
                   }
                   .map {
-                    case Xor.Right(_) =>
+                    case Right(_) =>
                       $.props.flatMap(_.ctl.set(Route.Dashboard(DashboardRoute.Root)))
-                    case Xor.Left(errs) => $.modState(_.copy(errors = foldErrors(errs)))
+                    case Left(errs) => $.modState(_.copy(errors = foldErrors(errs)))
                   }
 
               }

@@ -26,7 +26,7 @@ import io.fcomb.models.errors.Errors
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.UserSignUpRequest
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.Path
@@ -62,9 +62,7 @@ object UsersHandler {
         get(index)
       } ~
       path("sign_up")(post(signUp)) ~
-      pathPrefix(Path.Slug) { slug =>
-        users.RepositoriesHandler.routes(slug)
-      }
+      path(Path.Slug)(slug => users.RepositoriesHandler.routes(slug))
     }
     // format: ON
   }

@@ -19,7 +19,7 @@ package io.fcomb.services.user
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
-import cats.data.{Validated, Xor}
+import cats.data.Validated
 import io.fcomb.crypto.Jwt
 import io.fcomb.persist.UsersRepo
 import io.fcomb.services.EmailService
@@ -52,7 +52,7 @@ object ResetPassword {
   def set(token: String, password: String)(
       implicit ec: ExecutionContext): Future[ValidationResultUnit] =
     Jwt.decode(token, Config.jwt.secret) match {
-      case Xor.Right(payload) => UsersRepo.updatePassword(payload.id, password)
-      case Xor.Left(msg)      => UsersRepo.validationErrorAsFuture("token", msg)
+      case Right(payload) => UsersRepo.updatePassword(payload.id, password)
+      case Left(msg)      => UsersRepo.validationErrorAsFuture("token", msg)
     }
 }

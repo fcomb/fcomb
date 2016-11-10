@@ -27,7 +27,7 @@ import io.fcomb.models.errors.Errors
 import io.fcomb.persist.OrganizationGroupsRepo
 import io.fcomb.rpc._
 import io.fcomb.server.Api
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.tests.AuthSpec._
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests._

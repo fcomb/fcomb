@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
@@ -44,10 +43,10 @@ object UserMemberComponent {
       for {
         props <- $.props
         _ <- Callback.future(Rpc.getOrganizationGroupMembers(props.slug, props.group, q.trim).map {
-          case Xor.Right(res) =>
+          case Right(res) =>
             val data = js.Array(res.data.map(_.title): _*)
             $.modState(_.copy(members = res.data, data = data))
-          case Xor.Left(e) => Callback.warn(e)
+          case Left(e) => Callback.warn(e)
         })
       } yield ()
 

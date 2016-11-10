@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.repository
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import diode.data.{Empty, Failed, Pot, Ready}
@@ -59,10 +58,10 @@ object RepositoryTagsComponent {
       $.props.flatMap { props =>
         Callback.future(
           Rpc.getRepositoryTags(props.slug, pos.sortColumn, pos.sortOrder, pos.page, limit).map {
-            case Xor.Right(pd) =>
+            case Right(pd) =>
               $.modState(st =>
                 st.copy(tags = Ready(pd.data), pagination = st.pagination.copy(total = pd.total)))
-            case Xor.Left(errs) => $.modState(_.copy(tags = Failed(ErrorsException(errs))))
+            case Left(errs) => $.modState(_.copy(tags = Failed(ErrorsException(errs))))
           })
       }
 

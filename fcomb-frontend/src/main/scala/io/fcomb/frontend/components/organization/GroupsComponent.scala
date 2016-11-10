@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import diode.data.{Empty, Failed, Pot, Ready}
@@ -76,11 +75,11 @@ object GroupsComponent {
           Rpc
             .getOrgaizationGroups(props.slug, pos.sortColumn, pos.sortOrder, pos.page, limit)
             .map {
-              case Xor.Right(pd) =>
+              case Right(pd) =>
                 $.modState(st =>
                   st.copy(groups = Ready(pd.data),
                           pagination = st.pagination.copy(total = pd.total)))
-              case Xor.Left(errs) => $.modState(_.copy(groups = Failed(ErrorsException(errs))))
+              case Left(errs) => $.modState(_.copy(groups = Failed(ErrorsException(errs))))
             })
       }
 
@@ -101,8 +100,8 @@ object GroupsComponent {
     def deleteGroup(slug: String, group: String)(e: ReactTouchEventH) =
       tryAcquireState { state =>
         Callback.future(Rpc.deleteOrganizationGroup(slug, group).map {
-          case Xor.Right(_)   => getGroups(state.pagination)
-          case Xor.Left(errs) => $.modState(_.copy(error = Some(joinErrors(errs))))
+          case Right(_)   => getGroups(state.pagination)
+          case Left(errs) => $.modState(_.copy(error = Some(joinErrors(errs))))
         })
       }
 
@@ -149,9 +148,9 @@ object GroupsComponent {
       tryAcquireState { state =>
         val fs = state.form
         Callback.future(Rpc.createOrganizationGroup(props.slug, fs.name, fs.role).map {
-          case Xor.Right(_) =>
+          case Right(_) =>
             $.modState(_.copy(form = defaultFormState)) >> getGroups(state.pagination)
-          case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
+          case Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
         })
       }
 

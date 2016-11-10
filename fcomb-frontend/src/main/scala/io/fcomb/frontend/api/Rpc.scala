@@ -16,7 +16,7 @@
 
 package io.fcomb.frontend.api
 
-import cats.data.Xor
+import cats.syntax.either._
 import diode.data._
 import io.circe.scalajs.decodeJs
 import io.circe.syntax._
@@ -277,7 +277,7 @@ object Rpc {
       req: T,
       queryParams: Map[String, String] = Map.empty,
       headers: Map[String, String] = Map.empty,
-      timeout: Int = 0)(implicit ec: ExecutionContext): Future[Xor[Seq[Error], U]] = {
+      timeout: Int = 0)(implicit ec: ExecutionContext): Future[Either[Seq[Error], U]] = {
     val hm        = if (headers.isEmpty) defaultHeaders else headers ++ defaultHeaders
     val reqBody   = req.asJson.noSpaces
     val urlParams = queryParams.map { case (k, v) => s"$k=$v" }.mkString("&")
@@ -291,20 +291,20 @@ object Rpc {
       .recover {
         case AjaxException(res) =>
           if (res.status == 401) unauthorized()
-          else decode[Errors](res.responseText).flatMap(res => Xor.Left(res.errors))
+          else decode[Errors](res.responseText).flatMap(res => Left(res.errors))
         case e =>
           window.console.error(s"${e.toString}: ${e.getMessage}")
-          Xor.Left(Seq(Errors.unknown))
+          Left(Seq(Errors.unknown))
       }
   }
 
-  private def toPot[U](xor: Xor[Seq[Error], U]): Pot[U] =
+  private def toPot[U](xor: Either[Seq[Error], U]): Pot[U] =
     xor match {
-      case Xor.Right(res) => Ready(res)
-      case Xor.Left(seq)  => Failed(ErrorsException(seq))
+      case Right(res) => Ready(res)
+      case Left(seq)  => Failed(ErrorsException(seq))
     }
 
-  private def decode[U](responseText: String)(implicit dec: Decoder[U]): Xor[Seq[Error], U] = {
+  private def decode[U](responseText: String)(implicit dec: Decoder[U]): Either[Seq[Error], U] = {
     val body = if (responseText.nonEmpty) responseText else "null"
     val json = JSON.parse(body)
     decodeJs[U](json).leftMap(_ => Seq(Errors.deserialization()))
@@ -315,12 +315,12 @@ object Rpc {
                       queryParams: Map[String, String] = Map.empty,
                       headers: Map[String, String] = Map.empty,
                       timeout: Int = 0)(implicit ec: ExecutionContext,
-                                        decoder: Decoder[U]): Future[Xor[Seq[Error], U]] =
+                                        decoder: Decoder[U]): Future[Either[Seq[Error], U]] =
     callWith[Unit, U](method, url, (), queryParams, headers, timeout)
 
-  private def unauthorized[U](): Xor[Seq[Error], U] = {
+  private def unauthorized[U](): Either[Seq[Error], U] = {
     AppCircuit.dispatch(LogOut)
-    Xor.Left(Seq(Errors.unauthorized))
+    Left(Seq(Errors.unauthorized))
   }
 
   private val contentTypeHeader = Map("Content-Type" -> "application/json")

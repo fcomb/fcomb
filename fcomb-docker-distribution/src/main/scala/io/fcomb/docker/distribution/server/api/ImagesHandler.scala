@@ -22,7 +22,7 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.ByteString
-import cats.data.Xor
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.docker.distribution.manifest.{
   SchemaV1 => SchemaV1Manifest,
   SchemaV2 => SchemaV2Manifest
@@ -42,7 +42,6 @@ import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImagesRepo}
-import io.fcomb.server.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 
@@ -82,12 +81,12 @@ object ImagesHandler {
       }
     }
 
-  private def completeSchemaV1Manifest(m: Xor[String, String]): Route =
+  private def completeSchemaV1Manifest(m: Either[String, String]): Route =
     m match {
-      case Xor.Right(jb) =>
+      case Right(jb) =>
         val e = ByteString(jb)
         complete(HttpEntity(`application/vnd.docker.distribution.manifest.v1+prettyjws`, e))
-      case Xor.Left(e) => completeError(DistributionError.unknown(e))
+      case Left(e) => completeError(DistributionError.unknown(e))
     }
 
   private def acceptIsAManifestV2(header: Accept) =
@@ -121,7 +120,7 @@ object ImagesHandler {
                                                            userId)
                 }
                 onSuccess(res) {
-                  case Xor.Right(digest) =>
+                  case Right(digest) =>
                     val headers = immutable.Seq(
                       `Docker-Content-Digest`("sha256", digest),
                       Location(s"/v2/$imageName/manifests/sha256:$digest")
@@ -129,7 +128,7 @@ object ImagesHandler {
                     respondWithHeaders(headers) {
                       complete((StatusCodes.Created, HttpEntity.Empty))
                     }
-                  case Xor.Left(e) => completeError(e)
+                  case Left(e) => completeError(e)
                 }
               }
             }

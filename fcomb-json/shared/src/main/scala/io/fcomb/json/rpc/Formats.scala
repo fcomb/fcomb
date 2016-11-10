@@ -16,7 +16,7 @@
 
 package io.fcomb.json.rpc
 
-import cats.data.Xor
+import cats.syntax.either._
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.fcomb.json.models.acl.Formats._
@@ -69,7 +69,7 @@ object Formats {
       Decoder[Int].apply(id.any).map(MemberUserIdRequest)
     } else if (!id.succeeded && username.succeeded) {
       Decoder[String].apply(username.any).map(MemberUsernameRequest)
-    } else Xor.Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
+    } else Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
   }
   final implicit def decodeDataResponse[T: Decoder]: Decoder[DataResponse[T]] =
     deriveDecoder

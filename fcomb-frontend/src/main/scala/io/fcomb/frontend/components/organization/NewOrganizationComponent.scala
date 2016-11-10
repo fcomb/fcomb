@@ -16,19 +16,18 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.components.LayoutComponent
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
-import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
 
@@ -44,9 +43,9 @@ object NewOrganizationComponent {
           $.modState(_.copy(isDisabled = true)) >>
             Callback
               .future(Rpc.createOrganization(state.name).map {
-                case Xor.Right(org) =>
+                case Right(org) =>
                   $.props.flatMap(_.ctl.set(DashboardRoute.Organization(org.name)))
-                case Xor.Left(errs) => $.modState(_.copy(errors = foldErrors(errs)))
+                case Left(errs) => $.modState(_.copy(errors = foldErrors(errs)))
               })
               .finallyRun($.modState(_.copy(isDisabled = false)))
         }

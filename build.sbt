@@ -3,13 +3,13 @@ import com.typesafe.sbt.SbtGhPages.GhPagesKeys._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
-lazy val akkaVersion         = "2.4.12"
 lazy val akkaHttpVersion     = "10.0.0-RC2"
+lazy val akkaVersion         = "2.4.12"
 lazy val bouncyCastleVersion = "1.55"
-lazy val catsVersion         = "0.7.2"
-lazy val circeVersion        = "0.5.4"
+lazy val catsVersion         = "0.8.1"
+lazy val circeVersion        = "0.6.0"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.4.17"
+lazy val enumeratumVersion   = "1.4.18"
 lazy val guavaVersion        = "19.0"
 lazy val jawnVersion         = "0.10.3"
 lazy val slickPgVersion      = "0.15.0-M2"
@@ -91,8 +91,7 @@ lazy val publishSettings = Seq(
   homepage := Some(url("https://fcomb.io")),
   scmInfo := Some(
     ScmInfo(url("https://github.com/fcomb/fcomb"), "https://github.com/fcomb/fcomb.git")),
-  licenses := Seq(
-    "Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+  licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 )
 
 lazy val noPublishSettings = Seq(
@@ -206,7 +205,7 @@ lazy val crypto = project
       "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
       "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
       "io.circe"          %% "circe-parser"  % circeVersion,
-      "com.pauldijou"     %% "jwt-circe"     % "0.9.0"
+      "com.pauldijou"     %% "jwt-circe"     % "0.9.2"
     ))
 
 lazy val templates = project
@@ -227,7 +226,6 @@ lazy val services = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka"  %% "akka-distributed-data-experimental" % akkaVersion,
       "com.typesafe.akka"  %% "akka-http"                          % akkaHttpVersion,
-      "de.heikoseeberger"  %% "akka-http-circe"                    % "1.10.1",
       "org.apache.commons" % "commons-email"                       % "1.4"
     ))
 
@@ -237,9 +235,11 @@ lazy val server = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(moduleName := "server")
   .settings(allSettings)
-  .settings(libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
-  ))
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-http"       % akkaHttpVersion,
+      "io.fcomb"          %% "akka-http-circe" % "1.0-RC2"
+    ))
 
 lazy val dockerDistribution = project
   .in(file("fcomb-docker-distribution"))
@@ -266,7 +266,7 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
       "org.scalacheck"     %% "scalacheck"        % "1.13.4" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.1" % "test",
-      "com.ironcorelabs"   %% "cats-scalatest"    % "2.0.0" % "test",
+      "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
       "ch.qos.logback"     % "logback-classic"    % "1.1.7",
       "junit"              % "junit-dep"          % "4.10" % "test"
@@ -377,6 +377,8 @@ lazy val root = project
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
+      "ch.qos.logback"    % "logback-classic" % "1.1.7",
+      "com.lihaoyi"       % "ammonite-repl"   % "0.7.9" % "test" cross CrossVersion.full,
       "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
       "com.lihaoyi"       % "ammonite-repl"   % "0.8.0" % "test" cross CrossVersion.full,

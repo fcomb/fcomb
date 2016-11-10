@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.repository
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
@@ -45,8 +44,8 @@ object DeleteRepositoryComponent {
         case (props, state) if !state.isDisabled =>
           $.modState(_.copy(isDisabled = true)) >>
             Callback.future(Rpc.deleteRepository(props.slug).map {
-              case Xor.Right(_) => props.ctl.set(DashboardRoute.Root)
-              case Xor.Left(errs) =>
+              case Right(_) => props.ctl.set(DashboardRoute.Root)
+              case Left(errs) =>
                 $.modState(_.copy(isDisabled = false, error = Some(joinErrors(errs))))
             })
       }

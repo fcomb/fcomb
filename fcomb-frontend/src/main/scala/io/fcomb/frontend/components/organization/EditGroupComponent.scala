@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import diode.data.{Empty, Failed, Pot, Ready}
@@ -56,10 +55,10 @@ object EditGroupComponent {
     def get(): Callback =
       $.props.flatMap { props =>
         Callback.future(Rpc.getOrgaizationGroup(props.slug, props.group).map {
-          case Xor.Right(group) =>
+          case Right(group) =>
             val form = FormState(group.name, group.role, Map.empty)
             $.modState(st => st.copy(group = Ready(group), form = Some(form)))
-          case Xor.Left(errs) => $.modState(_.copy(group = Failed(ErrorsException(errs))))
+          case Left(errs) => $.modState(_.copy(group = Failed(ErrorsException(errs))))
         })
       }
 
@@ -70,9 +69,9 @@ object EditGroupComponent {
             case (Ready(group), Some(form)) =>
               Callback.future(
                 Rpc.updateOrganizationGroup(props.slug, group.name, form.name, form.role).map {
-                  case Xor.Right(_) =>
+                  case Right(_) =>
                     props.ctl.set(DashboardRoute.OrganizationGroup(props.slug, form.name))
-                  case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
+                  case Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
                 })
             case _ => Callback.empty
           }

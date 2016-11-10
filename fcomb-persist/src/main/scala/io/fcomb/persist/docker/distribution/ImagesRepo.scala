@@ -17,7 +17,6 @@
 package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
-import cats.data.Xor
 import cats.syntax.eq._
 import io.fcomb.Db.db
 import io.fcomb.PostgresProfile.api._
@@ -124,8 +123,8 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
   def findBySlug(slug: Slug)(implicit ec: ExecutionContext): Future[Option[Image]] =
     db.run(findBySlugDBIO(slug))
 
-  /** Returns [[cats.data.Xor.Left]] if forbidden and [[cats.data.Xor.Right]] if image is found or not */
-  type ImageAclResult = Xor[Unit, Option[(Image, Action)]]
+  /** Returns [[cats.data.Left]] if forbidden and [[cats.data.Right]] if image is found or not */
+  type ImageAclResult = Either[Unit, Option[(Image, Action)]]
 
   def findBySlugWithAcl(slug: Slug, userId: Int, action: Action)(
       implicit ec: ExecutionContext): Future[ImageAclResult] =
@@ -136,12 +135,12 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     imageOpt match {
       case Some(image) =>
         if (image.visibilityKind === ImageVisibilityKind.Public && action === Action.Read)
-          DBIO.successful(Xor.Right(Some((image, Action.Read))))
+          DBIO.successful(Right(Some((image, Action.Read))))
         else
           image.owner.kind match {
             case OwnerKind.User =>
               if (image.owner.id == userId)
-                DBIO.successful(Xor.Right(Some((image, Action.Manage))))
+                DBIO.successful(Right(Some((image, Action.Manage))))
               else
                 PermissionsRepo
                   .findActionByImageAndUserDBIO(image.getId(), userId)
@@ -151,7 +150,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
                 .findActionByImageAsGroupUserDBIO(image.getId(), image.owner.id, userId)
                 .map(checkAcl(_, action, image))
           }
-      case _ => DBIO.successful(Xor.Right(None))
+      case _ => DBIO.successful(Right(None))
     }
 
   private def checkAcl(userActionOpt: Option[Action],
@@ -159,9 +158,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
                        image: Image): ImageAclResult =
     userActionOpt match {
       case Some(res) =>
-        if (res.can(action)) Xor.Right(Some((image, res)))
-        else Xor.Left(())
-      case _ => Xor.Left(())
+        if (res.can(action)) Right(Some((image, res)))
+        else Left(())
+      case _ => Left(())
     }
 
   def findIdsByOrganizationIdDBIO(organizationId: Int) =

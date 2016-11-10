@@ -19,8 +19,7 @@ package io.fcomb.server.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import cats.data.Xor
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats._
@@ -34,8 +33,8 @@ object SessionsHandler {
     extractExecutionContext { implicit ec =>
       entity(as[SessionCreateRequest]) { req =>
         onSuccess(SessionsService.create(req)) {
-          case Xor.Right(s) => complete((StatusCodes.Created, s))
-          case Xor.Left(e)  => complete((StatusCodes.BadRequest, e))
+          case Right(s) => complete((StatusCodes.Created, s))
+          case Left(e)  => complete((StatusCodes.BadRequest, e))
         }
       }
     }

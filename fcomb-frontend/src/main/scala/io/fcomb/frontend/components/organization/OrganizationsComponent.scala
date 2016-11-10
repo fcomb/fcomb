@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import diode.data.{Empty, Failed, Pot, Ready}
@@ -64,10 +63,10 @@ object OrganizationsComponent {
 
     def getOrgs(pos: PaginationOrderState) =
       Callback.future(Rpc.getOrganizations(pos.sortColumn, pos.sortOrder, pos.page, limit).map {
-        case Xor.Right(pd) =>
+        case Right(pd) =>
           $.modState(st =>
             st.copy(orgs = Ready(pd.data), pagination = st.pagination.copy(total = pd.total)))
-        case Xor.Left(errs) => $.modState(_.copy(orgs = Failed(ErrorsException(errs))))
+        case Left(errs) => $.modState(_.copy(orgs = Failed(ErrorsException(errs))))
       })
 
     def renderOrg(ctl: RouterCtl[DashboardRoute], org: OrganizationResponse) = {

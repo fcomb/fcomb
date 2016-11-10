@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.repository
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.materialui._
 import diode.data.{PotMap, Ready}
 import diode.react.ModelProxy
@@ -61,10 +60,10 @@ object EditRepositoryComponent {
                 _ <- $.modState(_.copy(isDisabled = true))
                 _ <- Callback.future {
                   Rpc.updateRepository(props.slug, fs.visibilityKind, fs.description).map {
-                    case Xor.Right(repo) =>
+                    case Right(repo) =>
                       AppCircuit.dispatchCB(UpsertRepository(repo)) >>
                         props.ctl.set(DashboardRoute.Repository(repo.slug))
-                    case Xor.Left(e) => $.modState(_.copy(isDisabled = false))
+                    case Left(e) => $.modState(_.copy(isDisabled = false))
                   }
                 }
               } yield ()

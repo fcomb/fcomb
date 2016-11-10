@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
@@ -49,8 +48,8 @@ object DeleteOrganizationComponent {
         case (props, state) if !state.isDisabled =>
           $.modState(_.copy(isDisabled = true)) >>
             Callback.future(Rpc.deleteOrganization(props.slug).map {
-              case Xor.Right(_) => props.ctl.set(DashboardRoute.Organizations)
-              case Xor.Left(errs) =>
+              case Right(_) => props.ctl.set(DashboardRoute.Organizations)
+              case Left(errs) =>
                 $.modState(_.copy(isDisabled = false, error = Some(joinErrors(errs))))
             })
       }

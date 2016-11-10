@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import diode.data.{Empty, Failed, Pot, Ready}
@@ -72,8 +71,8 @@ object GroupComponent {
                                         pos.page,
                                         limit)
             .map {
-              case Xor.Right(pd)  => $.modState(_.copy(members = Ready(pd.data)))
-              case Xor.Left(errs) => $.modState(_.copy(members = Failed(ErrorsException(errs))))
+              case Right(pd)  => $.modState(_.copy(members = Ready(pd.data)))
+              case Left(errs) => $.modState(_.copy(members = Failed(ErrorsException(errs))))
             })
       }
 
@@ -107,8 +106,8 @@ object GroupComponent {
         tryAcquireState { state =>
           Callback.future(
             Rpc.deleteOrganizationGroupMember(props.slug, props.group, username).map {
-              case Xor.Right(_)   => getMembers(state.pagination)
-              case Xor.Left(errs) => $.modState(_.copy(error = Some(joinErrors(errs))))
+              case Right(_)   => getMembers(state.pagination)
+              case Left(errs) => $.modState(_.copy(error = Some(joinErrors(errs))))
             })
         }
       }
@@ -143,9 +142,9 @@ object GroupComponent {
           case Some(username) =>
             Callback.future(
               Rpc.upsertOrganizationGroupMember(props.slug, props.group, username).map {
-                case Xor.Right(_) =>
+                case Right(_) =>
                   $.modState(_.copy(form = defaultFormState)) >> getMembers(state.pagination)
-                case Xor.Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
+                case Left(errs) => modFormState(_.copy(errors = foldErrors(errs)))
               })
           case _ => Callback.empty
         }

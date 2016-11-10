@@ -27,7 +27,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.circe.{DecodingFailure, HistoryOp, ParsingFailure}
 import io.fcomb.json.models.errors.Formats.encodeErrors
 import io.fcomb.models.errors.{Error, Errors}
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import org.apache.commons.lang3.exception.ExceptionUtils
 

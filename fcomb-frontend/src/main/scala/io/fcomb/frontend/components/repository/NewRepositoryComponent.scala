@@ -16,20 +16,19 @@
 
 package io.fcomb.frontend.components.repository
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.Implicits._
 import io.fcomb.frontend.components.LayoutComponent
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
-import io.fcomb.models.Owner
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
-import japgolly.scalajs.react._
+import io.fcomb.models.Owner
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
+import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalacss.ScalaCssReact._
 
@@ -54,9 +53,9 @@ object NewRepositoryComponent {
                 Rpc
                   .createRepository(owner, state.name, state.visibilityKind, state.description)
                   .map {
-                    case Xor.Right(repository) =>
+                    case Right(repository) =>
                       props.ctl.set(DashboardRoute.Repository(repository.slug))
-                    case Xor.Left(errs) =>
+                    case Left(errs) =>
                       $.modState(_.copy(isDisabled = false, errors = foldErrors(errs)))
                   }
               }

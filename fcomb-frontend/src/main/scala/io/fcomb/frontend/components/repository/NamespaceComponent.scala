@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.repository
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
@@ -48,7 +47,7 @@ object NamespaceComponent {
     def fetchNamespaces(): Callback =
       $.props.flatMap { props =>
         Callback.future(Rpc.getUserSelfOrganizations(props.canCreateRoleOnly, limit).map {
-          case Xor.Right(res) =>
+          case Right(res) =>
             val orgs       = res.data.map(o => Namespace.Organization(o.name, Some(o.id)))
             val namespaces = currentUser ++ orgs
             val data       = js.Array(namespaces.map(_.slug): _*)
@@ -63,7 +62,7 @@ object NamespaceComponent {
                 namespaces = namespaces,
                 data = data
               )) >> namespace.map(props.cb(_)).getOrElse(Callback.empty)
-          case Xor.Left(e) => Callback.warn(e)
+          case Left(e) => Callback.warn(e)
         })
       }
 

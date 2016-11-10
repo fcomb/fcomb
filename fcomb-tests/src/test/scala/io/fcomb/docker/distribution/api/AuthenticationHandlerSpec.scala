@@ -19,7 +19,7 @@ package io.fcomb.docker.distribution.server.api
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.circe.Json
 import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers.`Docker-Distribution-Api-Version`

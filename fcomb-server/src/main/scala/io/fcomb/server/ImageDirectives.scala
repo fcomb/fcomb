@@ -19,7 +19,6 @@ package io.fcomb.server
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import cats.data.Xor
 import io.fcomb.models.User
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
@@ -30,9 +29,9 @@ object ImageDirectives {
   def imageAndAction(slug: Slug, userId: Int, action: Action): Directive1[(Image, Action)] =
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlugWithAcl(slug, userId, action)).flatMap {
-        case Xor.Right(Some(res @ (image, _))) => provide(res)
-        case Xor.Right(_)                      => complete(HttpResponse(StatusCodes.NotFound))
-        case _                                 => complete(HttpResponse(StatusCodes.Forbidden))
+        case Right(Some(res @ (image, _))) => provide(res)
+        case Right(_)                      => complete(HttpResponse(StatusCodes.NotFound))
+        case _                             => complete(HttpResponse(StatusCodes.Forbidden))
       }
     }
 

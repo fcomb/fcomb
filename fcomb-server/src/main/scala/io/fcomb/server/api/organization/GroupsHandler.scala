@@ -30,7 +30,7 @@ import io.fcomb.rpc.ResponseModelWithPk._
 import io.fcomb.server.api.organization.group.MembersHandler
 import io.fcomb.server.api.OrganizationsHandler
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.server.CirceSupport._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._

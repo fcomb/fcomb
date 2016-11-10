@@ -16,12 +16,13 @@
 
 package io.fcomb.json.rpc.acl
 
-import cats.data.Xor
+import cats.syntax.either._
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.fcomb.json.models.acl.Formats._
 import io.fcomb.models.acl.MemberKind
 import io.fcomb.rpc.acl._
+import scala.util.Left
 
 object Formats {
   final implicit val encodePermissionUserMemberResponse: Encoder[PermissionUserMemberResponse] =
@@ -79,14 +80,14 @@ object Formats {
             Decoder[Int].apply(id.any).map(PermissionUserIdRequest)
           else if (!id.succeeded && username.succeeded)
             Decoder[String].apply(username.any).map(PermissionUsernameRequest)
-          else Xor.Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
+          else Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
         case MemberKind.Group =>
           val name = c.downField("name")
           if (id.succeeded && !name.succeeded)
             Decoder[Int].apply(id.any).map(PermissionGroupIdRequest)
           else if (!id.succeeded && name.succeeded)
             Decoder[String].apply(name.any).map(PermissionGroupNameRequest)
-          else Xor.Left(DecodingFailure("You should pass 'id' or 'name' field", c.history))
+          else Left(DecodingFailure("You should pass 'id' or 'name' field", c.history))
       }
     }
   final implicit val decodePermissionPermissionCreateRequest: Decoder[PermissionCreateRequest] =
