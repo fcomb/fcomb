@@ -4,7 +4,7 @@ import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
 lazy val akkaVersion         = "2.4.12"
-lazy val akkaHttpVersion     = "3.0.0-RC1"
+lazy val akkaHttpVersion     = "10.0.0-RC2"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.7.2"
 lazy val circeVersion        = "0.5.4"
@@ -265,7 +265,7 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % "test",
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
       "org.scalacheck"     %% "scalacheck"        % "1.13.4" % "test",
-      "org.scalatest"      %% "scalatest"         % "3.0.0" % "test",
+      "org.scalatest"      %% "scalatest"         % "3.0.1" % "test",
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.0.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
       "ch.qos.logback"     % "logback-classic"    % "1.1.7",
@@ -379,7 +379,7 @@ lazy val root = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
-      "com.lihaoyi"       % "ammonite-repl"   % "0.7.8" % "test" cross CrossVersion.full,
+      "com.lihaoyi"       % "ammonite-repl"   % "0.7.9" % "test" cross CrossVersion.full,
       "ch.qos.logback"    % "logback-classic" % "1.1.7"
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",
