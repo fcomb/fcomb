@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.auth
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc

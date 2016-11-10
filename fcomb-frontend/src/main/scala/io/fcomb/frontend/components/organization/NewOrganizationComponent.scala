@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.organization
 
-import cats.data.Xor
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
@@ -30,7 +29,7 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scalacss.ScalaCssReact._
+import scala.util.{Right, Left}
 
 object NewOrganizationComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])

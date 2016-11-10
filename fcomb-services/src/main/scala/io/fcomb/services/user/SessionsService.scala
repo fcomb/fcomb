@@ -17,7 +17,7 @@
 package io.fcomb.services.user
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
-import cats.data.Xor
+import scala.util.Either
 import io.fcomb.crypto.Jwt
 import io.fcomb.models.errors.Errors
 import io.fcomb.models.{Session, User}
@@ -40,8 +40,8 @@ object SessionsService {
 
   def find(token: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     Jwt.decode(token, Config.jwt.secret) match {
-      case Xor.Right(payload) => UsersRepo.findById(payload.id)
-      case _                  => FastFuture.successful(None)
+      case Right(payload) => UsersRepo.findById(payload.id)
+      case _              => FastFuture.successful(None)
     }
 
   private lazy val invalidEmailOrPassword = Xor.Left(

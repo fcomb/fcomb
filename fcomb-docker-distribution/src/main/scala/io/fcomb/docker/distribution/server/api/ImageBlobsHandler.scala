@@ -23,7 +23,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.scaladsl._
 import akka.util.ByteString
-import cats.data.Xor
 import io.fcomb.docker.distribution.server.AuthenticationDirectives._
 import io.fcomb.docker.distribution.server.CommonDirectives._
 import io.fcomb.docker.distribution.server.headers._
@@ -134,13 +133,13 @@ object ImageBlobsHandler {
           onSuccess(ImageBlobsRepo.findUploaded(image.getId(), digest)) {
             case Some(blob) =>
               onSuccess(ImageBlobsRepo.tryDestroy(blob.getId())) {
-                case Xor.Right(_) =>
+                case Right(_) =>
                   val fut = ImageBlobsRepo.existByDigest(digest).flatMap { exist =>
                     if (exist) FastFuture.successful(())
                     else BlobFileUtils.destroyUploadBlob(blob.getId())
                   }
                   onSuccess(fut)(completeNoContent())
-                case Xor.Left(msg) => completeError(DistributionError.unknown(msg))
+                case Left(msg) => completeError(DistributionError.unknown(msg))
               }
             case _ => completeError(DistributionError.blobUploadInvalid)
           }

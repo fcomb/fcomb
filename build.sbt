@@ -6,8 +6,8 @@ import de.heikoseeberger.sbtheader.license.Apache2_0
 lazy val akkaVersion         = "2.4.12"
 lazy val akkaHttpVersion     = "10.0.0-RC2"
 lazy val bouncyCastleVersion = "1.55"
-lazy val catsVersion         = "0.7.2"
-lazy val circeVersion        = "0.5.4"
+lazy val catsVersion         = "0.8.1"
+lazy val circeVersion        = "0.6.0"
 lazy val commonsVersion      = "1.10"
 lazy val enumeratumVersion   = "1.4.17"
 lazy val guavaVersion        = "19.0"
@@ -266,7 +266,7 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
       "org.scalacheck"     %% "scalacheck"        % "1.13.4" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.1" % "test",
-      "com.ironcorelabs"   %% "cats-scalatest"    % "2.0.0" % "test",
+      "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.0" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
       "ch.qos.logback"     % "logback-classic"    % "1.1.7",
       "junit"              % "junit-dep"          % "4.10" % "test"

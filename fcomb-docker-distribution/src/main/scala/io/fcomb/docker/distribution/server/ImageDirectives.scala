@@ -18,7 +18,6 @@ package io.fcomb.docker.distribution.server
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import cats.data.Xor
 import cats.syntax.eq._
 import io.fcomb.docker.distribution.server.CommonDirectives._
 import io.fcomb.models.acl.Action
@@ -31,8 +30,8 @@ object ImageDirectives {
   def imageByNameWithAcl(name: String, userId: Int, action: Action): Directive1[Image] =
     extractExecutionContext.flatMap { implicit ec =>
       onSuccess(ImagesRepo.findBySlugWithAcl(Slug.Name(name), userId, action)).flatMap {
-        case Xor.Right(Some((image, _))) => provide(image)
-        case _                           => nameUnknownError()
+        case Right(Some((image, _))) => provide(image)
+        case _                       => nameUnknownError()
       }
     }
 

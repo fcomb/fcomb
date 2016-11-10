@@ -16,7 +16,7 @@
 
 package io.fcomb.frontend.services
 
-import cats.data.Xor
+import scala.util.Either
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.dispatcher.actions.Authenticated
 import io.fcomb.frontend.dispatcher.AppCircuit
@@ -27,10 +27,10 @@ import scala.util.{Success, Try}
 
 object AuthService {
   def authentication(email: String, password: String)(
-      implicit ec: ExecutionContext): Future[Xor[Seq[Error], Unit]] =
+      implicit ec: ExecutionContext): Future[Either[Seq[Error], Unit]] =
     Rpc.signIn(email.trim(), password.trim()).map {
-      case Xor.Right(session) => Xor.Right(AppCircuit.dispatch(Authenticated(session.token)))
-      case res @ Xor.Left(e)  => res
+      case Right(session) => Right(AppCircuit.dispatch(Authenticated(session.token)))
+      case Left(e)        => Left(e)
     }
 
   def setToken(token: String): Unit =

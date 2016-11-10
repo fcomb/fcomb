@@ -16,7 +16,7 @@
 
 package io.fcomb.tests.fixtures.docker.distribution
 
-import cats.data.{Validated, Xor}
+import cats.data.Validated
 import io.circe.jawn._
 import io.fcomb.Db.db
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
@@ -56,7 +56,7 @@ object ImageManifestsFixture {
   }
 
   private def getSchemaV1JsonBlob(imageSlug: String, tag: String, blob: ImageBlob) = {
-    val Xor.Right(jsonBlob) = parse(s"""
+    val Right(jsonBlob) = parse(s"""
     {
       "name": "$imageSlug",
       "tag": "$tag",
@@ -79,8 +79,8 @@ object ImageManifestsFixture {
       blob: ImageBlob,
       tags: List[String]
   ): Future[ImageManifest] = {
-    val schemaV1JsonBlob    = getSchemaV1JsonBlob(imageSlug, tags.headOption.getOrElse(""), blob)
-    val schemaV2JsonBlob    = s"""
+    val schemaV1JsonBlob = getSchemaV1JsonBlob(imageSlug, tags.headOption.getOrElse(""), blob)
+    val schemaV2JsonBlob = s"""
     {
       "schemaVersion": 2,
       "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
@@ -98,9 +98,9 @@ object ImageManifestsFixture {
       ]
     }
     """
-    val Xor.Right(manifest) = decode[SchemaV2.Manifest](schemaV2JsonBlob)
-    val digest              = DigestUtils.sha256Hex(schemaV2JsonBlob)
-    val reference           = Reference.Digest(digest)
+    val Right(manifest)  = decode[SchemaV2.Manifest](schemaV2JsonBlob)
+    val digest           = DigestUtils.sha256Hex(schemaV2JsonBlob)
+    val reference        = Reference.Digest(digest)
     for {
       Some(image) <- ImagesRepo.findById(blob.imageId)
       Validated.Valid(im) <- ImageManifestsRepo.upsertSchemaV2(

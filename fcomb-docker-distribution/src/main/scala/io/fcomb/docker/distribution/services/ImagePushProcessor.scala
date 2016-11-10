@@ -24,7 +24,7 @@ import akka.stream.scaladsl._
 import akka.stream.{ClosedShape, Materializer}
 import akka.util.Timeout
 import akka.util.{ByteString, Timeout}
-import cats.data.Xor
+import scala.util.Either
 import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.services.Exceptions._
 import io.fcomb.utils.StringUtils
@@ -111,9 +111,9 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
       mat: Materializer
   ): Future[(Long, String)] =
     for {
-      Xor.Right(md)         <- begin(blobId)
+      Right(md)             <- begin(blobId)
       (length, chunkDigest) <- uploadChunkGraph(md, source, file).run()
-      Xor.Right(fileDigest) <- commit(blobId, chunkDigest)
+      Right(fileDigest)     <- commit(blobId, chunkDigest)
     } yield (length, StringUtils.hexify(fileDigest.digest))
 
   private def uploadChunkGraph(md: MessageDigest, source: Source[ByteString, Any], file: File) = {
@@ -149,20 +149,20 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
 
   def begin(blobId: UUID)(
       implicit ec: ExecutionContext,
-      timeout: Timeout = Timeout(30.seconds)): Future[Xor[String, MessageDigest]] =
-    askRef[Xor[String, MessageDigest]](blobId, Begin, timeout)
+      timeout: Timeout = Timeout(30.seconds)): Future[Either[String, MessageDigest]] =
+    askRef[Either[String, MessageDigest]](blobId, Begin, timeout)
 
   def commit(blobId: UUID, md: MessageDigest)(
       implicit ec: ExecutionContext,
       timeout: Timeout = Timeout(30.seconds)
-  ): Future[Xor[String, MessageDigest]] =
-    askRef[Xor[String, MessageDigest]](blobId, Commit(md), timeout)
+  ): Future[Either[String, MessageDigest]] =
+    askRef[Either[String, MessageDigest]](blobId, Commit(md), timeout)
 
   def stop(blobId: UUID)(
       implicit ec: ExecutionContext,
       timeout: Timeout = Timeout(30.seconds)
   ) =
-    askRef[Xor[String, Unit]](blobId, Stop, timeout)
+    askRef[Either[String, Unit]](blobId, Stop, timeout)
 }
 
 object ProcessorActorMessages {
@@ -301,20 +301,20 @@ final class ImageBlobPushProcessor(timeout: Duration) extends Actor with ActorLo
   val idle: Receive = {
     case Begin =>
       context.become(locking, false)
-      sender() ! Xor.Right(state.digest.clone.asInstanceOf[MessageDigest])
-    case Commit(_) => sender() ! Xor.Left("Transaction not being started")
+      sender() ! Right(state.digest.clone.asInstanceOf[MessageDigest])
+    case Commit(_) => sender() ! Left("Transaction not being started")
     case Stop =>
-      sender() ! Xor.Right(())
+      sender() ! Right(())
       context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   val locking: Receive = {
-    case Begin => sender() ! Xor.Left("Transaction already started")
+    case Begin => sender() ! Left("Transaction already started")
     case Commit(md) =>
       context.become(idle)
       updateState(md)
-      sender() ! Xor.Right(state.digest.clone.asInstanceOf[MessageDigest])
-    case Stop => sender() ! Xor.Left("The transaction is not completed yet")
+      sender() ! Right(state.digest.clone.asInstanceOf[MessageDigest])
+    case Stop => sender() ! Left("The transaction is not completed yet")
   }
 
   def receive = idle

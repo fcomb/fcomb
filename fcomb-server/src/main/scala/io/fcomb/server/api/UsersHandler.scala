@@ -62,9 +62,7 @@ object UsersHandler {
         get(index)
       } ~
       path("sign_up")(post(signUp)) ~
-      pathPrefix(Path.Slug) { slug =>
-        users.RepositoriesHandler.routes(slug)
-      }
+      path(Path.Slug)(slug => users.RepositoriesHandler.routes(slug))
     }
     // format: ON
   }

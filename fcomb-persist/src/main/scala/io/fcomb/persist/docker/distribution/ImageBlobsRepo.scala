@@ -16,7 +16,7 @@
 
 package io.fcomb.persist.docker.distribution
 
-import cats.data.Xor
+import scala.util.Either
 import io.fcomb.Db.db
 import io.fcomb.models.docker.distribution.ImageManifest.{emptyTar, emptyTarSha256Digest}
 import io.fcomb.models.docker.distribution.{BlobFileState, ImageBlob, ImageBlobState}
@@ -288,13 +288,13 @@ object ImageBlobsRepo extends PersistModelWithUuidPk[ImageBlob, ImageBlobTable] 
         }
         .map(_ => ()))
 
-  def tryDestroy(id: UUID)(implicit ec: ExecutionContext): Future[Xor[String, Unit]] =
+  def tryDestroy(id: UUID)(implicit ec: ExecutionContext): Future[Either[String, Unit]] =
     runInTransaction(TransactionIsolation.ReadCommitted) {
       ImageManifestLayersRepo.isBlobLinkedCompiled(id).result.flatMap { isLinked =>
-        if (isLinked) DBIO.successful(Xor.Left("blob is linked with manifest"))
-        else findByIdQuery(id).delete.map(_ => Xor.Right(()))
+        if (isLinked) DBIO.successful(Left("blob is linked with manifest"))
+        else findByIdQuery(id).delete.map(_ => Right(()))
       }
-    }.recover { case _ => Xor.Right(()) }
+    }.recover { case _ => Right(()) }
 
   private lazy val existByDigestCompiled = Compiled { digest: Rep[String] =>
     table.filter(_.digest === digest).exists

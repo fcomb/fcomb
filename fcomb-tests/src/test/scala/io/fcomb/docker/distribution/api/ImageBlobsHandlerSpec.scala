@@ -21,12 +21,12 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
 import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution._
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.tests.fixtures.docker.distribution.{ImageBlobsFixture, ImagesFixture}
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests._

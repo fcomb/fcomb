@@ -23,9 +23,9 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
-import cats.data.Xor
-import cats.scalatest.XorMatchers._
-import de.heikoseeberger.akkahttpcirce.CirceSupport._
+import cats.scalatest.EitherMatchers._
+import cats.syntax.either._
+import io.fcomb.server.CirceSupport._
 import io.circe.jawn._
 import io.circe.syntax._
 import io.fcomb.docker.distribution.manifest.{SchemaV1 => SchemaV1Manifest}
@@ -354,14 +354,14 @@ final class ImagesHandlerSpec
           `Docker-Content-Digest`("sha256", im.digest))
         header[ETag] should contain(ETag(s"sha256:${im.digest}"))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
-        val rawManifest         = responseAs[ByteString].utf8String
-        val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
+        val rawManifest     = responseAs[ByteString].utf8String
+        val Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
         manifest.tag shouldEqual "1.0"
         manifest.name shouldEqual image.slug
         val json         = parse(rawManifest).toOption.flatMap(_.asObject).get
         val manifestJson = json.remove("signatures").asJson
         val original     = SchemaV1Manifest.indentPrint(rawManifest, manifestJson)
-        val res          = Xor.Right((original, im.digest))
+        val res          = Right((original, im.digest))
         SchemaV1Manifest.verify(manifest, rawManifest) shouldBe res
       }
 
@@ -391,8 +391,8 @@ final class ImagesHandlerSpec
           `Docker-Content-Digest`("sha256", im.digest))
         header[ETag] should contain(ETag(s"sha256:${im.digest}"))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
-        val rawManifest         = responseAs[ByteString].utf8String
-        val Xor.Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
+        val rawManifest     = responseAs[ByteString].utf8String
+        val Right(manifest) = decode[SchemaV1.Manifest](rawManifest)
         manifest.tag shouldEqual "1.0"
         manifest.name shouldEqual image.slug
         SchemaV1Manifest.verify(manifest, rawManifest) should be(right)
@@ -405,8 +405,8 @@ final class ImagesHandlerSpec
           `Docker-Content-Digest`("sha256", im.digest))
         header[ETag] should contain(ETag(s"sha256:${im.digest}"))
         header[`Docker-Distribution-Api-Version`] should contain(apiVersionHeader)
-        val rawManifest         = responseAs[ByteString].utf8String
-        val Xor.Right(manifest) = decode[SchemaV2.Manifest](rawManifest)
+        val rawManifest     = responseAs[ByteString].utf8String
+        val Right(manifest) = decode[SchemaV2.Manifest](rawManifest)
         manifest.config shouldEqual SchemaV2.Descriptor(
           Some("application/vnd.docker.container.image.v1+json"),
           11209,

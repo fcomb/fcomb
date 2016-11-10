@@ -19,7 +19,6 @@ package io.fcomb.docker.distribution.services
 import akka.actor._
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
-import cats.data.Xor
 import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.persist.docker.distribution.{BlobFilesRepo, ImageBlobsRepo}
@@ -110,13 +109,13 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
           case Some(digest) => BlobFileUtils.destroyBlob(digest)
           case _            => BlobFileUtils.destroyUploadBlob(bf.uuid)
         }
-        fut.map(_ => Xor.Right(bf.uuid)).recover { case _ => Xor.Left(bf.uuid) }
+        fut.map(_ => Right(bf.uuid)).recover { case _ => Left(bf.uuid) }
       }
       .groupedWithin(256, 1.second)
       .mapAsyncUnordered(1) { items =>
         val (successful, failed) = items.foldLeft((List.empty[UUID], List.empty[UUID])) {
-          case ((sxs, fxs), Xor.Right(uuid)) => (uuid :: sxs, fxs)
-          case ((sxs, fxs), Xor.Left(uuid))  => (sxs, uuid :: fxs)
+          case ((sxs, fxs), Right(uuid)) => (uuid :: sxs, fxs)
+          case ((sxs, fxs), Left(uuid))  => (sxs, uuid :: fxs)
         }
         for {
           _ <- BlobFilesRepo.destroy(successful)

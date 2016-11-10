@@ -16,7 +16,6 @@
 
 package io.fcomb.persist
 
-import cats.data.Xor
 import io.circe.Json
 import io.circe.syntax._
 import io.fcomb.Db.db
@@ -44,8 +43,8 @@ final class EventTable(tag: Tag)
       ({
         case (id, kind, detailsJsonBlob, createdByUserId, createdAt) =>
           val details = detailsJsonBlob.as[EventDetails] match {
-            case Xor.Right(evt) => evt
-            case Xor.Left(e)    => throw e
+            case Right(evt) => evt
+            case Left(e)    => throw e
           }
           Event(id, kind, details, createdByUserId, createdAt)
       }, { evt: Event =>

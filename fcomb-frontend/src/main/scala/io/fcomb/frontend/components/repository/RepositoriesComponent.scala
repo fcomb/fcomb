@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.components.repository
 
-import cats.data.Xor
 import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
@@ -37,6 +36,7 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.util.{Left, Right}
 import scalacss.ScalaCssReact._
 
 object RepositoriesComponent {
@@ -71,11 +71,11 @@ object RepositoriesComponent {
             Callback.future(Rpc
               .getNamespaceRepositories(namespace, pos.sortColumn, pos.sortOrder, pos.page, limit)
               .map {
-                case Xor.Right(pd) =>
+                case Right(pd) =>
                   $.modState(st =>
                     st.copy(repositories = Ready(pd.data),
                             pagination = st.pagination.copy(total = pd.total)))
-                case Xor.Left(errs) =>
+                case Left(errs) =>
                   $.modState(_.copy(repositories = Failed(ErrorsException(errs))))
               })
       }

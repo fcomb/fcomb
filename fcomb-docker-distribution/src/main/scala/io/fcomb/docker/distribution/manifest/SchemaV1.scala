@@ -17,8 +17,10 @@
 package io.fcomb.docker.distribution.manifest
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
-import cats.data.{Validated, Xor}
+import cats.data.Validated
+import cats.instances.either.catsStdInstancesForEither
 import cats.syntax.cartesian._
+import cats.syntax.either._
 import cats.syntax.show._
 import io.circe._
 import io.circe.jawn._
@@ -37,6 +39,7 @@ import java.time.OffsetDateTime
 import org.apache.commons.codec.digest.DigestUtils
 import org.jose4j.base64url.Base64Url
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Either, Left, Right}
 
 object SchemaV1 {
   def upsertAsImageManifest(
@@ -45,35 +48,36 @@ object SchemaV1 {
       manifest: ManifestV1,
       rawManifest: String,
       createdByUserId: Int
-  )(implicit ec: ExecutionContext): Future[Xor[DistributionError, String]] =
+  )(implicit ec: ExecutionContext): Future[Either[DistributionError, String]] =
     verify(manifest, rawManifest) match {
-      case Xor.Right((schemaV1JsonBlob, digest)) =>
+      case Right((schemaV1JsonBlob, digest)) =>
         ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).fast.map {
           case Validated.Valid(imageManifest) =>
             EventService
               .pushRepoEvent(image, imageManifest.getId(), reference.value, createdByUserId)
-            Xor.Right(digest)
+            Right(digest)
           case Validated.Invalid(errs) =>
-            Xor.left(DistributionError.unknown(errs.map(_.message).mkString(";")))
+            Left(DistributionError.unknown(errs.map(_.message).mkString(";")))
         }
-      case Xor.Left(e) => FastFuture.successful(Xor.Left(DistributionError.unknown(e.message)))
+      case Left(e) => FastFuture.successful(Left(DistributionError.unknown(e.message)))
     }
 
-  /** Returns formatted manifest (without signatures) and its digest within [[cats.data.Xor]] */
-  def verify(manifest: ManifestV1, rawManifest: String): Xor[DistributionError, (String, String)] =
+  /** Returns formatted manifest (without signatures) and its digest within [[cats.data.Either]] */
+  def verify(manifest: ManifestV1,
+             rawManifest: String): Either[DistributionError, (String, String)] =
     parse(rawManifest).map(_.asObject) match {
-      case Xor.Right(Some(json)) =>
+      case Right(Some(json)) =>
         val manifestJson = json.remove("signatures").asJson
         val original     = indentPrint(rawManifest, manifestJson)
         if (manifest.signatures.isEmpty)
-          Xor.Left(DistributionError.unknown("signatures cannot be empty"))
+          Left(DistributionError.unknown("signatures cannot be empty"))
         else {
-          val rightAcc = Xor.right[DistributionError, (String, String)](("", ""))
+          val rightAcc: Either[DistributionError, (String, String)] = Right(("", ""))
           manifest.signatures.foldLeft(rightAcc) {
             case (acc, signature) =>
               val `protected` = new String(base64Decode(signature.`protected`))
               acc *> (decode[Protected](`protected`) match {
-                case Xor.Right(p) =>
+                case Right(p) =>
                   val formatTail      = new String(base64Decode(p.formatTail))
                   val formatTailIndex = original.lastIndexOf(formatTail)
                   val formatted       = original.take(formatTailIndex + formatTail.length)
@@ -82,30 +86,30 @@ object SchemaV1 {
                     val signatureBytes = base64Decode(signature.signature)
                     val (alg, jwk)     = (signature.header.alg, signature.header.jwk)
                     if (Jws.verify(alg, jwk, payload, signatureBytes))
-                      Xor.Right((original, DigestUtils.sha256Hex(formatted)))
-                    else Xor.Left(DistributionError.manifestUnverified)
+                      Right((original, DigestUtils.sha256Hex(formatted)))
+                    else Left(DistributionError.manifestUnverified)
                   } else
-                    Xor.Left(
+                    Left(
                       DistributionError.manifestInvalid(
                         "formatted length does not match with fortmatLength"))
-                case Xor.Left(e) => Xor.Left(DistributionError.unknown(e.show))
+                case Left(e) => Left(DistributionError.unknown(e.show))
               })
           }
         }
-      case Xor.Right(None) => Xor.Left(DistributionError.manifestInvalid())
-      case Xor.Left(e)     => Xor.Left(DistributionError.unknown(e.show))
+      case Right(None) => Left(DistributionError.manifestInvalid())
+      case Left(e)     => Left(DistributionError.unknown(e.show))
     }
 
   def convertFromSchemaV2(image: Image,
                           manifest: ManifestV2,
-                          imageConfigJson: Json): Xor[String, String] =
+                          imageConfigJson: Json): Either[String, String] =
     (for {
       imgConfig <- decodeSchemaV2ImageConfig.decodeJson(imageConfigJson)
       config    <- decodeSchemaV1Config.decodeJson(imageConfigJson)
     } yield (imgConfig, config)) match {
-      case Xor.Right((imgConfig, config)) =>
-        if (imgConfig.history.isEmpty) Xor.Left("Image config history is empty")
-        else if (imgConfig.rootFs.diffIds.isEmpty) Xor.Left("Image config root fs is empty")
+      case Right((imgConfig, config)) =>
+        if (imgConfig.history.isEmpty) Left("Image config history is empty")
+        else if (imgConfig.rootFs.diffIds.isEmpty) Left("Image config root fs is empty")
         else {
           val baseLayerId = imgConfig.rootFs.baseLayer.map(DigestUtils.sha384Hex(_).take(32))
           val (lastParentId, remainLayers, history, fsLayers) = imgConfig.history.init
@@ -164,14 +168,14 @@ object SchemaV1 {
             signatures = Nil
           )
           manifestV1.asJson.asObject match {
-            case Some(obj) => Xor.Right(prettyPrint(obj.remove("signatures").asJson))
-            case None      => Xor.Left("manifestV1 not a JSON object")
+            case Some(obj) => Right(prettyPrint(obj.remove("signatures").asJson))
+            case None      => Left("manifestV1 not a JSON object")
           }
         }
-      case Xor.Left(e) => Xor.Left(e.show)
+      case Left(e) => Left(e.show)
     }
 
-  def addSignature(manifestV1: String): Xor[String, String] =
+  def addSignature(manifestV1: String): Either[String, String] =
     parseManifestV1(manifestV1).map(signManifestV1)
 
   private def signManifestV1(manifest: JsonObject): String = {
@@ -189,20 +193,20 @@ object SchemaV1 {
     prettyPrint(manifestWithSignature.asJson)
   }
 
-  def addTagAndSignature(manifestV1: String, tag: String): Xor[String, String] =
+  def addTagAndSignature(manifestV1: String, tag: String): Either[String, String] =
     parseManifestV1(manifestV1).map { manifest =>
       val manifestWithTag = manifest.add("tag", Json.fromString(tag))
       signManifestV1(manifestWithTag)
     }
 
-  private def parseManifestV1(manifestV1: String): Xor[String, JsonObject] =
+  private def parseManifestV1(manifestV1: String): Either[String, JsonObject] =
     parse(manifestV1).map(_.asObject) match {
-      case Xor.Right(opt) =>
+      case Right(opt) =>
         opt match {
-          case Some(manifest) => Xor.Right(manifest)
-          case _              => Xor.Left("Manifest V1 not a JSON object")
+          case Some(manifest) => Right(manifest)
+          case _              => Left("Manifest V1 not a JSON object")
         }
-      case Xor.Left(e) => Xor.Left(e.show)
+      case Left(e) => Left(e.show)
     }
 
   private val spaceCharSet = Set[Char]('\t', '\n', 0x0B, '\f', '\r', ' ', 0x85, 0xA0)

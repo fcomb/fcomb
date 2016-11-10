@@ -16,7 +16,7 @@
 
 package io.fcomb
 
-import cats.data.{Validated, XorT}
+import cats.data.{EitherT, Validated}
 import io.fcomb.models.errors.{Error, Errors}
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.PostgresProfile.api._
@@ -35,7 +35,7 @@ package object validation {
   type DBIOActionValidator = DBIOAction[Boolean, NoStream, Effect.Read]
 
   def eitherT[R](fut: Future[ValidationResult[R]])(implicit ec: ExecutionContext) =
-    XorT(fut.map(_.toXor))
+    EitherT(fut.map(_.toEither))
 
   def plainValidation(column: String, validations: List[PlainValidation]): List[Error] =
     validations.collect { case Validated.Invalid(msg) => Errors.validation(msg, column) }

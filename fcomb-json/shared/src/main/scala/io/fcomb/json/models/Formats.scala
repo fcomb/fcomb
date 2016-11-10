@@ -16,6 +16,7 @@
 
 package io.fcomb.json.models
 
+import cats.syntax.either._
 import enumeratum.Circe
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder}
