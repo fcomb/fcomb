@@ -378,11 +378,9 @@ lazy val root = project
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
       "ch.qos.logback"    % "logback-classic" % "1.1.7",
-      "com.lihaoyi"       % "ammonite-repl"   % "0.7.9" % "test" cross CrossVersion.full,
-      "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion,
       "com.lihaoyi"       % "ammonite-repl"   % "0.8.0" % "test" cross CrossVersion.full,
-      "ch.qos.logback"    % "logback-classic" % "1.1.7"
+      "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion
     ),
     initialCommands in (Test, console) := """ammonite.repl.Main().run()""",
     aggregate in reStart := false,
