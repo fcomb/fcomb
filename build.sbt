@@ -3,13 +3,13 @@ import com.typesafe.sbt.SbtGhPages.GhPagesKeys._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
-lazy val akkaVersion         = "2.4.12"
 lazy val akkaHttpVersion     = "10.0.0-RC2"
+lazy val akkaVersion         = "2.4.12"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.8.1"
 lazy val circeVersion        = "0.6.0"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.4.17"
+lazy val enumeratumVersion   = "1.4.18"
 lazy val guavaVersion        = "19.0"
 lazy val jawnVersion         = "0.10.3"
 lazy val slickPgVersion      = "0.15.0-M2"
