@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.services
 
-import scala.util.Either
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.dispatcher.actions.Authenticated
 import io.fcomb.frontend.dispatcher.AppCircuit

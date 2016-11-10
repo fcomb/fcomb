@@ -35,7 +35,6 @@ import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.util.{Left, Right}
 import scalacss.ScalaCssReact._
 
 object OrganizationsComponent {

@@ -16,7 +16,6 @@
 
 package io.fcomb.persist.docker.distribution
 
-import scala.util.Either
 import io.fcomb.Db.db
 import io.fcomb.models.docker.distribution.ImageManifest.{emptyTar, emptyTarSha256Digest}
 import io.fcomb.models.docker.distribution.{BlobFileState, ImageBlob, ImageBlobState}

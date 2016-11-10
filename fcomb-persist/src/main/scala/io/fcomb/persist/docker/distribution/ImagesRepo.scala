@@ -17,7 +17,6 @@
 package io.fcomb.persist.docker.distribution
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
-import scala.util.Either
 import cats.syntax.eq._
 import io.fcomb.Db.db
 import io.fcomb.PostgresProfile.api._

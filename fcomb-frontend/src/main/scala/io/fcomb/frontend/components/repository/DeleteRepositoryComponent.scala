@@ -30,7 +30,6 @@ import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
-import scala.util.{Left, Right}
 
 object DeleteRepositoryComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String)

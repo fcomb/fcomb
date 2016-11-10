@@ -24,7 +24,6 @@ import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scala.util.{Left, Right}
 
 object NamespaceComponent {
   final case class Props(namespace: Namespace,

@@ -24,7 +24,6 @@ import akka.stream.scaladsl._
 import akka.stream.{ClosedShape, Materializer}
 import akka.util.Timeout
 import akka.util.{ByteString, Timeout}
-import scala.util.Either
 import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.services.Exceptions._
 import io.fcomb.utils.StringUtils

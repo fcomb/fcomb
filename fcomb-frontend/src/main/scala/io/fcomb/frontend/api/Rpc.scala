@@ -41,7 +41,6 @@ import org.scalajs.dom.ext.{Ajax, AjaxException}
 import org.scalajs.dom.window
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js.{JSON, URIUtils}
-import scala.util.Either
 
 sealed trait RpcMethod
 

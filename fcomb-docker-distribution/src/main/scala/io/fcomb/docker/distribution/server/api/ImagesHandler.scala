@@ -44,7 +44,6 @@ import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImagesRepo}
 import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
-import scala.util.Either
 
 object ImagesHandler {
   def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =

@@ -36,7 +36,6 @@ import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
-import scala.util.{Left, Right}
 
 object ImageBlobsHandler {
   def showBlob(imageName: String, digest: String) =

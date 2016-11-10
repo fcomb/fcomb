@@ -25,7 +25,6 @@ import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scala.util.{Left, Right}
 
 object UserMemberComponent {
   final case class Props(slug: String,
