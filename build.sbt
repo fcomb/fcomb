@@ -9,7 +9,7 @@ lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.8.1"
 lazy val circeVersion        = "0.6.0"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.4.18"
+lazy val enumeratumVersion   = "1.5.1"
 lazy val guavaVersion        = "19.0"
 lazy val jawnVersion         = "0.10.3"
 lazy val slickPgVersion      = "0.15.0-M2"
@@ -266,7 +266,7 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
       "org.scalacheck"     %% "scalacheck"        % "1.13.4" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.1" % "test",
-      "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.0" % "test",
+      "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.1" % "test",
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
       "ch.qos.logback"     % "logback-classic"    % "1.1.7",
       "junit"              % "junit-dep"          % "4.10" % "test"
