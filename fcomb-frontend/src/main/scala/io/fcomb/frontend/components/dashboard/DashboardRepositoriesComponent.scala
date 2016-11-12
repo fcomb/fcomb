@@ -34,14 +34,6 @@ object DashboardRepositoriesComponent {
   final case class State(namespace: Option[Namespace])
 
   final class Backend($ : BackendScope[Props, State]) {
-    def setDefaultOwner(): Callback =
-      AppCircuit.currentUser match {
-        case Some(p) =>
-          val namespace = Namespace.User(p.username, Some(p.id))
-          $.modState(_.copy(namespace = Some(namespace)))
-        case _ => Callback.empty
-      }
-
     def updateNamespace(namespace: Namespace) =
       $.modState(_.copy(namespace = Some(namespace)))
 
@@ -68,10 +60,12 @@ object DashboardRepositoriesComponent {
     }
   }
 
+  private def userNamespace() =
+    AppCircuit.currentUser.map(u => Namespace.User(u.username, Some(u.id)))
+
   private val component = ReactComponentB[Props]("DashboardRepositories")
-    .initialState(State(None))
+    .initialState(State(namespace = userNamespace()))
     .renderBackend[Backend]
-    .componentDidMount(_.backend.setDefaultOwner())
     .build
 
   def apply(ctl: RouterCtl[DashboardRoute]) =

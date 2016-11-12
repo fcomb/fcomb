@@ -16,6 +16,7 @@
 
 package io.fcomb.frontend.components.repository
 
+import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
@@ -61,16 +62,28 @@ object NamespaceComponent {
                 namespace = namespace,
                 namespaces = namespaces,
                 data = data
-              )) >> namespace.map(props.cb(_)).getOrElse(Callback.empty)
+              )) >> namespaceCallback(namespace)
           case Left(e) => Callback.warn(e)
         })
       }
+
+    private def namespaceCallback(namespace: Namespace): Callback =
+      $.state.zip($.props).flatMap {
+        case (state, props) =>
+          if (props.namespace === namespace && (state.namespace.isEmpty || state.namespace
+                .contains(props.namespace)))
+            Callback.empty
+          else props.cb(namespace)
+      }
+
+    private def namespaceCallback(namespace: Option[Namespace]): Callback =
+      namespace.fold(Callback.empty)(namespaceCallback)
 
     private def onChange(e: ReactEventI, idx: Int, namespace: Namespace): Callback =
       for {
         props <- $.props
         _     <- $.modState(_.copy(namespace = Some(namespace)))
-        _     <- props.cb(namespace)
+        _     <- namespaceCallback(namespace)
       } yield ()
 
     lazy val allMenuItem = Seq(
