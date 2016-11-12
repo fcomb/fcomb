@@ -64,7 +64,7 @@ object GroupsHandler {
             onSuccess(OrganizationGroupsRepo.create(org.getId(), req)) {
               case Validated.Valid(group) =>
                 val prefix = s"${resourcePrefix}/$slug/$handlerPath}"
-                val res    = OrganizationGroupHelpers.responseFrom(group)
+                val res    = OrganizationGroupHelpers.response(group)
                 completeCreated(res, prefix)
               case Validated.Invalid(errs) => completeErrors(errs)
             }
@@ -77,7 +77,7 @@ object GroupsHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         groupBySlugWithAcl(slug, group, user.getId()) { group =>
-          val res = OrganizationGroupHelpers.responseFrom(group)
+          val res = OrganizationGroupHelpers.response(group)
           completeWithEtag(StatusCodes.OK, res)
         }
       }
@@ -90,7 +90,7 @@ object GroupsHandler {
           entity(as[OrganizationGroupRequest]) { req =>
             onSuccess(OrganizationGroupsRepo.update(group.getId(), user.getId(), req)) {
               case Validated.Valid(updated) =>
-                val res = OrganizationGroupHelpers.responseFrom(updated)
+                val res = OrganizationGroupHelpers.response(updated)
                 complete((StatusCodes.Accepted, res))
               case Validated.Invalid(errs) => completeErrors(errs)
             }

@@ -21,7 +21,7 @@ import io.fcomb.models.docker.distribution.Image
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 
 object ImageHelpers {
-  def responseFrom(image: Image, action: Action): RepositoryResponse =
+  def response(image: Image, action: Action): RepositoryResponse =
     RepositoryResponse(
       id = image.getId(),
       name = image.name,

@@ -46,7 +46,7 @@ object ImageWebhooksRepo extends PersistModelWithAutoIntPk[ImageWebhook, ImageWe
       for {
         webhooks <- findByImageIdPageCompiled((imageId, p.offset, p.limit)).result
         total    <- findByImageIdTotalCompiled(imageId).result
-        data = webhooks.map(ImageWebhookHelpers.responseFrom)
+        data = webhooks.map(ImageWebhookHelpers.response)
       } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     }
 

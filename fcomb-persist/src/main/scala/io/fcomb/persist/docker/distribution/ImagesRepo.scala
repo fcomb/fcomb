@@ -363,7 +363,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     db.run(for {
       images <- sortPaginate(availableScope(userId), p)(sortByPF, _._1.slug).result
       total  <- availableScopeTotalCompiled(userId).result
-      data = images.map((ImageHelpers.responseFrom _).tupled)
+      data = images.map((ImageHelpers.response _).tupled)
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
 
   private def findPublicByOwnerDBIO(ownerId: Rep[Int], ownerKind: Rep[OwnerKind]) =
@@ -429,7 +429,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     }
     db.run(q.map {
       case (images, total) =>
-        val data = images.map((ImageHelpers.responseFrom _).tupled)
+        val data = images.map((ImageHelpers.response _).tupled)
         PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     })
   }
@@ -443,7 +443,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     db.run(for {
       images <- sortPaginate(availableByUserOwnerDBIO(userId), p)(sortByPF, _._1.slug).result
       total  <- availableByUserOwnerTotalCompiled(userId).result
-      data = images.map((ImageHelpers.responseFrom _).tupled)
+      data = images.map((ImageHelpers.response _).tupled)
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
 
   private def availableByOrganizationAndUserDBIO(orgId: Rep[Int], userId: Rep[Int]) =
@@ -496,7 +496,7 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
     }
     db.run(q.map {
       case (images, total) =>
-        val data = images.map((ImageHelpers.responseFrom _).tupled)
+        val data = images.map((ImageHelpers.response _).tupled)
         PaginationData(data, total = total, offset = p.offset, limit = p.limit)
     })
   }

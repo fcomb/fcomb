@@ -111,7 +111,7 @@ object OrganizationGroupsRepo
     db.run(for {
       groups <- sortPaginate(findByOrgIdDBIO(orgId), p)(sortByPF, _.name).result
       total  <- findByOrgIdTotalCompiled(orgId).result
-      data = groups.map(OrganizationGroupHelpers.responseFrom)
+      data = groups.map(OrganizationGroupHelpers.response)
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
 
   def createAdminsDBIO(organizationId: Int, ownerUserId: Int)(implicit ec: ExecutionContext) = {

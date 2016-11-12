@@ -46,7 +46,7 @@ object OrganizationsHandler {
         entity(as[OrganizationCreateRequest]) { req =>
           onSuccess(OrganizationsRepo.create(req, user.getId())) {
             case Validated.Valid(org) =>
-              val res = OrganizationHelpers.responseFrom(org, Role.Admin)
+              val res = OrganizationHelpers.response(org, Role.Admin)
               completeCreated(res, resourcePrefix)
             case Validated.Invalid(errs) => completeErrors(errs)
           }
@@ -63,7 +63,7 @@ object OrganizationsHandler {
         }
         onSuccess(futRes) {
           case Some((org, role)) =>
-            val res = OrganizationHelpers.responseFrom(org, role)
+            val res = OrganizationHelpers.response(org, role)
             completeWithEtag(StatusCodes.OK, res)
           case _ => completeNotFound()
         }
@@ -77,7 +77,7 @@ object OrganizationsHandler {
   //         entity(as[OrganizationUpdateRequest]) { req =>
   //           onSuccess(OrganizationsRepo.update(org.getId(), req)) {
   //             case Validated.Valid(updated) =>
-  //               val res = OrganizationHelpers.responseFrom(updated, Role.Admin)
+  //               val res = OrganizationHelpers.response(updated, Role.Admin)
   //               complete((StatusCodes.Accepted, res))
   //             case Validated.Invalid(errs) => completeErrors(errs)
   //           }

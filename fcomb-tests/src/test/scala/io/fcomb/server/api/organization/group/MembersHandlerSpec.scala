@@ -19,6 +19,7 @@ package io.fcomb.server.api.organization.group
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
@@ -27,7 +28,6 @@ import io.fcomb.models.errors.Errors
 import io.fcomb.persist.OrganizationGroupsRepo
 import io.fcomb.rpc._
 import io.fcomb.server.Api
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.tests.AuthSpec._
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests._

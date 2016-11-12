@@ -21,7 +21,7 @@ import io.fcomb.models.acl.Role
 import io.fcomb.rpc.OrganizationResponse
 
 object OrganizationHelpers {
-  def responseFrom(org: Organization, role: Role): OrganizationResponse =
+  def response(org: Organization, role: Role): OrganizationResponse =
     OrganizationResponse(
       id = org.getId(),
       name = org.name,
@@ -31,7 +31,7 @@ object OrganizationHelpers {
       updatedAt = org.updatedAt.map(_.toString)
     )
 
-  def responseFrom(org: Organization, role: Option[Role]): OrganizationResponse = {
+  def response(org: Organization, role: Option[Role]): OrganizationResponse = {
     val ownerUserId =
       if (role.isEmpty) None
       else Some(org.ownerUserId)

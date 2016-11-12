@@ -148,8 +148,8 @@ final class GroupsHandlerSpec
         user) ~> route ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[DataResponse[UserResponse]].data should contain theSameElementsAs Seq(
-          UserHelpers.responseFrom(user1),
-          UserHelpers.responseFrom(user2))
+          UserHelpers.response(user1),
+          UserHelpers.response(user2))
       }
     }
   }

@@ -29,7 +29,7 @@ object UserHandler {
 
   def current =
     authenticateUser { user =>
-      completeWithEtag(StatusCodes.OK, UserHelpers.profileResponseFrom(user))
+      completeWithEtag(StatusCodes.OK, UserHelpers.profileResponse(user))
     }
 
   // def updateProfile(

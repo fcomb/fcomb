@@ -20,7 +20,7 @@ import io.fcomb.models.OrganizationGroup
 import io.fcomb.rpc.OrganizationGroupResponse
 
 object OrganizationGroupHelpers {
-  def responseFrom(group: OrganizationGroup): OrganizationGroupResponse =
+  def response(group: OrganizationGroup): OrganizationGroupResponse =
     OrganizationGroupResponse(
       id = group.getId(),
       name = group.name,

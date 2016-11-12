@@ -57,7 +57,7 @@ object WebhooksHandler {
           entity(as[ImageWebhookRequest]) { req =>
             onSuccess(ImageWebhooksRepo.upsert(image.getId(), req.url)) {
               case Validated.Valid(webhook) =>
-                val res = ImageWebhookHelpers.responseFrom(webhook)
+                val res = ImageWebhookHelpers.response(webhook)
                 completeWithEtag(StatusCodes.OK, res)
               case Validated.Invalid(errs) => completeErrors(errs)
             }

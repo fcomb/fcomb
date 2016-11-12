@@ -63,7 +63,7 @@ object RepositoriesHandler {
           entity(as[ImageCreateRequest]) { req =>
             onSuccess(ImagesRepo.create(req, org, userId)) {
               case Validated.Valid(image) =>
-                val res = ImageHelpers.responseFrom(image, Action.Manage)
+                val res = ImageHelpers.response(image, Action.Manage)
                 completeCreated(res, resourcePrefix)
               case Validated.Invalid(errs) => completeErrors(errs)
             }

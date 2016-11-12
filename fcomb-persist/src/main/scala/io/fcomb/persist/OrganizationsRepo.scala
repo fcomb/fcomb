@@ -123,7 +123,7 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     db.run(for {
       orgs  <- sortPaginate(scope, p)(sortByPF, _._1.name).result
       total <- scope.length.result
-      data = orgs.map { case (org, role) => OrganizationHelpers.responseFrom(org, role) }
+      data = orgs.map { case (org, role) => OrganizationHelpers.response(org, role) }
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
   }
 

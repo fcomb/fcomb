@@ -42,7 +42,7 @@ object RepositoriesHandler {
       tryAuthenticateUser { userOpt =>
         imageAndActionRead(slug, userOpt) {
           case (image, action) =>
-            val res = ImageHelpers.responseFrom(image, action)
+            val res = ImageHelpers.response(image, action)
             completeWithEtag(StatusCodes.OK, res)
         }
       }
@@ -56,7 +56,7 @@ object RepositoriesHandler {
             entity(as[ImageUpdateRequest]) { req =>
               onSuccess(ImagesRepo.update(image.getId(), req)) {
                 case Validated.Valid(updated) =>
-                  val res = ImageHelpers.responseFrom(updated, action)
+                  val res = ImageHelpers.response(updated, action)
                   complete((StatusCodes.Accepted, res))
                 case Validated.Invalid(errs) => completeErrors(errs)
               }

@@ -20,7 +20,7 @@ import io.fcomb.models.docker.distribution.ImageWebhook
 import io.fcomb.rpc.docker.distribution.ImageWebhookResponse
 
 object ImageWebhookHelpers {
-  def responseFrom(hook: ImageWebhook): ImageWebhookResponse =
+  def response(hook: ImageWebhook): ImageWebhookResponse =
     ImageWebhookResponse(
       id = hook.getId(),
       url = hook.url
