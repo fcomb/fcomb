@@ -20,15 +20,16 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.errors.Errors
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.UserSignUpRequest
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
+import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.Path
 import io.fcomb.utils.Config
 
@@ -38,7 +39,11 @@ object UsersHandler {
   def index =
     extractExecutionContext { implicit ec =>
       authorizeAdminUser { user =>
-        ???
+        extractPagination { pg =>
+          onSuccess(UsersRepo.paginate(pg)) { p =>
+            completePagination(UsersRepo.label, p)
+          }
+        }
       }
     }
 
@@ -62,7 +67,7 @@ object UsersHandler {
         get(index)
       } ~
       path("sign_up")(post(signUp)) ~
-      path(Path.Slug)(slug => users.RepositoriesHandler.routes(slug))
+      path(Path.Slug)(users.RepositoriesHandler.routes)
     }
     // format: ON
   }

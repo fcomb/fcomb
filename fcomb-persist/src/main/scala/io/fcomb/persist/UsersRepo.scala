@@ -22,17 +22,20 @@ import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
 import io.fcomb.PostgresProfile.api._
 import io.fcomb.PostgresProfile.createJdbcMapping
-import io.fcomb.models.{User, UserRole}
+import io.fcomb.models.{Pagination, PaginationData, User, UserRole}
 import io.fcomb.models.common.Slug
+import io.fcomb.persist.PaginationActions._
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.{
   MemberUserIdRequest,
   MemberUserRequest,
   MemberUsernameRequest,
+  UserResponse,
   UserSignUpRequest,
   UserUpdateRequest
 }
 import io.fcomb.rpc.acl.PermissionUserMemberResponse
+import io.fcomb.rpc.helpers.UserHelpers
 import io.fcomb.validation._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -58,6 +61,28 @@ final class UserTable(tag: Tag) extends Table[User](tag, "users") with PersistTa
 
 object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
   val table = TableQuery[UserTable]
+  val label = "users"
+
+  private def sortByPF(q: UserTable): PartialFunction[String, Rep[_]] = {
+    case "id"        => q.id
+    case "username"  => q.username
+    case "fullName"  => q.fullName
+    case "role"      => q.role
+    case "createdAt" => q.createdAt
+    case "updatedAt" => q.updatedAt
+  }
+
+  private lazy val totalCompiled = Compiled {
+    table.length
+  }
+
+  def paginate(p: Pagination)(
+      implicit ec: ExecutionContext): Future[PaginationData[UserResponse]] =
+    db.run(for {
+      groups <- sortPaginate(table, p)(sortByPF, _.username).result
+      total  <- totalCompiled.result
+      data = groups.map(UserHelpers.responseFrom)
+    } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
 
   def create(
       email: String,
