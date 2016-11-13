@@ -74,20 +74,27 @@ object LayoutComponent {
                          iconElementRight = renderRightMenu(page),
                          showMenuIconButton = isLogged)())
 
-    def renderDrawer(state: State) =
-      MuiDrawer(docked = false, open = state.isOpen, onRequestChange = closeDrawer _)(
-        MuiSubheader(key = "my")("My"),
-        MuiMenuItem(key = "repos",
-                    primaryText = "Repositories",
-                    onTouchTap = setRoute(DashboardRoute.Repositories) _)(),
-        MuiMenuItem(key = "orgs",
-                    primaryText = "Organizations",
-                    onTouchTap = setRoute(DashboardRoute.Organizations) _)(),
-        MuiSubheader(key = "settings")("Settings"),
-        MuiMenuItem(key = "users",
-                    primaryText = "Users",
-                    onTouchTap = setRoute(DashboardRoute.UsersSettings) _)()
-      )
+    lazy val mainMenuItems = Seq(
+      MuiSubheader(key = "my")("My"),
+      MuiMenuItem(key = "repos",
+                  primaryText = "Repositories",
+                  onTouchTap = setRoute(DashboardRoute.Repositories) _)(),
+      MuiMenuItem(key = "orgs",
+                  primaryText = "Organizations",
+                  onTouchTap = setRoute(DashboardRoute.Organizations) _)())
+
+    lazy val settingsMenuItems = Seq(MuiSubheader(key = "settings")("Settings"),
+                                     MuiMenuItem(key = "users",
+                                                 primaryText = "Users",
+                                                 onTouchTap =
+                                                   setRoute(DashboardRoute.UsersSettings) _)())
+
+    def renderDrawer(state: State) = {
+      val menuItems =
+        if (AppCircuit.currentUserIsAdmin) mainMenuItems ++ settingsMenuItems
+        else mainMenuItems
+      MuiDrawer(docked = false, open = state.isOpen, onRequestChange = closeDrawer _)(menuItems)
+    }
 
     def render(props: Props, state: State) =
       sessionConn { sessionProxy =>

@@ -46,6 +46,7 @@ object Formats {
 
   final implicit val decodeOwnerKind: Decoder[OwnerKind] = Circe.decoder(OwnerKind)
   final implicit val decodeEventKind: Decoder[EventKind] = Circe.decoder(EventKind)
+  final implicit val decodeUserRole: Decoder[UserRole]   = Circe.decoder(UserRole)
 
   final implicit val decodeOwner: Decoder[Owner]     = deriveDecoder
   final implicit val decodeSession: Decoder[Session] = deriveDecoder

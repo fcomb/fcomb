@@ -21,5 +21,5 @@ case class Session(token: String)
 sealed trait SessionPayload
 
 object SessionPayload {
-  final case class User(id: Int, username: String) extends SessionPayload
+  final case class User(id: Int, username: String, role: UserRole) extends SessionPayload
 }
