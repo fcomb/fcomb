@@ -33,7 +33,7 @@ object UsersFixture {
       username: String = username,
       password: String = password,
       fullName: Option[String] = fullName,
-      role: UserRole = UserRole.Developer
+      role: UserRole = UserRole.User
   ): Future[User] =
     UsersRepo
       .create(

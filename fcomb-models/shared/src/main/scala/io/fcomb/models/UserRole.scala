@@ -21,8 +21,8 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait UserRole extends EnumItem
 
 object UserRole extends Enum[UserRole] {
-  case object Admin     extends UserRole
-  case object Developer extends UserRole
+  case object Admin extends UserRole
+  case object User  extends UserRole
 
   val values = findValues
 }

@@ -19,14 +19,14 @@ package io.fcomb.server.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.crypto.Jwt
 import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.errors.Errors
-import io.fcomb.models.SessionPayload
+import io.fcomb.models.{SessionPayload, UserRole}
 import io.fcomb.rpc._
 import io.fcomb.server.Api
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests._
 import java.time.Instant
@@ -49,7 +49,7 @@ final class SessionsHandlerSpec
     super.beforeAll()
 
     // FIXME: warming jwt-scala
-    Jwt.encode(SessionPayload.User(0, "noname"), "secret", Instant.now(), 1)
+    Jwt.encode(SessionPayload.User(0, "noname", UserRole.User), "secret", Instant.now(), 1)
     ()
   }
 

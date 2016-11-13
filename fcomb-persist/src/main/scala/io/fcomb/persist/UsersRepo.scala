@@ -118,7 +118,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       username = req.username,
       fullName = fullName,
       password = req.password,
-      role = UserRole.Developer
+      role = UserRole.User
     )
   }
 
