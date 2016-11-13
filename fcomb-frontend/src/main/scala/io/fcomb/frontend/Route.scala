@@ -93,5 +93,16 @@ object DashboardRoute {
   }
   final case class User(slug: String) extends UserRoute
 
+  sealed trait SettingsRoute extends DashboardRoute {
+    def title = "Settings"
+  }
+  final case object UsersSettings extends SettingsRoute {
+    override def title = s"${super.title} – Users"
+  }
+  // final case class UserSettings(slug: String) extends SettingsRoute
+  // final case object GarbageCollectorSettings  extends SettingsRoute
+  // final case object SecuritySettings          extends SettingsRoute
+  // final case object TlsSettings               extends SettingsRoute
+
   final implicit val valueEq: Eq[DashboardRoute] = Eq.fromUniversalEquals
 }

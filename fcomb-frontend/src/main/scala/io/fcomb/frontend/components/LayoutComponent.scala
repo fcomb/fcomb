@@ -76,12 +76,17 @@ object LayoutComponent {
 
     def renderDrawer(state: State) =
       MuiDrawer(docked = false, open = state.isOpen, onRequestChange = closeDrawer _)(
+        MuiSubheader(key = "my")("My"),
         MuiMenuItem(key = "repos",
                     primaryText = "Repositories",
                     onTouchTap = setRoute(DashboardRoute.Repositories) _)(),
         MuiMenuItem(key = "orgs",
                     primaryText = "Organizations",
-                    onTouchTap = setRoute(DashboardRoute.Organizations) _)()
+                    onTouchTap = setRoute(DashboardRoute.Organizations) _)(),
+        MuiSubheader(key = "settings")("Settings"),
+        MuiMenuItem(key = "users",
+                    primaryText = "Users",
+                    onTouchTap = setRoute(DashboardRoute.UsersSettings) _)()
       )
 
     def render(props: Props, state: State) =

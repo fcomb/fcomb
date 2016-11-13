@@ -20,10 +20,11 @@ import io.fcomb.frontend.components.auth._
 import io.fcomb.frontend.components.dashboard._
 import io.fcomb.frontend.components.organization._
 import io.fcomb.frontend.components.repository._
+import io.fcomb.frontend.components.settings._
 import io.fcomb.frontend.dispatcher.{AppCircuit => AC}
 import io.fcomb.frontend.{DashboardRoute, Route}
-import japgolly.scalajs.react.extra.router._
 import japgolly.scalajs.react._
+import japgolly.scalajs.react.extra.router._
 
 object RouterComponent {
   val baseUrl = BaseUrl.fromWindowOrigin / "#"
@@ -78,7 +79,10 @@ object RouterComponent {
     dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat)).caseClass[DashboardRoute.OrganizationGroup]) ~>
       dynRenderR((og, ctl) => GroupComponent(ctl, og.slug, og.group)) |
     dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat) / "edit").caseClass[DashboardRoute.EditOrganizationGroup]) ~>
-      dynRenderR((og, ctl) => EditGroupComponent(ctl, og.slug, og.group))
+      dynRenderR((og, ctl) => EditGroupComponent(ctl, og.slug, og.group)) |
+    // settings
+    staticRoute("settings" / "users", DashboardRoute.UsersSettings) ~>
+      renderR(ctl => UsersComponent(ctl))
     // format: ON
   }
 
