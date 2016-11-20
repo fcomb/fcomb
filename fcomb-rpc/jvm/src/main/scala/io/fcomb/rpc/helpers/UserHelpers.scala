@@ -25,7 +25,8 @@ object UserHelpers {
       id = user.getId(),
       email = user.email,
       username = user.username,
-      fullName = user.fullName
+      fullName = user.fullName,
+      role = user.role
     )
 
   def response(user: User): UserResponse =

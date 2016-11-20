@@ -67,6 +67,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     case "id"        => q.id
     case "username"  => q.username
     case "fullName"  => q.fullName
+    case "email"     => q.email
     case "role"      => q.role
     case "createdAt" => q.createdAt
     case "updatedAt" => q.updatedAt

@@ -19,6 +19,7 @@ package io.fcomb.json.rpc
 import cats.syntax.either._
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, DecodingFailure, Encoder}
+import io.fcomb.json.models.Formats.{decodeUserRole, encodeUserRole}
 import io.fcomb.json.models.acl.Formats._
 import io.fcomb.rpc._
 

@@ -252,6 +252,12 @@ object Rpc {
                                      Resource.organizationGroupSuggestionsMembers(slug, group),
                                      Map("q" -> q))
 
+  def getUsers(sortColumn: String, sortOrder: SortOrder, page: Int, limit: Int)(
+      implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[UserProfileResponse]](RpcMethod.GET, Resource.users, queryParams)
+  }
+
   def signUp(email: String, password: String, username: String, fullName: Option[String])(
       implicit ec: ExecutionContext) = {
     val req = UserSignUpRequest(

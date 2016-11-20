@@ -16,6 +16,8 @@
 
 package io.fcomb.rpc
 
+import io.fcomb.models.UserRole
+
 final case class UserSignUpRequest(
     email: String,
     password: String,
@@ -32,7 +34,8 @@ final case class UserProfileResponse(
     id: Int,
     email: String,
     username: String,
-    fullName: Option[String]
+    fullName: Option[String],
+    role: UserRole
 ) {
   def title = username + fullName.map(n => s" ($n)").getOrElse("")
 }

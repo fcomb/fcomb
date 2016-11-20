@@ -99,7 +99,6 @@ object DashboardRoute {
   final case object UsersSettings extends SettingsRoute {
     override def title = s"${super.title} – Users"
   }
-  // final case class UserSettings(slug: String) extends SettingsRoute
   // final case object GarbageCollectorSettings  extends SettingsRoute
   // final case object SecuritySettings          extends SettingsRoute
   // final case object TlsSettings               extends SettingsRoute
