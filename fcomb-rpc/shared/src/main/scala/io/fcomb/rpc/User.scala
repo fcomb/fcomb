@@ -30,7 +30,7 @@ final case class UserUpdateRequest(
     fullName: Option[String]
 )
 
-final case class UserProfileResponse(
+final case class UserResponse(
     id: Int,
     email: String,
     username: String,
@@ -40,7 +40,7 @@ final case class UserProfileResponse(
   def title = username + fullName.map(n => s" ($n)").getOrElse("")
 }
 
-final case class UserResponse(
+final case class UserProfileResponse(
     id: Int,
     username: String,
     fullName: Option[String]

@@ -86,8 +86,7 @@ object LayoutComponent {
     lazy val settingsMenuItems = Seq(MuiSubheader(key = "settings")("Settings"),
                                      MuiMenuItem(key = "users",
                                                  primaryText = "Users",
-                                                 onTouchTap =
-                                                   setRoute(DashboardRoute.UsersSettings) _)())
+                                                 onTouchTap = setRoute(DashboardRoute.Users) _)())
 
     def renderDrawer(state: State) = {
       val menuItems =

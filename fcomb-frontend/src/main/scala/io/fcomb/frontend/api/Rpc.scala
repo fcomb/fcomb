@@ -231,9 +231,9 @@ object Rpc {
                                  page: Int,
                                  limit: Int)(implicit ec: ExecutionContext) = {
     val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
-    call[PaginationData[UserResponse]](RpcMethod.GET,
-                                       Resource.organizationGroupMembers(slug, group),
-                                       queryParams)
+    call[PaginationData[UserProfileResponse]](RpcMethod.GET,
+                                              Resource.organizationGroupMembers(slug, group),
+                                              queryParams)
   }
 
   def upsertOrganizationGroupMember(slug: String, group: String, username: String)(
@@ -248,15 +248,19 @@ object Rpc {
 
   def getOrganizationGroupMembers(slug: String, group: String, q: String)(
       implicit ec: ExecutionContext) =
-    call[DataResponse[UserResponse]](RpcMethod.GET,
-                                     Resource.organizationGroupSuggestionsMembers(slug, group),
-                                     Map("q" -> q))
+    call[DataResponse[UserProfileResponse]](
+      RpcMethod.GET,
+      Resource.organizationGroupSuggestionsMembers(slug, group),
+      Map("q" -> q))
 
   def getUsers(sortColumn: String, sortOrder: SortOrder, page: Int, limit: Int)(
       implicit ec: ExecutionContext) = {
     val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
-    call[PaginationData[UserProfileResponse]](RpcMethod.GET, Resource.users, queryParams)
+    call[PaginationData[UserResponse]](RpcMethod.GET, Resource.users, queryParams)
   }
+
+  def deleteUser(slug: String)(implicit ec: ExecutionContext) =
+    call[Unit](RpcMethod.DELETE, Resource.user(slug))
 
   def signUp(email: String, password: String, username: String, fullName: Option[String])(
       implicit ec: ExecutionContext) = {

@@ -26,9 +26,7 @@ object Filters {
       f: (E, String) => PartialFunction[String, Rep[Boolean]]): Query[E, U, Seq] =
     filters.foldLeft(query) {
       case (q, (column, value)) =>
-        q.filter { t =>
-          f(t, value).orElse(defaultFilter).apply(column)
-        }
+        q.filter(t => f(t, value).orElse(defaultFilter).apply(column))
     }
 
   def filter[E, U](query: Query[E, U, Seq], p: Pagination)(

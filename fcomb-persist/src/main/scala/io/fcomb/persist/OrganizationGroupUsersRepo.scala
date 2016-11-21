@@ -22,7 +22,7 @@ import io.fcomb.models.common.Slug
 import io.fcomb.models.{OrganizationGroupUser, Pagination, PaginationData}
 import io.fcomb.persist.PaginationActions._
 import io.fcomb.PostgresProfile.api._
-import io.fcomb.rpc.{MemberUserRequest, UserResponse}
+import io.fcomb.rpc.{MemberUserRequest, UserProfileResponse}
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.TransactionIsolation
 
@@ -55,12 +55,12 @@ object OrganizationGroupUsersRepo
   }
 
   def findSuggestionsUsers(groupId: Int, q: String, limit: Long = 16L)(
-      implicit ec: ExecutionContext): Future[Seq[UserResponse]] =
+      implicit ec: ExecutionContext): Future[Seq[UserProfileResponse]] =
     db.run(
       findSuggestionsUsersCompiled((groupId, s"$q%".trim, limit)).result
-        .map(_.map(UserResponse.tupled)))
+        .map(_.map(UserProfileResponse.tupled)))
 
-  type UserResponseTupleRep = (Rep[Int], Rep[String], Rep[Option[String]])
+  type UserProfileResponseTupleRep = (Rep[Int], Rep[String], Rep[Option[String]])
 
   private def findByGroupIdScopeDBIO(groupId: Rep[Int]) =
     table.join(UsersRepo.table).on(_.userId === _.id).filter(_._1.groupId === groupId).map {
@@ -71,18 +71,18 @@ object OrganizationGroupUsersRepo
     findByGroupIdScopeDBIO(groupId).length
   }
 
-  private def sortByPF(q: UserResponseTupleRep): PartialFunction[String, Rep[_]] = {
+  private def sortByPF(q: UserProfileResponseTupleRep): PartialFunction[String, Rep[_]] = {
     case "id"       => q._1
     case "username" => q._2
     case "fullName" => q._3
   }
 
   def paginateByGroupId(groupId: Int, p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[UserResponse]] =
+      implicit ec: ExecutionContext): Future[PaginationData[UserProfileResponse]] =
     db.run(for {
       members <- sortPaginate(findByGroupIdScopeDBIO(groupId), p)(sortByPF, _._2).result
       total   <- findByGroupIdTotalCompiled(groupId).result
-      data = members.map(UserResponse.tupled)
+      data = members.map(UserProfileResponse.tupled)
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
 
   def createDBIO(groupId: Int, userId: Int) =

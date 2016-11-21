@@ -20,9 +20,7 @@ import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
-import io.fcomb.frontend.components.Helpers._
-import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.LayoutComponent
+import io.fcomb.frontend.components.Form
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
 import japgolly.scalajs.react.extra.router.RouterCtl
@@ -54,26 +52,18 @@ object NewOrganizationComponent {
     def handleOnSubmit(e: ReactEventH): Callback =
       e.preventDefaultCB >> create()
 
-    def updateName(e: ReactEventI): Callback = {
-      val value = e.target.value
-      $.modState(_.copy(name = value))
-    }
+    def updateName(name: String): Callback =
+      $.modState(_.copy(name = name))
 
     def renderFormName(state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "name",
-            <.div(^.`class` := "col-xs-6",
-                  MuiTextField(floatingLabelText = "Name",
-                               id = "name",
-                               name = "name",
-                               disabled = state.isDisabled,
-                               errorText = state.errors.get("name"),
-                               fullWidth = true,
-                               value = state.name,
-                               onChange = updateName _)()),
-            <.div(LayoutComponent.helpBlockClass,
-                  ^.style := App.helpBlockStyle,
-                  <.label(^.`for` := "name", "Unique organization name.")))
+      Form.row(Form.textField(label = "Name",
+                              key = "name",
+                              isDisabled = state.isDisabled,
+                              errors = state.errors,
+                              value = state.name,
+                              onChange = updateName _),
+               <.label(^.`for` := "name", "Unique organization name."),
+               "name")
 
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.props.flatMap(_.ctl.set(DashboardRoute.Organizations))

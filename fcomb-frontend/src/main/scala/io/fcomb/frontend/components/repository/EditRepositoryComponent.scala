@@ -80,10 +80,8 @@ object EditRepositoryComponent {
     def updateVisibilityKind(e: ReactEventI, value: String): Callback =
       modFormState(_.copy(visibilityKind = ImageVisibilityKind.withName(value)))
 
-    def updateDescription(e: ReactEventI): Callback = {
-      val description = e.target.value
+    def updateDescription(description: String): Callback =
       modFormState(_.copy(description = description))
-    }
 
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.props.flatMap(p => p.ctl.set(DashboardRoute.Repository(p.slug)))

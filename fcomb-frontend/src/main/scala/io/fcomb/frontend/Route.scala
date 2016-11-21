@@ -93,11 +93,15 @@ object DashboardRoute {
   }
   final case class User(slug: String) extends UserRoute
 
-  sealed trait SettingsRoute extends DashboardRoute {
-    def title = "Settings"
+  sealed trait SettingsRoute extends DashboardRoute
+  final case object Users extends SettingsRoute {
+    override def title = "Users"
   }
-  final case object UsersSettings extends SettingsRoute {
-    override def title = s"${super.title} – Users"
+  final case object NewUser extends SettingsRoute {
+    override def title = Users.title
+  }
+  final case object EditUser extends SettingsRoute {
+    override def title = Users.title
   }
   // final case object GarbageCollectorSettings  extends SettingsRoute
   // final case object SecuritySettings          extends SettingsRoute

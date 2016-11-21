@@ -81,7 +81,7 @@ object RouterComponent {
     dynamicRouteCT((organizationNamePath / "groups" / string(slugFormat) / "edit").caseClass[DashboardRoute.EditOrganizationGroup]) ~>
       dynRenderR((og, ctl) => EditGroupComponent(ctl, og.slug, og.group)) |
     // settings
-    staticRoute("settings" / "users", DashboardRoute.UsersSettings) ~>
+    staticRoute("settings" / "users", DashboardRoute.Users) ~>
       renderR(ctl => UsersComponent(ctl))
     // format: ON
   }

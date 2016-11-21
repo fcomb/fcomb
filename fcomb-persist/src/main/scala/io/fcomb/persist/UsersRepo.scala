@@ -30,7 +30,7 @@ import io.fcomb.rpc.{
   MemberUserIdRequest,
   MemberUserRequest,
   MemberUsernameRequest,
-  UserProfileResponse,
+  UserResponse,
   UserSignUpRequest,
   UserUpdateRequest
 }
@@ -78,11 +78,11 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
   }
 
   def paginate(p: Pagination)(
-      implicit ec: ExecutionContext): Future[PaginationData[UserProfileResponse]] =
+      implicit ec: ExecutionContext): Future[PaginationData[UserResponse]] =
     db.run(for {
       groups <- sortPaginate(table, p)(sortByPF, _.username).result
       total  <- totalCompiled.result
-      data = groups.map(UserHelpers.profileResponse)
+      data = groups.map(UserHelpers.response)
     } yield PaginationData(data, total = total, offset = p.offset, limit = p.limit))
 
   def create(

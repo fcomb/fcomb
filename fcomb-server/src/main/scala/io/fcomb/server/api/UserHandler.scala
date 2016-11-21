@@ -20,7 +20,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import io.fcomb.server.CommonDirectives._
-import io.fcomb.json.rpc.Formats.encodeUserProfileResponse
+import io.fcomb.json.rpc.Formats.encodeUserResponse
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.rpc.helpers.UserHelpers
 
@@ -29,7 +29,7 @@ object UserHandler {
 
   def current =
     authenticateUser { user =>
-      completeWithEtag(StatusCodes.OK, UserHelpers.profileResponse(user))
+      completeWithEtag(StatusCodes.OK, UserHelpers.response(user))
     }
 
   // def updateProfile(

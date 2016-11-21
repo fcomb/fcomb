@@ -19,9 +19,8 @@ package io.fcomb.frontend.components.repository
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
+import io.fcomb.frontend.components.Form
 import io.fcomb.frontend.components.Helpers._
-import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.LayoutComponent
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
@@ -67,20 +66,16 @@ object NewRepositoryComponent {
     def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> create(props)
 
-    def updateName(e: ReactEventI): Callback = {
-      val value = e.target.value
-      $.modState(_.copy(name = value))
-    }
+    def updateName(name: String): Callback =
+      $.modState(_.copy(name = name))
 
     def updateVisibilityKind(e: ReactEventI, value: String): Callback = {
       val kind = ImageVisibilityKind.withName(value)
       $.modState(_.copy(visibilityKind = kind))
     }
 
-    def updateDescription(e: ReactEventI): Callback = {
-      val value = e.target.value
-      $.modState(_.copy(description = value))
-    }
+    def updateDescription(description: String): Callback =
+      $.modState(_.copy(description = description))
 
     def updateNamespace(namespace: Namespace) =
       namespace match {
@@ -89,37 +84,26 @@ object NewRepositoryComponent {
       }
 
     def renderNamespace(props: Props, state: State) =
-      <.div(
-        ^.`class` := "row",
-        ^.key := "namespaceRow",
-        <.div(^.`class` := "col-xs-6",
-              NamespaceComponent(props.namespace,
-                                 canCreateRoleOnly = true,
-                                 isAllNamespace = false,
-                                 isDisabled = state.isDisabled,
-                                 isFullWidth = true,
-                                 cb = updateNamespace _)),
-        <.div(
-          LayoutComponent.helpBlockClass,
-          ^.style := App.helpBlockStyle,
-          <.label(^.`for` := "namespace", "An account which will be the owner of repository.")))
+      Form.row(
+        NamespaceComponent(props.namespace,
+                           canCreateRoleOnly = true,
+                           isAllNamespace = false,
+                           isDisabled = state.isDisabled,
+                           isFullWidth = true,
+                           cb = updateNamespace _),
+        <.label(^.`for` := "namespace", "An account which will be the owner of repository."),
+        "namespace")
 
     def renderName(state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "nameRow",
-            <.div(^.`class` := "col-xs-6",
-                  MuiTextField(floatingLabelText = "Name",
-                               id = "name",
-                               name = "name",
-                               disabled = state.isDisabled,
-                               errorText = state.errors.get("name"),
-                               fullWidth = true,
-                               value = state.name,
-                               onChange = updateName _)()),
-            <.div(LayoutComponent.helpBlockClass,
-                  ^.style := App.helpBlockStyle,
-                  <.label(^.`for` := "name",
-                          "Enter a name for repository that will be used by docker or rkt.")))
+      Form.row(Form.textField(label = "Name",
+                              key = "name",
+                              isDisabled = state.isDisabled,
+                              errors = state.errors,
+                              value = state.name,
+                              onChange = updateName _),
+               <.label(^.`for` := "name",
+                       "Enter a name for repository that will be used by docker or rkt."),
+               "name")
 
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.props.flatMap(_.ctl.set(DashboardRoute.Repositories))

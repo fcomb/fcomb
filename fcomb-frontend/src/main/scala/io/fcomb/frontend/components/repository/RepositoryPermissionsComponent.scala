@@ -24,8 +24,7 @@ import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Helpers._
-import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.{LayoutComponent, PaginationOrderState, TableComponent}
+import io.fcomb.frontend.components.{Form, PaginationOrderState, TableComponent}
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.errors.ErrorsException
@@ -188,23 +187,19 @@ object RepositoryPermissionsComponent {
     def updateMember(member: PermissionMemberResponse): Callback =
       modFormState(_.copy(member = Some(member)))
 
-    def updateAction(e: ReactEventI, idx: Int, action: Action): Callback =
+    def updateAction(action: Action): Callback =
       modFormState(_.copy(action = action))
 
     def renderFormMember(props: Props, state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "member",
-            <.div(^.`class` := "col-xs-6",
-                  MemberComponent(props.slug,
-                                  props.ownerKind,
-                                  state.form.member.map(_.title),
-                                  state.form.isDisabled,
-                                  state.form.errors.get("member"),
-                                  isFullWidth = true,
-                                  updateMember _)),
-            <.div(LayoutComponent.helpBlockClass,
-                  ^.style := App.helpBlockStyle,
-                  <.label(^.`for` := "member", "Who will be added to this repository.")))
+      Form.row(MemberComponent(props.slug,
+                               props.ownerKind,
+                               state.form.member.map(_.title),
+                               state.form.isDisabled,
+                               state.form.errors.get("member"),
+                               isFullWidth = true,
+                               updateMember _),
+               <.label(^.`for` := "member", "Who will be added to this repository."),
+               "member")
 
     lazy val actionHelpBlock =
       <.div("What can an user do with this repository:",
@@ -213,18 +208,15 @@ object RepositoryPermissionsComponent {
                  <.li(<.strong("Manage"), " - pull, push and manage permissions.")))
 
     def renderFormAction(state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "action",
-            <.div(^.`class` := "col-xs-6",
-                  MuiSelectField[Action](id = "action",
-                                         floatingLabelText = "Action",
-                                         errorText = state.form.errors.get("action"),
-                                         value = state.form.action,
-                                         fullWidth = true,
-                                         onChange = updateAction _)(actions)),
-            <.div(LayoutComponent.helpBlockClass,
-                  ^.style := App.helpBlockStyle,
-                  <.label(^.`for` := "action", actionHelpBlock)))
+      Form.row(Form.selectEnum(enum = Action,
+                               key = "action",
+                               label = "Action",
+                               isDisabled = state.form.isDisabled,
+                               errors = state.form.errors,
+                               value = state.form.action,
+                               onChange = updateAction _),
+               <.label(^.`for` := "action", actionHelpBlock),
+               "action")
 
     def renderFormButton(state: State) =
       <.div(^.style := App.paddingTopStyle,

@@ -54,10 +54,10 @@ final class UsersHandlerSpec
 
       Get(s"/v1/users") ~> authenticate(admin) ~> route ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[DataResponse[UserProfileResponse]].data should contain theSameElementsAs Seq(
-          UserHelpers.profileResponse(admin),
-          UserHelpers.profileResponse(user1),
-          UserHelpers.profileResponse(user2))
+        responseAs[DataResponse[UserResponse]].data should contain theSameElementsAs Seq(
+          UserHelpers.response(admin),
+          UserHelpers.response(user1),
+          UserHelpers.response(user2))
       }
     }
 

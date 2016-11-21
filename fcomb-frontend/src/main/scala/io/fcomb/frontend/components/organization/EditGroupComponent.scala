@@ -81,12 +81,10 @@ object EditGroupComponent {
     def handleOnSubmit(e: ReactEventH): Callback =
       e.preventDefaultCB >> update()
 
-    def updateName(e: ReactEventI): Callback = {
-      val name = e.target.value
+    def updateName(name: String): Callback =
       modFormState(_.copy(name = name))
-    }
 
-    def updateRole(e: ReactEventI, idx: Int, role: Role): Callback =
+    def updateRole(role: Role): Callback =
       modFormState(_.copy(role = role))
 
     def cancel(e: ReactEventH): Callback =

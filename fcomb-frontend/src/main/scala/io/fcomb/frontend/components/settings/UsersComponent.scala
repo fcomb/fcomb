@@ -22,24 +22,29 @@ import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{
+  AlertDialogComponent,
+  ConfirmationDialogComponent,
   FloatActionButtonComponent,
-  LayoutComponent,
   PaginationOrderState,
   TableComponent
 }
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
-import io.fcomb.rpc.UserProfileResponse
 import io.fcomb.models.errors.ErrorsException
+import io.fcomb.rpc.UserResponse
+import japgolly.scalajs.react._
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
-import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 import scalacss.ScalaCssReact._
 
 object UsersComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
-  final case class State(users: Pot[Seq[UserProfileResponse]], pagination: PaginationOrderState) {
+  final case class State(users: Pot[Seq[UserResponse]],
+                         pagination: PaginationOrderState,
+                         isConfirmationOpen: Boolean,
+                         error: Option[String]) {
     def flipSortColumn(column: String): State = {
       val sortOrder =
         if (pagination.sortColumn == column) pagination.sortOrder.flip
@@ -69,7 +74,7 @@ object UsersComponent {
         case Left(errs) => $.modState(_.copy(users = Failed(ErrorsException(errs))))
       })
 
-    def renderUser(ctl: RouterCtl[DashboardRoute], user: UserProfileResponse) = {
+    def renderUser(ctl: RouterCtl[DashboardRoute], user: UserResponse) = {
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
       val actions = Seq(
@@ -93,7 +98,7 @@ object UsersComponent {
         _     <- getUsers(state.pagination)
       } yield ()
 
-    def renderUsers(props: Props, users: Seq[UserProfileResponse], p: PaginationOrderState) =
+    def renderUsers(props: Props, users: Seq[UserResponse], p: PaginationOrderState) =
       if (users.isEmpty) <.div(App.infoMsg, "There are no users to show yet")
       else {
         val columns = Seq(TableComponent.header("Username", "username", p, updateSort _),
@@ -105,17 +110,44 @@ object UsersComponent {
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
-    def render(props: Props, state: State): ReactElement =
+    def delete(e: ReactTouchEventH): Callback = ???
+
+    def updateConfirmationState(isOpen: Boolean): Callback =
+      $.modState(_.copy(isConfirmationOpen = isOpen))
+
+    def openDialog(e: ReactTouchEventH): Callback =
+      updateConfirmationState(true)
+
+    lazy val actions = js.Array(
+      MuiFlatButton(key = "destroy", label = "Destroy", primary = true, onTouchTap = delete _)())
+
+    def render(props: Props, state: State): ReactElement = {
+      val confirmationDialog = ConfirmationDialogComponent("Are you sure you want to delete this?",
+                                                           actions,
+                                                           isModal = false,
+                                                           state.isConfirmationOpen,
+                                                           updateConfirmationState _)
+      val alertDialog: ReactNode = state.error match {
+        case Some(error) =>
+          AlertDialogComponent("An error occurred while trying to delete this user",
+                               isModal = false,
+                               <.span(error))
+        case _ => <.div()
+      }
       <.section(
-        // FloatActionButtonComponent(props.ctl, DashboardRoute.NewOrganization, "New user"),
+        alertDialog,
+        confirmationDialog,
+        FloatActionButtonComponent(props.ctl, DashboardRoute.NewUser, "New user"),
         MuiCard(key = "orgs")(MuiCardText(key = "users")(state.users.render(us =>
           renderUsers(props, us, state.pagination))))
       )
+    }
   }
 
   private val component =
     ReactComponentB[Props]("Users")
-      .initialState(State(Empty, PaginationOrderState("username")))
+      .initialState(
+        State(Empty, PaginationOrderState("username"), isConfirmationOpen = false, None))
       .renderBackend[Backend]
       .componentDidMount($ => $.backend.getUsers($.state.pagination))
       .build

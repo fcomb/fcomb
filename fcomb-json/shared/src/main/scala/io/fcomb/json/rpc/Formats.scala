@@ -25,8 +25,8 @@ import io.fcomb.rpc._
 
 object Formats {
   final implicit val encodeSessionCreateRequest: Encoder[SessionCreateRequest] = deriveEncoder
-  final implicit val encodeUserProfileResponse: Encoder[UserProfileResponse]   = deriveEncoder
   final implicit val encodeUserResponse: Encoder[UserResponse]                 = deriveEncoder
+  final implicit val encodeUserProfileResponse: Encoder[UserProfileResponse]   = deriveEncoder
   final implicit val encodeUserSignUpRequest: Encoder[UserSignUpRequest]       = deriveEncoder
   final implicit val encodeUserUpdateRequest: Encoder[UserUpdateRequest]       = deriveEncoder
   final implicit val encodeOrganizationCreateRequest: Encoder[OrganizationCreateRequest] =
@@ -50,8 +50,8 @@ object Formats {
     deriveEncoder
 
   final implicit val decodeSessionCreateRequest: Decoder[SessionCreateRequest] = deriveDecoder
-  final implicit val decodeUserProfileResponse: Decoder[UserProfileResponse]   = deriveDecoder
   final implicit val decodeUserResponse: Decoder[UserResponse]                 = deriveDecoder
+  final implicit val decodeUserProfileResponse: Decoder[UserProfileResponse]   = deriveDecoder
   final implicit val decodeUserSignUpRequest: Decoder[UserSignUpRequest]       = deriveDecoder
   final implicit val decodeUserUpdateRequest: Decoder[UserUpdateRequest]       = deriveDecoder
   final implicit val decodeOrganizationCreateRequest: Decoder[OrganizationCreateRequest] =

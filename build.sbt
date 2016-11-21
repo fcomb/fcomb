@@ -7,11 +7,10 @@ lazy val akkaHttpVersion     = "10.0.0-RC2"
 lazy val akkaVersion         = "2.4.13"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.8.1"
-lazy val circeVersion        = "0.6.0"
+lazy val circeVersion        = "0.6.1"
 lazy val commonsVersion      = "1.10"
 lazy val enumeratumVersion   = "1.5.1"
 lazy val guavaVersion        = "19.0"
-lazy val jawnVersion         = "0.10.4"
 lazy val slickPgVersion      = "0.15.0-M2"
 lazy val slickVersion        = "3.2.0-M1"
 
@@ -123,7 +122,7 @@ lazy val models = crossProject
     "com.beachape" %%% "enumeratum" % enumeratumVersion
   ))
   .jvmSettings(libraryDependencies ++= Seq(
-    "com.github.t3hnar" %% "scala-bcrypt" % "2.6"
+    "com.github.t3hnar" %% "scala-bcrypt" % "3.0"
   ))
 
 lazy val modelsJVM = models.jvm
@@ -184,9 +183,8 @@ lazy val json = crossProject
     ))
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "io.circe"       %% "circe-java8" % circeVersion,
-      "io.circe"       %% "circe-jawn"  % circeVersion,
-      "org.spire-math" %% "jawn-parser" % jawnVersion
+      "io.circe" %% "circe-java8" % circeVersion,
+      "io.circe" %% "circe-jawn"  % circeVersion
     ))
 
 lazy val jsonJVM = json.jvm
@@ -238,7 +236,7 @@ lazy val server = project
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"       % akkaHttpVersion,
-      "io.fcomb"          %% "akka-http-circe" % "1.0-RC2"
+      "io.fcomb"          %% "akka-http-circe" % "1.0-RC3"
     ))
 
 lazy val dockerDistribution = project
@@ -291,7 +289,7 @@ lazy val frontend = project
       assert(s"${baseDirectory.value}/build.sh".! == 0, "js build error")
     },
     libraryDependencies ++= Seq(
-      "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.5.0",
+      "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.5.1",
       "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.3",
       "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.5.0",
       "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
