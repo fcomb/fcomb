@@ -3,8 +3,8 @@ import com.typesafe.sbt.SbtGhPages.GhPagesKeys._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
-lazy val akkaHttpVersion     = "10.0.0-RC2"
-lazy val akkaVersion         = "2.4.13"
+lazy val akkaHttpVersion     = "10.0.0"
+lazy val akkaVersion         = "2.4.14"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.8.1"
 lazy val circeVersion        = "0.6.1"
@@ -236,7 +236,7 @@ lazy val server = project
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"       % akkaHttpVersion,
-      "io.fcomb"          %% "akka-http-circe" % "1.0-RC3"
+      "io.fcomb"          %% "akka-http-circe" % "1.0.0"
     ))
 
 lazy val dockerDistribution = project
