@@ -25,18 +25,13 @@ final case class UserSignUpRequest(
     fullName: Option[String]
 )
 
-final case class UserUpdateRequest(
-    email: String,
-    fullName: Option[String]
-)
-
 final case class UserResponse(
     id: Int,
     email: String,
     username: String,
     fullName: Option[String],
     role: UserRole
-) {
+) extends ResponseModelWithIntPk {
   def title = username + fullName.map(n => s" ($n)").getOrElse("")
 }
 
@@ -47,3 +42,18 @@ final case class UserProfileResponse(
 ) {
   def title = username + fullName.map(n => s" ($n)").getOrElse("")
 }
+
+final case class UserCreateRequest(
+    email: String,
+    password: String,
+    username: String,
+    fullName: Option[String],
+    role: UserRole
+)
+
+final case class UserUpdateRequest(
+    email: String,
+    password: Option[String],
+    fullName: Option[String],
+    role: UserRole
+)

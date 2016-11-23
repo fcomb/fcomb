@@ -24,7 +24,6 @@ import io.fcomb.models.acl.Action
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
-import io.fcomb.server.api.apiVersion
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
@@ -33,8 +32,6 @@ import io.fcomb.server.PaginationDirectives._
 
 object RepositoriesHandler {
   val handlerPath = "repositories"
-
-  lazy val resourcePrefix = s"/$apiVersion/${RepositoriesHandler.handlerPath}/"
 
   def index =
     extractExecutionContext { implicit ec =>
@@ -53,9 +50,7 @@ object RepositoriesHandler {
       authenticateUser { user =>
         extractPagination { pg =>
           val res = ImagesRepo.paginateAvailableByUserId(user.getId(), pg)
-          onSuccess(res) { p =>
-            completePagination(ImagesRepo.label, p)
-          }
+          onSuccess(res)(completePagination(ImagesRepo.label, _))
         }
       }
     }
@@ -66,15 +61,14 @@ object RepositoriesHandler {
         entity(as[ImageCreateRequest]) { req =>
           onSuccess(ImagesRepo.create(req, user)) {
             case Validated.Valid(image) =>
-              val res = ImageHelpers.response(image, Action.Manage)
-              completeCreated(res, resourcePrefix)
+              completeCreated(ImageHelpers.response(image, Action.Manage))
             case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }
     }
 
-  val routes: Route = {
+  val routes: Route =
     // format: OFF
     pathPrefix(handlerPath) {
       pathEnd {
@@ -84,5 +78,4 @@ object RepositoriesHandler {
       path("available")(get(available))
     }
     // format: ON
-  }
 }

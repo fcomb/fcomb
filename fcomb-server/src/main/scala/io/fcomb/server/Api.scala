@@ -24,7 +24,7 @@ import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.headers._
 
 object Api {
-  val routes: Route = {
+  val routes: Route =
     // format: OFF
     pathPrefix(apiVersion) {
       redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
@@ -39,7 +39,6 @@ object Api {
     } ~
     path("health")(completeWithStatus(StatusCodes.OK))
     // format: ON
-  }
 
   private val defaultHeaders = List(
     `X-Content-Type-Options`("nosniff"),

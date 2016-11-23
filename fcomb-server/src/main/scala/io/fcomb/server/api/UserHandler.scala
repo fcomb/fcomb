@@ -89,7 +89,7 @@ object UserHandler {
   //     }
   //   }
 
-  val routes: Route = {
+  val routes: Route =
     // format: OFF
     pathPrefix(handlerPath) {
       pathEnd {
@@ -99,5 +99,4 @@ object UserHandler {
       user.RepositoriesHandler.routes
     }
     // format: ON
-  }
 }

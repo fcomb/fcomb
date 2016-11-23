@@ -33,7 +33,7 @@ import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
-import io.fcomb.models.{Owner, OwnerKind, PaginationData, Session, SortOrder}
+import io.fcomb.models.{Owner, OwnerKind, PaginationData, Session, SortOrder, UserRole}
 import io.fcomb.rpc.acl._
 import io.fcomb.rpc.docker.distribution._
 import io.fcomb.rpc._
@@ -257,6 +257,19 @@ object Rpc {
       implicit ec: ExecutionContext) = {
     val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
     call[PaginationData[UserResponse]](RpcMethod.GET, Resource.users, queryParams)
+  }
+
+  def createUser(email: String,
+                 password: String,
+                 username: String,
+                 fullName: Option[String],
+                 role: UserRole)(implicit ec: ExecutionContext) = {
+    val req = UserCreateRequest(email = email,
+                                password = password,
+                                username = username,
+                                fullName = fullName,
+                                role = role)
+    callWith[UserCreateRequest, UserResponse](RpcMethod.POST, Resource.users, req)
   }
 
   def deleteUser(slug: String)(implicit ec: ExecutionContext) =

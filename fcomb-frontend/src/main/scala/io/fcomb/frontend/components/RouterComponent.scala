@@ -82,7 +82,9 @@ object RouterComponent {
       dynRenderR((og, ctl) => EditGroupComponent(ctl, og.slug, og.group)) |
     // settings
     staticRoute("settings" / "users", DashboardRoute.Users) ~>
-      renderR(ctl => UsersComponent(ctl))
+      renderR(ctl => UsersComponent(ctl)) |
+    staticRoute("settings" / "users" / "new", DashboardRoute.NewUser) ~>
+      renderR(ctl => NewUserComponent(ctl))
     // format: ON
   }
 

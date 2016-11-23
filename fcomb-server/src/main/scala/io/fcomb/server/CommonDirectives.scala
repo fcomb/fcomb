@@ -53,20 +53,18 @@ object CommonDirectives {
         complete(notModified)
       case _ =>
         val headers = immutable.Seq(ETag(etagHash, false))
-        respondWithHeaders(headers) {
-          complete((status, item))
-        }
+        respondWithHeaders(headers)(complete((status, item)))
     }
   }
 
   def completeData[T: Encoder](data: Seq[T]): Route =
     completeWithEtag(StatusCodes.OK, DataResponse(data))
 
-  def completeCreated[T: Encoder](item: T, prefix: String)(implicit idLens: IdLens[T]): Route = {
-    val uri     = prefix + idLens.get(item)
-    val headers = immutable.Seq(Location(uri))
-    respondWithHeaders(headers)(complete((StatusCodes.Created, item)))
-  }
+  def completeCreated[T: Encoder](item: T)(implicit idLens: IdLens[T]): Route =
+    extractMatchedPath { prefix =>
+      val uri = Uri(path = prefix / idLens.get(item))
+      respondWithHeader(Location(uri))(complete((StatusCodes.Created, item)))
+    }
 
   private val notModified = HttpResponse(StatusCodes.NotModified)
 }

@@ -26,7 +26,6 @@ import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.rpc.ResponseModelWithPk._
-import io.fcomb.server.api.apiVersion
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
@@ -36,8 +35,6 @@ import io.fcomb.server.PaginationDirectives._
 
 object RepositoriesHandler {
   val handlerPath = "repositories"
-
-  lazy val resourcePrefix = s"/$apiVersion/${RepositoriesHandler.handlerPath}/"
 
   def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
@@ -63,8 +60,7 @@ object RepositoriesHandler {
           entity(as[ImageCreateRequest]) { req =>
             onSuccess(ImagesRepo.create(req, org, userId)) {
               case Validated.Valid(image) =>
-                val res = ImageHelpers.response(image, Action.Manage)
-                completeCreated(res, resourcePrefix)
+                completeCreated(ImageHelpers.response(image, Action.Manage))
               case Validated.Invalid(errs) => completeErrors(errs)
             }
           }

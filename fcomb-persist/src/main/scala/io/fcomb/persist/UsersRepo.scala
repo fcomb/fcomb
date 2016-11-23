@@ -30,12 +30,14 @@ import io.fcomb.rpc.{
   MemberUserIdRequest,
   MemberUserRequest,
   MemberUsernameRequest,
+  UserCreateRequest,
   UserResponse,
   UserSignUpRequest,
   UserUpdateRequest
 }
 import io.fcomb.rpc.acl.PermissionUserMemberResponse
 import io.fcomb.rpc.helpers.UserHelpers
+import io.fcomb.utils.StringUtils
 import io.fcomb.validation._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
@@ -109,28 +111,36 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     }
   }
 
-  def create(req: UserSignUpRequest)(implicit ec: ExecutionContext): Future[ValidationModel] = {
-    val fullName = req.fullName match {
-      case res @ Some(s) if s.nonEmpty => res
-      case _                           => None
-    }
+  def create(req: UserSignUpRequest)(implicit ec: ExecutionContext): Future[ValidationModel] =
     create(
       email = req.email,
       username = req.username,
-      fullName = fullName,
+      fullName = StringUtils.trim(req.fullName),
       password = req.password,
       role = UserRole.User
     )
-  }
+
+  def create(req: UserCreateRequest)(implicit ec: ExecutionContext): Future[ValidationModel] =
+    create(
+      email = req.email,
+      username = req.username,
+      fullName = StringUtils.trim(req.fullName),
+      password = req.password,
+      role = req.role
+    )
 
   def update(id: Int, req: UserUpdateRequest)(
       implicit ec: ExecutionContext): Future[ValidationModel] =
-    update(id)(
-      _.copy(
+    update(id) { user =>
+      val passwordHash = req.password.map(_.bcrypt(generateSalt)).getOrElse(user.passwordHash)
+      user.copy(
         email = req.email,
         fullName = req.fullName,
+        role = req.role,
+        passwordHash = passwordHash,
         updatedAt = Some(OffsetDateTime.now())
-      ))
+      )
+    }
 
   private lazy val updatePasswordCompiled = Compiled { (userId: Rep[Int]) =>
     table.filter(_.id === userId).map { t =>

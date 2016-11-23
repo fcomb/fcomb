@@ -37,11 +37,10 @@ object OrganizationsHandler {
       }
     }
 
-  val routes: Route = {
+  val routes: Route =
     // format: OFF
     path(handlerPath) {
       get(index)
     }
     // format: ON
-  }
 }

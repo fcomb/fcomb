@@ -18,19 +18,107 @@ package io.fcomb.frontend.components.settings
 
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.LayoutComponent
+import io.fcomb.frontend.components.Form
+import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.UserRole
+import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
 
 object UserForm {
-  final case class FormState(username: String,
-                             email: String,
-                             fullName: String,
-                             role: UserRole,
-                             errors: Map[String, String])
+  def renderFormUsername(value: String,
+                         errors: Map[String, String],
+                         isDisabled: Boolean,
+                         onChange: String => Callback) =
+    Form.row(Form.textField(label = "Username",
+                            key = "username",
+                            isDisabled = isDisabled,
+                            errors = errors,
+                            value = value,
+                            onChange = onChange),
+             <.label(^.`for` := "username", "Unique username."),
+             "username")
 
-  def defaultFormState = FormState("", "", "", UserRole.User, Map.empty)
+  def renderFormEmail(value: String,
+                      errors: Map[String, String],
+                      isDisabled: Boolean,
+                      onChange: String => Callback) =
+    Form.row(Form.textField(label = "Email",
+                            key = "email",
+                            isDisabled = isDisabled,
+                            errors = errors,
+                            value = value,
+                            onChange = onChange,
+                            `type` = "email"),
+             <.label(^.`for` := "email", "Unique email."),
+             "email")
+
+  def renderFormFullName(value: String,
+                         errors: Map[String, String],
+                         isDisabled: Boolean,
+                         onChange: String => Callback) =
+    Form.row(Form.textField(label = "Full name (optional)",
+                            key = "fullName",
+                            isDisabled = isDisabled,
+                            errors = errors,
+                            value = value,
+                            onChange = onChange),
+             <.label(^.`for` := "fullName", ""),
+             "fullName")
+
+  def renderFormPassword(value: String,
+                         errors: Map[String, String],
+                         isDisabled: Boolean,
+                         onChange: String => Callback) =
+    Form.row(Form.textField(label = "Password",
+                            key = "password",
+                            isDisabled = isDisabled,
+                            errors = errors,
+                            value = value,
+                            onChange = onChange,
+                            `type` = "password"),
+             <.label(^.`for` := "password",
+                     "Use at least one lowercase letter, one numeral, and seven characters."),
+             "password")
+
+  lazy val roleHelpBlock =
+    <.div("What can an user do:",
+          <.ul(<.li(<.strong("User"), " - manage only own resources;"),
+               <.li(<.strong("Admin"), " - manage all users and global settings.")))
+
+  def renderFormRole(role: UserRole,
+                     errors: Map[String, String],
+                     isDisabled: Boolean,
+                     onChange: UserRole => Callback) =
+    Form.row(Form.selectEnum(enum = UserRole,
+                             value = role,
+                             key = "role",
+                             label = "Role",
+                             errors = errors,
+                             isDisabled = isDisabled,
+                             onChange = onChange),
+             <.label(^.`for` := "role", roleHelpBlock),
+             "role")
+
+  def renderFormButtons(ctl: RouterCtl[DashboardRoute], submitTitle: String, isDisabled: Boolean) =
+    <.div(^.`class` := "row",
+          ^.style := App.paddingTopStyle,
+          ^.key := "actionsRow",
+          <.div(^.`class` := "col-xs-12",
+                MuiRaisedButton(`type` = "button",
+                                primary = false,
+                                label = "Cancel",
+                                style = App.cancelStyle,
+                                disabled = isDisabled,
+                                onTouchTap = cancel(ctl) _,
+                                key = "cancel")(),
+                MuiRaisedButton(`type` = "submit",
+                                primary = true,
+                                label = submitTitle,
+                                disabled = isDisabled,
+                                key = "sybmit")()))
+
+  def cancel(ctl: RouterCtl[DashboardRoute])(e: ReactEventH): Callback =
+    e.preventDefaultCB >> ctl.set(DashboardRoute.Users)
 }

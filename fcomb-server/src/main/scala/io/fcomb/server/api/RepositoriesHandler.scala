@@ -87,7 +87,7 @@ object RepositoriesHandler {
       }
     }
 
-  val routes: Route = {
+  val routes: Route =
     // format: OFF
     pathPrefix(handlerPath) {
       pathPrefix(IntNumber) { id =>
@@ -99,7 +99,6 @@ object RepositoriesHandler {
       }
     }
     // format: ON
-  }
 
   private def nestedRoutes(slug: Slug): Route =
     // format: OFF
