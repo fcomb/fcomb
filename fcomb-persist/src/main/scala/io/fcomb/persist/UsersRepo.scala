@@ -135,7 +135,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     findDBIO(slug).flatMap {
       case Some(user) =>
         if (user.id == currentUser.id && user.role =!= req.role)
-          validationErrorAsDBIO("role", "Cannot be downgraded")
+          validationErrorAsDBIO("role", "Cannot downgrade yourself")
         else {
           val passwordHash = req.password.map(_.bcrypt(generateSalt)).getOrElse(user.passwordHash)
           updateDBIOWithValidation(

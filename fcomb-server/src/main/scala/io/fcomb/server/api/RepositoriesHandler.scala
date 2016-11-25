@@ -79,7 +79,7 @@ object RepositoriesHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         image(slug, user.getId(), Action.Manage) { image =>
-          completeOrNoContent(ImagesRepo.destroy(image.getId()))
+          completeAsAccepted(ImagesRepo.destroy(image.getId()))
         }
       }
     }

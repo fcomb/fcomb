@@ -20,7 +20,9 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.fcomb.akka.http.CirceSupport._
+import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.rpc.Formats._
+import io.fcomb.models.errors.Errors
 import io.fcomb.models.UserRole
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.helpers.UserHelpers
@@ -80,9 +82,100 @@ final class UsersHandlerSpec
 
       Post(s"/v1/users/sign_up", req) ~> route ~> check {
         status shouldEqual StatusCodes.Created
-        val user = UsersRepo.findByEmail("user@fcomb.io").futureValue.get
-        user.username shouldEqual "user"
-        user.fullName should contain("John Doe")
+        val user = UsersRepo.findByEmail(req.email).futureValue.get
+        user.username shouldEqual req.username
+        user.email shouldEqual req.email
+        user.fullName shouldEqual req.fullName
+      }
+    }
+
+    "return an user reponse for user with admin role" in {
+      val (admin, user) = (for {
+        admin <- UsersFixture.create(role = UserRole.Admin, username = "admin")
+        user  <- UsersFixture.create(email = "user1@fcomb.io", username = "user1")
+      } yield (admin, user)).futureValue
+
+      Get(s"/v1/users/${user.username}") ~> authenticate(admin) ~> route ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[UserResponse] shouldEqual UserHelpers.response(user)
+      }
+    }
+
+    "return a created when submit by user with admin role with valid user data" in {
+      val admin = UsersFixture.create(role = UserRole.Admin, username = "admin").futureValue
+      val req = UserCreateRequest(email = "user@fcomb.io",
+                                  password = "drowssap",
+                                  username = "user",
+                                  fullName = Some("John Doe"),
+                                  role = UserRole.Admin)
+
+      Post(s"/v1/users", req) ~> authenticate(admin) ~> route ~> check {
+        status shouldEqual StatusCodes.Created
+        val res = responseAs[UserResponse]
+        res.username shouldEqual req.username
+        res.email shouldEqual req.email
+        res.fullName shouldEqual req.fullName
+        res.role shouldEqual req.role
+        val user = UsersRepo.findByEmail(req.email).futureValue.get
+        res shouldEqual UserHelpers.response(user)
+      }
+    }
+
+    "return an accepted when update by user with admin role" in {
+      val (admin, user) = (for {
+        admin <- UsersFixture.create(role = UserRole.Admin, username = "admin")
+        user  <- UsersFixture.create(email = "user1@fcomb.io", username = "user1")
+      } yield (admin, user)).futureValue
+      val req = UserUpdateRequest(email = "newuser@fcomb.io",
+                                  password = Some("newpass"),
+                                  fullName = Some("New Name"),
+                                  role = UserRole.Admin)
+
+      Put(s"/v1/users/${user.username}", req) ~> authenticate(admin) ~> route ~> check {
+        status shouldEqual StatusCodes.Accepted
+        val res = responseAs[UserResponse]
+        res.email shouldEqual req.email
+        res.fullName shouldEqual req.fullName
+        res.role shouldEqual req.role
+        val user = UsersRepo.findByEmail(req.email).futureValue.get
+        res shouldEqual UserHelpers.response(user)
+        user.isValidPassword("newpass") should be(true)
+      }
+    }
+
+    "return an error when downgrade yourself" in {
+      val admin = UsersFixture.create(role = UserRole.Admin, username = "admin").futureValue
+      val req = UserUpdateRequest(email = "newuser@fcomb.io",
+                                  password = Some("newpass"),
+                                  fullName = Some("New Name"),
+                                  role = UserRole.User)
+
+      Put(s"/v1/users/${admin.username}", req) ~> authenticate(admin) ~> route ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        responseAs[Errors].errors.head shouldEqual Errors.validation("Cannot downgrade yourself",
+                                                                     "role")
+      }
+    }
+
+    "return an accepted when delete by user with admin role" in {
+      val (admin, user) = (for {
+        admin <- UsersFixture.create(role = UserRole.Admin, username = "admin")
+        user  <- UsersFixture.create(email = "user1@fcomb.io", username = "user1")
+      } yield (admin, user)).futureValue
+
+      Delete(s"/v1/users/${user.username}") ~> authenticate(admin) ~> route ~> check {
+        status shouldEqual StatusCodes.Accepted
+        UsersRepo.findById(user.getId()).futureValue shouldBe empty
+      }
+    }
+
+    "return an error when delete yourself" in {
+      val admin = UsersFixture.create(role = UserRole.Admin, username = "admin").futureValue
+
+      Delete(s"/v1/users/${admin.username}") ~> authenticate(admin) ~> route ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        responseAs[Errors].errors.head shouldEqual Errors.validation("Cannot delete yourself",
+                                                                     "id")
       }
     }
   }

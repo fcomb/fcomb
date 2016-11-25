@@ -80,7 +80,7 @@ object UsersHandler {
   def destroy(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authorizeAdminUser { user =>
-        completeOrNoContent(UsersRepo.destroy(slug, user))
+        completeAsAccepted(UsersRepo.destroy(slug, user))
       }
     }
 
