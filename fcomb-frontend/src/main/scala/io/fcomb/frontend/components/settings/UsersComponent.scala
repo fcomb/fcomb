@@ -21,6 +21,7 @@ import diode.react.ReactPot._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
+import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.components.{
   AlertDialogComponent,
   ConfirmationDialogComponent,
@@ -29,6 +30,7 @@ import io.fcomb.frontend.components.{
   TableComponent
 }
 import io.fcomb.frontend.DashboardRoute
+import io.fcomb.frontend.dispatcher.AppCircuit
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.errors.ErrorsException
 import io.fcomb.rpc.UserResponse
@@ -43,7 +45,8 @@ object UsersComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute])
   final case class State(users: Pot[Seq[UserResponse]],
                          pagination: PaginationOrderState,
-                         isConfirmationOpen: Boolean,
+                         userDeleteConfirmation: Option[UserResponse],
+                         isDisabled: Boolean,
                          error: Option[String]) {
     def flipSortColumn(column: String): State = {
       val sortOrder =
@@ -55,6 +58,19 @@ object UsersComponent {
 
   final class Backend($ : BackendScope[Props, State]) {
     val limit = 25
+
+    lazy val currentUserId = AppCircuit.currentUser.map(_.id)
+
+    def tryAcquireState(f: State => Callback) =
+      $.state.flatMap { state =>
+        if (state.isDisabled) Callback.warn("State is already acquired")
+        else
+          $.modState(_.copy(isDisabled = true)) >> f(state).finallyRun(
+            $.modState(_.copy(isDisabled = false)))
+      }
+
+    def updateDeleteConfirmation(user: Option[UserResponse]): Callback =
+      $.modState(_.copy(userDeleteConfirmation = user))
 
     def updatePage(page: Int): Callback =
       $.state.zip($.props).flatMap {
@@ -74,14 +90,22 @@ object UsersComponent {
         case Left(errs) => $.modState(_.copy(users = Failed(ErrorsException(errs))))
       })
 
+    def confirmDelete(user: UserResponse)(e: ReactTouchEventH): Callback =
+      updateDeleteConfirmation(Some(user))
+
     def renderUser(ctl: RouterCtl[DashboardRoute], user: UserResponse) = {
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
-      val actions = Seq(
+      val defaultActions = Seq(
         MuiMenuItem(primaryText = "Edit",
                     key = "edit",
-                    onTouchTap = setRoute(DashboardRoute.EditUser(user.username)) _)()
-      )
+                    onTouchTap = setRoute(DashboardRoute.EditUser(user.username)) _)())
+      val actions =
+        if (currentUserId.contains(user.id)) defaultActions
+        else
+          defaultActions :+ MuiMenuItem(primaryText = "Delete",
+                                        key = "delete",
+                                        onTouchTap = confirmDelete(user) _)()
       val fullName = user.fullName.getOrElse("")
       MuiTableRow(key = user.id.toString)(
         MuiTableRowColumn(key = "username")(user.username),
@@ -112,23 +136,33 @@ object UsersComponent {
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
-    def delete(e: ReactTouchEventH): Callback = ???
+    def deleteUser(e: ReactTouchEventH) =
+      tryAcquireState { state =>
+        state.userDeleteConfirmation match {
+          case Some(user) =>
+            Callback.future(Rpc.deleteUser(user.username).map {
+              case Right(_)   => getUsers(state.pagination) >> updateDeleteConfirmation(None)
+              case Left(errs) => $.modState(_.copy(error = Some(joinErrors(errs))))
+            })
+          case _ => Callback.empty
+        }
+      }
 
-    def updateConfirmationState(isOpen: Boolean): Callback =
-      $.modState(_.copy(isConfirmationOpen = isOpen))
-
-    def openDialog(e: ReactTouchEventH): Callback =
-      updateConfirmationState(true)
+    def closeConfirmation(isOpen: Boolean) =
+      updateDeleteConfirmation(None)
 
     lazy val actions = js.Array(
-      MuiFlatButton(key = "destroy", label = "Destroy", primary = true, onTouchTap = delete _)())
+      MuiFlatButton(key = "destroy",
+                    label = "Destroy",
+                    primary = true,
+                    onTouchTap = deleteUser _)())
 
     def render(props: Props, state: State): ReactElement = {
       val confirmationDialog = ConfirmationDialogComponent("Are you sure you want to delete this?",
                                                            actions,
                                                            isModal = false,
-                                                           state.isConfirmationOpen,
-                                                           updateConfirmationState _)
+                                                           state.userDeleteConfirmation.nonEmpty,
+                                                           closeConfirmation _)
       val alertDialog: ReactNode = state.error match {
         case Some(error) =>
           AlertDialogComponent("An error occurred while trying to delete this user",
@@ -148,8 +182,7 @@ object UsersComponent {
 
   private val component =
     ReactComponentB[Props]("Users")
-      .initialState(
-        State(Empty, PaginationOrderState("username"), isConfirmationOpen = false, None))
+      .initialState(State(Empty, PaginationOrderState("username"), None, isDisabled = false, None))
       .renderBackend[Backend]
       .componentDidMount($ => $.backend.getUsers($.state.pagination))
       .build

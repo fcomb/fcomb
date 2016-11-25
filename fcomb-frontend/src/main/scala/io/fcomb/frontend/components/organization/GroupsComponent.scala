@@ -119,7 +119,7 @@ object GroupsComponent {
                     onTouchTap =
                       setRoute(DashboardRoute.EditOrganizationGroup(props.slug, group.name)) _)(),
         MuiMenuItem(primaryText = "Delete",
-                    key = "Delete",
+                    key = "delete",
                     onTouchTap = deleteGroup(props.slug, group.name) _)()
       )
       MuiTableRow(key = group.id.toString)(
