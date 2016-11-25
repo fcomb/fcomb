@@ -33,14 +33,14 @@ object ErrorDirectives {
   def completeErrors(xs: List[Error]): Route =
     complete((StatusCodes.BadRequest, Errors(xs)))
 
-  def completeErrorsOrNoContent[T](res: ValidationResult[T]): Route =
+  def completeOrNoContent[T](res: ValidationResult[T]): Route =
     res match {
       case Validated.Valid(_)    => completeNoContent()
       case Validated.Invalid(xs) => completeErrors(xs)
     }
 
-  def completeErrorsOrNoContent[T](fut: => Future[ValidationResult[T]]): Route =
-    onSuccess(fut)(completeErrorsOrNoContent(_))
+  def completeOrNoContent[T](fut: => Future[ValidationResult[T]]): Route =
+    onSuccess(fut)(completeOrNoContent(_))
 
   def completeAsAccepted[T: Encoder](res: ValidationResult[T]): Route =
     res match {

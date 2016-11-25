@@ -29,7 +29,7 @@ import io.fcomb.models.errors.Errors
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.helpers.UserHelpers
 import io.fcomb.rpc.ResponseModelWithPk._
-import io.fcomb.rpc.{UserCreateRequest, UserSignUpRequest}
+import io.fcomb.rpc.{UserCreateRequest, UserSignUpRequest, UserUpdateRequest}
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
@@ -39,8 +39,6 @@ import io.fcomb.utils.Config
 
 object UsersHandler {
   val handlerPath = "users"
-
-  lazy val resourcePrefix = s"/$apiVersion/$handlerPath/"
 
   def index =
     extractExecutionContext { implicit ec =>
@@ -65,21 +63,24 @@ object UsersHandler {
   def update(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authorizeAdminUser { user =>
-        ???
+        entity(as[UserUpdateRequest]) { req =>
+          completeAsAccepted(
+            UsersRepo.update(slug, user, req).fast.map(_.map(UserHelpers.response)))
+        }
       }
     }
 
   def show(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authorizeAdminUser { user =>
-        ???
+        completeOrNotFound(UsersRepo.find(slug).fast.map(_.map(UserHelpers.response)))
       }
     }
 
   def destroy(slug: Slug) =
     extractExecutionContext { implicit ec =>
       authorizeAdminUser { user =>
-        ???
+        completeOrNoContent(UsersRepo.destroy(slug, user))
       }
     }
 

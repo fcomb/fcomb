@@ -45,4 +45,7 @@ object Namespace {
   }
 
   implicit val valueEq: Eq[Namespace] = Eq.fromUniversalEquals
+
+  def currentUser =
+    AppCircuit.currentUser.map(u => Seq(User(u.username, Some(u.id)))).getOrElse(Seq.empty)
 }

@@ -135,7 +135,7 @@ object OrganizationGroupUsersRepo
 
   def destroy(groupId: Int, userId: Int, memberSlug: Slug)(implicit ec: ExecutionContext) =
     runInTransaction(TransactionIsolation.Serializable) {
-      UsersRepo.findBySlugAsValidatedDBIO(memberSlug).flatMap {
+      UsersRepo.findAsValidatedDBIO(memberSlug).flatMap {
         case Validated.Valid(member) =>
           def destroy() = destroyAsValidatedDBIO(groupId, member.getId())
 

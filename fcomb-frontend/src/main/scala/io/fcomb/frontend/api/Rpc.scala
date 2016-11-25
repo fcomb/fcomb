@@ -272,6 +272,19 @@ object Rpc {
     callWith[UserCreateRequest, UserResponse](RpcMethod.POST, Resource.users, req)
   }
 
+  def getUser(slug: String)(implicit ec: ExecutionContext) =
+    call[UserResponse](RpcMethod.GET, Resource.user(slug))
+
+  def updateUser(slug: String,
+                 email: String,
+                 password: Option[String],
+                 fullName: Option[String],
+                 role: UserRole)(implicit ec: ExecutionContext) = {
+    val req =
+      UserUpdateRequest(email = email, password = password, fullName = fullName, role = role)
+    callWith[UserUpdateRequest, UserResponse](RpcMethod.PUT, Resource.user(slug), req)
+  }
+
   def deleteUser(slug: String)(implicit ec: ExecutionContext) =
     call[Unit](RpcMethod.DELETE, Resource.user(slug))
 

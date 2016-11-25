@@ -18,6 +18,7 @@ package io.fcomb.persist
 
 import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
+import cats.syntax.eq._
 import com.github.t3hnar.bcrypt._
 import io.fcomb.Db._
 import io.fcomb.PostgresProfile.api._
@@ -129,18 +130,37 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       role = req.role
     )
 
-  def update(id: Int, req: UserUpdateRequest)(
-      implicit ec: ExecutionContext): Future[ValidationModel] =
-    update(id) { user =>
-      val passwordHash = req.password.map(_.bcrypt(generateSalt)).getOrElse(user.passwordHash)
-      user.copy(
-        email = req.email,
-        fullName = req.fullName,
-        role = req.role,
-        passwordHash = passwordHash,
-        updatedAt = Some(OffsetDateTime.now())
-      )
+  private def updateDBIO(slug: Slug, currentUser: User, req: UserUpdateRequest)(
+      implicit ec: ExecutionContext): DBIO[ValidationModel] =
+    findDBIO(slug).flatMap {
+      case Some(user) =>
+        if (user.id == currentUser.id && user.role =!= req.role)
+          validationErrorAsDBIO("role", "Cannot be downgraded")
+        else {
+          val passwordHash = req.password.map(_.bcrypt(generateSalt)).getOrElse(user.passwordHash)
+          updateDBIOWithValidation(
+            user.copy(
+              email = req.email,
+              fullName = req.fullName,
+              role = req.role,
+              passwordHash = passwordHash,
+              updatedAt = Some(OffsetDateTime.now())
+            ))
+        }
+      case _ => DBIO.successful(recordNotFound(slug))
     }
+
+  def update(slug: Slug, currentUser: User, req: UserUpdateRequest)(
+      implicit ec: ExecutionContext): Future[ValidationModel] =
+    db.run(updateDBIO(slug, currentUser, req))
+
+  private def recordNotFound[R](slug: Slug): ValidationResult[R] = {
+    val (column, value) = slug match {
+      case Slug.Id(id)         => ("id", id.toString)
+      case Slug.Name(username) => ("username", username)
+    }
+    recordNotFound(column, value)
+  }
 
   private lazy val updatePasswordCompiled = Compiled { (userId: Rep[Int]) =>
     table.filter(_.id === userId).map { t =>
@@ -154,24 +174,18 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       case Validated.Valid(_) =>
         val salt         = generateSalt
         val passwordHash = password.bcrypt(salt)
-        db.run {
-            updatePasswordCompiled(userId)
-              .update((passwordHash, Some(OffsetDateTime.now)))
-              .map(_ != 0)
+        db.run(
+          updatePasswordCompiled(userId).update((passwordHash, Some(OffsetDateTime.now))).map {
+            res =>
+              if (res != 0) Validated.Valid(())
+              else validationError("id", "not found")
           }
-          .fast
-          .map { isUpdated =>
-            if (isUpdated) Validated.Valid(())
-            else validationError("id", "not found")
-          }
+        )
       case res => FastFuture.successful(res)
     }
 
-  def changePassword(
-      user: User,
-      oldPassword: String,
-      newPassword: String
-  )(implicit ec: ExecutionContext): Future[ValidationModel] =
+  def changePassword(user: User, oldPassword: String, newPassword: String)(
+      implicit ec: ExecutionContext): Future[ValidationModel] =
     if (oldPassword == newPassword)
       validationErrorAsFuture("password", "can't be the same")
     else if (user.isValidPassword(oldPassword))
@@ -193,14 +207,14 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
   def findByUsernameDBIO(username: String) =
     findByUsernameCompiled(username).result.headOption
 
-  def findBySlugDBIO(slug: Slug): DBIOAction[Option[User], NoStream, Effect.Read] =
+  def findDBIO(slug: Slug): DBIOAction[Option[User], NoStream, Effect.Read] =
     slug match {
       case Slug.Id(id)     => findByIdDBIO(id)
       case Slug.Name(name) => findByUsernameDBIO(name)
     }
 
-  def findBySlug(slug: Slug) =
-    db.run(findBySlugDBIO(slug))
+  def find(slug: Slug) =
+    db.run(findDBIO(slug))
 
   def matchByUsernameAndPassword(username: String, password: String)(
       implicit ec: ExecutionContext): Future[Option[User]] = {
@@ -232,7 +246,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       case MemberUsernameRequest(name) => findByUsernameAsValidatedDBIO(name)
     }
 
-  def findBySlugAsValidatedDBIO(slug: Slug)(
+  def findAsValidatedDBIO(slug: Slug)(
       implicit ec: ExecutionContext): DBIOAction[ValidationResult[User], NoStream, Effect.Read] =
     slug match {
       case Slug.Id(id)     => findByIdAsValidatedDBIO(id)
@@ -268,6 +282,19 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
           )
       })
   }
+
+  private def destroyDBIO(slug: Slug, currentUser: User)(
+      implicit ec: ExecutionContext): DBIO[ValidationResultUnit] =
+    findDBIO(slug).flatMap {
+      case Some(user) =>
+        if (user.id == currentUser.id) validationErrorAsDBIO("id", "Cannot delete yourself")
+        else super.destroyDBIO(user.getId())
+      case _ => DBIO.successful(recordNotFound(slug))
+    }
+
+  def destroy(slug: Slug, currentUser: User)(
+      implicit ec: ExecutionContext): Future[ValidationResultUnit] =
+    db.run(destroyDBIO(slug, currentUser))
 
   import Validations._
 

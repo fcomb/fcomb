@@ -125,7 +125,7 @@ object EditGroupComponent {
       MuiCard()(<.div(^.key := "header",
                       App.formTitleBlock,
                       MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit group"))),
-                <.section(state.group.render(_ => renderForm(props, state))))
+                <.section(^.key := "form", state.group.render(_ => renderForm(props, state))))
   }
 
   private val component = ReactComponentB[Props]("EditGroup")

@@ -35,7 +35,11 @@ object DashboardRepositoriesComponent {
 
   final class Backend($ : BackendScope[Props, State]) {
     def updateNamespace(namespace: Namespace) =
-      $.modState(_.copy(namespace = Some(namespace)))
+      $.state.flatMap {
+        case state if !state.namespace.contains(namespace) =>
+          $.modState(_.copy(namespace = Some(namespace)))
+        case _ => Callback.empty
+      }
 
     def render(props: Props, state: State) = {
       val repositoriesSection = state.namespace match {

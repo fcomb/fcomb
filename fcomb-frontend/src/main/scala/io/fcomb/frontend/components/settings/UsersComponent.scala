@@ -78,7 +78,9 @@ object UsersComponent {
       val menuBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
       val actions = Seq(
-        // MuiMenuItem(primaryText = "Open", key = "open", onTouchTap = setRoute(target) _)()
+        MuiMenuItem(primaryText = "Edit",
+                    key = "edit",
+                    onTouchTap = setRoute(DashboardRoute.EditUser(user.username)) _)()
       )
       val fullName = user.fullName.getOrElse("")
       MuiTableRow(key = user.id.toString)(

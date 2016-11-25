@@ -108,8 +108,7 @@ object NewRepositoryComponent {
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.props.flatMap(_.ctl.set(DashboardRoute.Repositories))
 
-    def renderFormButtons(state: State) = {
-      val createIsDisabled = state.isDisabled || state.owner.isEmpty
+    def renderFormButtons(state: State) =
       <.div(^.`class` := "row",
             ^.style := App.paddingTopStyle,
             ^.key := "actionsRow",
@@ -124,9 +123,8 @@ object NewRepositoryComponent {
                   MuiRaisedButton(`type` = "submit",
                                   primary = true,
                                   label = "Create",
-                                  disabled = createIsDisabled,
+                                  disabled = state.isDisabled,
                                   key = "submit")()))
-    }
 
     def renderForm(props: Props, state: State) =
       <.form(

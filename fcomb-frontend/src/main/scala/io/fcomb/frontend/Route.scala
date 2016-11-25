@@ -100,7 +100,7 @@ object DashboardRoute {
   final case object NewUser extends SettingsRoute {
     override def title = Users.title
   }
-  final case object EditUser extends SettingsRoute {
+  final case class EditUser(slug: String) extends SettingsRoute {
     override def title = Users.title
   }
   // final case object GarbageCollectorSettings  extends SettingsRoute
