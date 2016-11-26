@@ -138,14 +138,15 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
           validationErrorAsDBIO("role", "Cannot downgrade yourself")
         else {
           val passwordHash = req.password.map(_.bcrypt(generateSalt)).getOrElse(user.passwordHash)
-          updateDBIOWithValidation(
-            user.copy(
-              email = req.email,
-              fullName = req.fullName,
-              role = req.role,
-              passwordHash = passwordHash,
-              updatedAt = Some(OffsetDateTime.now())
-            ))
+          val updated = user.copy(
+            email = req.email,
+            fullName = req.fullName,
+            role = req.role,
+            passwordHash = passwordHash,
+            updatedAt = Some(OffsetDateTime.now())
+          )
+          val result = validate(userValidation(updated, req.password))
+          validateThenApplyVMDBIO(result)(updateDBIO(updated))
         }
       case _ => DBIO.successful(recordNotFound(slug))
     }

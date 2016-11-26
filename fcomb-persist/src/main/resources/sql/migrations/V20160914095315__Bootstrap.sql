@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "citext";
 
-CREATE TYPE user_role AS ENUM ('admin', 'developer');
+CREATE TYPE user_role AS ENUM ('admin', 'user');
 
 CREATE TABLE users (
   id serial PRIMARY KEY,
