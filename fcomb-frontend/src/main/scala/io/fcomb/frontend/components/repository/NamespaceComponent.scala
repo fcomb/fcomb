@@ -16,11 +16,9 @@
 
 package io.fcomb.frontend.components.repository
 
-import cats.syntax.eq._
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
-import io.fcomb.frontend.dispatcher.AppCircuit
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
@@ -38,11 +36,6 @@ object NamespaceComponent {
                          data: js.Array[String])
 
   final class Backend($ : BackendScope[Props, State]) {
-    private lazy val currentUser =
-      AppCircuit.currentUser
-        .map(u => Seq(Namespace.User(u.username, Some(u.id))))
-        .getOrElse(Seq.empty)
-
     private val limit = 256
 
     def fetchNamespaces(): Callback =
@@ -50,13 +43,14 @@ object NamespaceComponent {
         Callback.future(Rpc.getUserSelfOrganizations(props.canCreateRoleOnly, limit).map {
           case Right(res) =>
             val orgs       = res.data.map(o => Namespace.Organization(o.name, Some(o.id)))
-            val namespaces = currentUser ++ orgs
+            val namespaces = Namespace.currentUser ++ orgs
             val data       = js.Array(namespaces.map(_.slug): _*)
-            val namespace = (props.namespace match {
+            val ns = props.namespace match {
               case on: OwnerNamespace =>
                 namespaces.collectFirst { case o: OwnerNamespace if o.slug == on.slug => o }
               case _ => None
-            }).orElse(currentUser.headOption)
+            }
+            val namespace = ns.orElse(Namespace.currentUser.headOption)
             $.modState(
               _.copy(
                 namespace = namespace,
@@ -68,23 +62,17 @@ object NamespaceComponent {
       }
 
     private def namespaceCallback(namespace: Namespace): Callback =
-      $.state.zip($.props).flatMap {
-        case (state, props) =>
-          if (props.namespace === namespace && (state.namespace.isEmpty || state.namespace
-                .contains(props.namespace)))
-            Callback.empty
-          else props.cb(namespace)
-      }
+      $.props.flatMap(_.cb(namespace))
 
     private def namespaceCallback(namespace: Option[Namespace]): Callback =
       namespace.fold(Callback.empty)(namespaceCallback)
 
     private def onChange(e: ReactEventI, idx: Int, namespace: Namespace): Callback =
-      for {
-        props <- $.props
-        _     <- $.modState(_.copy(namespace = Some(namespace)))
-        _     <- namespaceCallback(namespace)
-      } yield ()
+      $.state.flatMap {
+        case state if !state.namespace.contains(namespace) =>
+          $.modState(_.copy(namespace = Some(namespace))) >> namespaceCallback(namespace)
+        case _ => Callback.empty
+      }
 
     lazy val allMenuItem = Seq(
       MuiMenuItem[Namespace](key = "all", value = Namespace.All, primaryText = "All")(),

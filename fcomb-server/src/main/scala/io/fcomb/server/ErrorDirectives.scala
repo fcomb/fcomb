@@ -33,14 +33,14 @@ object ErrorDirectives {
   def completeErrors(xs: List[Error]): Route =
     complete((StatusCodes.BadRequest, Errors(xs)))
 
-  def completeErrorsOrNoContent[T](res: ValidationResult[T]): Route =
+  def completeOrNoContent[T](res: ValidationResult[T]): Route =
     res match {
       case Validated.Valid(_)    => completeNoContent()
       case Validated.Invalid(xs) => completeErrors(xs)
     }
 
-  def completeErrorsOrNoContent[T](fut: => Future[ValidationResult[T]]): Route =
-    onSuccess(fut)(completeErrorsOrNoContent(_))
+  def completeOrNoContent[T](fut: => Future[ValidationResult[T]]): Route =
+    onSuccess(fut)(completeOrNoContent(_))
 
   def completeAsAccepted[T: Encoder](res: ValidationResult[T]): Route =
     res match {
@@ -51,14 +51,13 @@ object ErrorDirectives {
   def completeAsAccepted[T: Encoder](fut: Future[ValidationResult[T]]): Route =
     onSuccess(fut)(completeAsAccepted(_))
 
-  def completeAsCreated[T: Encoder](res: ValidationResult[T], prefix: String)(
-      implicit idLens: IdLens[T]): Route =
+  def completeAsCreated[T: Encoder](res: ValidationResult[T])(implicit idLens: IdLens[T]): Route =
     res match {
-      case Validated.Valid(rs)   => completeCreated(rs, prefix)
+      case Validated.Valid(rs)   => completeCreated(rs)
       case Validated.Invalid(xs) => completeErrors(xs)
     }
 
-  def completeAsCreated[T: Encoder](fut: Future[ValidationResult[T]], prefix: String)(
+  def completeAsCreated[T: Encoder](fut: Future[ValidationResult[T]])(
       implicit idLens: IdLens[T]): Route =
-    onSuccess(fut)(completeAsCreated(_, prefix))
+    onSuccess(fut)(completeAsCreated(_))
 }

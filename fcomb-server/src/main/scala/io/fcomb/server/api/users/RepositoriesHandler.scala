@@ -32,7 +32,7 @@ object RepositoriesHandler {
   def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
       tryAuthenticateUser { currentUserOpt =>
-        onSuccess(UsersRepo.findBySlug(slug)) {
+        onSuccess(UsersRepo.find(slug)) {
           case Some(user) =>
             extractPagination { pg =>
               val res = ImagesRepo.paginateAvailableByUserOwner(user.getId(),

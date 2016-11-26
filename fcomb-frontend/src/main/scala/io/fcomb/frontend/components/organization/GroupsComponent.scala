@@ -119,7 +119,7 @@ object GroupsComponent {
                     onTouchTap =
                       setRoute(DashboardRoute.EditOrganizationGroup(props.slug, group.name)) _)(),
         MuiMenuItem(primaryText = "Delete",
-                    key = "Delete",
+                    key = "delete",
                     onTouchTap = deleteGroup(props.slug, group.name) _)()
       )
       MuiTableRow(key = group.id.toString)(
@@ -157,12 +157,10 @@ object GroupsComponent {
     def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> add(props)
 
-    def updateName(e: ReactEventI): Callback = {
-      val name = e.target.value
+    def updateName(name: String): Callback =
       modFormState(_.copy(name = name))
-    }
 
-    def updateRole(e: ReactEventI, idx: Int, role: Role): Callback =
+    def updateRole(role: Role): Callback =
       modFormState(_.copy(role = role))
 
     def renderFormButton(state: State) =

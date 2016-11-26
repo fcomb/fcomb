@@ -81,12 +81,10 @@ object EditGroupComponent {
     def handleOnSubmit(e: ReactEventH): Callback =
       e.preventDefaultCB >> update()
 
-    def updateName(e: ReactEventI): Callback = {
-      val name = e.target.value
+    def updateName(name: String): Callback =
       modFormState(_.copy(name = name))
-    }
 
-    def updateRole(e: ReactEventI, idx: Int, role: Role): Callback =
+    def updateRole(role: Role): Callback =
       modFormState(_.copy(role = role))
 
     def cancel(e: ReactEventH): Callback =
@@ -127,7 +125,7 @@ object EditGroupComponent {
       MuiCard()(<.div(^.key := "header",
                       App.formTitleBlock,
                       MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit group"))),
-                <.section(state.group.render(_ => renderForm(props, state))))
+                <.section(^.key := "form", state.group.render(_ => renderForm(props, state))))
   }
 
   private val component = ReactComponentB[Props]("EditGroup")

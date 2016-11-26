@@ -26,7 +26,7 @@ import io.fcomb.server.headers._
 object Api {
   val apiVersion = "v2"
 
-  val routes: Route = {
+  val routes: Route =
     // format: OFF
     pathPrefix(apiVersion) {
       respondWithDefaultHeaders(defaultHeaders) {
@@ -73,7 +73,6 @@ object Api {
       }
     }
     // format: ON
-  }
 
   private val versionHeader = `Docker-Distribution-Api-Version`("2.0")
 

@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package io.fcomb.models
+package io.fcomb.frontend.utils
 
-import io.fcomb.models.common.{Enum, EnumItem}
+object StringUtils {
+  def trim(s: String): Option[String] = {
+    val value = s.trim
+    if (value.isEmpty) None else Some(value)
+  }
 
-sealed trait UserRole extends EnumItem
-
-object UserRole extends Enum[UserRole] {
-  case object Admin extends UserRole
-  case object User  extends UserRole
-
-  val values = findValues
+  def trim(opt: Option[String]): Option[String] =
+    opt.flatMap(trim)
 }

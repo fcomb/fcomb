@@ -20,7 +20,7 @@ import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
 import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.Implicits._
-import io.fcomb.rpc.UserResponse
+import io.fcomb.rpc.UserProfileResponse
 import japgolly.scalajs.react._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
@@ -33,9 +33,9 @@ object UserMemberComponent {
                          isDisabled: Boolean,
                          errorText: Option[String],
                          isFullWidth: Boolean,
-                         cb: UserResponse => Callback)
-  final case class State(member: Option[UserResponse],
-                         members: Seq[UserResponse],
+                         cb: UserProfileResponse => Callback)
+  final case class State(member: Option[UserProfileResponse],
+                         members: Seq[UserProfileResponse],
                          data: js.Array[String])
 
   final class Backend($ : BackendScope[Props, State]) {
@@ -98,6 +98,6 @@ object UserMemberComponent {
             isDisabled: Boolean,
             errorText: Option[String],
             isFullWidth: Boolean,
-            cb: UserResponse => Callback) =
+            cb: UserProfileResponse => Callback) =
     component.apply(Props(slug, group, searchText, isDisabled, errorText, isFullWidth, cb))
 }

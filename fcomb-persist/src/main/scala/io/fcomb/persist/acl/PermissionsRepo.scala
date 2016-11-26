@@ -359,7 +359,7 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
     }
 
   private def destroyByUser(image: Image, slug: Slug)(implicit ec: ExecutionContext) =
-    UsersRepo.findBySlugAsValidatedDBIO(slug).flatMap {
+    UsersRepo.findAsValidatedDBIO(slug).flatMap {
       case Validated.Valid(user) =>
         val memberId = user.getId
         if (memberId == image.owner.id && image.owner.kind === OwnerKind.User)

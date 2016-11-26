@@ -33,7 +33,7 @@ import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.{Action, MemberKind, Role}
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import io.fcomb.models.errors.{Error, Errors, ErrorsException}
-import io.fcomb.models.{Owner, OwnerKind, PaginationData, Session, SortOrder}
+import io.fcomb.models.{Owner, OwnerKind, PaginationData, Session, SortOrder, UserRole}
 import io.fcomb.rpc.acl._
 import io.fcomb.rpc.docker.distribution._
 import io.fcomb.rpc._
@@ -231,9 +231,9 @@ object Rpc {
                                  page: Int,
                                  limit: Int)(implicit ec: ExecutionContext) = {
     val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
-    call[PaginationData[UserResponse]](RpcMethod.GET,
-                                       Resource.organizationGroupMembers(slug, group),
-                                       queryParams)
+    call[PaginationData[UserProfileResponse]](RpcMethod.GET,
+                                              Resource.organizationGroupMembers(slug, group),
+                                              queryParams)
   }
 
   def upsertOrganizationGroupMember(slug: String, group: String, username: String)(
@@ -248,9 +248,45 @@ object Rpc {
 
   def getOrganizationGroupMembers(slug: String, group: String, q: String)(
       implicit ec: ExecutionContext) =
-    call[DataResponse[UserResponse]](RpcMethod.GET,
-                                     Resource.organizationGroupSuggestionsMembers(slug, group),
-                                     Map("q" -> q))
+    call[DataResponse[UserProfileResponse]](
+      RpcMethod.GET,
+      Resource.organizationGroupSuggestionsMembers(slug, group),
+      Map("q" -> q))
+
+  def getUsers(sortColumn: String, sortOrder: SortOrder, page: Int, limit: Int)(
+      implicit ec: ExecutionContext) = {
+    val queryParams = toQueryParams(sortColumn, sortOrder, page, limit)
+    call[PaginationData[UserResponse]](RpcMethod.GET, Resource.users, queryParams)
+  }
+
+  def createUser(email: String,
+                 password: String,
+                 username: String,
+                 fullName: Option[String],
+                 role: UserRole)(implicit ec: ExecutionContext) = {
+    val req = UserCreateRequest(email = email,
+                                password = password,
+                                username = username,
+                                fullName = fullName,
+                                role = role)
+    callWith[UserCreateRequest, UserResponse](RpcMethod.POST, Resource.users, req)
+  }
+
+  def getUser(slug: String)(implicit ec: ExecutionContext) =
+    call[UserResponse](RpcMethod.GET, Resource.user(slug))
+
+  def updateUser(slug: String,
+                 email: String,
+                 password: Option[String],
+                 fullName: Option[String],
+                 role: UserRole)(implicit ec: ExecutionContext) = {
+    val req =
+      UserUpdateRequest(email = email, password = password, fullName = fullName, role = role)
+    callWith[UserUpdateRequest, UserResponse](RpcMethod.PUT, Resource.user(slug), req)
+  }
+
+  def deleteUser(slug: String)(implicit ec: ExecutionContext) =
+    call[Unit](RpcMethod.DELETE, Resource.user(slug))
 
   def signUp(email: String, password: String, username: String, fullName: Option[String])(
       implicit ec: ExecutionContext) = {

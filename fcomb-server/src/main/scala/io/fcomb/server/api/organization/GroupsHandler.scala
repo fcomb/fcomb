@@ -28,7 +28,6 @@ import io.fcomb.rpc.helpers.OrganizationGroupHelpers
 import io.fcomb.rpc.OrganizationGroupRequest
 import io.fcomb.rpc.ResponseModelWithPk._
 import io.fcomb.server.api.organization.group.MembersHandler
-import io.fcomb.server.api.OrganizationsHandler
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
@@ -40,8 +39,6 @@ import io.fcomb.server.Path
 
 object GroupsHandler {
   val handlerPath = "groups"
-
-  lazy val resourcePrefix = s"${OrganizationsHandler.resourcePrefix}/"
 
   def index(slug: Slug) =
     extractExecutionContext { implicit ec =>
@@ -63,9 +60,7 @@ object GroupsHandler {
           entity(as[OrganizationGroupRequest]) { req =>
             onSuccess(OrganizationGroupsRepo.create(org.getId(), req)) {
               case Validated.Valid(group) =>
-                val prefix = s"${resourcePrefix}/$slug/$handlerPath}"
-                val res    = OrganizationGroupHelpers.response(group)
-                completeCreated(res, prefix)
+                completeCreated(OrganizationGroupHelpers.response(group))
               case Validated.Invalid(errs) => completeErrors(errs)
             }
           }

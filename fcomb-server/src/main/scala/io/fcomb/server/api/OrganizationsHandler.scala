@@ -38,16 +38,13 @@ import io.fcomb.server.Path
 object OrganizationsHandler {
   val handlerPath = "organizations"
 
-  lazy val resourcePrefix = s"/$apiVersion/$handlerPath/"
-
   def create =
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         entity(as[OrganizationCreateRequest]) { req =>
           onSuccess(OrganizationsRepo.create(req, user.getId())) {
             case Validated.Valid(org) =>
-              val res = OrganizationHelpers.response(org, Role.Admin)
-              completeCreated(res, resourcePrefix)
+              completeCreated(OrganizationHelpers.response(org, Role.Admin))
             case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
@@ -63,8 +60,7 @@ object OrganizationsHandler {
         }
         onSuccess(futRes) {
           case Some((org, role)) =>
-            val res = OrganizationHelpers.response(org, role)
-            completeWithEtag(StatusCodes.OK, res)
+            completeWithEtag(StatusCodes.OK, OrganizationHelpers.response(org, role))
           case _ => completeNotFound()
         }
       }
@@ -98,7 +94,7 @@ object OrganizationsHandler {
       }
     }
 
-  val routes: Route = {
+  val routes: Route =
     // format: OFF
     pathPrefix(handlerPath) {
       pathEnd {
@@ -115,5 +111,4 @@ object OrganizationsHandler {
       }
     }
     // format: ON
-  }
 }

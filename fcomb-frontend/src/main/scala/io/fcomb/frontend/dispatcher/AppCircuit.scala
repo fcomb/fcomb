@@ -16,11 +16,13 @@
 
 package io.fcomb.frontend.dispatcher
 
+import cats.syntax.eq._
 import diode.data.PotMap
 import diode.react.ReactConnector
 import diode.{Action, Circuit}
 import io.fcomb.frontend.dispatcher.fetchers._
 import io.fcomb.frontend.dispatcher.handlers._
+import io.fcomb.models.UserRole
 import japgolly.scalajs.react.{Callback, CallbackTo}
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
@@ -50,6 +52,9 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   def session = currentState.session
 
   def currentUser = currentState.currentUser
+
+  def currentUserIsAdmin =
+    currentUser.exists(_.role === UserRole.Admin)
 
   lazy val repos = connect(_.repos)
 

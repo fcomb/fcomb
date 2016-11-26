@@ -39,11 +39,10 @@ object SessionsHandler {
       }
     }
 
-  val routes: Route = {
+  val routes: Route =
     // format: OFF
     path(handlerPath) {
       post(create)
     }
     // format: ON
-  }
 }

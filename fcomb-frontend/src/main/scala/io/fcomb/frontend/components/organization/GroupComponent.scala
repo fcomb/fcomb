@@ -24,7 +24,7 @@ import io.fcomb.frontend.api.Rpc
 import io.fcomb.frontend.components.{
   AlertDialogComponent,
   BreadcrumbsComponent,
-  LayoutComponent,
+  Form,
   PaginationOrderState,
   TableComponent
 }
@@ -32,7 +32,7 @@ import io.fcomb.frontend.components.Helpers._
 import io.fcomb.frontend.DashboardRoute
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.errors.ErrorsException
-import io.fcomb.rpc.UserResponse
+import io.fcomb.rpc.UserProfileResponse
 import japgolly.scalajs.react.extra.router.RouterCtl
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
@@ -41,8 +41,8 @@ import scalacss.ScalaCssReact._
 
 object GroupComponent {
   final case class Props(ctl: RouterCtl[DashboardRoute], slug: String, group: String)
-  final case class FormState(member: Option[UserResponse], errors: Map[String, String])
-  final case class State(members: Pot[Seq[UserResponse]],
+  final case class FormState(member: Option[UserProfileResponse], errors: Map[String, String])
+  final case class State(members: Pot[Seq[UserProfileResponse]],
                          pagination: PaginationOrderState,
                          error: Option[String],
                          form: FormState,
@@ -112,7 +112,7 @@ object GroupComponent {
         }
       }
 
-    def renderMember(props: Props, member: UserResponse, isDisabled: Boolean) = {
+    def renderMember(props: Props, member: UserProfileResponse, isDisabled: Boolean) = {
       val button =
         MuiIconButton(disabled = isDisabled, onTouchTap = deleteMember(member.username) _)(
           Mui.SvgIcons.ActionDelete(color = Mui.Styles.colors.lightBlack)())
@@ -124,7 +124,7 @@ object GroupComponent {
     }
 
     def renderMembers(props: Props,
-                      members: Seq[UserResponse],
+                      members: Seq[UserProfileResponse],
                       p: PaginationOrderState,
                       isDisabled: Boolean) =
       if (members.isEmpty) <.div(App.infoMsg, "There are no members to show yet")
@@ -153,23 +153,19 @@ object GroupComponent {
     def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
       e.preventDefaultCB >> add(props)
 
-    def updateMember(member: UserResponse): Callback =
+    def updateMember(member: UserProfileResponse): Callback =
       modFormState(_.copy(member = Some(member)))
 
     def renderFormUsername(props: Props, state: State) =
-      <.div(^.`class` := "row",
-            ^.key := "username",
-            <.div(^.`class` := "col-xs-6",
-                  UserMemberComponent(props.slug,
-                                      props.group,
-                                      state.form.member.map(_.title),
-                                      state.isDisabled,
-                                      state.form.errors.get("username"),
-                                      isFullWidth = true,
-                                      updateMember _)),
-            <.div(LayoutComponent.helpBlockClass,
-                  ^.style := App.helpBlockStyle,
-                  <.label(^.`for` := "username", "Who will be added to this group.")))
+      Form.row(UserMemberComponent(props.slug,
+                                   props.group,
+                                   state.form.member.map(_.title),
+                                   state.isDisabled,
+                                   state.form.errors.get("username"),
+                                   isFullWidth = true,
+                                   updateMember _),
+               <.label(^.`for` := "username", "Who will be added to this group."),
+               "username")
 
     def renderFormButton(state: State) =
       <.div(^.style := App.paddingTopStyle,

@@ -18,8 +18,7 @@ package io.fcomb.frontend.components.repository
 
 import chandu0101.scalajs.react.components.Implicits._
 import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.LayoutComponent
+import io.fcomb.frontend.components.{Form, LayoutComponent}
 import io.fcomb.frontend.styles.App
 import io.fcomb.models.docker.distribution.ImageVisibilityKind
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -59,27 +58,21 @@ object RepositoryForm {
   def renderDescription(description: String,
                         errors: Map[String, String],
                         isDisabled: Boolean,
-                        updateDescription: ReactEventI => Callback) = {
+                        updateDescription: String => Callback) = {
     val link = <.a(LayoutComponent.linkAsTextStyle,
                    ^.href := "https://daringfireball.net/projects/markdown/syntax",
                    ^.target := "_blank",
                    "Markdown")
-    <.div(
-      ^.`class` := "row",
-      ^.key := "descriptionRow",
-      <.div(^.`class` := "col-xs-6",
-            MuiTextField(floatingLabelText = "Description",
-                         id = "description",
-                         name = "description",
-                         multiLine = true,
-                         fullWidth = true,
-                         rowsMax = 15,
-                         disabled = isDisabled,
-                         errorText = errors.get("description"),
-                         value = description,
-                         onChange = updateDescription)()),
-      <.div(LayoutComponent.helpBlockClass,
-            ^.style := App.helpBlockStyle,
-            <.label(^.`for` := "description", "You can describe this repository in ", link, ".")))
+    Form.row(Form.textField(label = "Description",
+                            key = "description",
+                            multiLine = true,
+                            fullWidth = true,
+                            rowsMax = 15,
+                            isDisabled = isDisabled,
+                            errors = errors,
+                            value = description,
+                            onChange = updateDescription),
+             <.label(^.`for` := "description", "You can describe this repository in ", link, "."),
+             "description")
   }
 }

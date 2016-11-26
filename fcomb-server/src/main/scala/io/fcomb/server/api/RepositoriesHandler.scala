@@ -56,8 +56,7 @@ object RepositoriesHandler {
             entity(as[ImageUpdateRequest]) { req =>
               onSuccess(ImagesRepo.update(image.getId(), req)) {
                 case Validated.Valid(updated) =>
-                  val res = ImageHelpers.response(updated, action)
-                  complete((StatusCodes.Accepted, res))
+                  complete((StatusCodes.Accepted, ImageHelpers.response(updated, action)))
                 case Validated.Invalid(errs) => completeErrors(errs)
               }
             }
@@ -80,14 +79,12 @@ object RepositoriesHandler {
     extractExecutionContext { implicit ec =>
       authenticateUser { user =>
         image(slug, user.getId(), Action.Manage) { image =>
-          onSuccess(ImagesRepo.destroy(image.getId())) { _ =>
-            completeAccepted()
-          }
+          completeAsAccepted(ImagesRepo.destroy(image.getId()))
         }
       }
     }
 
-  val routes: Route = {
+  val routes: Route =
     // format: OFF
     pathPrefix(handlerPath) {
       pathPrefix(IntNumber) { id =>
@@ -99,7 +96,6 @@ object RepositoriesHandler {
       }
     }
     // format: ON
-  }
 
   private def nestedRoutes(slug: Slug): Route =
     // format: OFF

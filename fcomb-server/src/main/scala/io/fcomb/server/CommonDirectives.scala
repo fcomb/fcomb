@@ -27,11 +27,12 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.circe.Encoder
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.rpc.Formats.encodeDataResponse
 import io.fcomb.models.IdLens
 import io.fcomb.rpc.DataResponse
-import io.fcomb.akka.http.CirceSupport._
 import scala.collection.immutable
+import scala.concurrent.Future
 
 object CommonDirectives {
   def completeWithStatus(status: StatusCode): Route =
@@ -39,6 +40,15 @@ object CommonDirectives {
 
   def completeNotFound(): Route =
     completeWithStatus(StatusCodes.NotFound)
+
+  def completeOrNotFound[T: Encoder](opt: Option[T]): Route =
+    opt match {
+      case Some(item) => completeWithEtag(StatusCodes.OK, item)
+      case None       => completeNotFound()
+    }
+
+  def completeOrNotFound[T: Encoder](fut: => Future[Option[T]]): Route =
+    onSuccess(fut)(completeOrNotFound(_))
 
   def completeNoContent(): Route =
     completeWithStatus(StatusCodes.NoContent)
@@ -53,20 +63,18 @@ object CommonDirectives {
         complete(notModified)
       case _ =>
         val headers = immutable.Seq(ETag(etagHash, false))
-        respondWithHeaders(headers) {
-          complete((status, item))
-        }
+        respondWithHeaders(headers)(complete((status, item)))
     }
   }
 
   def completeData[T: Encoder](data: Seq[T]): Route =
     completeWithEtag(StatusCodes.OK, DataResponse(data))
 
-  def completeCreated[T: Encoder](item: T, prefix: String)(implicit idLens: IdLens[T]): Route = {
-    val uri     = prefix + idLens.get(item)
-    val headers = immutable.Seq(Location(uri))
-    respondWithHeaders(headers)(complete((StatusCodes.Created, item)))
-  }
+  def completeCreated[T: Encoder](item: T)(implicit idLens: IdLens[T]): Route =
+    extractMatchedPath { prefix =>
+      val uri = Uri(path = prefix / idLens.get(item))
+      respondWithHeader(Location(uri))(complete((StatusCodes.Created, item)))
+    }
 
   private val notModified = HttpResponse(StatusCodes.NotModified)
 }

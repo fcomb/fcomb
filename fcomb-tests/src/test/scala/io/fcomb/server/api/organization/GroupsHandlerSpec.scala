@@ -147,9 +147,9 @@ final class GroupsHandlerSpec
       Get(s"/v1/organizations/${org.name}/groups/admins/suggestions/members?q=user") ~> authenticate(
         user) ~> route ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[DataResponse[UserResponse]].data should contain theSameElementsAs Seq(
-          UserHelpers.response(user1),
-          UserHelpers.response(user2))
+        responseAs[DataResponse[UserProfileResponse]].data should contain theSameElementsAs Seq(
+          UserHelpers.profileResponse(user1),
+          UserHelpers.profileResponse(user2))
       }
     }
   }

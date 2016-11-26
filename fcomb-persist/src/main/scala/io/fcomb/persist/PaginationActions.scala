@@ -16,6 +16,7 @@
 
 package io.fcomb.persist
 
+import cats.syntax.eq._
 import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.{Pagination, SortOrder}
 import io.fcomb.models.errors.FcombException
@@ -33,13 +34,10 @@ object PaginationActions {
       case xs =>
         xs.foldRight(scope) {
           case ((column, order), q) =>
+            val sortOrder = if (order === SortOrder.Asc) Ordering.Asc else Ordering.Desc
             q.sortBy { t =>
-              val c = f(t).applyOrElse(column, unknownSortColumnPF)
-              val sortOrder = order match {
-                case SortOrder.Asc  => Ordering(Ordering.Asc)
-                case SortOrder.Desc => Ordering(Ordering.Desc)
-              }
-              ColumnOrdered(c, sortOrder)
+              val sortColumn = f(t).applyOrElse(column, unknownSortColumnPF)
+              ColumnOrdered(sortColumn, Ordering(sortOrder))
             }
         }
     }

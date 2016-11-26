@@ -16,11 +16,7 @@
 
 package io.fcomb.frontend.components.organization
 
-import chandu0101.scalajs.react.components.Implicits._
-import chandu0101.scalajs.react.components.materialui._
-import io.fcomb.frontend.components.Implicits._
-import io.fcomb.frontend.components.LayoutComponent
-import io.fcomb.frontend.styles.App
+import io.fcomb.frontend.components.Form
 import io.fcomb.models.acl.Role
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
@@ -30,21 +26,15 @@ object GroupForm {
 
   def defaultFormState = FormState("", Role.Member, Map.empty)
 
-  def renderFormName(state: FormState, isDisabled: Boolean, cb: ReactEventI => Callback) =
-    <.div(^.`class` := "row",
-          ^.key := "name",
-          <.div(^.`class` := "col-xs-6",
-                MuiTextField(floatingLabelText = "Name",
-                             id = "name",
-                             name = "name",
-                             disabled = isDisabled,
-                             errorText = state.errors.get("name"),
-                             fullWidth = true,
-                             value = state.name,
-                             onChange = cb)()),
-          <.div(LayoutComponent.helpBlockClass,
-                ^.style := App.helpBlockStyle,
-                <.label(^.`for` := "name", "Unique group name.")))
+  def renderFormName(state: FormState, isDisabled: Boolean, onChange: String => Callback) =
+    Form.row(Form.textField(label = "Name",
+                            key = "name",
+                            isDisabled = isDisabled,
+                            errors = state.errors,
+                            value = state.name,
+                            onChange = onChange),
+             <.label(^.`for` := "name", "Unique group name."),
+             "name")
 
   lazy val roleHelpBlock =
     <.div(
@@ -53,23 +43,14 @@ object GroupForm {
            <.li(<.strong("Creator"), " - create, pull and push;"),
            <.li(<.strong("Admin"), " - create, pull, push and manage groups and permissions.")))
 
-  lazy val roles = Role.values.map(r =>
-    MuiMenuItem[Role](key = r.value, value = r, primaryText = r.entryName.capitalize)())
-
-  def renderFormRole(state: FormState,
-                     isDisabled: Boolean,
-                     cb: (ReactEventI, Int, Role) => Callback) =
-    <.div(^.`class` := "row",
-          ^.key := "role",
-          <.div(^.`class` := "col-xs-6",
-                MuiSelectField[Role](id = "role",
-                                     floatingLabelText = "Role",
-                                     disabled = isDisabled,
-                                     errorText = state.errors.get("role"),
-                                     value = state.role,
-                                     fullWidth = true,
-                                     onChange = cb)(roles)),
-          <.div(LayoutComponent.helpBlockClass,
-                ^.style := App.helpBlockStyle,
-                <.label(^.`for` := "role", roleHelpBlock)))
+  def renderFormRole(state: FormState, isDisabled: Boolean, onChange: Role => Callback) =
+    Form.row(Form.selectEnum(enum = Role,
+                             value = state.role,
+                             key = "role",
+                             label = "Role",
+                             errors = state.errors,
+                             isDisabled = isDisabled,
+                             onChange = onChange),
+             <.label(^.`for` := "role", roleHelpBlock),
+             "role")
 }

@@ -16,6 +16,8 @@
 
 package io.fcomb.rpc
 
+import io.fcomb.models.UserRole
+
 final case class UserSignUpRequest(
     email: String,
     password: String,
@@ -23,24 +25,35 @@ final case class UserSignUpRequest(
     fullName: Option[String]
 )
 
-final case class UserUpdateRequest(
+final case class UserResponse(
+    id: Int,
     email: String,
-    fullName: Option[String]
-)
+    username: String,
+    fullName: Option[String],
+    role: UserRole
+) extends ResponseModelWithIntPk {
+  def title = username + fullName.map(n => s" ($n)").getOrElse("")
+}
 
 final case class UserProfileResponse(
     id: Int,
-    email: String,
     username: String,
     fullName: Option[String]
 ) {
   def title = username + fullName.map(n => s" ($n)").getOrElse("")
 }
 
-final case class UserResponse(
-    id: Int,
+final case class UserCreateRequest(
+    email: String,
+    password: String,
     username: String,
-    fullName: Option[String]
-) {
-  def title = username + fullName.map(n => s" ($n)").getOrElse("")
-}
+    fullName: Option[String],
+    role: UserRole
+)
+
+final case class UserUpdateRequest(
+    email: String,
+    password: Option[String],
+    fullName: Option[String],
+    role: UserRole
+)

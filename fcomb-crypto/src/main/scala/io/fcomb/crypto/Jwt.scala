@@ -38,7 +38,7 @@ object Jwt {
   }
 
   def encode(user: User, secret: String, issuedAt: Instant, ttl: Long): String = {
-    val payload = SessionPayload.User(user.getId(), user.username)
+    val payload = SessionPayload.User(user.getId(), user.username, user.role)
     encode(payload, secret, issuedAt, ttl)
   }
 
