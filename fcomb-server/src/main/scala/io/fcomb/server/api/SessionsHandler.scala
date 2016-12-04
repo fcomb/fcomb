@@ -19,29 +19,24 @@ package io.fcomb.server.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.rpc.SessionCreateRequest
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.json.models.Formats._
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.services.user.SessionsService
 
-object SessionsHandler {
-  val handlerPath = "sessions"
-
-  def create =
-    extractExecutionContext { implicit ec =>
-      entity(as[SessionCreateRequest]) { req =>
-        onSuccess(SessionsService.create(req)) {
-          case Right(s) => complete((StatusCodes.Created, s))
-          case Left(e)  => complete((StatusCodes.BadRequest, e))
-        }
+final class SessionsHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def create =
+    entity(as[SessionCreateRequest]) { req =>
+      onSuccess(SessionsService.create(req)) {
+        case Right(s) => complete((StatusCodes.Created, s))
+        case Left(e)  => complete((StatusCodes.BadRequest, e))
       }
     }
 
-  val routes: Route =
+  final val routes: Route =
     // format: OFF
-    path(handlerPath) {
+    path("sessions") {
       post(create)
     }
     // format: ON

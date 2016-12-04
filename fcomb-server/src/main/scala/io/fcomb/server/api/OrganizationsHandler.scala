@@ -29,45 +29,37 @@ import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.rpc.OrganizationCreateRequest
 import io.fcomb.rpc.ResponseModelWithPk._
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.Path
 
-object OrganizationsHandler {
-  val handlerPath = "organizations"
-
-  def create =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        entity(as[OrganizationCreateRequest]) { req =>
-          onSuccess(OrganizationsRepo.create(req, user.getId())) {
-            case Validated.Valid(org) =>
-              completeCreated(OrganizationHelpers.response(org, Role.Admin))
-            case Validated.Invalid(errs) => completeErrors(errs)
-          }
+final class OrganizationsHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def create =
+    authenticateUser { user =>
+      entity(as[OrganizationCreateRequest]) { req =>
+        onSuccess(OrganizationsRepo.create(req, user.getId())) {
+          case Validated.Valid(org) =>
+            completeCreated(OrganizationHelpers.response(org, Role.Admin))
+          case Validated.Invalid(errs) => completeErrors(errs)
         }
       }
     }
 
-  def show(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      tryAuthenticateUser { userOpt =>
-        val futRes = userOpt match {
-          case Some(user) => OrganizationsRepo.findWithRoleBySlug(slug, user.getId())
-          case _          => OrganizationsRepo.findBySlug(slug).fast.map(_.map(org => (org, None)))
-        }
-        onSuccess(futRes) {
-          case Some((org, role)) =>
-            completeWithEtag(StatusCodes.OK, OrganizationHelpers.response(org, role))
-          case _ => completeNotFound()
-        }
+  final def show(slug: Slug) =
+    tryAuthenticateUser { userOpt =>
+      val futRes = userOpt match {
+        case Some(user) => OrganizationsRepo.findWithRoleBySlug(slug, user.getId())
+        case _          => OrganizationsRepo.findBySlug(slug).fast.map(_.map(org => (org, None)))
+      }
+      onSuccess(futRes) {
+        case Some((org, role)) =>
+          completeWithEtag(StatusCodes.OK, OrganizationHelpers.response(org, role))
+        case _ => completeNotFound()
       }
     }
 
   // def update(slug: Slug) = {
-  //   extractExecutionContext { implicit ec =>
   //     authenticateUser { user =>
   //       organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
   //         entity(as[OrganizationUpdateRequest]) { req =>
@@ -81,22 +73,19 @@ object OrganizationsHandler {
   //       }
   //     }
   //   }
-  // }
 
-  def destroy(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
-          onSuccess(OrganizationsRepo.destroy(org.getId())) { _ =>
-            completeAccepted()
-          }
+  final def destroy(slug: Slug) =
+    authenticateUser { user =>
+      organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+        onSuccess(OrganizationsRepo.destroy(org.getId())) { _ =>
+          completeAccepted()
         }
       }
     }
 
-  val routes: Route =
+  final val routes: Route =
     // format: OFF
-    pathPrefix(handlerPath) {
+    pathPrefix("organizations") {
       pathEnd {
         post(create)
       } ~
@@ -106,8 +95,8 @@ object OrganizationsHandler {
           // put(update(slug)) ~
           delete(destroy(slug))
         } ~
-        organization.GroupsHandler.routes(slug) ~
-        organization.RepositoriesHandler.routes(slug)
+        new organization.GroupsHandler().routes(slug) ~
+        new organization.RepositoriesHandler().routes(slug)
       }
     }
     // format: ON

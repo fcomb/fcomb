@@ -24,10 +24,8 @@ import io.fcomb.json.rpc.Formats.encodeUserResponse
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.rpc.helpers.UserHelpers
 
-object UserHandler {
-  val handlerPath = "user"
-
-  def current =
+final class UserHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def current =
     authenticateUser { user =>
       completeWithEtag(StatusCodes.OK, UserHelpers.response(user))
     }
@@ -89,14 +87,14 @@ object UserHandler {
   //     }
   //   }
 
-  val routes: Route =
+  final val routes: Route =
     // format: OFF
-    pathPrefix(handlerPath) {
+    pathPrefix("user") {
       pathEnd {
         get(current)
       } ~
-      user.OrganizationsHandler.routes ~
-      user.RepositoriesHandler.routes
+      new user.OrganizationsHandler().routes ~
+      new user.RepositoriesHandler().routes
     }
     // format: ON
 }

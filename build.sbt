@@ -7,11 +7,11 @@ lazy val akkaHttpVersion     = "10.0.0"
 lazy val akkaVersion         = "2.4.14"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.8.1"
-lazy val circeVersion        = "0.6.1"
+lazy val circeVersion        = "0.7.0-M1"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.5.1"
+lazy val enumeratumVersion   = "1.5.2"
 lazy val guavaVersion        = "19.0"
-lazy val slickPgVersion      = "0.15.0-M2"
+lazy val slickPgVersion      = "0.15.0-M3"
 lazy val slickVersion        = "3.2.0-M1"
 
 lazy val buildSettings = Seq(
@@ -164,7 +164,6 @@ lazy val persist = project
     "com.typesafe.slick"  %% "slick"               % slickVersion,
     "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
     "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
-    "com.github.tminglei" %% "slick-pg_date2"      % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
     "com.zaxxer"          % "HikariCP"             % "2.5.1"
   ))
@@ -203,7 +202,7 @@ lazy val crypto = project
       "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
       "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
       "io.circe"          %% "circe-parser"  % circeVersion,
-      "com.pauldijou"     %% "jwt-circe"     % "0.9.2"
+      "com.pauldijou"     %% "jwt-circe"     % "0.10.0_0.7.0-M1"
     ))
 
 lazy val templates = project
@@ -236,7 +235,7 @@ lazy val server = project
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"       % akkaHttpVersion,
-      "io.fcomb"          %% "akka-http-circe" % "1.0.0"
+      "io.fcomb"          %% "akka-http-circe" % s"${akkaHttpVersion}_$circeVersion"
     ))
 
 lazy val dockerDistribution = project

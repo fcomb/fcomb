@@ -16,29 +16,34 @@
 
 package io.fcomb.server
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
+import akka.stream.Materializer
 import io.fcomb.server.api._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.headers._
 
 object Api {
-  val routes: Route =
+  def routes(implicit sys: ActorSystem, mat: Materializer): Route = {
+    implicit val config = ApiHandlerConfig(sys, mat)
+
     // format: OFF
     pathPrefix(apiVersion) {
       redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
         respondWithDefaultHeaders(defaultHeaders) {
-          RepositoriesHandler.routes ~
-          OrganizationsHandler.routes ~
-          UserHandler.routes ~
-          UsersHandler.routes ~
-          SessionsHandler.routes
+          new RepositoriesHandler().routes ~
+          new OrganizationsHandler().routes ~
+          new UserHandler().routes ~
+          new UsersHandler().routes ~
+          new SessionsHandler().routes
         }
       }
     } ~
     path("health")(completeWithStatus(StatusCodes.OK))
     // format: ON
+  }
 
   private val defaultHeaders = List(
     `X-Content-Type-Options`("nosniff"),

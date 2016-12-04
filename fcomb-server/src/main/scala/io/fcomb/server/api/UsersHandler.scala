@@ -21,7 +21,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.util.FastFuture._
 import cats.data.Validated
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.common.Slug
@@ -37,69 +36,54 @@ import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.Path
 import io.fcomb.utils.Config
 
-object UsersHandler {
-  val handlerPath = "users"
-
-  def index =
-    extractExecutionContext { implicit ec =>
-      authorizeAdminUser { user =>
-        extractPagination { pg =>
-          onSuccess(UsersRepo.paginate(pg)) { p =>
-            completePagination(UsersRepo.label, p)
-          }
+final class UsersHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def index =
+    authorizeAdminUser { user =>
+      extractPagination { pg =>
+        onSuccess(UsersRepo.paginate(pg)) { p =>
+          completePagination(UsersRepo.label, p)
         }
       }
     }
 
-  def create =
-    extractExecutionContext { implicit ec =>
-      authorizeAdminUser { user =>
-        entity(as[UserCreateRequest]) { req =>
-          completeAsCreated(UsersRepo.create(req).fast.map(_.map(UserHelpers.response)))
-        }
+  final def create =
+    authorizeAdminUser { user =>
+      entity(as[UserCreateRequest]) { req =>
+        completeAsCreated(UsersRepo.create(req).fast.map(_.map(UserHelpers.response)))
       }
     }
 
-  def update(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authorizeAdminUser { user =>
-        entity(as[UserUpdateRequest]) { req =>
-          completeAsAccepted(
-            UsersRepo.update(slug, user, req).fast.map(_.map(UserHelpers.response)))
-        }
+  final def update(slug: Slug) =
+    authorizeAdminUser { user =>
+      entity(as[UserUpdateRequest]) { req =>
+        completeAsAccepted(UsersRepo.update(slug, user, req).fast.map(_.map(UserHelpers.response)))
       }
     }
 
-  def show(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authorizeAdminUser { user =>
-        completeOrNotFound(UsersRepo.find(slug).fast.map(_.map(UserHelpers.response)))
-      }
+  final def show(slug: Slug) =
+    authorizeAdminUser { user =>
+      completeOrNotFound(UsersRepo.find(slug).fast.map(_.map(UserHelpers.response)))
     }
 
-  def destroy(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authorizeAdminUser { user =>
-        completeAsAccepted(UsersRepo.destroy(slug, user))
-      }
+  final def destroy(slug: Slug) =
+    authorizeAdminUser { user =>
+      completeAsAccepted(UsersRepo.destroy(slug, user))
     }
 
-  def signUp =
+  final def signUp =
     if (Config.security.isOpenSignUp) {
-      extractExecutionContext { implicit ec =>
-        entity(as[UserSignUpRequest]) { req =>
-          onSuccess(UsersRepo.create(req)) {
-            case Validated.Valid(_)      => completeWithStatus(StatusCodes.Created)
-            case Validated.Invalid(errs) => completeErrors(errs)
-          }
+      entity(as[UserSignUpRequest]) { req =>
+        onSuccess(UsersRepo.create(req)) {
+          case Validated.Valid(_)      => completeWithStatus(StatusCodes.Created)
+          case Validated.Invalid(errs) => completeErrors(errs)
         }
       }
     } else
       complete((StatusCodes.Forbidden, Errors.from(Errors.registrationIsDisabled)))
 
-  val routes: Route =
+  final val routes: Route =
     // format: OFF
-    pathPrefix(handlerPath) {
+    pathPrefix("users") {
       pathEnd {
         get(index) ~
         post(create)
@@ -110,7 +94,7 @@ object UsersHandler {
           put(update(slug)) ~
           delete(destroy(slug))
         } ~
-        users.RepositoriesHandler.routes(slug)
+        new users.RepositoriesHandler().routes(slug)
       } ~
       path("sign_up")(post(signUp))
     }

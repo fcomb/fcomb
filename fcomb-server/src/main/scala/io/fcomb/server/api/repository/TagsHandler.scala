@@ -21,29 +21,26 @@ import akka.http.scaladsl.server.Route
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.docker.distribution.ImageManifestTagsRepo
+import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 
-object TagsHandler {
-  val handlerPath = "tags"
-
-  def index(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      tryAuthenticateUser { userOpt =>
-        imageRead(slug, userOpt) { image =>
-          extractPagination { pg =>
-            onSuccess(ImageManifestTagsRepo.paginateByImageId(image.getId(), pg)) { p =>
-              completePagination(ImageManifestTagsRepo.label, p)
-            }
+final class TagsHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def index(slug: Slug) =
+    tryAuthenticateUser { userOpt =>
+      imageRead(slug, userOpt) { image =>
+        extractPagination { pg =>
+          onSuccess(ImageManifestTagsRepo.paginateByImageId(image.getId(), pg)) { p =>
+            completePagination(ImageManifestTagsRepo.label, p)
           }
         }
       }
     }
 
-  def routes(slug: Slug): Route =
+  final def routes(slug: Slug): Route =
     // format: OFF
-    path(handlerPath) {
+    path("tags") {
       get(index(slug))
     }
     // format: ON

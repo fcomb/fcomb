@@ -42,10 +42,7 @@ final class EventTable(tag: Tag)
     (id.?, kind, detailsJsonBlob, createdByUserId, createdAt) <>
       ({
         case (id, kind, detailsJsonBlob, createdByUserId, createdAt) =>
-          val details = detailsJsonBlob.as[EventDetails] match {
-            case Right(evt) => evt
-            case Left(e)    => throw e
-          }
+          val Right(details) = detailsJsonBlob.as[EventDetails]
           Event(id, kind, details, createdByUserId, createdAt)
       }, { evt: Event =>
         val detailsJsonBlob = evt.details.asJson

@@ -23,49 +23,31 @@ import io.fcomb.json.rpc.Formats.{decodeMemberUserRequest, encodeUserProfileResp
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.OrganizationGroupUsersRepo
 import io.fcomb.rpc.MemberUserRequest
+import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationGroupDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.Path
 
-object MembersHandler {
-  val handlerPath = "members"
-
-  def index(slug: Slug, group: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        groupBySlugWithAcl(slug, group, user.getId()) { group =>
-          extractPagination { pg =>
-            onSuccess(OrganizationGroupUsersRepo.paginateByGroupId(group.getId(), pg)) { p =>
-              completePagination(OrganizationGroupUsersRepo.label, p)
-            }
+final class MembersHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def index(slug: Slug, group: Slug) =
+    authenticateUser { user =>
+      groupBySlugWithAcl(slug, group, user.getId()) { group =>
+        extractPagination { pg =>
+          onSuccess(OrganizationGroupUsersRepo.paginateByGroupId(group.getId(), pg)) { p =>
+            completePagination(OrganizationGroupUsersRepo.label, p)
           }
         }
       }
     }
 
-  def upsert(slug: Slug, group: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        groupBySlugWithAcl(slug, group, user.getId()) { group =>
-          entity(as[MemberUserRequest]) { req =>
-            onSuccess(OrganizationGroupUsersRepo.upsert(group.getId(), req)) {
-              case Validated.Valid(p)      => completeAccepted()
-              case Validated.Invalid(errs) => completeErrors(errs)
-            }
-          }
-        }
-      }
-    }
-
-  def destroy(slug: Slug, group: Slug, memberSlug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        groupBySlugWithAcl(slug, group, user.getId()) { group =>
-          onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), user.getId(), memberSlug)) {
+  final def upsert(slug: Slug, group: Slug) =
+    authenticateUser { user =>
+      groupBySlugWithAcl(slug, group, user.getId()) { group =>
+        entity(as[MemberUserRequest]) { req =>
+          onSuccess(OrganizationGroupUsersRepo.upsert(group.getId(), req)) {
             case Validated.Valid(p)      => completeAccepted()
             case Validated.Invalid(errs) => completeErrors(errs)
           }
@@ -73,9 +55,19 @@ object MembersHandler {
       }
     }
 
-  def routes(slug: Slug, group: Slug): Route =
+  final def destroy(slug: Slug, group: Slug, memberSlug: Slug) =
+    authenticateUser { user =>
+      groupBySlugWithAcl(slug, group, user.getId()) { group =>
+        onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), user.getId(), memberSlug)) {
+          case Validated.Valid(p)      => completeAccepted()
+          case Validated.Invalid(errs) => completeErrors(errs)
+        }
+      }
+    }
+
+  final def routes(slug: Slug, group: Slug): Route =
     // format: OFF
-    pathPrefix(handlerPath) {
+    pathPrefix("members") {
       pathEnd {
         get(index(slug, group)) ~
         put(upsert(slug, group))

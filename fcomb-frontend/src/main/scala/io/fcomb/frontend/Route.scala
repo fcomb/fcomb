@@ -107,5 +107,9 @@ object DashboardRoute {
   // final case object SecuritySettings          extends SettingsRoute
   // final case object TlsSettings               extends SettingsRoute
 
+  final case object Global extends SettingsRoute {
+    override def title = "Global"
+  }
+
   final implicit val valueEq: Eq[DashboardRoute] = Eq.fromUniversalEquals
 }

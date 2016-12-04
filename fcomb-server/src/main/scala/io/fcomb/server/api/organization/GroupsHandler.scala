@@ -28,8 +28,8 @@ import io.fcomb.rpc.helpers.OrganizationGroupHelpers
 import io.fcomb.rpc.OrganizationGroupRequest
 import io.fcomb.rpc.ResponseModelWithPk._
 import io.fcomb.server.api.organization.group.MembersHandler
+import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._
@@ -37,87 +37,73 @@ import io.fcomb.server.OrganizationGroupDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.Path
 
-object GroupsHandler {
-  val handlerPath = "groups"
-
-  def index(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
-          extractPagination { pg =>
-            onSuccess(OrganizationGroupsRepo.paginate(org.getId(), pg)) { p =>
-              completePagination(OrganizationGroupsRepo.label, p)
-            }
+final class GroupsHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def index(slug: Slug) =
+    authenticateUser { user =>
+      organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+        extractPagination { pg =>
+          onSuccess(OrganizationGroupsRepo.paginate(org.getId(), pg)) { p =>
+            completePagination(OrganizationGroupsRepo.label, p)
           }
         }
       }
     }
 
-  def create(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
-          entity(as[OrganizationGroupRequest]) { req =>
-            onSuccess(OrganizationGroupsRepo.create(org.getId(), req)) {
-              case Validated.Valid(group) =>
-                completeCreated(OrganizationGroupHelpers.response(group))
-              case Validated.Invalid(errs) => completeErrors(errs)
-            }
+  final def create(slug: Slug) =
+    authenticateUser { user =>
+      organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+        entity(as[OrganizationGroupRequest]) { req =>
+          onSuccess(OrganizationGroupsRepo.create(org.getId(), req)) {
+            case Validated.Valid(group) =>
+              completeCreated(OrganizationGroupHelpers.response(group))
+            case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }
     }
 
-  def show(slug: Slug, group: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
+  final def show(slug: Slug, group: Slug) =
+    authenticateUser { user =>
+      groupBySlugWithAcl(slug, group, user.getId()) { group =>
+        val res = OrganizationGroupHelpers.response(group)
+        completeWithEtag(StatusCodes.OK, res)
+      }
+    }
+
+  final def update(slug: Slug, group: Slug) =
+    authenticateUser { user =>
+      groupBySlugWithAcl(slug, group, user.getId()) { group =>
+        entity(as[OrganizationGroupRequest]) { req =>
+          onSuccess(OrganizationGroupsRepo.update(group.getId(), user.getId(), req)) {
+            case Validated.Valid(updated) =>
+              val res = OrganizationGroupHelpers.response(updated)
+              complete((StatusCodes.Accepted, res))
+            case Validated.Invalid(errs) => completeErrors(errs)
+          }
+        }
+      }
+    }
+
+  final def destroy(slug: Slug, group: Slug) =
+    authenticateUser { user =>
+      groupBySlugWithAcl(slug, group, user.getId()) { group =>
+        completeAsAccepted(OrganizationGroupsRepo.destroy(group.getId(), user.getId()))
+      }
+    }
+
+  final def suggestions(slug: Slug, group: Slug) =
+    authenticateUser { user =>
+      parameter('q) { q =>
         groupBySlugWithAcl(slug, group, user.getId()) { group =>
-          val res = OrganizationGroupHelpers.response(group)
-          completeWithEtag(StatusCodes.OK, res)
+          onSuccess(OrganizationGroupUsersRepo.findSuggestionsUsers(group.getId(),
+              q))(completeData)
         }
       }
     }
 
-  def update(slug: Slug, group: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        groupBySlugWithAcl(slug, group, user.getId()) { group =>
-          entity(as[OrganizationGroupRequest]) { req =>
-            onSuccess(OrganizationGroupsRepo.update(group.getId(), user.getId(), req)) {
-              case Validated.Valid(updated) =>
-                val res = OrganizationGroupHelpers.response(updated)
-                complete((StatusCodes.Accepted, res))
-              case Validated.Invalid(errs) => completeErrors(errs)
-            }
-          }
-        }
-      }
-    }
-
-  def destroy(slug: Slug, group: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        groupBySlugWithAcl(slug, group, user.getId()) { group =>
-          completeAsAccepted(OrganizationGroupsRepo.destroy(group.getId(), user.getId()))
-        }
-      }
-    }
-
-  def suggestions(slug: Slug, group: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        parameter('q) { q =>
-          groupBySlugWithAcl(slug, group, user.getId()) { group =>
-            onSuccess(OrganizationGroupUsersRepo.findSuggestionsUsers(group.getId(), q))(
-              completeData)
-          }
-        }
-      }
-    }
-
-  def routes(slug: Slug): Route =
+  final def routes(slug: Slug): Route =
     // format: OFF
-    pathPrefix(handlerPath) {
+    pathPrefix("groups") {
       pathEnd {
         get(index(slug)) ~
         post(create(slug))
@@ -129,7 +115,7 @@ object GroupsHandler {
           delete(destroy(slug, group))
         } ~
         path("suggestions" / "members")(get(suggestions(slug, group))) ~
-        MembersHandler.routes(slug, group)
+        new MembersHandler().routes(slug, group)
       }
     }
     // format: ON

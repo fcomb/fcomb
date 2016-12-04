@@ -50,7 +50,7 @@ object LayoutComponent {
     lazy val copyrightBlock = <.footer(App.footer,
                                        <.a(App.footerLink,
                                            Seq(^.color := style.palette.primary3Color.toString),
-                                           ^.href := "https://github.com/fcomb/fcomb",
+                                           ^.href := "https://fcomb.io",
                                            ^.target := "_blank",
                                            "© 2016 fcomb"))
 

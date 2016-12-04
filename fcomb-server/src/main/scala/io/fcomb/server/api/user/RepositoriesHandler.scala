@@ -24,53 +24,45 @@ import io.fcomb.models.acl.Action
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
+import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.PaginationDirectives._
 
-object RepositoriesHandler {
-  val handlerPath = "repositories"
-
-  def index =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        extractPagination { pg =>
-          val res = ImagesRepo.paginateByUser(user.getId(), pg)
-          onSuccess(res) { p =>
-            completePagination(ImagesRepo.label, p)
-          }
+final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def index =
+    authenticateUser { user =>
+      extractPagination { pg =>
+        val res = ImagesRepo.paginateByUser(user.getId(), pg)
+        onSuccess(res) { p =>
+          completePagination(ImagesRepo.label, p)
         }
       }
     }
 
-  def available =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        extractPagination { pg =>
-          val res = ImagesRepo.paginateAvailableByUserId(user.getId(), pg)
-          onSuccess(res)(completePagination(ImagesRepo.label, _))
+  final def available =
+    authenticateUser { user =>
+      extractPagination { pg =>
+        val res = ImagesRepo.paginateAvailableByUserId(user.getId(), pg)
+        onSuccess(res)(completePagination(ImagesRepo.label, _))
+      }
+    }
+
+  final def create =
+    authenticateUser { user =>
+      entity(as[ImageCreateRequest]) { req =>
+        onSuccess(ImagesRepo.create(req, user)) {
+          case Validated.Valid(image) =>
+            completeCreated(ImageHelpers.response(image, Action.Manage))
+          case Validated.Invalid(errs) => completeErrors(errs)
         }
       }
     }
 
-  def create =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        entity(as[ImageCreateRequest]) { req =>
-          onSuccess(ImagesRepo.create(req, user)) {
-            case Validated.Valid(image) =>
-              completeCreated(ImageHelpers.response(image, Action.Manage))
-            case Validated.Invalid(errs) => completeErrors(errs)
-          }
-        }
-      }
-    }
-
-  val routes: Route =
+  final val routes: Route =
     // format: OFF
-    pathPrefix(handlerPath) {
+    pathPrefix("repositories") {
       pathEnd {
         get(index) ~
         post(create)

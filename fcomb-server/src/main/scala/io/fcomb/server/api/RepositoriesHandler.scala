@@ -29,64 +29,53 @@ import io.fcomb.rpc.docker.distribution.ImageUpdateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.server.api.repository._
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 
-object RepositoriesHandler {
-  val handlerPath = "repositories"
-
-  def show(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      tryAuthenticateUser { userOpt =>
-        imageAndActionRead(slug, userOpt) {
-          case (image, action) =>
-            val res = ImageHelpers.response(image, action)
-            completeWithEtag(StatusCodes.OK, res)
-        }
+final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def show(slug: Slug) =
+    tryAuthenticateUser { userOpt =>
+      imageAndActionRead(slug, userOpt) {
+        case (image, action) =>
+          val res = ImageHelpers.response(image, action)
+          completeWithEtag(StatusCodes.OK, res)
       }
     }
 
-  def update(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        imageAndAction(slug, user.getId(), Action.Manage) {
-          case (image, action) =>
-            entity(as[ImageUpdateRequest]) { req =>
-              onSuccess(ImagesRepo.update(image.getId(), req)) {
-                case Validated.Valid(updated) =>
-                  complete((StatusCodes.Accepted, ImageHelpers.response(updated, action)))
-                case Validated.Invalid(errs) => completeErrors(errs)
-              }
+  final def update(slug: Slug) =
+    authenticateUser { user =>
+      imageAndAction(slug, user.getId(), Action.Manage) {
+        case (image, action) =>
+          entity(as[ImageUpdateRequest]) { req =>
+            onSuccess(ImagesRepo.update(image.getId(), req)) {
+              case Validated.Valid(updated) =>
+                complete((StatusCodes.Accepted, ImageHelpers.response(updated, action)))
+              case Validated.Invalid(errs) => completeErrors(errs)
             }
-        }
-      }
-    }
-
-  def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        image(slug, user.getId(), Action.Manage) { image =>
-          onSuccess(ImagesRepo.updateVisibility(image.getId(), visibilityKind)) { _ =>
-            completeAccepted()
           }
+      }
+    }
+
+  final def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind) =
+    authenticateUser { user =>
+      image(slug, user.getId(), Action.Manage) { image =>
+        onSuccess(ImagesRepo.updateVisibility(image.getId(), visibilityKind)) { _ =>
+          completeAccepted()
         }
       }
     }
 
-  def destroy(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        image(slug, user.getId(), Action.Manage) { image =>
-          completeAsAccepted(ImagesRepo.destroy(image.getId()))
-        }
+  final def destroy(slug: Slug) =
+    authenticateUser { user =>
+      image(slug, user.getId(), Action.Manage) { image =>
+        completeAsAccepted(ImagesRepo.destroy(image.getId()))
       }
     }
 
-  val routes: Route =
+  final val routes: Route =
     // format: OFF
-    pathPrefix(handlerPath) {
+    pathPrefix("repositories") {
       pathPrefix(IntNumber) { id =>
         nestedRoutes(Slug.Id(id))
       } ~
@@ -108,8 +97,8 @@ object RepositoriesHandler {
       path("public")(post(updateVisibility(slug, ImageVisibilityKind.Public))) ~
       path("private")(post(updateVisibility(slug, ImageVisibilityKind.Private)))
     } ~
-    TagsHandler.routes(slug) ~
-    PermissionsHandler.routes(slug) ~
-    WebhooksHandler.routes(slug)
+    new TagsHandler().routes(slug) ~
+    new PermissionsHandler().routes(slug) ~
+    new WebhooksHandler().routes(slug)
     // format: ON
 }

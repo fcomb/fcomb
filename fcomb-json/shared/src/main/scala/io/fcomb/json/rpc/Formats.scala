@@ -66,11 +66,11 @@ object Formats {
   final implicit val decodeMemberUserRequest: Decoder[MemberUserRequest] = Decoder.instance { c =>
     val id       = c.downField("id")
     val username = c.downField("username")
-    if (id.succeeded && !username.succeeded) {
-      Decoder[Int].apply(id.any).map(MemberUserIdRequest)
-    } else if (!id.succeeded && username.succeeded) {
-      Decoder[String].apply(username.any).map(MemberUsernameRequest)
-    } else Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
+    if (id.succeeded && !username.succeeded)
+      id.as[Int].map(MemberUserIdRequest)
+    else if (!id.succeeded && username.succeeded)
+      username.as[String].map(MemberUsernameRequest)
+    else Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
   }
   final implicit def decodeDataResponse[T: Decoder]: Decoder[DataResponse[T]] =
     deriveDecoder

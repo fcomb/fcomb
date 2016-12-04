@@ -20,12 +20,12 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.acl.PermissionCreateRequest
+import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
@@ -33,62 +33,52 @@ import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.Path
 
-object PermissionsHandler {
-  val handlerPath = "permissions"
-
-  def index(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        image(slug, user.getId(), Action.Manage) { image =>
-          extractPagination { pg =>
-            onSuccess(PermissionsRepo.paginateByImageId(image, pg)) { p =>
-              completePagination(PermissionsRepo.label, p)
-            }
+final class PermissionsHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def index(slug: Slug) =
+    authenticateUser { user =>
+      image(slug, user.getId(), Action.Manage) { image =>
+        extractPagination { pg =>
+          onSuccess(PermissionsRepo.paginateByImageId(image, pg)) { p =>
+            completePagination(PermissionsRepo.label, p)
           }
         }
       }
     }
 
-  def upsert(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        image(slug, user.getId(), Action.Manage) { image =>
-          entity(as[PermissionCreateRequest]) { req =>
-            onSuccess(PermissionsRepo.upsertByImage(image, req)) {
-              case Validated.Valid(p)      => complete((StatusCodes.Accepted, p))
-              case Validated.Invalid(errs) => completeErrors(errs)
-            }
-          }
-        }
-      }
-    }
-
-  def destroy(slug: Slug, memberKind: MemberKind, memberSlug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        image(slug, user.getId(), Action.Manage) { image =>
-          onSuccess(PermissionsRepo.destroyByImage(image, memberKind, memberSlug)) {
-            case Validated.Valid(p)      => completeAccepted()
+  final def upsert(slug: Slug) =
+    authenticateUser { user =>
+      image(slug, user.getId(), Action.Manage) { image =>
+        entity(as[PermissionCreateRequest]) { req =>
+          onSuccess(PermissionsRepo.upsertByImage(image, req)) {
+            case Validated.Valid(p)      => complete((StatusCodes.Accepted, p))
             case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }
     }
 
-  def suggestions(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        parameter('q) { q =>
-          image(slug, user.getId(), Action.Manage) { image =>
-            onSuccess(PermissionsRepo.findSuggestions(image, q))(completeData)
-          }
+  final def destroy(slug: Slug, memberKind: MemberKind, memberSlug: Slug) =
+    authenticateUser { user =>
+      image(slug, user.getId(), Action.Manage) { image =>
+        onSuccess(PermissionsRepo.destroyByImage(image, memberKind, memberSlug)) {
+          case Validated.Valid(p)      => completeAccepted()
+          case Validated.Invalid(errs) => completeErrors(errs)
         }
       }
     }
 
-  def routes(slug: Slug): Route =
+  final def suggestions(slug: Slug) =
+    authenticateUser { user =>
+      parameter('q) { q =>
+        image(slug, user.getId(), Action.Manage) { image =>
+          onSuccess(PermissionsRepo.findSuggestions(image, q))(completeData)
+        }
+      }
+    }
+
+  final def routes(slug: Slug): Route =
     // format: OFF
-    pathPrefix(handlerPath) {
+    pathPrefix("permissions") {
       pathEnd {
         get(index(slug)) ~
         put(upsert(slug))

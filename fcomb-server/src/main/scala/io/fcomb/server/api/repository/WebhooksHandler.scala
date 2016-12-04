@@ -19,56 +19,48 @@ package io.fcomb.server.api.repository
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import cats.data.Validated
+import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
+import io.fcomb.persist.docker.distribution.ImageWebhooksRepo
 import io.fcomb.rpc.docker.distribution.ImageWebhookRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageWebhookHelpers
-import io.fcomb.persist.docker.distribution.ImageWebhooksRepo
-import io.fcomb.json.rpc.docker.distribution.Formats._
+import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 
-object WebhooksHandler {
-  val handlerPath = "webhooks"
-
-  def index(slug: Slug) =
+final class WebhooksHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def index(slug: Slug) =
     authenticateUser { user =>
-      extractMaterializer { implicit mat =>
-        import mat.executionContext
-        image(slug, user.getId(), Action.Read) { image =>
-          extractPagination { pg =>
-            onSuccess(ImageWebhooksRepo.paginateByImageId(image.getId(), pg)) { p =>
-              completePagination(ImageWebhooksRepo.label, p)
-            }
+      image(slug, user.getId(), Action.Read) { image =>
+        extractPagination { pg =>
+          onSuccess(ImageWebhooksRepo.paginateByImageId(image.getId(), pg)) { p =>
+            completePagination(ImageWebhooksRepo.label, p)
           }
         }
       }
     }
 
-  def upsert(slug: Slug) =
+  final def upsert(slug: Slug) =
     authenticateUser { user =>
-      extractMaterializer { implicit mat =>
-        import mat.executionContext
-        image(slug, user.getId(), Action.Write) { image =>
-          entity(as[ImageWebhookRequest]) { req =>
-            onSuccess(ImageWebhooksRepo.upsert(image.getId(), req.url)) {
-              case Validated.Valid(webhook) =>
-                val res = ImageWebhookHelpers.response(webhook)
-                completeWithEtag(StatusCodes.OK, res)
-              case Validated.Invalid(errs) => completeErrors(errs)
-            }
+      image(slug, user.getId(), Action.Write) { image =>
+        entity(as[ImageWebhookRequest]) { req =>
+          onSuccess(ImageWebhooksRepo.upsert(image.getId(), req.url)) {
+            case Validated.Valid(webhook) =>
+              val res = ImageWebhookHelpers.response(webhook)
+              completeWithEtag(StatusCodes.OK, res)
+            case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }
     }
 
-  def routes(slug: Slug) =
+  final def routes(slug: Slug) =
     // format: OFF
-    path(handlerPath) {
+    path("webhooks") {
       get(index(slug)) ~
       put(upsert(slug))
     }

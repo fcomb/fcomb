@@ -26,8 +26,8 @@ import scala.util.Left
 
 object Formats {
   final implicit val encodePermissionUserMemberResponse: Encoder[PermissionUserMemberResponse] =
-    Encoder.forProduct5("id", "kind", "isOwner", "username", "fullName")(r =>
-      (r.id, r.kind: MemberKind, r.isOwner, r.username, r.fullName))
+    Encoder.forProduct5("id", "kind", "isOwner", "username",
+      "fullName")(r => (r.id, r.kind: MemberKind, r.isOwner, r.username, r.fullName))
   final implicit val encodePermissionGroupMemberResponse: Encoder[PermissionGroupMemberResponse] =
     Encoder.forProduct3("id", "kind", "name")(r => (r.id, r.kind: MemberKind, r.name))
   final implicit val encodePermissionMemberResponse: Encoder[PermissionMemberResponse] =
@@ -77,16 +77,16 @@ object Formats {
         case MemberKind.User =>
           val username = c.downField("username")
           if (id.succeeded && !username.succeeded)
-            Decoder[Int].apply(id.any).map(PermissionUserIdRequest)
+            id.as[Int].map(PermissionUserIdRequest)
           else if (!id.succeeded && username.succeeded)
-            Decoder[String].apply(username.any).map(PermissionUsernameRequest)
+            username.as[String].map(PermissionUsernameRequest)
           else Left(DecodingFailure("You should pass 'id' or 'username' field", c.history))
         case MemberKind.Group =>
           val name = c.downField("name")
           if (id.succeeded && !name.succeeded)
-            Decoder[Int].apply(id.any).map(PermissionGroupIdRequest)
+            id.as[Int].map(PermissionGroupIdRequest)
           else if (!id.succeeded && name.succeeded)
-            Decoder[String].apply(name.any).map(PermissionGroupNameRequest)
+            name.as[String].map(PermissionGroupNameRequest)
           else Left(DecodingFailure("You should pass 'id' or 'name' field", c.history))
       }
     }

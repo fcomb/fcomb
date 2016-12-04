@@ -15,12 +15,13 @@ RUN apk add --update nodejs nodejs-dev && \
     su java -c "${WORKDIR}/sbt universal:packageZipTarball" && \
     tar -xf ${WORKDIR}/target/universal/dist.tgz -C / && \
     mv /dist ${APP} && \
-    chown -R fcomb:fcomb ${APP} && \
+    mkdir /data && \
+    chown -R fcomb:fcomb ${APP} /data && \
     deluser --remove-home java && \
     apk del --purge nodejs nodejs-dev && \
     rm -rf /var/cache/apk/* /tmp/* /home/java /usr/lib/node_modules
 
-EXPOSE 8080
+EXPOSE 8080 8443
 
 COPY docker/run.sh /
 WORKDIR ${APP}

@@ -20,26 +20,23 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.persist.OrganizationsRepo
+import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.PaginationDirectives._
 
-object OrganizationsHandler {
-  val handlerPath = "organizations"
-
-  def index =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        extractPagination { pg =>
-          onSuccess(OrganizationsRepo.paginateAvailableByUserId(user.getId(), pg)) { p =>
-            completePagination(OrganizationsRepo.label, p)
-          }
+final class OrganizationsHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def index =
+    authenticateUser { user =>
+      extractPagination { pg =>
+        onSuccess(OrganizationsRepo.paginateAvailableByUserId(user.getId(), pg)) { p =>
+          completePagination(OrganizationsRepo.label, p)
         }
       }
     }
 
-  val routes: Route =
+  final val routes: Route =
     // format: OFF
-    path(handlerPath) {
+    path("organizations") {
       get(index)
     }
     // format: ON

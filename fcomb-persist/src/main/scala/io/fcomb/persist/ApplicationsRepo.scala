@@ -29,7 +29,6 @@ final class ApplicationTable(tag: Tag)
   def token     = column[String]("token")
   def ownerId   = column[Int]("owner_id")
   def ownerKind = column[OwnerKind]("owner_kind")
-
   def createdAt = column[OffsetDateTime]("created_at")
   def updatedAt = column[Option[OffsetDateTime]]("updated_at")
 

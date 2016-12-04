@@ -23,11 +23,12 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
+import cats.syntax.show._
 import com.typesafe.scalalogging.LazyLogging
-import io.circe.{DecodingFailure, HistoryOp, ParsingFailure}
+import io.circe.{CursorOp, DecodingFailure, ParsingFailure}
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.models.errors.Formats.encodeErrors
 import io.fcomb.models.errors.{Error, Errors}
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 
 final class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materializer)
@@ -39,11 +40,11 @@ final class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materi
       case _: ParsingException | _: Unmarshaller.UnsupportedContentTypeException =>
         (StatusCodes.UnprocessableEntity, Errors.deserialization(e.getMessage))
       case f: DecodingFailure =>
-        val path = HistoryOp.opsToPath(f.history) match {
+        val path = CursorOp.opsToPath(f.history) match {
           case s if s.startsWith(".") => s.tail
           case s                      => s
         }
-        (StatusCodes.UnprocessableEntity, Errors.deserialization(f.message, Some(path)))
+        (StatusCodes.UnprocessableEntity, Errors.deserialization(f.show, Some(path)))
       case f: ParsingFailure =>
         (StatusCodes.UnprocessableEntity, Errors.deserialization(f.message))
       case f =>

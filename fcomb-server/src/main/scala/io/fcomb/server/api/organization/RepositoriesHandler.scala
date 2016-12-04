@@ -26,51 +26,44 @@ import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.rpc.ResponseModelWithPk._
+import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
 import io.fcomb.server.AuthenticationDirectives._
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.PaginationDirectives._
 
-object RepositoriesHandler {
-  val handlerPath = "repositories"
-
-  def index(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      organizationBySlug(slug) { org =>
-        tryAuthenticateUser { userOpt =>
-          extractPagination { pg =>
-            val res = ImagesRepo.paginateAvailableByOrganizationOwner(org.getId(),
-                                                                      userOpt.flatMap(_.id),
-                                                                      pg)
-            onSuccess(res) { p =>
-              completePagination(ImagesRepo.label, p)
-            }
+final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
+  final def index(slug: Slug) =
+    organizationBySlug(slug) { org =>
+      tryAuthenticateUser { userOpt =>
+        extractPagination { pg =>
+          val res =
+            ImagesRepo.paginateAvailableByOrganizationOwner(org.getId(), userOpt.flatMap(_.id), pg)
+          onSuccess(res) { p =>
+            completePagination(ImagesRepo.label, p)
           }
         }
       }
     }
 
-  def create(slug: Slug) =
-    extractExecutionContext { implicit ec =>
-      authenticateUser { user =>
-        val userId = user.getId()
-        organizationBySlugWithAcl(slug, userId, Role.Admin) { org =>
-          entity(as[ImageCreateRequest]) { req =>
-            onSuccess(ImagesRepo.create(req, org, userId)) {
-              case Validated.Valid(image) =>
-                completeCreated(ImageHelpers.response(image, Action.Manage))
-              case Validated.Invalid(errs) => completeErrors(errs)
-            }
+  final def create(slug: Slug) =
+    authenticateUser { user =>
+      val userId = user.getId()
+      organizationBySlugWithAcl(slug, userId, Role.Admin) { org =>
+        entity(as[ImageCreateRequest]) { req =>
+          onSuccess(ImagesRepo.create(req, org, userId)) {
+            case Validated.Valid(image) =>
+              completeCreated(ImageHelpers.response(image, Action.Manage))
+            case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
       }
     }
 
-  def routes(slug: Slug): Route =
+  final def routes(slug: Slug): Route =
     // format: OFF
-    path(handlerPath) {
+    path("repositories") {
       get(index(slug)) ~
       post(create(slug))
     }
