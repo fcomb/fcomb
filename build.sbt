@@ -43,8 +43,6 @@ lazy val commonSettings =
       "org.typelevel"              %% "cats"          % catsVersion
     ),
     scalacOptions ++= Seq(
-      "-encoding",
-      "UTF-8",
       "-unchecked",
       "-deprecation",
       "-feature",
