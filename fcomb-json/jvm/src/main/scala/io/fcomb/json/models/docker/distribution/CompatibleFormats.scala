@@ -16,7 +16,6 @@
 
 package io.fcomb.json.models.docker.distribution
 
-import cats.syntax.either._
 import enumeratum.Circe
 import io.circe.generic.semiauto._
 import io.circe.java8.time._
@@ -43,21 +42,50 @@ object CompatibleFormats {
   )
 
   final implicit val encodeSchemaV1ContainerConfig: Encoder[SchemaV1.ContainerConfig] =
-    Encoder.forProduct22("Hostname", "Domainname", "User", "AttachStdin", "AttachStdout",
-      "AttachStderr", "ExposedPorts", "Tty", "OpenStdin", "StdinOnce", "Env", "Cmd", "ArgsEscaped",
-      "Image", "Volumes", "WorkingDir", "Entrypoint", "NetworkDisabled", "MacAddress", "OnBuild",
-      "Labels", "StopSignal")(SchemaV1.ContainerConfig.unapply(_).get)
+    Encoder.forProduct22("Hostname",
+                         "Domainname",
+                         "User",
+                         "AttachStdin",
+                         "AttachStdout",
+                         "AttachStderr",
+                         "ExposedPorts",
+                         "Tty",
+                         "OpenStdin",
+                         "StdinOnce",
+                         "Env",
+                         "Cmd",
+                         "ArgsEscaped",
+                         "Image",
+                         "Volumes",
+                         "WorkingDir",
+                         "Entrypoint",
+                         "NetworkDisabled",
+                         "MacAddress",
+                         "OnBuild",
+                         "Labels",
+                         "StopSignal")(SchemaV1.ContainerConfig.unapply(_).get)
 
   final val encodeSchemaV1Config: Encoder[SchemaV1.Config] =
-    Encoder.forProduct13("id", "parent", "comment", "created", "container", "container_config",
-      "docker_version", "author", "config", "architecture", "os", "Size",
-      "throwaway")(SchemaV1.Config.unapply(_).get)
+    Encoder.forProduct13("id",
+                         "parent",
+                         "comment",
+                         "created",
+                         "container",
+                         "container_config",
+                         "docker_version",
+                         "author",
+                         "config",
+                         "architecture",
+                         "os",
+                         "Size",
+                         "throwaway")(SchemaV1.Config.unapply(_).get)
 
   final implicit val encodeSchemaV1LayerContainerConfig: Encoder[SchemaV1.LayerContainerConfig] =
     Encoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.unapply(_).get)
 
-  final val encodeSchemaV1Layer: Encoder[SchemaV1.Layer] = Encoder.forProduct7("id", "parent",
-    "comment", "created", "container_config", "author", "throwaway")(SchemaV1.Layer.unapply(_).get)
+  final val encodeSchemaV1Layer: Encoder[SchemaV1.Layer] = Encoder
+    .forProduct7("id", "parent", "comment", "created", "container_config", "author", "throwaway")(
+      SchemaV1.Layer.unapply(_).get)
 
   final implicit val encodeSchemaV1FsLayer: Encoder[SchemaV1.FsLayer] =
     Encoder.forProduct1("blobSum")(SchemaV1.FsLayer.unapply(_).get)
@@ -80,8 +108,13 @@ object CompatibleFormats {
     Encoder.forProduct3("header", "signature", "protected")(SchemaV1.Signature.unapply(_).get)
 
   final implicit val encodeSchemaV1Manifest: Encoder[SchemaV1.Manifest] =
-    Encoder.forProduct7("name", "tag", "fsLayers", "architecture", "history", "signatures",
-      "schemaVersion")(SchemaV1.Manifest.unapply(_).get)
+    Encoder.forProduct7("name",
+                        "tag",
+                        "fsLayers",
+                        "architecture",
+                        "history",
+                        "signatures",
+                        "schemaVersion")(SchemaV1.Manifest.unapply(_).get)
 
   final implicit val encodeSchemaV1Protected: Encoder[SchemaV1.Protected] =
     Encoder.forProduct3("formatLength", "formatTail", "time")(SchemaV1.Protected.unapply(_).get)
@@ -110,8 +143,9 @@ object CompatibleFormats {
   final implicit val decodeSchemaV1LayerContainerConfig: Decoder[SchemaV1.LayerContainerConfig] =
     Decoder.forProduct1("Cmd")(SchemaV1.LayerContainerConfig.apply)
 
-  final val decodeSchemaV1Layer = Decoder.forProduct7("id", "parent", "comment", "created",
-    "container_config", "author", "throwaway")(SchemaV1.Layer.apply)
+  final val decodeSchemaV1Layer = Decoder
+    .forProduct7("id", "parent", "comment", "created", "container_config", "author", "throwaway")(
+      SchemaV1.Layer.apply)
 
   final implicit val decodeSchemaV1LayerFromV1Compatibility: Decoder[SchemaV1.Layer] =
     Decoder.instance { c =>
@@ -124,15 +158,43 @@ object CompatibleFormats {
     }
 
   final implicit val decodeSchemaV1ContainerConfig: Decoder[SchemaV1.ContainerConfig] =
-    Decoder.forProduct22("Hostname", "Domainname", "User", "AttachStdin", "AttachStdout",
-      "AttachStderr", "ExposedPorts", "Tty", "OpenStdin", "StdinOnce", "Env", "Cmd", "ArgsEscaped",
-      "Image", "Volumes", "WorkingDir", "Entrypoint", "NetworkDisabled", "MacAddress", "OnBuild",
-      "Labels", "StopSignal")(SchemaV1.ContainerConfig.apply)
+    Decoder.forProduct22("Hostname",
+                         "Domainname",
+                         "User",
+                         "AttachStdin",
+                         "AttachStdout",
+                         "AttachStderr",
+                         "ExposedPorts",
+                         "Tty",
+                         "OpenStdin",
+                         "StdinOnce",
+                         "Env",
+                         "Cmd",
+                         "ArgsEscaped",
+                         "Image",
+                         "Volumes",
+                         "WorkingDir",
+                         "Entrypoint",
+                         "NetworkDisabled",
+                         "MacAddress",
+                         "OnBuild",
+                         "Labels",
+                         "StopSignal")(SchemaV1.ContainerConfig.apply)
 
   final val decodeSchemaV1Config: Decoder[SchemaV1.Config] =
-    Decoder.forProduct13("id", "parent", "comment", "created", "container", "container_config",
-      "docker_version", "author", "config", "architecture", "os", "Size",
-      "throwaway")(SchemaV1.Config.apply)
+    Decoder.forProduct13("id",
+                         "parent",
+                         "comment",
+                         "created",
+                         "container",
+                         "container_config",
+                         "docker_version",
+                         "author",
+                         "config",
+                         "architecture",
+                         "os",
+                         "Size",
+                         "throwaway")(SchemaV1.Config.apply)
 
   final implicit val decodeSchemaV1ConfigFromV1Compatibility: Decoder[SchemaV1.Config] =
     Decoder.instance { c =>
@@ -190,8 +252,8 @@ object CompatibleFormats {
     Decoder.forProduct3("type", "diff_ids", "base_layer")(SchemaV2.ImageRootFs.apply)
 
   final implicit val decodeSchemaV2ImageHistory: Decoder[SchemaV2.ImageHistory] =
-    Decoder.forProduct5("created", "author", "created_by", "comment",
-      "empty_layer")(SchemaV2.ImageHistory.apply)
+    Decoder.forProduct5("created", "author", "created_by", "comment", "empty_layer")(
+      SchemaV2.ImageHistory.apply)
 
   final implicit val decodeSchemaV2ImageConfig: Decoder[SchemaV2.ImageConfig] =
     Decoder.forProduct3("rootfs", "history", "architecture")(SchemaV2.ImageConfig.apply)

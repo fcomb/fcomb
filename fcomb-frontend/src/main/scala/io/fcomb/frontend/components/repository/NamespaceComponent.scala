@@ -74,9 +74,9 @@ object NamespaceComponent {
         case _ => Callback.empty
       }
 
-    lazy val allMenuItem = Seq(
-      MuiMenuItem[Namespace](key = "all", value = Namespace.All, primaryText = "All")(),
-      MuiDivider(key = "divider")())
+    lazy val allMenuItem =
+      Seq(MuiMenuItem[Namespace](key = "all", value = Namespace.All, primaryText = "All")(),
+          MuiDivider(key = "divider")())
 
     def render(props: Props, state: State) = {
       val (prefix, prefixCount) =

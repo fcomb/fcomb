@@ -16,7 +16,6 @@
 
 package io.fcomb.tests.fixtures
 
-import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.OrganizationGroup
 import io.fcomb.persist.OrganizationGroupsRepo
@@ -38,6 +37,5 @@ object OrganizationGroupsFixture {
           createdAt = OffsetDateTime.now,
           updatedAt = None
         ))
-      .fast
       .map(Fixtures.get)
 }

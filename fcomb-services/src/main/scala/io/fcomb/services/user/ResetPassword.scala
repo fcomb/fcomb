@@ -17,7 +17,6 @@
 package io.fcomb.services.user
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import cats.data.Validated
 import io.fcomb.crypto.Jwt
@@ -34,7 +33,7 @@ object ResetPassword {
   def reset(email: String)(implicit sys: ActorSystem,
                            mat: Materializer): Future[ValidationResultUnit] = {
     import mat.executionContext
-    UsersRepo.findByEmail(email).fast.map {
+    UsersRepo.findByEmail(email).map {
       case Some(user) =>
         val timeNow = Instant.now()
         val jwt     = Jwt.encode(user, Config.jwt.secret, timeNow, Config.jwt.resetPasswordTtl)

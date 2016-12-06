@@ -19,7 +19,6 @@ package io.fcomb.server.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.util.FastFuture._
 import cats.data.Validated
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.Formats._
@@ -49,20 +48,20 @@ final class UsersHandler(implicit val config: ApiHandlerConfig) extends ApiHandl
   final def create =
     authorizeAdminUser { user =>
       entity(as[UserCreateRequest]) { req =>
-        completeAsCreated(UsersRepo.create(req).fast.map(_.map(UserHelpers.response)))
+        completeAsCreated(UsersRepo.create(req).map(_.map(UserHelpers.response)))
       }
     }
 
   final def update(slug: Slug) =
     authorizeAdminUser { user =>
       entity(as[UserUpdateRequest]) { req =>
-        completeAsAccepted(UsersRepo.update(slug, user, req).fast.map(_.map(UserHelpers.response)))
+        completeAsAccepted(UsersRepo.update(slug, user, req).map(_.map(UserHelpers.response)))
       }
     }
 
   final def show(slug: Slug) =
     authorizeAdminUser { user =>
-      completeOrNotFound(UsersRepo.find(slug).fast.map(_.map(UserHelpers.response)))
+      completeOrNotFound(UsersRepo.find(slug).map(_.map(UserHelpers.response)))
     }
 
   final def destroy(slug: Slug) =

@@ -281,11 +281,12 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
                 createUserOwnerDBIO(image.getId(), memberId, action)
             }
             .map { p =>
-              val member = PermissionUserMemberResponse(
-                id = memberId,
-                isOwner = false, // impossible to change the permissions for the owner
-                username = user.username,
-                fullName = user.fullName)
+              val member =
+                PermissionUserMemberResponse(
+                  id = memberId,
+                  isOwner = false, // impossible to change the permissions for the owner
+                  username = user.username,
+                  fullName = user.fullName)
               Validated.Valid(
                 PermissionResponse(
                   member = member,

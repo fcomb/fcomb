@@ -16,7 +16,6 @@
 
 package io.fcomb.tests.fixtures
 
-import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.models.{User, UserRole}
 import io.fcomb.persist.UsersRepo
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -43,6 +42,5 @@ object UsersFixture {
         fullName = fullName,
         role = role
       )
-      .fast
       .map(Fixtures.get)
 }

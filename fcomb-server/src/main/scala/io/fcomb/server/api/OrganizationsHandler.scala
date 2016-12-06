@@ -19,7 +19,6 @@ package io.fcomb.server.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.util.FastFuture._
 import cats.data.Validated
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
@@ -50,7 +49,7 @@ final class OrganizationsHandler(implicit val config: ApiHandlerConfig) extends 
     tryAuthenticateUser { userOpt =>
       val futRes = userOpt match {
         case Some(user) => OrganizationsRepo.findWithRoleBySlug(slug, user.getId())
-        case _          => OrganizationsRepo.findBySlug(slug).fast.map(_.map(org => (org, None)))
+        case _          => OrganizationsRepo.findBySlug(slug).map(_.map(org => (org, None)))
       }
       onSuccess(futRes) {
         case Some((org, role)) =>

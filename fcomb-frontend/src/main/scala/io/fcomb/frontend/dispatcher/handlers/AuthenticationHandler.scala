@@ -16,7 +16,6 @@
 
 package io.fcomb.frontend.dispatcher.handlers
 
-import cats.syntax.either._
 import diode.{ActionHandler, ActionResult, ModelRW}
 import io.circe.parser.decode
 import io.fcomb.frontend.dispatcher.actions._

@@ -16,7 +16,6 @@
 
 package io.fcomb.json.rpc.acl
 
-import cats.syntax.either._
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.fcomb.json.models.acl.Formats._
@@ -26,8 +25,8 @@ import scala.util.Left
 
 object Formats {
   final implicit val encodePermissionUserMemberResponse: Encoder[PermissionUserMemberResponse] =
-    Encoder.forProduct5("id", "kind", "isOwner", "username",
-      "fullName")(r => (r.id, r.kind: MemberKind, r.isOwner, r.username, r.fullName))
+    Encoder.forProduct5("id", "kind", "isOwner", "username", "fullName")(r =>
+      (r.id, r.kind: MemberKind, r.isOwner, r.username, r.fullName))
   final implicit val encodePermissionGroupMemberResponse: Encoder[PermissionGroupMemberResponse] =
     Encoder.forProduct3("id", "kind", "name")(r => (r.id, r.kind: MemberKind, r.name))
   final implicit val encodePermissionMemberResponse: Encoder[PermissionMemberResponse] =

@@ -24,7 +24,6 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import cats.scalatest.EitherMatchers._
-import cats.syntax.either._
 import io.fcomb.akka.http.CirceSupport._
 import io.circe.jawn._
 import io.circe.syntax._

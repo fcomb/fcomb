@@ -16,7 +16,6 @@
 
 package io.fcomb.tests.fixtures.docker.distribution
 
-import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.models.{Organization, Owner, OwnerKind, User}
 import io.fcomb.persist.docker.distribution.ImagesRepo
@@ -42,7 +41,7 @@ object ImagesFixture {
       createdAt = OffsetDateTime.now,
       updatedAt = None
     )
-    ImagesRepo.create(image).fast.map(Fixtures.get)
+    ImagesRepo.create(image).map(Fixtures.get)
   }
 
   def create(user: User, imageName: String, visibilityKind: ImageVisibilityKind): Future[Image] =

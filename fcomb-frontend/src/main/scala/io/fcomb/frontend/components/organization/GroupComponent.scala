@@ -195,8 +195,8 @@ object GroupComponent {
             (props.group, DashboardRoute.OrganizationGroup(props.slug, props.group))))
       val menuIconBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
-      val actions = Seq(
-        MuiMenuItem(primaryText = "Edit", key = "edit", onTouchTap = setEditRoute(props) _)())
+      val actions =
+        Seq(MuiMenuItem(primaryText = "Edit", key = "edit", onTouchTap = setEditRoute(props) _)())
       val menu = MuiIconMenu(iconButtonElement = menuIconBtn)(actions)
 
       <.div(^.key := "header",

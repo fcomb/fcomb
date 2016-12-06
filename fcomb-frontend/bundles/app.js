@@ -15,6 +15,6 @@ window.mui          = require("material-ui");
 window.mui.Styles   = require("material-ui/styles");
 window.mui.SvgIcons = require('material-ui/svg-icons/index');
 
-require('../target/scala-2.11/frontend-opt.js');
+require('../target/scala-2.12/frontend-opt.js');
 
 io.fcomb.frontend.Main().main();

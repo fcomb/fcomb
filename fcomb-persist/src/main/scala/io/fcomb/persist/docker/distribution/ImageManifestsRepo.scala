@@ -16,7 +16,6 @@
 
 package io.fcomb.persist.docker.distribution
 
-import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import io.fcomb.Db.db
 import io.fcomb.PostgresProfile.api._
@@ -133,7 +132,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
                      schemaV1JsonBlob: String,
                      digest: String)(implicit ec: ExecutionContext): Future[ValidationModel] =
     findByImageIdAndDigest(image.getId(), digest).flatMap {
-      case Some(im) => FastFuture.successful(Validated.valid(im))
+      case Some(im) => Future.successful(Validated.valid(im))
       case None =>
         val digests = manifest.fsLayers.map(_.getDigest).toSet
         val tags =
@@ -170,13 +169,13 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
                      digest: String)(implicit ec: ExecutionContext): Future[ValidationModel] =
     findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
-        updateTagsByReference(im, reference).fast.map(_ => Validated.valid(im))
+        updateTagsByReference(im, reference).map(_ => Validated.valid(im))
       case None =>
         val digests = manifest.layers.map(_.getDigest).toSet
         val emptyTarResFut =
           if (digests.contains(ImageManifest.emptyTarSha256Digest))
             ImageBlobsRepo.createEmptyTarIfNotExists(image.getId())
-          else FastFuture.successful(())
+          else Future.unit
         (for {
           _       <- emptyTarResFut
           blobIds <- ImageBlobsRepo.findAllUploadedIds(image.getId(), digests)
@@ -227,7 +226,7 @@ object ImageManifestsRepo extends PersistModelWithAutoIntPk[ImageManifest, Image
                     WHERE id = ${im.getId}"""
           _ <- ImagesRepo.touchUpdatedAtDBIO(im.imageId, timeNow)
         } yield ()
-      } else FastFuture.successful(())
+      } else Future.unit
   }
 
   override def create(manifest: ImageManifest)(

@@ -16,7 +16,6 @@
 
 package io.fcomb.docker.distribution.manifest
 
-import akka.http.scaladsl.util.FastFuture, FastFuture._
 import akka.stream.Materializer
 import akka.stream.scaladsl.FileIO
 import cats.data.Validated
@@ -49,13 +48,13 @@ object SchemaV2 {
     val digest = DigestUtils.sha256Hex(rawManifest)
     ImageManifestsRepo.findByImageIdAndDigest(image.getId(), digest).flatMap {
       case Some(im) =>
-        ImageManifestsRepo.updateTagsByReference(im, reference).fast.map(_ => Right(im.digest))
+        ImageManifestsRepo.updateTagsByReference(im, reference).map(_ => Right(im.digest))
       case None =>
         val configDigest = manifest.config.getDigest
         ImageBlobsRepo.findUploaded(image.getId(), configDigest).flatMap {
           case Some(configBlob) =>
             if (configBlob.length > 16.MB)
-              FastFuture.successful(unknowError("Config JSON size is more than 16 MB"))
+              Future.successful(unknowError("Config JSON size is more than 16 MB"))
             else {
               val configFile = BlobFileUtils.getBlobFilePath(configDigest)
               getImageConfig(configFile).flatMap {
@@ -70,7 +69,6 @@ object SchemaV2 {
                                         schemaV1JsonBlob,
                                         rawManifest,
                                         digest)
-                        .fast
                         .map {
                           case Validated.Valid(imageManifest) =>
                             EventService.pushRepoEvent(image,
@@ -80,13 +78,13 @@ object SchemaV2 {
                             Right(digest)
                           case Validated.Invalid(e) => unknowError(e.map(_.message).mkString(";"))
                         }
-                    case Left(e) => FastFuture.successful(unknowError(e))
+                    case Left(e) => Future.successful(unknowError(e))
                   }
-                case Left(e) => FastFuture.successful(unknowError(e))
+                case Left(e) => Future.successful(unknowError(e))
               }
             }
           case None =>
-            FastFuture.successful(
+            Future.successful(
               unknowError(s"Config blob `$sha256Prefix$configDigest` not found"))
         }
     }
@@ -110,7 +108,6 @@ object SchemaV2 {
           }
         case (res, _) => res
       }
-      .fast
       .map(_.flatMap {
         case Some(res) => Right(res)
         case _         => p.finish.map(_.headOption.getOrElse(Json.Null)).leftMap(_.msg)

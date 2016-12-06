@@ -34,7 +34,8 @@ final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends A
         case Some(user) =>
           extractPagination { pg =>
             val res = ImagesRepo.paginateAvailableByUserOwner(user.getId(),
-              currentUserOpt.flatMap(_.id), pg)
+                                                              currentUserOpt.flatMap(_.id),
+                                                              pg)
             onSuccess(res) { p =>
               completePagination(ImagesRepo.label, p)
             }

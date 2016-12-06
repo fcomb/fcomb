@@ -16,7 +16,6 @@
 
 package io.fcomb.persist.docker.distribution
 
-import akka.http.scaladsl.util.FastFuture
 import akka.stream.scaladsl.Source
 import io.fcomb.Db.db
 import io.fcomb.models.docker.distribution.{BlobFile, BlobFileState}
@@ -27,7 +26,7 @@ import io.fcomb.PostgresProfile.api._
 import io.fcomb.validation.DBIOException
 import java.time.OffsetDateTime
 import java.util.UUID
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 final class BlobFileTable(tag: Tag) extends Table[BlobFile](tag, "dd_blob_files") {
   def uuid       = column[UUID]("uuid", O.PrimaryKey)
@@ -135,11 +134,11 @@ object BlobFilesRepo {
       .update(BlobFileState.Deleting)
 
   def destroy(uuids: Seq[UUID]) =
-    if (uuids.isEmpty) FastFuture.successful(())
+    if (uuids.isEmpty) Future.unit
     else db.run(table.filter(_.uuid.inSetBind(uuids)).delete)
 
   def updateRetryCount(uuids: Seq[UUID]) =
-    if (uuids.isEmpty) FastFuture.successful(())
+    if (uuids.isEmpty) Future.unit
     else {
       val retriedAt     = Some(OffsetDateTime.now())
       val uuidCol       = table.baseTableRow.uuid.toString()

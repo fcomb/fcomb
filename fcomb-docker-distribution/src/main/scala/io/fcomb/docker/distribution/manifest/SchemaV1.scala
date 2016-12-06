@@ -16,11 +16,9 @@
 
 package io.fcomb.docker.distribution.manifest
 
-import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import cats.instances.either.catsStdInstancesForEither
 import cats.syntax.cartesian._
-import cats.syntax.either._
 import cats.syntax.show._
 import io.circe._
 import io.circe.jawn._
@@ -51,7 +49,7 @@ object SchemaV1 {
   )(implicit ec: ExecutionContext): Future[Either[DistributionError, String]] =
     verify(manifest, rawManifest) match {
       case Right((schemaV1JsonBlob, digest)) =>
-        ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).fast.map {
+        ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).map {
           case Validated.Valid(imageManifest) =>
             EventService
               .pushRepoEvent(image, imageManifest.getId(), reference.value, createdByUserId)
@@ -59,7 +57,7 @@ object SchemaV1 {
           case Validated.Invalid(errs) =>
             Left(DistributionError.unknown(errs.map(_.message).mkString(";")))
         }
-      case Left(e) => FastFuture.successful(Left(DistributionError.unknown(e.message)))
+      case Left(e) => Future.successful(Left(DistributionError.unknown(e.message)))
     }
 
   /** Returns formatted manifest (without signatures) and its digest within [[cats.data.Either]] */

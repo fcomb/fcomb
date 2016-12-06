@@ -11,8 +11,8 @@ lazy val circeVersion        = "0.7.0-M1"
 lazy val commonsVersion      = "1.10"
 lazy val enumeratumVersion   = "1.5.2"
 lazy val guavaVersion        = "19.0"
-lazy val slickPgVersion      = "0.15.0-M3"
-lazy val slickVersion        = "3.2.0-M1"
+lazy val slickPgVersion      = "0.15.0-M4_0.7.0-M1"
+lazy val slickVersion        = "3.2.0-M2"
 
 lazy val buildSettings = Seq(
   organization := "io.fcomb",
@@ -21,70 +21,67 @@ lazy val buildSettings = Seq(
   startYear := Option(2016),
   homepage := Option(url("https://fcomb.io")),
   organizationHomepage := Option(new URL("https://fcomb.io")),
-  scalaVersion in ThisBuild := "2.11.8",
+  scalaVersion in ThisBuild := "2.12.1",
   headers := Map("scala" -> Apache2_0("2016", "fcomb. <https://fcomb.io>")),
   scalafmtConfig := Some(file(".scalafmt.conf"))
 )
 
 lazy val commonSettings =
-  reformatOnCompileSettings ++
-    Seq(
-      resolvers ++= Seq(
-        "Typesafe Releases" at "http://repo.typesafe.com/typesafe/maven-releases/",
-        Resolver.jcenterRepo,
-        Resolver.sonatypeRepo("releases"),
-        Resolver.sonatypeRepo("snapshots"),
-        Resolver.bintrayRepo("fcomb", "maven"),
-        Resolver.bintrayRepo("etaty", "maven")
-      ),
-      libraryDependencies ++= Seq(
-        "com.chuusai"                %% "shapeless"     % "2.3.2",
-        "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
-        "org.typelevel"              %% "cats"          % catsVersion
-      ),
-      scalacOptions ++= Seq(
-        "-encoding",
-        "UTF-8",
-        "-target:jvm-1.8",
-        "-unchecked",
-        "-deprecation",
-        "-feature",
-        "-language:higherKinds",
-        "-language:existentials",
-        "-language:postfixOps",
-        "-Xexperimental",
-        "-Xlint",
-        // "-Xfatal-warnings",
-        "-Xfuture",
-        "-Ybackend:GenBCode",
-        "-Ydelambdafy:method",
-        "-Yno-adapted-args",
-        // "-Yno-imports",
-        // "-Yno-predef",
-        "-Yopt-warnings",
-        "-Yopt:l:classpath",
-        "-Yopt:unreachable-code",
-        "-Ywarn-dead-code",
-        "-Ywarn-infer-any",
-        "-Ywarn-numeric-widen",
-        "-Ywarn-unused",
-        "-Ywarn-unused-import",
-        "-Ywarn-value-discard"
-      ),
-      javaOptions ++= Seq("-Dfile.encoding=UTF-8"),
-      javacOptions ++= Seq(
-        "-source",
-        "1.8",
-        "-target",
-        "1.8",
-        "-Xlint:unchecked",
-        "-Xlint:deprecation"
-      ),
-      publishArtifact in (Compile, packageDoc) := false,
-      publishArtifact in packageDoc := false,
-      sources in (Compile, doc) := Seq.empty /*,
+  // reformatOnCompileSettings ++
+  Seq(
+    resolvers ++= Seq(
+      "Typesafe Releases" at "http://repo.typesafe.com/typesafe/maven-releases/",
+      Resolver.jcenterRepo,
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots"),
+      Resolver.bintrayRepo("fcomb", "maven"),
+      Resolver.bintrayRepo("etaty", "maven")
+    ),
+    libraryDependencies ++= Seq(
+      "com.chuusai"                %% "shapeless"     % "2.3.2",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
+      "org.typelevel"              %% "cats"          % catsVersion
+    ),
+    scalacOptions ++= Seq(
+      "-encoding",
+      "UTF-8",
+      "-unchecked",
+      "-deprecation",
+      "-feature",
+      "-language:higherKinds",
+      "-language:existentials",
+      "-language:postfixOps",
+      "-opt:l:classpath",
+      "-opt-warnings:_",
+      "-Xexperimental",
+      "-Xlint",
+      // "-Xfatal-warnings",
+      "-Xfuture",
+      "-Ydelambdafy:method",
+      "-Yno-adapted-args",
+      // "-Yno-imports",
+      // "-Yno-predef",
+      "-Ywarn-dead-code",
+      "-Ywarn-infer-any",
+      "-Ywarn-numeric-widen",
+      "-Ywarn-unused",
+      "-Ywarn-unused-import",
+      "-Ywarn-value-discard"
+    ),
+    javaOptions ++= Seq("-Dfile.encoding=UTF-8"),
+    javacOptions ++= Seq(
+      "-source",
+      "1.8",
+      "-target",
+      "1.8",
+      "-Xlint:unchecked",
+      "-Xlint:deprecation"
+    ),
+    publishArtifact in (Compile, packageDoc) := false,
+    publishArtifact in packageDoc := false,
+    sources in (Compile, doc) := Seq.empty /*,
       wartremoverWarnings ++= Warts.all */
-    )
+  )
 
 lazy val publishSettings = Seq(
   homepage := Some(url("https://fcomb.io")),
@@ -290,7 +287,7 @@ lazy val frontend = project
     libraryDependencies ++= Seq(
       "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.5.1",
       "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.3",
-      "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.5.0",
+      "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.6.0-SNAPSHOT",
       "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
       "org.typelevel"                                  %%% "cats"          % catsVersion,
       "me.chrons"                                      %%% "diode-react"   % "1.1.0",
@@ -375,11 +372,9 @@ lazy val root = project
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
       "ch.qos.logback"    % "logback-classic" % "1.1.7",
-      "com.lihaoyi"       % "ammonite-repl"   % "0.8.0" % "test" cross CrossVersion.full,
       "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion
     ),
-    initialCommands in (Test, console) := """ammonite.repl.Main().run()""",
     aggregate in reStart := false,
     mainClass := Some("io.fcomb.application.Main"),
     executableScriptName := "start",

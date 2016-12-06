@@ -86,12 +86,13 @@ object DeleteOrganizationComponent {
           floatingLabelText = "Organization name",
           onChange = validateName _
         )())
-      val confirmationDialog = ConfirmationDialogComponent("Are you sure you want to delete this?",
-                                                           actions,
-                                                           isModal = false,
-                                                           state.isConfirmationOpen,
-                                                           updateConfirmationState _,
-                                                           validateBlock)
+      val confirmationDialog =
+        ConfirmationDialogComponent("Are you sure you want to delete this?",
+                                    actions,
+                                    isModal = false,
+                                    state.isConfirmationOpen,
+                                    updateConfirmationState _,
+                                    validateBlock)
       val alertDialog: ReactNode = state.error match {
         case Some(error) =>
           AlertDialogComponent("An error occurred while trying to delete this repository",

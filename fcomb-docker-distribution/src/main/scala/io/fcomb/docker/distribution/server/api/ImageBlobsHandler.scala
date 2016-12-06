@@ -20,7 +20,6 @@ import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.util.FastFuture
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import io.fcomb.docker.distribution.server.AuthenticationDirectives._
@@ -36,6 +35,7 @@ import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
+import scala.concurrent.Future
 
 object ImageBlobsHandler {
   def showBlob(imageName: String, digest: String) =
@@ -134,7 +134,7 @@ object ImageBlobsHandler {
               onSuccess(ImageBlobsRepo.tryDestroy(blob.getId())) {
                 case Right(_) =>
                   val fut = ImageBlobsRepo.existByDigest(digest).flatMap { exist =>
-                    if (exist) FastFuture.successful(())
+                    if (exist) Future.unit
                     else BlobFileUtils.destroyUploadBlob(blob.getId())
                   }
                   onSuccess(fut)(completeNoContent())

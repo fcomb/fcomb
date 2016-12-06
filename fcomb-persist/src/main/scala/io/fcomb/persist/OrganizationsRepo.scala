@@ -16,7 +16,6 @@
 
 package io.fcomb.persist
 
-import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.Db.db
 import io.fcomb.PostgresProfile.api._
 import io.fcomb.models.acl.{MemberKind, Role}
@@ -222,7 +221,6 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
       implicit ec: ExecutionContext): Future[Seq[PermissionMemberResponse]] = {
     val name = s"$q%".trim
     db.run(findSuggestionsCompiled((imageId, orgId, name, limit)).result)
-      .fast
       .map(_.map {
         case (id, MemberKind.User, username, fullName) =>
           PermissionUserMemberResponse(

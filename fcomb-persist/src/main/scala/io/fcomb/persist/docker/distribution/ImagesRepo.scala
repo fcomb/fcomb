@@ -16,7 +16,6 @@
 
 package io.fcomb.persist.docker.distribution
 
-import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.syntax.eq._
 import io.fcomb.Db.db
 import io.fcomb.PostgresProfile.api._
@@ -280,7 +279,6 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
         id    <- since
         repos <- findRepositoriesByUserIdCompiled((userId, limit + 1L, id)).result
       } yield repos)
-      .fast
       .map(repos => (repos.take(limit), limit, repos.length > limit))
   }
 

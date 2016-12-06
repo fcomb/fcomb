@@ -16,7 +16,6 @@
 
 package io.fcomb.tests.fixtures
 
-import akka.http.scaladsl.util.FastFuture._
 import io.fcomb.models.OrganizationGroupUser
 import io.fcomb.persist.OrganizationGroupUsersRepo
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -26,6 +25,5 @@ object OrganizationGroupUsersFixture {
   def create(groupId: Int, userId: Int): Future[OrganizationGroupUser] =
     OrganizationGroupUsersRepo
       .create(OrganizationGroupUser(groupId = groupId, userId = userId))
-      .fast
       .map(Fixtures.get)
 }

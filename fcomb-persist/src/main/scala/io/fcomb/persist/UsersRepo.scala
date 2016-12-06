@@ -16,7 +16,6 @@
 
 package io.fcomb.persist
 
-import akka.http.scaladsl.util.FastFuture, FastFuture._
 import cats.data.Validated
 import cats.syntax.eq._
 import com.github.t3hnar.bcrypt._
@@ -182,7 +181,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
               else validationError("id", "not found")
           }
         )
-      case res => FastFuture.successful(res)
+      case res => Future.successful(res)
     }
 
   def changePassword(user: User, oldPassword: String, newPassword: String)(
@@ -222,7 +221,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     val q =
       if (username.contains('@')) findByEmailCompiled(username)
       else findByUsernameCompiled(username)
-    db.run(q.result.headOption).fast.map {
+    db.run(q.result.headOption).map {
       case res @ Some(user) if user.isValidPassword(password) => res
       case _                                                  => None
     }
@@ -272,7 +271,6 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       implicit ec: ExecutionContext): Future[Seq[PermissionUserMemberResponse]] = {
     val username = s"$q%".trim
     db.run(findSuggestionsCompiled((imageId, userOwnerId, username, limit)).result)
-      .fast
       .map(_.map {
         case (id, username, fullName) =>
           PermissionUserMemberResponse(

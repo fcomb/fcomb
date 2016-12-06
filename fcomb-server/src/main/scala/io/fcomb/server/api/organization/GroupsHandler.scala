@@ -95,8 +95,8 @@ final class GroupsHandler(implicit val config: ApiHandlerConfig) extends ApiHand
     authenticateUser { user =>
       parameter('q) { q =>
         groupBySlugWithAcl(slug, group, user.getId()) { group =>
-          onSuccess(OrganizationGroupUsersRepo.findSuggestionsUsers(group.getId(),
-              q))(completeData)
+          onSuccess(OrganizationGroupUsersRepo.findSuggestionsUsers(group.getId(), q))(
+            completeData)
         }
       }
     }

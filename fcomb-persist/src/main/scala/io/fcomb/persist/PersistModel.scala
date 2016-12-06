@@ -16,7 +16,6 @@
 
 package io.fcomb.persist
 
-import akka.http.scaladsl.util.FastFuture
 import cats.data.Validated
 import cats.syntax.cartesian._
 import cats.instances.all._
@@ -41,13 +40,13 @@ trait PersistTypes[T] {
     DBIO.successful(validationError(columnName, error))
 
   def validationErrorAsFuture[E](columnName: String, error: String): Future[ValidationResult[E]] =
-    FastFuture.successful(validationError(columnName, error))
+    Future.successful(validationError(columnName, error))
 
   def recordNotFound[E](columnName: String, id: String): ValidationResult[E] =
     validationError(columnName, s"Not found `$id` record")
 
   def recordNotFoundAsFuture[E](field: String, id: String): Future[ValidationResult[E]] =
-    FastFuture.successful(recordNotFound(field, id))
+    Future.successful(recordNotFound(field, id))
 }
 
 trait PersistModel[T, Q <: Table[T]] extends PersistTypes[T] {
@@ -183,7 +182,7 @@ trait PersistModelWithPk[T <: models.ModelWithPk, Q <: Table[T] with PersistTabl
     recordNotFound("id", id.toString)
 
   def recordNotFoundAsFuture[E](id: T#PkType): Future[ValidationResult[E]] =
-    FastFuture.successful(recordNotFound(id))
+    Future.successful(recordNotFound(id))
 
   def findByIdDBIO(id: T#PkType) =
     findByIdQuery(id).result.headOption
