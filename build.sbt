@@ -300,7 +300,7 @@ lazy val frontend = project
       ((moduleName in fastOptJS).value + "-opt.js")),
     mappings in (Compile, packageBin) ~= { (ms: Seq[(File, String)]) =>
       val exts = Set(".js", ".html", ".ttf", ".woff", ".woff2", ".css", ".gz")
-      ms.filter { case (_, p) => exts.exists(p.endsWith) }
+      ms.filter { case (_, p) => p.contains("resources") && exts.exists(p.endsWith) }
     },
     mappings in (Compile, packageBin) ++= {
       (fullOptJS in Compile).value
