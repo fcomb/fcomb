@@ -101,7 +101,6 @@ lazy val allSettings = buildSettings ++ commonSettings ++ publishSettings
 lazy val utils = project
   .in(file("fcomb-utils"))
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "utils")
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -113,7 +112,6 @@ lazy val utils = project
 lazy val models = crossProject
   .in(file("fcomb-models"))
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "models")
   .settings(allSettings)
   .settings(libraryDependencies ++= Seq(
     "com.beachape" %%% "enumeratum" % enumeratumVersion
@@ -129,7 +127,6 @@ lazy val rpc = crossProject
   .in(file("fcomb-rpc"))
   .dependsOn(models)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "rpc")
   .settings(allSettings)
 
 lazy val rpcJVM = rpc.jvm
@@ -139,7 +136,6 @@ lazy val validation = project
   .in(file("fcomb-validation"))
   .dependsOn(modelsJVM)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "validation")
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -151,7 +147,6 @@ lazy val persist = project
   .in(file("fcomb-persist"))
   .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "persist")
   .settings(allSettings)
   .settings(libraryDependencies ++= Seq(
     "commons-codec"       % "commons-codec"        % commonsVersion,
@@ -169,7 +164,6 @@ lazy val json = crossProject
   .in(file("fcomb-json"))
   .dependsOn(models, rpc)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "json")
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -190,7 +184,6 @@ lazy val crypto = project
   .in(file("fcomb-crypto"))
   .dependsOn(modelsJVM, jsonJVM)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "crypto")
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -206,7 +199,6 @@ lazy val templates = project
   .in(file("fcomb-templates"))
   .dependsOn(utils)
   .enablePlugins(AutomateHeaderPlugin, SbtTwirl)
-  .settings(moduleName := "templates")
   .settings(allSettings)
   .settings(TwirlKeys.templateImports += "io.fcomb.templates._, io.fcomb.utils._")
 
@@ -214,7 +206,6 @@ lazy val services = project
   .in(file("fcomb-services"))
   .dependsOn(persist, utils, crypto, templates)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "services")
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -227,7 +218,6 @@ lazy val server = project
   .in(file("fcomb-server"))
   .dependsOn(persist, utils, jsonJVM, validation, services)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "server")
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -239,7 +229,6 @@ lazy val dockerDistribution = project
   .in(file("fcomb-docker-distribution"))
   .dependsOn(server)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "docker-distribution")
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -251,13 +240,13 @@ lazy val tests = project
   .in(file("fcomb-tests"))
   .dependsOn(server, dockerDistribution)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(moduleName := "tests")
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % "test",
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % "test",
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
+      "com.lihaoyi"        % "ammonite"           % "COMMIT-cc9941d" % "test" cross CrossVersion.full,
       "org.scalacheck"     %% "scalacheck"        % "1.13.4" % "test",
       "org.scalatest"      %% "scalatest"         % "3.0.1" % "test",
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.1" % "test",
@@ -265,6 +254,7 @@ lazy val tests = project
       "ch.qos.logback"     % "logback-classic"    % "1.1.7",
       "junit"              % "junit-dep"          % "4.10" % "test"
     ),
+    initialCommands in (Test, console) := "ammonite.Main().run()",
     parallelExecution in Test := false,
     fork in Test := true
   )
@@ -277,7 +267,6 @@ lazy val frontend = project
   .in(file("fcomb-frontend"))
   .dependsOn(modelsJS, rpcJS, jsonJS)
   .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
-  .settings(moduleName := "frontend")
   .settings(allSettings)
   .settings(
     frontendAssetsDirectory := baseDirectory.value / "src" / "main" / "resources" / "public",
