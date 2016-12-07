@@ -65,13 +65,9 @@ final class HttpApiService(routes: Route)(implicit sys: ActorSystem, mat: Materi
   private def rejectionHandler =
     RejectionHandler
       .newBuilder()
-      .handleAll[AuthorizationFailedRejection.type] { _ =>
-        completeWithStatus(StatusCodes.Unauthorized)
-      }
-      .handleAll[AuthorizationFailedRejection.type] { _ =>
-        completeWithStatus(StatusCodes.Forbidden)
-      }
       .handle {
+        case _: AuthenticationFailedRejection => completeWithStatus(StatusCodes.Unauthorized)
+        case AuthorizationFailedRejection => completeWithStatus(StatusCodes.Forbidden)
         case r: MalformedRequestContentRejection => handleException(r.cause)
         case r: RejectionWithOptionalCause =>
           r.cause match {

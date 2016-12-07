@@ -16,7 +16,6 @@
 
 package io.fcomb.models.docker.distribution
 
-import scala.collection.immutable
 import java.time.OffsetDateTime
 
 sealed trait SchemaManifest {
@@ -56,7 +55,7 @@ object SchemaV1 {
       attachStdin: Boolean,
       attachStdout: Boolean,
       attachStderr: Boolean,
-      exposedPorts: Option[immutable.Map[String, Unit]],
+      exposedPorts: Option[Map[String, Unit]],
       tty: Boolean,
       openStdin: Boolean,
       stdinOnce: Boolean,
@@ -64,13 +63,13 @@ object SchemaV1 {
       cmd: List[String],
       argsEscaped: Option[Boolean],
       image: String,
-      volumes: immutable.Map[String, Unit],
+      volumes: Map[String, Unit],
       workingDir: String,
       entrypoint: List[String],
       networkDisabled: Option[Boolean],
       macAddress: Option[String],
       onBuild: List[String],
-      labels: immutable.Map[String, String],
+      labels: Map[String, String],
       stopSignal: Option[String]
   )
 

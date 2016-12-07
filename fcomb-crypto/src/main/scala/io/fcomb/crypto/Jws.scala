@@ -24,12 +24,11 @@ import org.jose4j.jwk.{EcJwkGenerator, EllipticCurveJsonWebKey, JsonWebKey}
 import org.jose4j.jws.EcdsaUsingShaAlgorithm
 import org.jose4j.keys.EllipticCurves
 import scala.collection.JavaConverters._
-import scala.collection.immutable
 import java.security.PublicKey
 
 object Jws extends LazyLogging {
   def verify(algorithm: String,
-             params: immutable.Map[String, String],
+             params: Map[String, String],
              payload: String,
              signatureBytes: Array[Byte]): Boolean =
     try {
@@ -57,7 +56,7 @@ object Jws extends LazyLogging {
     jwk
   }
 
-  lazy val defaultEcJwkParams: immutable.Map[String, String] = defaultEcJwk
+  lazy val defaultEcJwkParams: Map[String, String] = defaultEcJwk
     .toParams(JsonWebKey.OutputControlLevel.PUBLIC_ONLY)
     .asScala
     .map { case (k, v) => (k, v.asInstanceOf[String]) }

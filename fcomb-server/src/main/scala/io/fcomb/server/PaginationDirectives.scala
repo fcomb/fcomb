@@ -56,7 +56,7 @@ object PaginationDirectives {
       }
     }
 
-  private def parseFilter(req: HttpRequest): immutable.Map[String, String] =
+  private def parseFilter(req: HttpRequest): Map[String, String] =
     req.uri
       .query()
       .filterNot {
