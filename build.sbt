@@ -55,25 +55,13 @@ lazy val commonSettings =
       "-Xlint",
       // "-Xfatal-warnings",
       "-Xfuture",
-      "-Ydelambdafy:method",
       "-Yno-adapted-args",
-      // "-Yno-imports",
-      // "-Yno-predef",
+      "-Ywarn-value-discard",
       "-Ywarn-dead-code",
       "-Ywarn-infer-any",
       "-Ywarn-numeric-widen",
       "-Ywarn-unused",
-      "-Ywarn-unused-import",
-      "-Ywarn-value-discard"
-    ),
-    javaOptions ++= Seq("-Dfile.encoding=UTF-8"),
-    javacOptions ++= Seq(
-      "-source",
-      "1.8",
-      "-target",
-      "1.8",
-      "-Xlint:unchecked",
-      "-Xlint:deprecation"
+      "-Ywarn-unused-import"
     ),
     publishArtifact in (Compile, packageDoc) := false,
     publishArtifact in packageDoc := false,
@@ -241,16 +229,16 @@ lazy val tests = project
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % "test",
-      "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % "test",
+      "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % Test,
+      "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % Test,
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
-      "com.lihaoyi"        % "ammonite"           % "COMMIT-cc9941d" % "test" cross CrossVersion.full,
-      "org.scalacheck"     %% "scalacheck"        % "1.13.4" % "test",
-      "org.scalatest"      %% "scalatest"         % "3.0.1" % "test",
-      "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.1" % "test",
-      "com.typesafe.slick" %% "slick-testkit"     % slickVersion % "test" exclude ("junit", "junit-dep"),
+      "com.lihaoyi"        % "ammonite"           % "COMMIT-cc9941d" % Test cross CrossVersion.full,
+      "org.scalacheck"     %% "scalacheck"        % "1.13.4" % Test,
+      "org.scalatest"      %% "scalatest"         % "3.0.1" % Test,
+      "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.1" % Test,
+      "com.typesafe.slick" %% "slick-testkit"     % slickVersion % Test exclude ("junit", "junit-dep"),
       "ch.qos.logback"     % "logback-classic"    % "1.1.7",
-      "junit"              % "junit-dep"          % "4.10" % "test"
+      "junit"              % "junit-dep"          % "4.10" % Test
     ),
     initialCommands in (Test, console) := "ammonite.Main().run()",
     parallelExecution in Test := false,
