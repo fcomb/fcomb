@@ -19,13 +19,14 @@ package io.fcomb.server.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import io.fcomb.server.CommonDirectives._
 import io.fcomb.json.rpc.Formats.encodeUserResponse
-import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.rpc.helpers.UserHelpers
+import io.fcomb.server.ApiHandlerConfig
+import io.fcomb.server.AuthenticationDirectives._
+import io.fcomb.server.CommonDirectives._
 
-final class UserHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
-  final def current =
+object UserHandler {
+  def current()(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       completeWithEtag(StatusCodes.OK, UserHelpers.response(user))
     }
@@ -87,14 +88,14 @@ final class UserHandler(implicit val config: ApiHandlerConfig) extends ApiHandle
   //     }
   //   }
 
-  final val routes: Route =
+  def routes()(implicit config: ApiHandlerConfig): Route =
     // format: OFF
     pathPrefix("user") {
       pathEnd {
-        get(current)
+        get(current())
       } ~
-      new user.OrganizationsHandler().routes ~
-      new user.RepositoriesHandler().routes
+      user.OrganizationsHandler.routes() ~
+      user.RepositoriesHandler.routes()
     }
     // format: ON
 }

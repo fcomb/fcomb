@@ -50,7 +50,7 @@ lazy val commonSettings =
       "-language:existentials",
       "-language:postfixOps",
       "-opt:l:classpath",
-      "-opt-warnings:_",
+      // "-opt-warnings:_",
       "-Xexperimental",
       "-Xlint",
       // "-Xfatal-warnings",
@@ -99,12 +99,14 @@ lazy val models = crossProject
   .in(file("fcomb-models"))
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
-  .settings(libraryDependencies ++= Seq(
-    "com.beachape" %%% "enumeratum" % enumeratumVersion
-  ))
-  .jvmSettings(libraryDependencies ++= Seq(
-    "com.github.t3hnar" %% "scala-bcrypt" % "3.0"
-  ))
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.beachape" %%% "enumeratum" % enumeratumVersion
+    ))
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "com.github.t3hnar" %% "scala-bcrypt" % "3.0"
+    ))
 
 lazy val modelsJVM = models.jvm
 lazy val modelsJS  = models.js

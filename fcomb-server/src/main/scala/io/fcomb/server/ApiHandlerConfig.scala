@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-package io.fcomb.docker.distribution.server.api
+package io.fcomb.server
 
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.server.Directives._
-import io.fcomb.docker.distribution.server.AuthenticationDirectives._
+import akka.actor.ActorSystem
+import akka.stream.Materializer
+import io.fcomb.PostgresProfile.api.Database
+import scala.concurrent.ExecutionContext
 
-object AuthenticationHandler {
-  def versionCheck() =
-    authenticateUserBasic { _ =>
-      complete(versionCheckResponse)
-    }
-
-  private val versionCheckResponse = HttpResponse(
-    status = StatusCodes.OK,
-    entity = HttpEntity(`application/json`, "{}")
-  )
+final case class ApiHandlerConfig(
+    implicit val sys: ActorSystem,
+    val mat: Materializer,
+    val db: Database
+) {
+  implicit val ec: ExecutionContext = sys.dispatcher
 }

@@ -22,14 +22,15 @@ import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.persist.UsersRepo
-import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
+import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.PaginationDirectives._
 
-final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
-  final def index(slug: Slug) =
+object RepositoriesHandler {
+  def index(slug: Slug)(implicit config: ApiHandlerConfig) =
     tryAuthenticateUser { currentUserOpt =>
+      import config._
       onSuccess(UsersRepo.find(slug)) {
         case Some(user) =>
           extractPagination { pg =>
@@ -44,7 +45,7 @@ final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends A
       }
     }
 
-  final def routes(slug: Slug): Route =
+  def routes(slug: Slug)(implicit config: ApiHandlerConfig): Route =
     // format: OFF
     path("repositories") {
       get(index(slug))

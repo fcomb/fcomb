@@ -20,24 +20,26 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.rpc.acl.Formats._
 import io.fcomb.models.acl.{Action, MemberKind}
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.acl.PermissionsRepo
 import io.fcomb.rpc.acl.PermissionCreateRequest
-import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
+import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
-import io.fcomb.server.Path
+import io.fcomb.server.PathMatchers._
 
-final class PermissionsHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
-  final def index(slug: Slug) =
+object PermissionsHandler {
+  def index(slug: Slug)(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       image(slug, user.getId(), Action.Manage) { image =>
         extractPagination { pg =>
+          import config._
           onSuccess(PermissionsRepo.paginateByImageId(image, pg)) { p =>
             completePagination(PermissionsRepo.label, p)
           }
@@ -45,10 +47,11 @@ final class PermissionsHandler(implicit val config: ApiHandlerConfig) extends Ap
       }
     }
 
-  final def upsert(slug: Slug) =
+  def upsert(slug: Slug)(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       image(slug, user.getId(), Action.Manage) { image =>
         entity(as[PermissionCreateRequest]) { req =>
+          import config._
           onSuccess(PermissionsRepo.upsertByImage(image, req)) {
             case Validated.Valid(p)      => complete((StatusCodes.Accepted, p))
             case Validated.Invalid(errs) => completeErrors(errs)
@@ -57,9 +60,11 @@ final class PermissionsHandler(implicit val config: ApiHandlerConfig) extends Ap
       }
     }
 
-  final def destroy(slug: Slug, memberKind: MemberKind, memberSlug: Slug) =
+  def destroy(slug: Slug, memberKind: MemberKind, memberSlug: Slug)(
+      implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       image(slug, user.getId(), Action.Manage) { image =>
+        import config._
         onSuccess(PermissionsRepo.destroyByImage(image, memberKind, memberSlug)) {
           case Validated.Valid(p)      => completeAccepted()
           case Validated.Invalid(errs) => completeErrors(errs)
@@ -67,16 +72,17 @@ final class PermissionsHandler(implicit val config: ApiHandlerConfig) extends Ap
       }
     }
 
-  final def suggestions(slug: Slug) =
+  def suggestions(slug: Slug)(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       parameter('q) { q =>
         image(slug, user.getId(), Action.Manage) { image =>
+          import config._
           onSuccess(PermissionsRepo.findSuggestions(image, q))(completeData)
         }
       }
     }
 
-  final def routes(slug: Slug): Route =
+  def routes(slug: Slug)(implicit config: ApiHandlerConfig): Route =
     // format: OFF
     pathPrefix("permissions") {
       pathEnd {
@@ -84,7 +90,7 @@ final class PermissionsHandler(implicit val config: ApiHandlerConfig) extends Ap
         put(upsert(slug))
       } ~
       path("suggestions" / "members")(get(suggestions(slug))) ~
-      path(Path.MemberKind / Path.Slug) { (kind, member) =>
+      path(MemberKindPath / SlugPath) { (kind, member) =>
         delete(destroy(slug, kind, member))
       }
     }

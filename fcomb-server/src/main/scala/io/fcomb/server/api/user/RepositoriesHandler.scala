@@ -19,39 +19,41 @@ package io.fcomb.server.api.user
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageCreateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
-import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
+import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.PaginationDirectives._
 
-final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
-  final def index =
+object RepositoriesHandler {
+  def index()(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       extractPagination { pg =>
-        val res = ImagesRepo.paginateByUser(user.getId(), pg)
-        onSuccess(res) { p =>
-          completePagination(ImagesRepo.label, p)
-        }
+        import config._
+        onSuccess(ImagesRepo.paginateByUser(user.getId(), pg))(
+          completePagination(ImagesRepo.label, _))
       }
     }
 
-  final def available =
+  def available()(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       extractPagination { pg =>
-        val res = ImagesRepo.paginateAvailableByUserId(user.getId(), pg)
-        onSuccess(res)(completePagination(ImagesRepo.label, _))
+        import config._
+        onSuccess(ImagesRepo.paginateAvailableByUserId(user.getId(), pg))(
+          completePagination(ImagesRepo.label, _))
       }
     }
 
-  final def create =
+  def create()(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       entity(as[ImageCreateRequest]) { req =>
+        import config._
         onSuccess(ImagesRepo.create(req, user)) {
           case Validated.Valid(image) =>
             completeCreated(ImageHelpers.response(image, Action.Manage))
@@ -60,14 +62,14 @@ final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends A
       }
     }
 
-  final val routes: Route =
+  def routes()(implicit config: ApiHandlerConfig): Route =
     // format: OFF
     pathPrefix("repositories") {
       pathEnd {
-        get(index) ~
-        post(create)
+        get(index()) ~
+        post(create())
       } ~
-      path("available")(get(available))
+      path("available")(get(available()))
     }
     // format: ON
 }

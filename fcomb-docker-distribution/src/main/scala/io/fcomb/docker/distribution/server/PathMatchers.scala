@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package io.fcomb.server.api
+package io.fcomb.docker.distribution.server
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import io.fcomb.akka.http.CirceSupport
-import scala.concurrent.ExecutionContext
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.PathMatcher._
+import akka.http.scaladsl.model.Uri.Path
+import io.fcomb.models.docker.distribution.Reference
 
-final case class ApiHandlerConfig(
-    sys: ActorSystem,
-    mat: Materializer
-)
-
-abstract trait ApiHandler extends CirceSupport {
-  val config: ApiHandlerConfig
-
-  final implicit val sys: ActorSystem     = config.sys
-  final implicit val mat: Materializer    = config.mat
-  final implicit val ec: ExecutionContext = sys.dispatcher
+object PathMatchers {
+  final object ReferencePath extends PathMatcher1[Reference] {
+    def apply(path: Path) = path match {
+      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Reference(segment)))
+      case _                           => Unmatched
+    }
+  }
 }

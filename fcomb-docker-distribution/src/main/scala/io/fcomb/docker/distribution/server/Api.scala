@@ -20,55 +20,44 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.docker.distribution.server.api._
 import io.fcomb.docker.distribution.server.headers._
-import io.fcomb.models.docker.distribution.{ImageManifest, Reference}
+import io.fcomb.docker.distribution.server.PathMatchers._
+import io.fcomb.models.docker.distribution.ImageManifest
+import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.headers._
 
 object Api {
   val apiVersion = "v2"
 
-  val routes: Route =
+  def routes()(implicit config: ApiHandlerConfig): Route =
     // format: OFF
     pathPrefix(apiVersion) {
       respondWithDefaultHeaders(defaultHeaders) {
-        pathEndOrSingleSlash {
-          get(AuthenticationHandler.versionCheck)
-        } ~
-        path("_catalog") {
-          get(ImagesHandler.catalog)
-        } ~
+        pathEndOrSingleSlash(get(AuthenticationHandler.versionCheck())) ~
+        path("_catalog")(get(ImagesHandler.catalog())) ~
         pathPrefix(Segments(2)) { xs =>
           val name = xs.mkString("/")
-          extractRequest { implicit req =>
-            pathPrefix("blobs") {
-              pathPrefix("uploads") {
-                pathEndOrSingleSlash {
-                  post(ImageBlobUploadsHandler.createBlob(name))
-                } ~
-                path(JavaUUID) { id =>
-                  put(ImageBlobUploadsHandler.uploadComplete(name, id)) ~
-                  patch(ImageBlobUploadsHandler.uploadBlobChunk(name, id)) ~
-                  delete(ImageBlobUploadsHandler.destroyBlobUpload(name, id))
-                }
-              } ~
+          pathPrefix("blobs") {
+            pathPrefix("uploads") {
+              pathEndOrSingleSlash(post(ImageBlobUploadsHandler.create(name))) ~
               path(JavaUUID) { id =>
-                put(ImageBlobUploadsHandler.uploadComplete(name, id))
-              } ~
-              path(ImageManifest.sha256Prefix ~ Segment) { digest =>
-                head(ImageBlobsHandler.showBlob(name, digest)) ~
-                get(ImageBlobsHandler.downloadBlob(name, digest)) ~
-                delete(ImageBlobsHandler.destroyBlob(name, digest))
+                put(ImageBlobUploadsHandler.uploadComplete(name, id)) ~
+                patch(ImageBlobUploadsHandler.uploadChunk(name, id)) ~
+                delete(ImageBlobUploadsHandler.destroy(name, id))
               }
             } ~
-            path("manifests" / Segment) { ref =>
-              val reference = Reference.apply(ref)
-              get(ImagesHandler.getManifest(name, reference)) ~
-              put(ImagesHandler.uploadManifest(name, reference)) ~
-              delete(ImagesHandler.destroyManifest(name, reference))
-            } ~
-            path("tags" / "list") {
-              get(ImagesHandler.tags(name))
+            path(JavaUUID)(id => put(ImageBlobUploadsHandler.uploadComplete(name, id))) ~
+            path(ImageManifest.sha256Prefix ~ Segment) { digest =>
+              head(ImageBlobsHandler.show(name, digest)) ~
+              get(ImageBlobsHandler.download(name, digest)) ~
+              delete(ImageBlobsHandler.destroy(name, digest))
             }
-          }
+          } ~
+          path("manifests" / ReferencePath) { reference =>
+            get(ImagesHandler.getManifest(name, reference)) ~
+            put(ImagesHandler.uploadManifest(name, reference)) ~
+            delete(ImagesHandler.destroyManifest(name, reference))
+          } ~
+          path("tags" / "list")(get(ImagesHandler.tags(name)))
         }
       }
     }

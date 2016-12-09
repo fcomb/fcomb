@@ -18,26 +18,24 @@ package io.fcomb.server
 
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.PathMatcher._
-import akka.http.scaladsl.model.Uri
-import io.fcomb.models.acl.{MemberKind => MMemberKind}
-import io.fcomb.models.common.{Slug => MSlug}
+import akka.http.scaladsl.model.Uri.Path
+import io.fcomb.models.acl.MemberKind
+import io.fcomb.models.common.{Enum, EnumItem, Slug}
 
-object Path {
-  final object Slug extends PathMatcher1[MSlug] {
-    def apply(path: Uri.Path) = path match {
-      case Uri.Path.Segment(segment, tail) => Matched(tail, Tuple1(MSlug.parse(segment)))
-      case _                               => Unmatched
+abstract class PathMatcher[E <: EnumItem](enum: Enum[E]) extends PathMatcher1[E] {
+  final def apply(path: Path) = path match {
+    case Path.Segment(segment, tail) => Matched(tail, Tuple1(enum.withName(segment)))
+    case _                           => Unmatched
+  }
+}
+
+object PathMatchers {
+  final object SlugPath extends PathMatcher1[Slug] {
+    def apply(path: Path) = path match {
+      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Slug.parse(segment)))
+      case _                           => Unmatched
     }
   }
 
-  final object MemberKind extends PathMatcher1[MMemberKind] {
-    def apply(path: Uri.Path) = path match {
-      case Uri.Path.Segment(segment, tail) =>
-        MMemberKind.withNameOption(segment) match {
-          case Some(kind) => Matched(tail, Tuple1(kind))
-          case _          => Unmatched
-        }
-      case _ => Unmatched
-    }
-  }
+  final object MemberKindPath extends PathMatcher(MemberKind)
 }

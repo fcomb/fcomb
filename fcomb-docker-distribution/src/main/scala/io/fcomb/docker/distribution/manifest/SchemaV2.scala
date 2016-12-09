@@ -84,8 +84,7 @@ object SchemaV2 {
               }
             }
           case None =>
-            Future.successful(
-              unknowError(s"Config blob `$sha256Prefix$configDigest` not found"))
+            Future.successful(unknowError(s"Config blob `$sha256Prefix$configDigest` not found"))
         }
     }
   }

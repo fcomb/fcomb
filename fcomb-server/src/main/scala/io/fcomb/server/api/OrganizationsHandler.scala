@@ -20,6 +20,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
@@ -27,16 +28,18 @@ import io.fcomb.persist.OrganizationsRepo
 import io.fcomb.rpc.helpers.OrganizationHelpers
 import io.fcomb.rpc.OrganizationCreateRequest
 import io.fcomb.rpc.ResponseModelWithPk._
+import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._
-import io.fcomb.server.Path
+import io.fcomb.server.PathMatchers._
 
-final class OrganizationsHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
-  final def create =
+object OrganizationsHandler {
+  def create()(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       entity(as[OrganizationCreateRequest]) { req =>
+        import config._
         onSuccess(OrganizationsRepo.create(req, user.getId())) {
           case Validated.Valid(org) =>
             completeCreated(OrganizationHelpers.response(org, Role.Admin))
@@ -45,8 +48,9 @@ final class OrganizationsHandler(implicit val config: ApiHandlerConfig) extends 
       }
     }
 
-  final def show(slug: Slug) =
+  def show(slug: Slug)(implicit config: ApiHandlerConfig) =
     tryAuthenticateUser { userOpt =>
+      import config._
       val futRes = userOpt match {
         case Some(user) => OrganizationsRepo.findWithRoleBySlug(slug, user.getId())
         case _          => OrganizationsRepo.findBySlug(slug).map(_.map(org => (org, None)))
@@ -73,29 +77,28 @@ final class OrganizationsHandler(implicit val config: ApiHandlerConfig) extends 
   //     }
   //   }
 
-  final def destroy(slug: Slug) =
+  def destroy(slug: Slug)(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+        import config._
         onSuccess(OrganizationsRepo.destroy(org.getId())) { _ =>
           completeAccepted()
         }
       }
     }
 
-  final val routes: Route =
+  def routes()(implicit config: ApiHandlerConfig): Route =
     // format: OFF
     pathPrefix("organizations") {
-      pathEnd {
-        post(create)
-      } ~
-      pathPrefix(Path.Slug) { slug =>
+      pathEnd(post(create())) ~
+      pathPrefix(SlugPath) { slug =>
         pathEnd {
           get(show(slug)) ~
           // put(update(slug)) ~
           delete(destroy(slug))
         } ~
-        new organization.GroupsHandler().routes(slug) ~
-        new organization.RepositoriesHandler().routes(slug)
+        organization.GroupsHandler.routes(slug) ~
+        organization.RepositoriesHandler.routes(slug)
       }
     }
     // format: ON

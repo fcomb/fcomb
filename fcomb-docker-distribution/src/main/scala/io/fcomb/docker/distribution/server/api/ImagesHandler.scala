@@ -22,7 +22,6 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.ByteString
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.docker.distribution.manifest.{
   SchemaV1 => SchemaV1Manifest,
   SchemaV2 => SchemaV2Manifest
@@ -31,27 +30,29 @@ import io.fcomb.docker.distribution.server.ContentTypes.{
   `application/vnd.docker.distribution.manifest.v1+prettyjws`,
   `application/vnd.docker.distribution.manifest.v2+json`
 }
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.docker.distribution.server.AuthenticationDirectives._
 import io.fcomb.docker.distribution.server.CommonDirectives._
+import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.server.ImageDirectives._
 import io.fcomb.docker.distribution.server.MediaTypes
-import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.json.models.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.docker.distribution._
 import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImagesRepo}
+import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.CommonDirectives._
 import scala.collection.immutable
 
 object ImagesHandler {
-  def getManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
-    tryAuthenticateUserBasic { userOpt =>
-      extractMaterializer { implicit mat =>
+  def getManifest(imageName: String, reference: Reference)(implicit config: ApiHandlerConfig) =
+    extractRequest { req =>
+      tryAuthenticateUserBasic { userOpt =>
         optionalHeaderValueByType[Accept]() { acceptOpt =>
           imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
-            import mat.executionContext
+            import config._
             onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId(), reference)) {
               case Some(im) =>
                 val headers = immutable.Seq(
@@ -95,41 +96,31 @@ object ImagesHandler {
       r != MediaRanges.`*/*`
     }
 
-  def uploadManifest(imageName: String, reference: Reference)(implicit req: HttpRequest) =
+  def uploadManifest(imageName: String, reference: Reference)(implicit config: ApiHandlerConfig) =
     authenticateUserBasic { user =>
-      extractMaterializer { implicit mat =>
-        val userId = user.getId()
-        imageByNameWithAcl(imageName, userId, Action.Write) { image =>
-          import mat.executionContext
-          entity(as[ByteString]) { rawManifestBs =>
-            respondWithContentType(`application/json`) {
-              entity(as[SchemaManifest]) { manifest =>
-                val rawManifest = rawManifestBs.utf8String
-                val res = manifest match {
-                  case m: SchemaV1.Manifest =>
-                    SchemaV1Manifest.upsertAsImageManifest(image,
-                                                           reference,
-                                                           m,
-                                                           rawManifest,
-                                                           userId)
-                  case m: SchemaV2.Manifest =>
-                    SchemaV2Manifest.upsertAsImageManifest(image,
-                                                           reference,
-                                                           m,
-                                                           rawManifest,
-                                                           userId)
-                }
-                onSuccess(res) {
-                  case Right(digest) =>
-                    val headers = immutable.Seq(
-                      `Docker-Content-Digest`("sha256", digest),
-                      Location(s"/v2/$imageName/manifests/sha256:$digest")
-                    )
-                    respondWithHeaders(headers) {
-                      complete((StatusCodes.Created, HttpEntity.Empty))
-                    }
-                  case Left(e) => completeError(e)
-                }
+      val userId = user.getId()
+      imageByNameWithAcl(imageName, userId, Action.Write) { image =>
+        import config._
+        entity(as[ByteString]) { rawManifestBs =>
+          respondWithContentType(`application/json`) {
+            entity(as[SchemaManifest]) { manifest =>
+              val rawManifest = rawManifestBs.utf8String
+              val res = manifest match {
+                case m: SchemaV1.Manifest =>
+                  SchemaV1Manifest.upsertAsImageManifest(image, reference, m, rawManifest, userId)
+                case m: SchemaV2.Manifest =>
+                  SchemaV2Manifest.upsertAsImageManifest(image, reference, m, rawManifest, userId)
+              }
+              onSuccess(res) {
+                case Right(digest) =>
+                  val headers = immutable.Seq(
+                    `Docker-Content-Digest`("sha256", digest),
+                    Location(s"/v2/$imageName/manifests/sha256:$digest")
+                  )
+                  respondWithHeaders(headers) {
+                    complete((StatusCodes.Created, HttpEntity.Empty))
+                  }
+                case Left(e) => completeError(e)
               }
             }
           }
@@ -145,57 +136,53 @@ object ImagesHandler {
       )
     }
 
-  def destroyManifest(imageName: String, reference: Reference) =
+  def destroyManifest(imageName: String, reference: Reference)(implicit config: ApiHandlerConfig) =
     authenticateUserBasic { user =>
-      extractMaterializer { implicit mat =>
-        import mat.executionContext
-        imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
-          reference match {
-            case Reference.Digest(digest) =>
-              onSuccess(ImageManifestsRepo.destroy(image.getId(), digest)) { res =>
-                if (res) completeAccepted()
-                else completeError(DistributionError.manifestUnknown)
-              }
-            case _ => completeError(DistributionError.manifestInvalid())
-          }
+      imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
+        reference match {
+          case Reference.Digest(digest) =>
+            import config._
+            onSuccess(ImageManifestsRepo.destroy(image.getId(), digest)) { res =>
+              if (res) completeAccepted()
+              else completeError(DistributionError.manifestUnknown)
+            }
+          case _ => completeError(DistributionError.manifestInvalid())
         }
       }
     }
 
-  def tags(imageName: String) =
+  def tags(imageName: String)(implicit config: ApiHandlerConfig) =
     tryAuthenticateUserBasic { userOpt =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
-        extractExecutionContext { implicit ec =>
-          imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
-            onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId(), n, last)) {
-              (tags, limit, hasNext) =>
-                val headers = if (hasNext) {
-                  val uri = Uri(s"/v2/$imageName/tags/list?n=$limit&last=${tags.last}")
-                  immutable.Seq(Link(uri, LinkParams.next))
-                } else Nil
-                respondWithHeaders(headers) {
-                  complete(ImageTagsResponse(imageName, tags))
-                }
-            }
-          }
-        }
-      }
-    }
-
-  def catalog =
-    authenticateUserBasic { user =>
-      parameters('n.as[Int].?, 'last.?) { (n, last) =>
-        extractExecutionContext { implicit ec =>
-          onSuccess(ImagesRepo.findRepositoriesByUserId(user.getId(), n, last)) {
-            (repositories, limit, hasNext) =>
+        imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
+          import config._
+          onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId(), n, last)) {
+            (tags, limit, hasNext) =>
               val headers = if (hasNext) {
-                val uri = Uri(s"/v2/_catalog?n=$limit&last=${repositories.last}")
+                val uri = Uri(s"/v2/$imageName/tags/list?n=$limit&last=${tags.last}")
                 immutable.Seq(Link(uri, LinkParams.next))
               } else Nil
               respondWithHeaders(headers) {
-                complete(DistributionImageCatalog(repositories))
+                complete(ImageTagsResponse(imageName, tags))
               }
           }
+        }
+      }
+    }
+
+  def catalog()(implicit config: ApiHandlerConfig) =
+    authenticateUserBasic { user =>
+      parameters('n.as[Int].?, 'last.?) { (n, last) =>
+        import config._
+        onSuccess(ImagesRepo.findRepositoriesByUserId(user.getId(), n, last)) {
+          (repositories, limit, hasNext) =>
+            val headers = if (hasNext) {
+              val uri = Uri(s"/v2/_catalog?n=$limit&last=${repositories.last}")
+              immutable.Seq(Link(uri, LinkParams.next))
+            } else Nil
+            respondWithHeaders(headers) {
+              complete(DistributionImageCatalog(repositories))
+            }
         }
       }
     }

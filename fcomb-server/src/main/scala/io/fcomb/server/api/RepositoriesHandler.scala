@@ -20,6 +20,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
@@ -28,13 +29,14 @@ import io.fcomb.persist.docker.distribution.ImagesRepo
 import io.fcomb.rpc.docker.distribution.ImageUpdateRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageHelpers
 import io.fcomb.server.api.repository._
+import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 
-final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
-  final def show(slug: Slug) =
+object RepositoriesHandler {
+  def show(slug: Slug) =
     tryAuthenticateUser { userOpt =>
       imageAndActionRead(slug, userOpt) {
         case (image, action) =>
@@ -43,11 +45,12 @@ final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends A
       }
     }
 
-  final def update(slug: Slug) =
+  def update(slug: Slug)(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       imageAndAction(slug, user.getId(), Action.Manage) {
         case (image, action) =>
           entity(as[ImageUpdateRequest]) { req =>
+            import config._
             onSuccess(ImagesRepo.update(image.getId(), req)) {
               case Validated.Valid(updated) =>
                 complete((StatusCodes.Accepted, ImageHelpers.response(updated, action)))
@@ -57,7 +60,8 @@ final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends A
       }
     }
 
-  final def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind) =
+  def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind)(
+      implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       image(slug, user.getId(), Action.Manage) { image =>
         onSuccess(ImagesRepo.updateVisibility(image.getId(), visibilityKind)) { _ =>
@@ -66,14 +70,15 @@ final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends A
       }
     }
 
-  final def destroy(slug: Slug) =
+  def destroy(slug: Slug)(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       image(slug, user.getId(), Action.Manage) { image =>
+        import config._
         completeAsAccepted(ImagesRepo.destroy(image.getId()))
       }
     }
 
-  final val routes: Route =
+  def routes()(implicit config: ApiHandlerConfig): Route =
     // format: OFF
     pathPrefix("repositories") {
       pathPrefix(IntNumber) { id =>
@@ -86,7 +91,7 @@ final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends A
     }
     // format: ON
 
-  private def nestedRoutes(slug: Slug): Route =
+  private def nestedRoutes(slug: Slug)(implicit config: ApiHandlerConfig): Route =
     // format: OFF
     pathEnd {
       get(show(slug)) ~
@@ -97,8 +102,8 @@ final class RepositoriesHandler(implicit val config: ApiHandlerConfig) extends A
       path("public")(post(updateVisibility(slug, ImageVisibilityKind.Public))) ~
       path("private")(post(updateVisibility(slug, ImageVisibilityKind.Private)))
     } ~
-    new TagsHandler().routes(slug) ~
-    new PermissionsHandler().routes(slug) ~
-    new WebhooksHandler().routes(slug)
+    TagsHandler.routes(slug) ~
+    PermissionsHandler.routes(slug) ~
+    WebhooksHandler.routes(slug)
     // format: ON
 }

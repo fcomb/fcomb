@@ -25,7 +25,7 @@ import io.fcomb.Db
 import io.fcomb.application.server.Frontend
 import io.fcomb.docker.distribution.server.{Api => DockerApi}
 import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
-import io.fcomb.server.Api
+import io.fcomb.server.{Api, ApiHandlerConfig}
 import io.fcomb.services.{EmailService, EventService}
 import io.fcomb.utils.Config
 import scala.concurrent.Await
@@ -52,7 +52,9 @@ object Main extends App with LazyLogging {
   val interface = Config.config.getString("rest-api.interface")
   val port      = Config.config.getInt("rest-api.port")
 
-  val routes = Api.routes ~ DockerApi.routes ~ Frontend.routes
+  implicit val config = ApiHandlerConfig()(sys, mat, Db.db)
+
+  val routes = Api.routes() ~ DockerApi.routes() ~ Frontend.routes
 
   (for {
     _ <- Db.migrate()

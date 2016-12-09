@@ -20,58 +20,65 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.common.Slug
 import io.fcomb.models.errors.Errors
 import io.fcomb.persist.UsersRepo
 import io.fcomb.rpc.helpers.UserHelpers
-import io.fcomb.rpc.ResponseModelWithPk._
 import io.fcomb.rpc.{UserCreateRequest, UserSignUpRequest, UserUpdateRequest}
+import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.PaginationDirectives._
-import io.fcomb.server.Path
+import io.fcomb.server.PathMatchers._
 import io.fcomb.utils.Config
 
-final class UsersHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
-  final def index =
+object UsersHandler {
+  def index()(implicit config: ApiHandlerConfig) =
     authorizeAdminUser { user =>
       extractPagination { pg =>
+        import config._
         onSuccess(UsersRepo.paginate(pg)) { p =>
           completePagination(UsersRepo.label, p)
         }
       }
     }
 
-  final def create =
+  def create()(implicit config: ApiHandlerConfig) =
     authorizeAdminUser { user =>
       entity(as[UserCreateRequest]) { req =>
+        import config._
         completeAsCreated(UsersRepo.create(req).map(_.map(UserHelpers.response)))
       }
     }
 
-  final def update(slug: Slug) =
+  def update(slug: Slug)(implicit config: ApiHandlerConfig) =
     authorizeAdminUser { user =>
       entity(as[UserUpdateRequest]) { req =>
+        import config._
         completeAsAccepted(UsersRepo.update(slug, user, req).map(_.map(UserHelpers.response)))
       }
     }
 
-  final def show(slug: Slug) =
+  def show(slug: Slug)(implicit config: ApiHandlerConfig) =
     authorizeAdminUser { user =>
+      import config._
       completeOrNotFound(UsersRepo.find(slug).map(_.map(UserHelpers.response)))
     }
 
-  final def destroy(slug: Slug) =
+  def destroy(slug: Slug)(implicit config: ApiHandlerConfig) =
     authorizeAdminUser { user =>
+      import config._
       completeAsAccepted(UsersRepo.destroy(slug, user))
     }
 
-  final def signUp =
+  def signUp()(implicit config: ApiHandlerConfig) =
     if (Config.security.isOpenSignUp) {
       entity(as[UserSignUpRequest]) { req =>
+        import config._
         onSuccess(UsersRepo.create(req)) {
           case Validated.Valid(_)      => completeWithStatus(StatusCodes.Created)
           case Validated.Invalid(errs) => completeErrors(errs)
@@ -80,22 +87,22 @@ final class UsersHandler(implicit val config: ApiHandlerConfig) extends ApiHandl
     } else
       complete((StatusCodes.Forbidden, Errors.from(Errors.registrationIsDisabled)))
 
-  final val routes: Route =
+  def routes()(implicit config: ApiHandlerConfig): Route =
     // format: OFF
     pathPrefix("users") {
       pathEnd {
-        get(index) ~
-        post(create)
+        get(index()) ~
+        post(create())
       } ~
-      pathPrefix(Path.Slug) { slug =>
+      pathPrefix(SlugPath) { slug =>
         pathEnd {
           get(show(slug)) ~
           put(update(slug)) ~
           delete(destroy(slug))
         } ~
-        new users.RepositoriesHandler().routes(slug)
+        users.RepositoriesHandler.routes(slug)
       } ~
-      path("sign_up")(post(signUp))
+      path("sign_up")(post(signUp()))
     }
     // format: ON
 }

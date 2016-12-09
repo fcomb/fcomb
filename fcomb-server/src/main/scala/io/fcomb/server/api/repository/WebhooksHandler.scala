@@ -19,24 +19,26 @@ package io.fcomb.server.api.repository
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import cats.data.Validated
+import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.rpc.docker.distribution.Formats._
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
 import io.fcomb.persist.docker.distribution.ImageWebhooksRepo
 import io.fcomb.rpc.docker.distribution.ImageWebhookRequest
 import io.fcomb.rpc.helpers.docker.distribution.ImageWebhookHelpers
-import io.fcomb.server.api.{ApiHandler, ApiHandlerConfig}
+import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 
-final class WebhooksHandler(implicit val config: ApiHandlerConfig) extends ApiHandler {
-  final def index(slug: Slug) =
+object WebhooksHandler {
+  def index(slug: Slug)(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       image(slug, user.getId(), Action.Read) { image =>
         extractPagination { pg =>
+          import config._
           onSuccess(ImageWebhooksRepo.paginateByImageId(image.getId(), pg)) { p =>
             completePagination(ImageWebhooksRepo.label, p)
           }
@@ -44,10 +46,11 @@ final class WebhooksHandler(implicit val config: ApiHandlerConfig) extends ApiHa
       }
     }
 
-  final def upsert(slug: Slug) =
+  def upsert(slug: Slug)(implicit config: ApiHandlerConfig) =
     authenticateUser { user =>
       image(slug, user.getId(), Action.Write) { image =>
         entity(as[ImageWebhookRequest]) { req =>
+          import config._
           onSuccess(ImageWebhooksRepo.upsert(image.getId(), req.url)) {
             case Validated.Valid(webhook) =>
               val res = ImageWebhookHelpers.response(webhook)
@@ -58,7 +61,7 @@ final class WebhooksHandler(implicit val config: ApiHandlerConfig) extends ApiHa
       }
     }
 
-  final def routes(slug: Slug) =
+  def routes(slug: Slug)(implicit config: ApiHandlerConfig) =
     // format: OFF
     path("webhooks") {
       get(index(slug)) ~
