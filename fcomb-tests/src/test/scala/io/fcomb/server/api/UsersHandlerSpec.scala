@@ -18,8 +18,6 @@ package io.fcomb.server.api
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.testkit.ScalatestRouteTest
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.json.models.errors.Formats.decodeErrors
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.errors.Errors
@@ -31,20 +29,9 @@ import io.fcomb.server.Api
 import io.fcomb.tests.AuthSpec._
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests._
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time._
-import org.scalatest.{Matchers, WordSpec}
 
-final class UsersHandlerSpec
-    extends WordSpec
-    with Matchers
-    with ScalatestRouteTest
-    with SpecHelpers
-    with ScalaFutures
-    with PersistSpec {
-  val route = Api.routes
-
-  override implicit val patienceConfig = PatienceConfig(timeout = Span(1500, Millis))
+final class UsersHandlerSpec extends ApiHandlerSpec {
+  val route = Api.routes()
 
   "The users handler" should {
     "return a list of users for user with admin role" in {

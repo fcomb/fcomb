@@ -21,10 +21,9 @@ import akka.http.scaladsl.model.ContentTypes.`application/octet-stream`
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
+import akka.http.scaladsl.testkit.RouteTestTimeout
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
@@ -40,21 +39,12 @@ import io.fcomb.tests._
 import java.io.FileInputStream
 import java.util.UUID
 import org.apache.commons.codec.digest.DigestUtils
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
 
-final class ImageBlobUploadsHandlerSpec
-    extends WordSpec
-    with Matchers
-    with ScalatestRouteTest
-    with SpecHelpers
-    with ScalaFutures
-    with PersistSpec
-    with ActorClusterSpec {
+final class ImageBlobUploadsHandlerSpec extends ApiHandlerSpec with ActorClusterSpec {
   implicit val routeTimeout = RouteTestTimeout(5.seconds)
 
-  val route            = Api.routes
+  val route            = Api.routes()
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)

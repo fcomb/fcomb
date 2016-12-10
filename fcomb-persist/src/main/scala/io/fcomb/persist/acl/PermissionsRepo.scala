@@ -328,7 +328,7 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
             }
         case res @ Validated.Invalid(_) => DBIO.successful(res)
       }
-    } else validationErrorAsDBIO("owner.kind", "Should be organization")
+    } else validationErrorDBIO("owner.kind", "Should be organization")
 
   def findSuggestions(image: Image, q: String)(
       implicit ec: ExecutionContext): Future[Seq[PermissionMemberResponse]] =
@@ -376,7 +376,7 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
           destroyByMemberAsValidated(image.getId(), group.getId(), MemberKind.Group)
         case res @ Validated.Invalid(_) => DBIO.successful(res)
       }
-    } else validationErrorAsDBIO("owner.kind", "Should be organization")
+    } else validationErrorDBIO("owner.kind", "Should be organization")
 
   private lazy val notFound = validationError("permission", "Not found")
 

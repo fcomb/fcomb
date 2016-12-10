@@ -134,7 +134,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
     findDBIO(slug).flatMap {
       case Some(user) =>
         if (user.id == currentUser.id && user.role =!= req.role)
-          validationErrorAsDBIO("role", "Cannot downgrade yourself")
+          validationErrorDBIO("role", "Cannot downgrade yourself")
         else {
           val passwordHash = req.password.map(_.bcrypt(generateSalt)).getOrElse(user.passwordHash)
           val updated = user.copy(
@@ -286,7 +286,7 @@ object UsersRepo extends PersistModelWithAutoIntPk[User, UserTable] {
       implicit ec: ExecutionContext): DBIO[ValidationResultUnit] =
     findDBIO(slug).flatMap {
       case Some(user) =>
-        if (user.id == currentUser.id) validationErrorAsDBIO("id", "Cannot delete yourself")
+        if (user.id == currentUser.id) validationErrorDBIO("id", "Cannot delete yourself")
         else super.destroyDBIO(user.getId())
       case _ => DBIO.successful(recordNotFound(slug))
     }

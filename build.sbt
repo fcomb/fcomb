@@ -239,7 +239,7 @@ lazy val tests = project
       "org.scalatest"      %% "scalatest"         % "3.0.1" % Test,
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.1" % Test,
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % Test exclude ("junit", "junit-dep"),
-      "ch.qos.logback"     % "logback-classic"    % "1.1.7",
+      "ch.qos.logback"     % "logback-classic"    % "1.1.8",
       "junit"              % "junit-dep"          % "4.10" % Test
     ),
     initialCommands in (Test, console) := "ammonite.Main().run()",
@@ -348,7 +348,7 @@ lazy val root = project
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
-      "ch.qos.logback"    % "logback-classic" % "1.1.7",
+      "ch.qos.logback"    % "logback-classic" % "1.1.8",
       "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion
     ),

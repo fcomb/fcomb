@@ -150,7 +150,7 @@ object OrganizationGroupUsersRepo
     }
 
   private lazy val cannotDeleteAdminGroupMember =
-    validationErrorAsDBIO("user", "Cannot remove yourself from the last own admin group")
+    validationErrorDBIO("user", "Cannot remove yourself from the last own admin group")
 
   private lazy val notFound = validationError("member", "Not found")
 }

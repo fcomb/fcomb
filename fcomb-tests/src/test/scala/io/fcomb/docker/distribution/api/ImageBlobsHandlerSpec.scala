@@ -19,30 +19,19 @@ package io.fcomb.docker.distribution.server.api
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers._
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution._
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.tests.fixtures.docker.distribution.{ImageBlobsFixture, ImagesFixture}
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests._
 import org.apache.commons.codec.digest.DigestUtils
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{Matchers, WordSpec}
 
-final class ImageBlobsHandlerSpec
-    extends WordSpec
-    with Matchers
-    with ScalatestRouteTest
-    with SpecHelpers
-    with ScalaFutures
-    with PersistSpec
-    with ActorClusterSpec {
-  val route            = Api.routes
+final class ImageBlobsHandlerSpec extends ApiHandlerSpec {
+  val route            = Api.routes()
   val imageName        = "test-image_2016"
   val bs               = ByteString(getFixture("docker/distribution/blob"))
   val bsDigest         = DigestUtils.sha256Hex(bs.toArray)

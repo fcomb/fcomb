@@ -18,23 +18,14 @@ package io.fcomb.docker.distribution.server.api
 
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.testkit.ScalatestRouteTest
-import io.fcomb.akka.http.CirceSupport._
 import io.circe.Json
 import io.fcomb.docker.distribution.server.Api
 import io.fcomb.docker.distribution.server.headers.`Docker-Distribution-Api-Version`
 import io.fcomb.tests.fixtures._
 import io.fcomb.tests._
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{Matchers, WordSpec}
 
-final class AuthenticationHandlerSpec
-    extends WordSpec
-    with Matchers
-    with ScalaFutures
-    with ScalatestRouteTest
-    with PersistSpec {
-  val route       = Api.routes
+final class AuthenticationHandlerSpec extends ApiHandlerSpec {
+  val route       = Api.routes()
   val credentials = BasicHttpCredentials(UsersFixture.username, UsersFixture.password)
 
   "The authentication handler" should {

@@ -36,7 +36,7 @@ trait PersistTypes[T] {
   def validationError[E](columnName: String, error: String): ValidationResult[E] =
     validation.validationErrors(columnName -> error)
 
-  def validationErrorAsDBIO[E](columnName: String, error: String): DBIOT[ValidationResult[E]] =
+  def validationErrorDBIO[E](columnName: String, error: String): DBIOT[ValidationResult[E]] =
     DBIO.successful(validationError(columnName, error))
 
   def validationErrorAsFuture[E](columnName: String, error: String): Future[ValidationResult[E]] =

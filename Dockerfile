@@ -1,4 +1,4 @@
-FROM fcomb/jre8-sbt-alpine
+FROM fcomb/jre8-sbt-alpine:2.12
 MAINTAINER Timothy Klim <fcomb@timothyklim.com>
 
 USER root
@@ -10,7 +10,8 @@ ENV WORKDIR /home/java/project
 COPY . ${WORKDIR}
 WORKDIR ${WORKDIR}
 
-RUN apk add --update nodejs nodejs-dev && \
+RUN apk add --update --no-cache nodejs nodejs-dev && \
+    npm install -g --progress=false yarn && \
     chown -R java:java ${WORKDIR} && \
     su java -c "${WORKDIR}/sbt universal:packageZipTarball" && \
     tar -xf ${WORKDIR}/target/universal/dist.tgz -C / && \
@@ -18,8 +19,9 @@ RUN apk add --update nodejs nodejs-dev && \
     mkdir /data && \
     chown -R fcomb:fcomb ${APP} /data && \
     deluser --remove-home java && \
+    npm uninstall -g yarn && \
     apk del --purge nodejs nodejs-dev && \
-    rm -rf /var/cache/apk/* /tmp/* /home/java /usr/lib/node_modules
+    rm -rf /home/java /usr/lib/node_modules
 
 EXPOSE 8080 8443
 

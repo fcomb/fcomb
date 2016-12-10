@@ -143,7 +143,7 @@ object OrganizationGroupsRepo
   }
 
   private lazy val cannotUpdateAdminGroupRole =
-    validationErrorAsDBIO("role", "Cannot downgrade role of the last admin group")
+    validationErrorDBIO("role", "Cannot downgrade role of the last admin group")
 
   def updateDBIO(id: Int, userId: Int)(f: OrganizationGroup => OrganizationGroup)(
       implicit ec: ExecutionContext) =
@@ -184,7 +184,7 @@ object OrganizationGroupsRepo
     runInTransaction(TransactionIsolation.Serializable)(destroyDBIO(id, userId))
 
   private lazy val cannotDeleteAdminGroup =
-    validationErrorAsDBIO("id", "Cannot delete your last admin group")
+    validationErrorDBIO("id", "Cannot delete your last admin group")
 
   def findIdsByOrganizationIdDBIO(organizationId: Int) =
     findByOrgIdDBIO(organizationId).map(_.id)
