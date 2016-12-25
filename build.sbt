@@ -3,13 +3,13 @@ import com.typesafe.sbt.SbtGhPages.GhPagesKeys._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
-lazy val akkaHttpVersion     = "10.0.0"
-lazy val akkaVersion         = "2.4.14"
+lazy val akkaHttpVersion     = "10.0.1"
+lazy val akkaVersion         = "2.4.16"
 lazy val bouncyCastleVersion = "1.55"
 lazy val catsVersion         = "0.8.1"
 lazy val circeVersion        = "0.7.0-M1"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.5.2"
+lazy val enumeratumVersion   = "1.5.4"
 lazy val guavaVersion        = "19.0"
 lazy val slickPgVersion      = "0.15.0-M4_0.7.0-M1"
 lazy val slickVersion        = "3.2.0-M2"
@@ -22,8 +22,7 @@ lazy val buildSettings = Seq(
   homepage := Option(url("https://fcomb.io")),
   organizationHomepage := Option(new URL("https://fcomb.io")),
   scalaVersion in ThisBuild := "2.12.1",
-  headers := Map("scala" -> Apache2_0("2016", "fcomb. <https://fcomb.io>")),
-  scalafmtConfig := Some(file(".scalafmt.conf"))
+  headers := Map("scala" -> Apache2_0("2016", "fcomb. <https://fcomb.io>"))
 )
 
 lazy val commonSettings =
@@ -91,7 +90,6 @@ lazy val utils = project
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe"      % "config"       % "1.3.1",
-      "com.github.kxbmap" %% "configs"     % "0.4.4",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion
     ))
 
@@ -138,7 +136,7 @@ lazy val persist = project
   .settings(allSettings)
   .settings(libraryDependencies ++= Seq(
     "commons-codec"       % "commons-codec"        % commonsVersion,
-    "io.fcomb"            %% "db-migration"        % "0.3.4.1",
+    "io.fcomb"            %% "db-migration"        % "0.3.5",
     "org.postgresql"      % "postgresql"           % "9.4.1212" exclude ("org.slf4j", "slf4j-simple"),
     "com.typesafe.akka"   %% "akka-http"           % akkaHttpVersion,
     "com.typesafe.slick"  %% "slick"               % slickVersion,
@@ -173,33 +171,24 @@ lazy val crypto = project
   .dependsOn(modelsJVM, jsonJVM)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
-  .settings(
-    libraryDependencies ++= Seq(
-      "commons-codec"     % "commons-codec"  % commonsVersion,
-      "org.bouncycastle"  % "bcprov-jdk15on" % bouncyCastleVersion,
-      "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
-      "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
-      "io.circe"          %% "circe-parser"  % circeVersion,
-      "com.pauldijou"     %% "jwt-circe"     % "0.10.0_0.7.0-M1"
-    ))
-
-lazy val templates = project
-  .in(file("fcomb-templates"))
-  .dependsOn(utils)
-  .enablePlugins(AutomateHeaderPlugin, SbtTwirl)
-  .settings(allSettings)
-  .settings(TwirlKeys.templateImports += "io.fcomb.templates._, io.fcomb.utils._")
+  .settings(libraryDependencies ++= Seq(
+    "commons-codec"     % "commons-codec"  % commonsVersion,
+    "org.bouncycastle"  % "bcprov-jdk15on" % bouncyCastleVersion,
+    "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
+    "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
+    "io.circe"          %% "circe-parser"  % circeVersion,
+    "com.pauldijou"     %% "jwt-circe"     % "0.10.0_0.7.0-M1"
+  ))
 
 lazy val services = project
   .in(file("fcomb-services"))
-  .dependsOn(persist, utils, crypto, templates)
+  .dependsOn(persist, utils, crypto)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka"  %% "akka-distributed-data-experimental" % akkaVersion,
-      "com.typesafe.akka"  %% "akka-http"                          % akkaHttpVersion,
-      "org.apache.commons" % "commons-email"                       % "1.4"
+      "com.typesafe.akka" %% "akka-distributed-data-experimental" % akkaVersion,
+      "com.typesafe.akka" %% "akka-http"                          % akkaHttpVersion
     ))
 
 lazy val server = project
@@ -224,6 +213,17 @@ lazy val dockerDistribution = project
       "com.google.guava"  % "guava"                  % guavaVersion
     ))
 
+lazy val runtime = project
+  .in(file("fcomb-runtime"))
+  .dependsOn(modelsJVM, persist)
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(allSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe" % "config" % "1.3.1"
+    )
+  )
+
 lazy val tests = project
   .in(file("fcomb-tests"))
   .dependsOn(server, dockerDistribution)
@@ -234,7 +234,7 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % Test,
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % Test,
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
-      "com.lihaoyi"        % "ammonite"           % "COMMIT-cc9941d" % Test cross CrossVersion.full,
+      "com.lihaoyi"        % "ammonite"           % "0.8.1" % Test cross CrossVersion.full,
       "org.scalacheck"     %% "scalacheck"        % "1.13.4" % Test,
       "org.scalatest"      %% "scalatest"         % "3.0.1" % Test,
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.1" % Test,
@@ -295,14 +295,16 @@ lazy val docSettings = Seq(
   micrositeGithubOwner := "fcomb",
   // micrositeExtraMdFiles := Map(file("CONTRIBUTING.md") -> "contributing.md"),
   micrositeGithubRepo := "fcomb",
-  micrositePalette := Map("brand-primary"   -> "#E05236",
-                          "brand-secondary" -> "#3F3242",
-                          "brand-tertiary"  -> "#2D232F",
-                          "gray-dark"       -> "#453E46",
-                          "gray"            -> "#837F84",
-                          "gray-light"      -> "#E3E2E3",
-                          "gray-lighter"    -> "#F4F3F4",
-                          "white-color"     -> "#FFFFFF"),
+  micrositePalette := Map(
+    "brand-primary"   -> "#E05236",
+    "brand-secondary" -> "#3F3242",
+    "brand-tertiary"  -> "#2D232F",
+    "gray-dark"       -> "#453E46",
+    "gray"            -> "#837F84",
+    "gray-light"      -> "#E3E2E3",
+    "gray-lighter"    -> "#F4F3F4",
+    "white-color"     -> "#FFFFFF"
+  ),
   ghpagesNoJekyll := false,
   excludeFilter in cleanSite := "CNAME",
   fork in tut := true,
@@ -340,7 +342,7 @@ lazy val javaRunOptions = Seq(
 lazy val root = project
   .in(file("."))
   .aggregate(tests)
-  .dependsOn(server, dockerDistribution, frontend)
+  .dependsOn(runtime, server, dockerDistribution, frontend)
   .enablePlugins(AutomateHeaderPlugin, JavaAppPackaging)
   .settings(allSettings)
   .settings(noPublishSettings)

@@ -78,7 +78,8 @@ object RepositoryTagsComponent {
         CopyToClipboardComponent(tag.digest,
                                  js.undefined,
                                  MuiMenuItem(primaryText = "Copy image digest", key = "copy")(),
-                                 key = "copyDigest"))
+                                 key = "copyDigest")
+      )
       MuiTableRow(key = tag.tag)(
         MuiTableRowColumn(key = "tag")(tag.tag),
         MuiTableRowColumn(key = "updatedAt")(TimeAgoComponent(tag.updatedAt)),
@@ -86,7 +87,8 @@ object RepositoryTagsComponent {
         MuiTableRowColumn(key = "digest")(
           <.div(App.digest, ^.title := tag.digest, tag.digest.take(digestLength))),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")(
-          MuiIconMenu(iconButtonElement = menuBtn)(actions)))
+          MuiIconMenu(iconButtonElement = menuBtn)(actions))
+      )
     }
 
     def updateSort(column: String)(e: ReactEventH): Callback =
@@ -106,11 +108,13 @@ object RepositoryTagsComponent {
     def renderTags(props: Props, tags: Seq[RepositoryTagResponse], p: PaginationOrderState) =
       if (tags.isEmpty) <.div(App.infoMsg, "There are no tags to show yet")
       else {
-        val columns = Seq(TableComponent.header("Tag", "tag", p, updateSort _),
-                          TableComponent.header("Last modified", "updatedAt", p, updateSort _),
-                          TableComponent.header("Size", "length", p, updateSort _),
-                          TableComponent.header("Image", "digest", p, updateSort _),
-                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
+        val columns = Seq(
+          TableComponent.header("Tag", "tag", p, updateSort _),
+          TableComponent.header("Last modified", "updatedAt", p, updateSort _),
+          TableComponent.header("Size", "length", p, updateSort _),
+          TableComponent.header("Image", "digest", p, updateSort _),
+          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")()
+        )
         val rows = tags.map(renderTagRow(props, _))
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }

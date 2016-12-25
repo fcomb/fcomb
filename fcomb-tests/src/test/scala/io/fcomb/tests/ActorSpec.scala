@@ -63,9 +63,9 @@ sealed trait ActorSystemSpec extends FutureSpec {
 }
 
 abstract class ActorSpec
-extends TestKit(ActorSystemSpec.system)
-with ImplicitSender
-with WordSpecLike
+    extends TestKit(ActorSystemSpec.system)
+    with ImplicitSender
+    with WordSpecLike
     with Matchers
     with BeforeAndAfterAll
     with ActorSystemSpec

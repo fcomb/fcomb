@@ -76,18 +76,22 @@ object DeleteRepositoryComponent {
                                <.span(error))
         case _ => <.div()
       }
-      <.div(<.h3("Delete this repository"),
-            <.div(^.`class` := "row",
-                  ^.key := "delete",
-                  <.div(^.`class` := "col-xs-6",
-                        MuiRaisedButton(`type` = "submit",
-                                        secondary = true,
-                                        label = "Delete",
-                                        disabled = state.isDisabled,
-                                        onTouchTap = openDialog _)()),
-                  <.div(LayoutComponent.helpBlockClass, helpBlock)),
-            alertDialog,
-            confirmationDialog)
+      <.div(
+        <.h3("Delete this repository"),
+        <.div(
+          ^.`class` := "row",
+          ^.key := "delete",
+          <.div(^.`class` := "col-xs-6",
+                MuiRaisedButton(`type` = "submit",
+                                secondary = true,
+                                label = "Delete",
+                                disabled = state.isDisabled,
+                                onTouchTap = openDialog _)()),
+          <.div(LayoutComponent.helpBlockClass, helpBlock)
+        ),
+        alertDialog,
+        confirmationDialog
+      )
     }
   }
 

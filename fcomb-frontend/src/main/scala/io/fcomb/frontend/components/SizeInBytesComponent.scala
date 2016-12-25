@@ -21,11 +21,9 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
 
 object SizeInBytesComponent {
-  private val component = ReactComponentB[Long]("SizeInBytes")
-    .render_P { size =>
-      <.span(^.title := s"$size bytes", UnitUtils.sizeInBytes(size))
-    }
-    .build
+  private val component = ReactComponentB[Long]("SizeInBytes").render_P { size =>
+    <.span(^.title := s"$size bytes", UnitUtils.sizeInBytes(size))
+  }.build
 
   def apply(size: Long) = component.apply(size)
 }

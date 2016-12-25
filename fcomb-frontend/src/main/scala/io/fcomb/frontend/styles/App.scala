@@ -41,7 +41,8 @@ object App extends StyleSheet.Inline {
     right(24.px),
     bottom(24.px),
     transition := "transform .3s cubic-bezier(.4,0,.2,1),-webkit-transform .3s cubic-bezier(.4,0,.2,1)",
-    zIndex(21))
+    zIndex(21)
+  )
 
   val main = style(paddingTop(112.px))
 

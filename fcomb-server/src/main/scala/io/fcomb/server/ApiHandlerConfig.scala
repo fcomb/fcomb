@@ -19,12 +19,14 @@ package io.fcomb.server
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import io.fcomb.PostgresProfile.api.Database
+import io.fcomb.models.Settings
 import scala.concurrent.ExecutionContext
 
 final case class ApiHandlerConfig(
     implicit val sys: ActorSystem,
     val mat: Materializer,
-    val db: Database
+    val db: Database,
+    val settings: Settings
 ) {
   implicit val ec: ExecutionContext = sys.dispatcher
 }

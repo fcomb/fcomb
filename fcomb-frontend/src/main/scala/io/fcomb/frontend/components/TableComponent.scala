@@ -53,23 +53,25 @@ object TableComponent {
             limit: Int,
             total: Int,
             cb: Int => Callback) =
-    <.div(^.key := "table",
-          MuiTable(selectable = false, multiSelectable = false, key = "table")(
-            MuiTableHeader(
-              adjustForCheckbox = false,
-              displaySelectAll = false,
-              enableSelectAll = false,
-              key = "header"
-            )(MuiTableRow()(columns)),
-            MuiTableBody(
-              deselectOnClickaway = false,
-              displayRowCheckbox = false,
-              showRowHover = false,
-              stripedRows = false,
-              key = "body"
-            )(rows)
-          ),
-          ToolbarPaginationComponent(page, limit, total, cb))
+    <.div(
+      ^.key := "table",
+      MuiTable(selectable = false, multiSelectable = false, key = "table")(
+        MuiTableHeader(
+          adjustForCheckbox = false,
+          displaySelectAll = false,
+          enableSelectAll = false,
+          key = "header"
+        )(MuiTableRow()(columns)),
+        MuiTableBody(
+          deselectOnClickaway = false,
+          displayRowCheckbox = false,
+          showRowHover = false,
+          stripedRows = false,
+          key = "body"
+        )(rows)
+      ),
+      ToolbarPaginationComponent(page, limit, total, cb)
+    )
 
   private def emptyCB(e: ReactEventH) = e.preventDefaultCB
 }

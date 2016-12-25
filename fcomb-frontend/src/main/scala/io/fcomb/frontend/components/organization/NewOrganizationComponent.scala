@@ -56,35 +56,41 @@ object NewOrganizationComponent {
       $.modState(_.copy(name = name))
 
     def renderFormName(state: State) =
-      Form.row(Form.textField(label = "Name",
-                              key = "name",
-                              isDisabled = state.isDisabled,
-                              errors = state.errors,
-                              value = state.name,
-                              onChange = updateName _),
-               <.label(^.`for` := "name", "Unique organization name."),
-               "name")
+      Form.row(
+        Form.textField(label = "Name",
+                       key = "name",
+                       isDisabled = state.isDisabled,
+                       errors = state.errors,
+                       value = state.name,
+                       onChange = updateName _),
+        <.label(^.`for` := "name", "Unique organization name."),
+        "name"
+      )
 
     def cancel(e: ReactEventH): Callback =
       e.preventDefaultCB >> $.props.flatMap(_.ctl.set(DashboardRoute.Organizations))
 
     def renderFormButtons(state: State) =
-      <.div(^.`class` := "row",
-            ^.style := App.paddingTopStyle,
-            ^.key := "actionsRow",
-            <.div(^.`class` := "col-xs-12",
-                  MuiRaisedButton(`type` = "button",
-                                  primary = false,
-                                  label = "Cancel",
-                                  style = App.cancelStyle,
-                                  disabled = state.isDisabled,
-                                  onTouchTap = cancel _,
-                                  key = "cancel")(),
-                  MuiRaisedButton(`type` = "submit",
-                                  primary = true,
-                                  label = "Create",
-                                  disabled = state.isDisabled,
-                                  key = "update")()))
+      <.div(
+        ^.`class` := "row",
+        ^.style := App.paddingTopStyle,
+        ^.key := "actionsRow",
+        <.div(
+          ^.`class` := "col-xs-12",
+          MuiRaisedButton(`type` = "button",
+                          primary = false,
+                          label = "Cancel",
+                          style = App.cancelStyle,
+                          disabled = state.isDisabled,
+                          onTouchTap = cancel _,
+                          key = "cancel")(),
+          MuiRaisedButton(`type` = "submit",
+                          primary = true,
+                          label = "Create",
+                          disabled = state.isDisabled,
+                          key = "update")()
+        )
+      )
 
     def renderForm(props: Props, state: State) =
       <.form(^.onSubmit ==> handleOnSubmit,

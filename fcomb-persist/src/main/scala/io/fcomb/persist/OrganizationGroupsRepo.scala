@@ -220,11 +220,9 @@ object OrganizationGroupsRepo
 
   private lazy val uniqueNameCompiled = Compiled {
     (id: Rep[Option[Int]], organizationId: Rep[Int], name: Rep[String]) =>
-      exceptIdFilter(id)
-        .filter { q =>
-          q.organizationId === organizationId && q.name === name.asColumnOfType[String]("citext")
-        }
-        .exists
+      exceptIdFilter(id).filter { q =>
+        q.organizationId === organizationId && q.name === name.asColumnOfType[String]("citext")
+      }.exists
   }
 
   override def validate(group: OrganizationGroup)(

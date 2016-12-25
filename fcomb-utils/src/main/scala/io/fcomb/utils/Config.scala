@@ -59,6 +59,4 @@ object Config {
     lazy val sessionTtl       = config.get[JDuration]("jwt.session-ttl").value.getSeconds
     lazy val resetPasswordTtl = config.get[JDuration]("jwt.reset-password-ttl").value.getSeconds
   }
-
-  lazy val smtp = config.getConfig("smtp")
 }

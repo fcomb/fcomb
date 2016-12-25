@@ -34,8 +34,8 @@ abstract class ApiHandlerSpec
     with ScalaFutures
     with PersistSpec
     with CirceSupport {
-  final implicit val mat = ActorMaterializer()
-  final implicit val ec = system.dispatcher
+  final implicit val mat    = ActorMaterializer()
+  final implicit val ec     = system.dispatcher
   final implicit val config = ApiHandlerConfig()(system, mat, Db.db)
 
   override implicit val patienceConfig = PatienceConfig(timeout = Span(1500, Millis))

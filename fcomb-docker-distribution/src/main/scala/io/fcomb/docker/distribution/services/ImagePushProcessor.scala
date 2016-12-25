@@ -221,23 +221,26 @@ trait ProcessorActor[S] extends Stash with ActorLogging { this: Actor =>
       rfOpt: Option[S => Receive]
   ) = {
     val p = Promise[S]()
-    context.become({
-      case UpdateState(res) =>
-        val state = res.asInstanceOf[S]
-        putState(state)
-        rfOpt match {
-          case Some(receiveF) =>
-            context.become(receiveF(state))
-          case None =>
-            context.unbecome()
-        }
-        unstashAll()
-        p.complete(Success(state))
-        ()
-      case msg =>
-        log.warning(s"stash message: {}", msg)
-        stash()
-    }, rfOpt.isEmpty)
+    context.become(
+      {
+        case UpdateState(res) =>
+          val state = res.asInstanceOf[S]
+          putState(state)
+          rfOpt match {
+            case Some(receiveF) =>
+              context.become(receiveF(state))
+            case None =>
+              context.unbecome()
+          }
+          unstashAll()
+          p.complete(Success(state))
+          ()
+        case msg =>
+          log.warning(s"stash message: {}", msg)
+          stash()
+      },
+      rfOpt.isEmpty
+    )
     fut.onComplete {
       case Success(s) => self ! UpdateState(s)
       case Failure(e) =>

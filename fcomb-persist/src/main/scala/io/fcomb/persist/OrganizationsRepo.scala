@@ -160,12 +160,10 @@ object OrganizationsRepo extends PersistModelWithAutoIntPk[Organization, Organiz
     db.run(findBySlugWithAclDBIO(slug, userId, role))
 
   private lazy val isAdminCompiled = Compiled { (id: Rep[Int], userId: Rep[Int]) =>
-    groupsScope
-      .filter {
-        case ((t, ogt), ogut) =>
-          t.id === id && ogut.userId === userId && ogt.role === (Role.Admin: Role)
-      }
-      .exists
+    groupsScope.filter {
+      case ((t, ogt), ogut) =>
+        t.id === id && ogut.userId === userId && ogt.role === (Role.Admin: Role)
+    }.exists
   }
 
   def isAdminDBIO(id: Int, userId: Int) =

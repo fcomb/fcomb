@@ -92,40 +92,48 @@ object EditGroupComponent {
         p.ctl.set(DashboardRoute.OrganizationGroups(p.slug)))
 
     def renderFormButtons(state: State) =
-      <.div(^.`class` := "row",
-            ^.style := App.paddingTopStyle,
-            ^.key := "actionsRow",
-            <.div(^.`class` := "col-xs-12",
-                  MuiRaisedButton(`type` = "button",
-                                  primary = false,
-                                  label = "Cancel",
-                                  style = App.cancelStyle,
-                                  disabled = state.isDisabled,
-                                  onTouchTap = cancel _,
-                                  key = "cancel")(),
-                  MuiRaisedButton(`type` = "submit",
-                                  primary = true,
-                                  label = "Update",
-                                  disabled = state.isDisabled,
-                                  key = "update")()))
+      <.div(
+        ^.`class` := "row",
+        ^.style := App.paddingTopStyle,
+        ^.key := "actionsRow",
+        <.div(
+          ^.`class` := "col-xs-12",
+          MuiRaisedButton(`type` = "button",
+                          primary = false,
+                          label = "Cancel",
+                          style = App.cancelStyle,
+                          disabled = state.isDisabled,
+                          onTouchTap = cancel _,
+                          key = "cancel")(),
+          MuiRaisedButton(`type` = "submit",
+                          primary = true,
+                          label = "Update",
+                          disabled = state.isDisabled,
+                          key = "update")()
+        )
+      )
 
     def renderForm(props: Props, state: State): ReactNode =
       state.form match {
         case Some(form) =>
-          <.form(^.onSubmit ==> handleOnSubmit,
-                 ^.disabled := state.isDisabled,
-                 ^.key := "form",
-                 MuiCardText(key = "form")(renderFormName(form, state.isDisabled, updateName _),
-                                           renderFormRole(form, state.isDisabled, updateRole _),
-                                           renderFormButtons(state)))
+          <.form(
+            ^.onSubmit ==> handleOnSubmit,
+            ^.disabled := state.isDisabled,
+            ^.key := "form",
+            MuiCardText(key = "form")(renderFormName(form, state.isDisabled, updateName _),
+                                      renderFormRole(form, state.isDisabled, updateRole _),
+                                      renderFormButtons(state))
+          )
         case _ => <.div()
       }
 
     def render(props: Props, state: State) =
-      MuiCard()(<.div(^.key := "header",
-                      App.formTitleBlock,
-                      MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit group"))),
-                <.section(^.key := "form", state.group.render(_ => renderForm(props, state))))
+      MuiCard()(
+        <.div(^.key := "header",
+              App.formTitleBlock,
+              MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit group"))),
+        <.section(^.key := "form", state.group.render(_ => renderForm(props, state)))
+      )
   }
 
   private val component = ReactComponentB[Props]("EditGroup")

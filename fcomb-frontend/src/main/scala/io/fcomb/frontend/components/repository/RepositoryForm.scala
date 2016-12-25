@@ -31,28 +31,32 @@ object RepositoryForm {
     val label = <.label(
       ^.`for` := "visibilityKind",
       "Repository visibility for others: it can be public to everyone to read and pull or private accessible only to the owner.")
-    <.div(^.`class` := "row",
-          ^.style := App.paddingTopStyle,
-          ^.key := "visibilityRow",
-          <.div(^.`class` := "col-xs-6",
-                MuiRadioButtonGroup(name = "visibilityKind",
-                                    defaultSelected = visibilityKind.value,
-                                    onChange = updateVisibilityKind)(
-                  MuiRadioButton(
-                    key = "public",
-                    value = ImageVisibilityKind.Public.value,
-                    label = "Public",
-                    disabled = isDisabled
-                  )(),
-                  MuiRadioButton(
-                    style = App.paddingTopStyle,
-                    key = "private",
-                    value = ImageVisibilityKind.Private.value,
-                    label = "Private",
-                    disabled = isDisabled
-                  )()
-                )),
-          <.div(LayoutComponent.helpBlockClass, label))
+    <.div(
+      ^.`class` := "row",
+      ^.style := App.paddingTopStyle,
+      ^.key := "visibilityRow",
+      <.div(
+        ^.`class` := "col-xs-6",
+        MuiRadioButtonGroup(name = "visibilityKind",
+                            defaultSelected = visibilityKind.value,
+                            onChange = updateVisibilityKind)(
+          MuiRadioButton(
+            key = "public",
+            value = ImageVisibilityKind.Public.value,
+            label = "Public",
+            disabled = isDisabled
+          )(),
+          MuiRadioButton(
+            style = App.paddingTopStyle,
+            key = "private",
+            value = ImageVisibilityKind.Private.value,
+            label = "Private",
+            disabled = isDisabled
+          )()
+        )
+      ),
+      <.div(LayoutComponent.helpBlockClass, label)
+    )
   }
 
   def renderDescription(description: String,
@@ -63,16 +67,20 @@ object RepositoryForm {
                    ^.href := "https://daringfireball.net/projects/markdown/syntax",
                    ^.target := "_blank",
                    "Markdown")
-    Form.row(Form.textField(label = "Description",
-                            key = "description",
-                            multiLine = true,
-                            fullWidth = true,
-                            rowsMax = 15,
-                            isDisabled = isDisabled,
-                            errors = errors,
-                            value = description,
-                            onChange = updateDescription),
-             <.label(^.`for` := "description", "You can describe this repository in ", link, "."),
-             "description")
+    Form.row(
+      Form.textField(
+        label = "Description",
+        key = "description",
+        multiLine = true,
+        fullWidth = true,
+        rowsMax = 15,
+        isDisabled = isDisabled,
+        errors = errors,
+        value = description,
+        onChange = updateDescription
+      ),
+      <.label(^.`for` := "description", "You can describe this repository in ", link, "."),
+      "description"
+    )
   }
 }

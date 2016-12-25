@@ -92,7 +92,9 @@ object NewUserComponent {
           renderFormPassword(state.password, state.errors, state.isDisabled, updatePassword _),
           renderFormFullName(state.fullName, state.errors, state.isDisabled, updateFullName _),
           renderFormRole(state.role, state.errors, state.isDisabled, updateRole _),
-          renderFormButtons(props.ctl, "Create", state.isDisabled)))
+          renderFormButtons(props.ctl, "Create", state.isDisabled)
+        )
+      )
 
     def render(props: Props, state: State) =
       MuiCard()(<.div(^.key := "header",

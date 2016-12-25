@@ -42,17 +42,19 @@ object Form {
                 fullWidth: Boolean = true,
                 multiLine: js.UndefOr[Boolean] = js.undefined,
                 rowsMax: js.UndefOr[Int] = js.undefined) =
-    MuiTextField(floatingLabelText = label,
-                 `type` = `type`,
-                 id = key,
-                 name = key,
-                 disabled = isDisabled,
-                 errorText = errors.get(key),
-                 fullWidth = fullWidth,
-                 multiLine = multiLine,
-                 rowsMax = rowsMax,
-                 value = value,
-                 onChange = (e: ReactEventI) => onChange(e.target.value))()
+    MuiTextField(
+      floatingLabelText = label,
+      `type` = `type`,
+      id = key,
+      name = key,
+      disabled = isDisabled,
+      errorText = errors.get(key),
+      fullWidth = fullWidth,
+      multiLine = multiLine,
+      rowsMax = rowsMax,
+      value = value,
+      onChange = (e: ReactEventI) => onChange(e.target.value)
+    )()
 
   def selectEnum[E <: EnumItem](enum: Enum[E],
                                 value: E,
@@ -64,12 +66,14 @@ object Form {
                                 fullWidth: Boolean = true) = {
     val items = enum.values.map(i =>
       MuiMenuItem[E](key = i.value, value = i, primaryText = i.entryName.capitalize)())
-    MuiSelectField[E](id = key,
-                      floatingLabelText = label,
-                      disabled = isDisabled,
-                      errorText = errors.get(key),
-                      value = value,
-                      fullWidth = fullWidth,
-                      onChange = (e: ReactEventI, idx: Int, item: E) => onChange(item))(items)
+    MuiSelectField[E](
+      id = key,
+      floatingLabelText = label,
+      disabled = isDisabled,
+      errorText = errors.get(key),
+      value = value,
+      fullWidth = fullWidth,
+      onChange = (e: ReactEventI, idx: Int, item: E) => onChange(item)
+    )(items)
   }
 }

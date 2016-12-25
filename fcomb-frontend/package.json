@@ -16,7 +16,7 @@
     "gulp-decompress": "^2.0.1",
     "html-minify-loader": "^1.1.0",
     "html-webpack-plugin": "^2.24.1",
-    "image-webpack-loader": "^3.0.0",
+    "image-webpack-loader": "^3.1.0",
     "imagemin": "^5.2.2",
     "json-loader": "^0.5.4",
     "node-libs-browser": "^2.0.0",
@@ -24,12 +24,12 @@
     "react-hot-loader": "^3.0.0-beta.6",
     "style-loader": "^0.13.1",
     "url-loader": "^0.5.7",
-    "webpack": "^1.13.3",
+    "webpack": "^1.14.0",
     "webpack-dev-server": "^1.16.2"
   },
   "dependencies": {
     "bootstrap-grid": "^2.0.1",
-    "material-ui": "^v0.16.4",
+    "material-ui": "^v0.16.5",
     "normalize.css": "3.0.3",
     "react": "^15.4.1",
     "react-copy-to-clipboard": "^4.2.3",

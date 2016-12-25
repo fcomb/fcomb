@@ -71,9 +71,11 @@ object OrganizationComponent {
     def renderTabs(props: Props, isManageable: Boolean) = {
       val manageTabs =
         if (isManageable)
-          Seq(renderGroupsTab(props),
-              MuiTab(key = "settings", label = "Settings", value = OrganizationTab.Settings)(
-                MuiCardText()(OrganizationSettingsComponent(props.ctl, props.slug))))
+          Seq(
+            renderGroupsTab(props),
+            MuiTab(key = "settings", label = "Settings", value = OrganizationTab.Settings)(
+              MuiCardText()(OrganizationSettingsComponent(props.ctl, props.slug)))
+          )
         else Seq.empty
 
       MuiCardMedia(key = "tabs")(

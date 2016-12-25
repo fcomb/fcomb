@@ -42,13 +42,17 @@ object RepositoryInfoComponent {
       val button =
         MuiIconButton(tooltip = "Copy to clipboard", style = copyBtnStyle)(
           Mui.SvgIcons.ContentContentCopy(color = Mui.Styles.colors.lightBlack)())
-      <.div(^.`class` := "col-xs-4",
-            <.h4("Pull this container with Docker"),
-            <.div(<.input.text(App.dockerPullInput,
-                               ^.value := dockerPullCommand,
-                               ^.onClick ==> selectAllText,
-                               ^.readOnly := true),
-                  CopyToClipboardComponent(dockerPullCommand, js.undefined, button)))
+      <.div(
+        ^.`class` := "col-xs-4",
+        <.h4("Pull this container with Docker"),
+        <.div(
+          <.input.text(App.dockerPullInput,
+                       ^.value := dockerPullCommand,
+                       ^.onClick ==> selectAllText,
+                       ^.readOnly := true),
+          CopyToClipboardComponent(dockerPullCommand, js.undefined, button)
+        )
+      )
     }
 
     def renderDescription(repo: RepositoryResponse) = {

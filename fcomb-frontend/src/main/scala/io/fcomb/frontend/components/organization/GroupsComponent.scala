@@ -128,7 +128,8 @@ object GroupsComponent {
         MuiTableRowColumn(key = "role")(group.role.toString),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "menu")(
           MuiIconMenu(iconButtonElement = menuBtn)(actions)
-        ))
+        )
+      )
     }
 
     def renderGroups(props: Props,
@@ -137,9 +138,11 @@ object GroupsComponent {
                      isDisabled: Boolean) =
       if (groups.isEmpty) <.div(App.infoMsg, "There are no groups to show yet")
       else {
-        val columns = Seq(TableComponent.header("Name", "name", p, updateSort _),
-                          TableComponent.header("Role", "role", p, updateSort _),
-                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
+        val columns = Seq(
+          TableComponent.header("Name", "name", p, updateSort _),
+          TableComponent.header("Role", "role", p, updateSort _),
+          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")()
+        )
         val rows = groups.map(renderGroup(props, _, isDisabled))
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
@@ -172,13 +175,15 @@ object GroupsComponent {
                             disabled = state.isDisabled)())
 
     def renderForm(props: Props, state: State) =
-      <.form(App.separateBlock,
-             ^.onSubmit ==> handleOnSubmit(props),
-             ^.disabled := state.isDisabled,
-             <.h3(^.style := App.formHeaderStyle, "New group"),
-             renderFormName(state.form, state.isDisabled, updateName _),
-             renderFormRole(state.form, state.isDisabled, updateRole _),
-             renderFormButton(state))
+      <.form(
+        App.separateBlock,
+        ^.onSubmit ==> handleOnSubmit(props),
+        ^.disabled := state.isDisabled,
+        <.h3(^.style := App.formHeaderStyle, "New group"),
+        renderFormName(state.form, state.isDisabled, updateName _),
+        renderFormRole(state.form, state.isDisabled, updateRole _),
+        renderFormButton(state)
+      )
 
     def render(props: Props, state: State) = {
       val alertDialog: ReactNode = state.error match {

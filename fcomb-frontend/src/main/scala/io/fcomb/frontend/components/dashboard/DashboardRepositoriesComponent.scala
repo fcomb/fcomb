@@ -44,14 +44,16 @@ object DashboardRepositoriesComponent {
     def render(props: Props, state: State) = {
       val repositoriesSection = state.namespace match {
         case Some(namespace) =>
-          MuiCard()(MuiCardTitle(key = "title")(
-                      NamespaceComponent(namespace,
-                                         canCreateRoleOnly = false,
-                                         isAllNamespace = true,
-                                         isDisabled = false,
-                                         isFullWidth = false,
-                                         updateNamespace _)),
-                    MuiCardText(key = "repos")(RepositoriesComponent(props.ctl, namespace)))
+          MuiCard()(
+            MuiCardTitle(key = "title")(
+              NamespaceComponent(namespace,
+                                 canCreateRoleOnly = false,
+                                 isAllNamespace = true,
+                                 isDisabled = false,
+                                 isFullWidth = false,
+                                 updateNamespace _)),
+            MuiCardText(key = "repos")(RepositoriesComponent(props.ctl, namespace))
+          )
         case _ => MuiCircularProgress(key = "progress")()
       }
       val route = state.namespace match {

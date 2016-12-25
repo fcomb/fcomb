@@ -87,40 +87,48 @@ object EditRepositoryComponent {
       e.preventDefaultCB >> $.props.flatMap(p => p.ctl.set(DashboardRoute.Repository(p.slug)))
 
     def renderFormButtons(state: State) =
-      <.div(^.`class` := "row",
-            ^.style := App.paddingTopStyle,
-            ^.key := "actionsRow",
-            <.div(^.`class` := "col-xs-12",
-                  MuiRaisedButton(`type` = "button",
-                                  primary = false,
-                                  label = "Cancel",
-                                  style = App.cancelStyle,
-                                  disabled = state.isDisabled,
-                                  onTouchTap = cancel _,
-                                  key = "cancel")(),
-                  MuiRaisedButton(`type` = "submit",
-                                  primary = true,
-                                  label = "Update",
-                                  disabled = state.isDisabled,
-                                  key = "update")()))
+      <.div(
+        ^.`class` := "row",
+        ^.style := App.paddingTopStyle,
+        ^.key := "actionsRow",
+        <.div(
+          ^.`class` := "col-xs-12",
+          MuiRaisedButton(`type` = "button",
+                          primary = false,
+                          label = "Cancel",
+                          style = App.cancelStyle,
+                          disabled = state.isDisabled,
+                          onTouchTap = cancel _,
+                          key = "cancel")(),
+          MuiRaisedButton(`type` = "submit",
+                          primary = true,
+                          label = "Update",
+                          disabled = state.isDisabled,
+                          key = "update")()
+        )
+      )
 
     def renderForm(state: State): ReactNode =
       state.form match {
         case Some(form) =>
-          MuiCard()(<.div(^.key := "header",
-                          App.formTitleBlock,
-                          MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit repository"))),
-                    <.form(^.onSubmit ==> handleOnSubmit,
-                           ^.disabled := state.isDisabled,
-                           ^.key := "form",
-                           MuiCardText(key = "form")(renderDescription(form.description,
-                                                                       state.errors,
-                                                                       state.isDisabled,
-                                                                       updateDescription),
-                                                     renderVisiblity(form.visibilityKind,
-                                                                     state.isDisabled,
-                                                                     updateVisibilityKind),
-                                                     renderFormButtons(state))))
+          MuiCard()(
+            <.div(^.key := "header",
+                  App.formTitleBlock,
+                  MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit repository"))),
+            <.form(
+              ^.onSubmit ==> handleOnSubmit,
+              ^.disabled := state.isDisabled,
+              ^.key := "form",
+              MuiCardText(key = "form")(
+                renderDescription(form.description,
+                                  state.errors,
+                                  state.isDisabled,
+                                  updateDescription),
+                renderVisiblity(form.visibilityKind, state.isDisabled, updateVisibilityKind),
+                renderFormButtons(state)
+              )
+            )
+          )
         case _ => <.div()
       }
 

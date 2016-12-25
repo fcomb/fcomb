@@ -102,7 +102,8 @@ object RepositoriesComponent {
         MuiTableRowColumn(key = "name")(ctl.link(target)(LayoutComponent.linkAsTextStyle, name)),
         MuiTableRowColumn(key = "lastModifiedAt")(TimeAgoComponent(lastModifiedAt)),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "menu")(
-          MuiIconMenu(iconButtonElement = menuBtn)(actions)))
+          MuiIconMenu(iconButtonElement = menuBtn)(actions))
+      )
     }
 
     def updateSort(column: String)(e: ReactEventH): Callback =
@@ -120,14 +121,16 @@ object RepositoriesComponent {
       if (repositories.isEmpty) <.div(App.infoMsg, "There are no repositories to show yet")
       else {
         val showNamespace = props.namespace === Namespace.All
-        val columns = Seq(TableComponent.header("Visibility",
-                                                "visibilityKind",
-                                                p,
-                                                updateSort _,
-                                                style = App.visibilityColumnStyle),
-                          TableComponent.header("Name", "slug", p, updateSort _),
-                          TableComponent.header("Last modified", "updatedAt", p, updateSort _),
-                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
+        val columns = Seq(
+          TableComponent.header("Visibility",
+                                "visibilityKind",
+                                p,
+                                updateSort _,
+                                style = App.visibilityColumnStyle),
+          TableComponent.header("Name", "slug", p, updateSort _),
+          TableComponent.header("Last modified", "updatedAt", p, updateSort _),
+          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")()
+        )
         val rows = repositories.map(renderRepository(props.ctl, _, showNamespace))
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }

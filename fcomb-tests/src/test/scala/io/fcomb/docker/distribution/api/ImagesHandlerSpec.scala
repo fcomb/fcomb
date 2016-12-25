@@ -145,7 +145,8 @@ final class ImagesHandlerSpec extends ApiHandlerSpec {
           image.getId(),
           ByteString.empty,
           ImageBlobState.Uploaded,
-          digestOpt = Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309"))
+          digestOpt = Some("09d0220f4043840bd6e2ab233cb2cb330195c9b49bb1f57c8f3fba1bfc90a309")
+        )
       } yield image).futureValue
 
       Put(
@@ -195,7 +196,8 @@ final class ImagesHandlerSpec extends ApiHandlerSpec {
           image.getId(),
           ByteString.empty,
           ImageBlobState.Uploaded,
-          digestOpt = Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3"))
+          digestOpt = Some("d0ca440e86378344053c79282fe959c9f288ef2ab031411295d87ef1250cfec3")
+        )
         cb <- ImageBlobsFixture.createAs(user.getId(),
                                          image.getId(),
                                          configBlobBs,

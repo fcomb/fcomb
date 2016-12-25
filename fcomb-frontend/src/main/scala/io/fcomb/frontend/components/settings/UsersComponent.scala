@@ -113,7 +113,8 @@ object UsersComponent {
         MuiTableRowColumn(key = "email")(user.email),
         MuiTableRowColumn(key = "role")(user.role.toString),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "menu")(
-          MuiIconMenu(iconButtonElement = menuBtn)(actions)))
+          MuiIconMenu(iconButtonElement = menuBtn)(actions))
+      )
     }
 
     def updateSort(column: String)(e: ReactEventH): Callback =
@@ -127,11 +128,13 @@ object UsersComponent {
     def renderUsers(props: Props, users: Seq[UserResponse], p: PaginationOrderState) =
       if (users.isEmpty) <.div(App.infoMsg, "There are no users to show yet")
       else {
-        val columns = Seq(TableComponent.header("Username", "username", p, updateSort _),
-                          TableComponent.header("Full name", "fullName", p, updateSort _),
-                          TableComponent.header("Email", "email", p, updateSort _),
-                          TableComponent.header("Role", "role", p, updateSort _),
-                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")())
+        val columns = Seq(
+          TableComponent.header("Username", "username", p, updateSort _),
+          TableComponent.header("Full name", "fullName", p, updateSort _),
+          TableComponent.header("Email", "email", p, updateSort _),
+          TableComponent.header("Role", "role", p, updateSort _),
+          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "menu")()
+        )
         val rows = users.map(renderUser(props.ctl, _))
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
@@ -152,10 +155,8 @@ object UsersComponent {
       updateDeleteConfirmation(None)
 
     lazy val actions = js.Array(
-      MuiFlatButton(key = "destroy",
-                    label = "Destroy",
-                    primary = true,
-                    onTouchTap = deleteUser _)())
+      MuiFlatButton(key = "destroy", label = "Destroy", primary = true, onTouchTap = deleteUser _)(
+        ))
 
     def render(props: Props, state: State): ReactElement = {
       val confirmationDialog = ConfirmationDialogComponent("Are you sure you want to delete this?",

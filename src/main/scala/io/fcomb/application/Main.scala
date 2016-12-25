@@ -21,19 +21,21 @@ import akka.cluster.Cluster
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.LazyLogging
-import io.fcomb.Db
 import io.fcomb.application.server.Frontend
+import io.fcomb.config.Configuration
+import io.fcomb.Db
 import io.fcomb.docker.distribution.server.{Api => DockerApi}
 import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
 import io.fcomb.server.{Api, ApiHandlerConfig}
-import io.fcomb.services.{EmailService, EventService}
-import io.fcomb.utils.Config
+import io.fcomb.services.EventService
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object Main extends App with LazyLogging {
-  implicit val sys = ActorSystem(Config.actorSystemName, Config.config)
+  val config = Configuration.loadConfig()
+
+  implicit val sys = ActorSystem("fcomb", config)
   implicit val mat = ActorMaterializer()
   import sys.dispatcher
 
@@ -44,27 +46,25 @@ object Main extends App with LazyLogging {
     sys.terminate()
   }
 
-  if (Config.config.getList("akka.cluster.seed-nodes").isEmpty) {
+  if (config.getList("akka.cluster.seed-nodes").isEmpty) {
     logger.info("Going to a single-node cluster mode")
     cluster.join(cluster.selfAddress)
   }
 
-  val interface = Config.config.getString("rest-api.interface")
-  val port      = Config.config.getInt("rest-api.port")
+  implicit val settings = Configuration.loadSettings(config)
 
-  implicit val config = ApiHandlerConfig()(sys, mat, Db.db)
+  implicit val apiHandlerConfig = ApiHandlerConfig()(sys, mat, Db.db, settings)
 
   val routes = Api.routes() ~ DockerApi.routes() ~ Frontend.routes
 
   (for {
     _ <- Db.migrate()
-    _ <- server.HttpApiService.start(port, interface, routes)
+    _ <- server.HttpApiService.start(settings.api.httpPort, settings.api.interface, routes)
   } yield ()).onComplete {
     case Success(_) =>
       ImageBlobPushProcessor.startRegion(25.minutes)
       GarbageCollectorService.start()
       EventService.start()
-      EmailService.start()
     case Failure(e) =>
       logger.error(e.getMessage(), e.getCause())
       sys.terminate()

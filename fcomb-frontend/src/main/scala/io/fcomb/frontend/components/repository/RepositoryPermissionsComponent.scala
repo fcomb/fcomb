@@ -138,7 +138,8 @@ object RepositoryPermissionsComponent {
         MuiTableRowColumn(key = "title")(memberTitle),
         MuiTableRowColumn(key = "action")(renderActionCell(slug, permission, isDisabled)),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "buttons")(
-          renderButtons(slug, permission.member, isDisabled)))
+          renderButtons(slug, permission.member, isDisabled))
+      )
     }
 
     def updateSort(column: String)(e: ReactEventH): Callback =
@@ -159,9 +160,11 @@ object RepositoryPermissionsComponent {
       if (permissions.isEmpty) <.div(App.infoMsg, "There are no permissions to show yet")
       else {
         val p = state.pagination
-        val columns = Seq(TableComponent.header("User", "member.username", p, updateSort _),
-                          TableComponent.header("Action", "action", p, updateSort _),
-                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
+        val columns = Seq(
+          TableComponent.header("User", "member.username", p, updateSort _),
+          TableComponent.header("Action", "action", p, updateSort _),
+          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")()
+        )
         val rows = permissions.map(renderPermissionRow(slug, state, _))
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
@@ -191,32 +194,38 @@ object RepositoryPermissionsComponent {
       modFormState(_.copy(action = action))
 
     def renderFormMember(props: Props, state: State) =
-      Form.row(MemberComponent(props.slug,
-                               props.ownerKind,
-                               state.form.member.map(_.title),
-                               state.form.isDisabled,
-                               state.form.errors.get("member"),
-                               isFullWidth = true,
-                               updateMember _),
-               <.label(^.`for` := "member", "Who will be added to this repository."),
-               "member")
+      Form.row(
+        MemberComponent(props.slug,
+                        props.ownerKind,
+                        state.form.member.map(_.title),
+                        state.form.isDisabled,
+                        state.form.errors.get("member"),
+                        isFullWidth = true,
+                        updateMember _),
+        <.label(^.`for` := "member", "Who will be added to this repository."),
+        "member"
+      )
 
     lazy val actionHelpBlock =
-      <.div("What can an user do with this repository:",
-            <.ul(<.li(<.strong("Read"), " - pull only;"),
-                 <.li(<.strong("Write"), " - pull and push;"),
-                 <.li(<.strong("Manage"), " - pull, push and manage permissions.")))
+      <.div(
+        "What can an user do with this repository:",
+        <.ul(<.li(<.strong("Read"), " - pull only;"),
+             <.li(<.strong("Write"), " - pull and push;"),
+             <.li(<.strong("Manage"), " - pull, push and manage permissions."))
+      )
 
     def renderFormAction(state: State) =
-      Form.row(Form.selectEnum(enum = Action,
-                               key = "action",
-                               label = "Action",
-                               isDisabled = state.form.isDisabled,
-                               errors = state.form.errors,
-                               value = state.form.action,
-                               onChange = updateAction _),
-               <.label(^.`for` := "action", actionHelpBlock),
-               "action")
+      Form.row(
+        Form.selectEnum(enum = Action,
+                        key = "action",
+                        label = "Action",
+                        isDisabled = state.form.isDisabled,
+                        errors = state.form.errors,
+                        value = state.form.action,
+                        onChange = updateAction _),
+        <.label(^.`for` := "action", actionHelpBlock),
+        "action"
+      )
 
     def renderFormButton(state: State) =
       <.div(^.style := App.paddingTopStyle,
@@ -229,13 +238,15 @@ object RepositoryPermissionsComponent {
     lazy val headerStyle = js.Dictionary("marginBottom" -> "0px")
 
     def renderForm(props: Props, state: State) =
-      <.form(App.separateBlock,
-             ^.onSubmit ==> handleOnSubmit(props),
-             ^.disabled := state.form.isDisabled,
-             <.h3(^.style := headerStyle, "New permission"),
-             renderFormMember(props, state),
-             renderFormAction(state),
-             renderFormButton(state))
+      <.form(
+        App.separateBlock,
+        ^.onSubmit ==> handleOnSubmit(props),
+        ^.disabled := state.form.isDisabled,
+        <.h3(^.style := headerStyle, "New permission"),
+        renderFormMember(props, state),
+        renderFormAction(state),
+        renderFormButton(state)
+      )
 
     def render(props: Props, state: State): ReactElement =
       <.section(state.permissions.render(ps => renderPermissions(props.slug, state, ps)),

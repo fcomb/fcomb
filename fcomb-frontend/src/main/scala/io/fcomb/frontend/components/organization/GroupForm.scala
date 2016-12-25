@@ -27,30 +27,37 @@ object GroupForm {
   def defaultFormState = FormState("", Role.Member, Map.empty)
 
   def renderFormName(state: FormState, isDisabled: Boolean, onChange: String => Callback) =
-    Form.row(Form.textField(label = "Name",
-                            key = "name",
-                            isDisabled = isDisabled,
-                            errors = state.errors,
-                            value = state.name,
-                            onChange = onChange),
-             <.label(^.`for` := "name", "Unique group name."),
-             "name")
+    Form.row(
+      Form.textField(label = "Name",
+                     key = "name",
+                     isDisabled = isDisabled,
+                     errors = state.errors,
+                     value = state.name,
+                     onChange = onChange),
+      <.label(^.`for` := "name", "Unique group name."),
+      "name"
+    )
 
   lazy val roleHelpBlock =
     <.div(
       "What can a group user do with repositories:",
-      <.ul(<.li(<.strong("Member"), " - pull only;"),
-           <.li(<.strong("Creator"), " - create, pull and push;"),
-           <.li(<.strong("Admin"), " - create, pull, push and manage groups and permissions.")))
+      <.ul(
+        <.li(<.strong("Member"), " - pull only;"),
+        <.li(<.strong("Creator"), " - create, pull and push;"),
+        <.li(<.strong("Admin"), " - create, pull, push and manage groups and permissions.")
+      )
+    )
 
   def renderFormRole(state: FormState, isDisabled: Boolean, onChange: Role => Callback) =
-    Form.row(Form.selectEnum(enum = Role,
-                             value = state.role,
-                             key = "role",
-                             label = "Role",
-                             errors = state.errors,
-                             isDisabled = isDisabled,
-                             onChange = onChange),
-             <.label(^.`for` := "role", roleHelpBlock),
-             "role")
+    Form.row(
+      Form.selectEnum(enum = Role,
+                      value = state.role,
+                      key = "role",
+                      label = "Role",
+                      errors = state.errors,
+                      isDisabled = isDisabled,
+                      onChange = onChange),
+      <.label(^.`for` := "role", roleHelpBlock),
+      "role"
+    )
 }

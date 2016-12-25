@@ -102,53 +102,64 @@ object SignUpComponent {
                         label: String,
                         cb: ReactEventI => Callback,
                         `type`: String = "text") =
-      <.div(^.`class` := "row",
-            ^.key := key,
-            <.div(^.`class` := "col-xs-12",
-                  MuiTextField(floatingLabelText = label,
-                               `type` = `type`,
-                               id = key,
-                               name = key,
-                               disabled = state.isDisabled,
-                               errorText = state.errors.get(key),
-                               fullWidth = true,
-                               value = value,
-                               onChange = cb)()))
+      <.div(
+        ^.`class` := "row",
+        ^.key := key,
+        <.div(
+          ^.`class` := "col-xs-12",
+          MuiTextField(
+            floatingLabelText = label,
+            `type` = `type`,
+            id = key,
+            name = key,
+            disabled = state.isDisabled,
+            errorText = state.errors.get(key),
+            fullWidth = true,
+            value = value,
+            onChange = cb
+          )()
+        )
+      )
 
     def renderFormButtons(props: Props, state: State) =
-      <.div(^.`class` := "row",
-            ^.style := App.paddingTopStyle,
-            ^.key := "actionsRow",
-            <.div(^.`class` := "col-xs-2",
-                  MuiRaisedButton(`type` = "submit",
-                                  primary = true,
-                                  label = "Create",
-                                  disabled = state.isDisabled)()),
-            <.div(^.`class` := "col-xs-10",
-                  <.p(App.authRightTipBlock,
-                      "Have an account? ",
-                      props.ctl.link(Route.SignIn)(LayoutComponent.linkStyle, "Sign in"),
-                      ".")))
+      <.div(
+        ^.`class` := "row",
+        ^.style := App.paddingTopStyle,
+        ^.key := "actionsRow",
+        <.div(^.`class` := "col-xs-2",
+              MuiRaisedButton(`type` = "submit",
+                              primary = true,
+                              label = "Create",
+                              disabled = state.isDisabled)()),
+        <.div(^.`class` := "col-xs-10",
+              <.p(App.authRightTipBlock,
+                  "Have an account? ",
+                  props.ctl.link(Route.SignIn)(LayoutComponent.linkStyle, "Sign in"),
+                  "."))
+      )
 
     def renderForm(props: Props, state: State) =
-      <.form(^.onSubmit ==> handleOnSubmit,
-             ^.disabled := state.isDisabled,
-             ^.key := "form",
-             MuiCardText(key = "form")(
-               renderTextField(state, state.email, "email", "Email", updateEmail _, "email"),
-               renderTextField(state,
-                               state.password,
-                               "password",
-                               "Password",
-                               updatePassword _,
-                               "password"),
-               renderTextField(state, state.username, "username", "Username", updateUsername _),
-               renderTextField(state,
-                               state.fullName,
-                               "fullName",
-                               "Full name (optional)",
-                               updateFullName _),
-               renderFormButtons(props, state)))
+      <.form(
+        ^.onSubmit ==> handleOnSubmit,
+        ^.disabled := state.isDisabled,
+        ^.key := "form",
+        MuiCardText(key = "form")(
+          renderTextField(state, state.email, "email", "Email", updateEmail _, "email"),
+          renderTextField(state,
+                          state.password,
+                          "password",
+                          "Password",
+                          updatePassword _,
+                          "password"),
+          renderTextField(state, state.username, "username", "Username", updateUsername _),
+          renderTextField(state,
+                          state.fullName,
+                          "fullName",
+                          "Full name (optional)",
+                          updateFullName _),
+          renderFormButtons(props, state)
+        )
+      )
 
     def render(props: Props, state: State) =
       <.div(
@@ -159,7 +170,9 @@ object SignUpComponent {
             <.div(^.key := "header",
                   App.formTitleBlock,
                   MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Create your fcomb account"))),
-            renderForm(props, state))))
+            renderForm(props, state))
+        )
+      )
   }
 
   private val component = ReactComponentB[Props]("SignUp")

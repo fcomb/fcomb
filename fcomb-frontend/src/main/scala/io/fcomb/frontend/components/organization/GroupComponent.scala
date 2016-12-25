@@ -120,7 +120,8 @@ object GroupComponent {
       MuiTableRow(key = member.id.toString)(
         MuiTableRowColumn(key = "username")(member.username),
         MuiTableRowColumn(key = "fullName")(fullName),
-        MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")(button))
+        MuiTableRowColumn(style = App.menuColumnStyle, key = "actions")(button)
+      )
     }
 
     def renderMembers(props: Props,
@@ -129,9 +130,11 @@ object GroupComponent {
                       isDisabled: Boolean) =
       if (members.isEmpty) <.div(App.infoMsg, "There are no members to show yet")
       else {
-        val columns = Seq(TableComponent.header("User", "username", p, updateSort _),
-                          TableComponent.header("Email", "email", p, updateSort _),
-                          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")())
+        val columns = Seq(
+          TableComponent.header("User", "username", p, updateSort _),
+          TableComponent.header("Email", "email", p, updateSort _),
+          MuiTableHeaderColumn(style = App.menuColumnStyle, key = "actions")()
+        )
         val rows = members.map(renderMember(props, _, isDisabled))
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
@@ -157,15 +160,17 @@ object GroupComponent {
       modFormState(_.copy(member = Some(member)))
 
     def renderFormUsername(props: Props, state: State) =
-      Form.row(UserMemberComponent(props.slug,
-                                   props.group,
-                                   state.form.member.map(_.title),
-                                   state.isDisabled,
-                                   state.form.errors.get("username"),
-                                   isFullWidth = true,
-                                   updateMember _),
-               <.label(^.`for` := "username", "Who will be added to this group."),
-               "username")
+      Form.row(
+        UserMemberComponent(props.slug,
+                            props.group,
+                            state.form.member.map(_.title),
+                            state.isDisabled,
+                            state.form.errors.get("username"),
+                            isFullWidth = true,
+                            updateMember _),
+        <.label(^.`for` := "username", "Who will be added to this group."),
+        "username"
+      )
 
     def renderFormButton(state: State) =
       <.div(^.style := App.paddingTopStyle,
@@ -176,13 +181,15 @@ object GroupComponent {
                             disabled = state.isDisabled)())
 
     def renderForm(props: Props, state: State) =
-      <.form(App.separateBlock,
-             ^.onSubmit ==> handleOnSubmit(props),
-             ^.disabled := state.isDisabled,
-             ^.key := "form",
-             <.h3(^.style := App.formHeaderStyle, "New member"),
-             renderFormUsername(props, state),
-             renderFormButton(state))
+      <.form(
+        App.separateBlock,
+        ^.onSubmit ==> handleOnSubmit(props),
+        ^.disabled := state.isDisabled,
+        ^.key := "form",
+        <.h3(^.style := App.formHeaderStyle, "New member"),
+        renderFormUsername(props, state),
+        renderFormButton(state)
+      )
 
     def setEditRoute(props: Props)(e: ReactEventH): Callback =
       props.ctl.set(DashboardRoute.EditOrganizationGroup(props.slug, props.group))
@@ -190,22 +197,27 @@ object GroupComponent {
     def renderHeader(props: Props) = {
       val breadcrumbs = BreadcrumbsComponent(
         props.ctl,
-        Seq((props.slug, DashboardRoute.Organization(props.slug)),
-            ("Groups", DashboardRoute.OrganizationGroups(props.slug)),
-            (props.group, DashboardRoute.OrganizationGroup(props.slug, props.group))))
+        Seq(
+          (props.slug, DashboardRoute.Organization(props.slug)),
+          ("Groups", DashboardRoute.OrganizationGroups(props.slug)),
+          (props.group, DashboardRoute.OrganizationGroup(props.slug, props.group))
+        )
+      )
       val menuIconBtn =
         MuiIconButton()(Mui.SvgIcons.NavigationMoreVert(color = Mui.Styles.colors.lightBlack)())
       val actions =
         Seq(MuiMenuItem(primaryText = "Edit", key = "edit", onTouchTap = setEditRoute(props) _)())
       val menu = MuiIconMenu(iconButtonElement = menuIconBtn)(actions)
 
-      <.div(^.key := "header",
-            App.cardTitleBlock,
-            MuiCardTitle(key = "title")(
-              <.div(^.`class` := "row",
-                    ^.key := "title",
-                    <.div(^.`class` := "col-xs-11", breadcrumbs),
-                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, menu)))))
+      <.div(
+        ^.key := "header",
+        App.cardTitleBlock,
+        MuiCardTitle(key = "title")(
+          <.div(^.`class` := "row",
+                ^.key := "title",
+                <.div(^.`class` := "col-xs-11", breadcrumbs),
+                <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, menu))))
+      )
     }
 
     def render(props: Props, state: State): ReactElement = {
@@ -216,12 +228,17 @@ object GroupComponent {
                                <.span(error))
         case _ => <.div()
       }
-      <.section(alertDialog, state.members.render { members =>
-        MuiCard(key = "repos")(renderHeader(props),
-                               MuiCardText(key = "members")(
-                                 renderMembers(props, members, state.pagination, state.isDisabled),
-                                 renderForm(props, state)))
-      })
+      <.section(
+        alertDialog,
+        state.members.render { members =>
+          MuiCard(key = "repos")(renderHeader(props),
+                                 MuiCardText(key = "members")(renderMembers(props,
+                                                                            members,
+                                                                            state.pagination,
+                                                                            state.isDisabled),
+                                                              renderForm(props, state)))
+        }
+      )
     }
   }
 

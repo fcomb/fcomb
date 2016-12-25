@@ -80,7 +80,8 @@ object OrganizationsComponent {
         MuiTableRowColumn(key = "name")(
           ctl.link(target)(LayoutComponent.linkAsTextStyle, org.name)),
         MuiTableRowColumn(style = App.menuColumnStyle, key = "menu")(
-          MuiIconMenu(iconButtonElement = menuBtn)(actions)))
+          MuiIconMenu(iconButtonElement = menuBtn)(actions))
+      )
     }
 
     def updateSort(column: String)(e: ReactEventH): Callback =

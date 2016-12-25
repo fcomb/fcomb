@@ -81,7 +81,8 @@ object LayoutComponent {
                   onTouchTap = setRoute(DashboardRoute.Repositories) _)(),
       MuiMenuItem(key = "orgs",
                   primaryText = "Organizations",
-                  onTouchTap = setRoute(DashboardRoute.Organizations) _)())
+                  onTouchTap = setRoute(DashboardRoute.Organizations) _)()
+    )
 
     lazy val settingsMenuItems = Seq(MuiSubheader(key = "settings")("Settings"),
                                      MuiMenuItem(key = "users",

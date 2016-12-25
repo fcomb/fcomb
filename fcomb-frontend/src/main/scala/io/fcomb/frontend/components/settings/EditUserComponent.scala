@@ -117,15 +117,19 @@ object EditUserComponent {
               renderFormPassword(form.password, form.errors, state.isDisabled, updatePassword _),
               renderFormFullName(form.fullName, form.errors, state.isDisabled, updateFullName _),
               renderFormRole(form.role, form.errors, state.isDisabled, updateRole _),
-              renderFormButtons(props.ctl, "Update", state.isDisabled)))
+              renderFormButtons(props.ctl, "Update", state.isDisabled)
+            )
+          )
         case _ => <.div()
       }
 
     def render(props: Props, state: State) =
-      MuiCard()(<.div(^.key := "header",
-                      App.formTitleBlock,
-                      MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit user"))),
-                <.section(^.key := "form", state.user.render(_ => renderForm(props, state))))
+      MuiCard()(
+        <.div(^.key := "header",
+              App.formTitleBlock,
+              MuiCardTitle(key = "title")(<.h1(App.cardTitle, "Edit user"))),
+        <.section(^.key := "form", state.user.render(_ => renderForm(props, state)))
+      )
   }
 
   private val component = ReactComponentB[Props]("EditUser")

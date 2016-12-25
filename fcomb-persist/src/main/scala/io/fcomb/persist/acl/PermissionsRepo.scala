@@ -381,18 +381,14 @@ object PermissionsRepo extends PersistModelWithAutoIntPk[Permission, PermissionT
   private lazy val notFound = validationError("permission", "Not found")
 
   def destroyByOrganizationIdDBIO(organizationId: Int)(implicit ec: ExecutionContext) =
-    table
-      .filter { q =>
-        q.imageId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)) ||
-        (q.memberId.in(OrganizationGroupsRepo.findIdsByOrganizationIdDBIO(organizationId)) &&
-        q.memberKind === (MemberKind.Group: MemberKind))
-      }
-      .delete
+    table.filter { q =>
+      q.imageId.in(ImagesRepo.findIdsByOrganizationIdDBIO(organizationId)) ||
+      (q.memberId.in(OrganizationGroupsRepo.findIdsByOrganizationIdDBIO(organizationId)) &&
+      q.memberKind === (MemberKind.Group: MemberKind))
+    }.delete
 
   def destroyByOrganizationGroupIdDBIO(groupId: Int)(implicit ec: ExecutionContext) =
-    table
-      .filter { q =>
-        q.memberId === groupId && q.memberKind === (MemberKind.Group: MemberKind)
-      }
-      .delete
+    table.filter { q =>
+      q.memberId === groupId && q.memberKind === (MemberKind.Group: MemberKind)
+    }.delete
 }

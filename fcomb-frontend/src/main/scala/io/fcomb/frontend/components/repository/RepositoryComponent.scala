@@ -73,9 +73,11 @@ object RepositoryComponent {
     def renderTabs(props: Props, repo: RepositoryResponse, isManageable: Boolean) = {
       val manageTabs =
         if (isManageable)
-          Seq(renderPermissionsTab(props, repo),
-              MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
-                MuiCardText()(RepositorySettingsComponent(props.ctl, repo.slug))))
+          Seq(
+            renderPermissionsTab(props, repo),
+            MuiTab(key = "settings", label = "Settings", value = RepositoryTab.Settings)(
+              MuiCardText()(RepositorySettingsComponent(props.ctl, repo.slug)))
+          )
         else Seq.empty
 
       MuiCardMedia(key = "tabs")(
@@ -110,13 +112,15 @@ object RepositoryComponent {
         Seq((repo.namespace, route), (repo.name, DashboardRoute.Repository(repo.slug))),
         Some(icon))
 
-      <.div(^.key := "header",
-            App.cardTitleBlock,
-            MuiCardTitle(key = "title")(
-              <.div(^.`class` := "row",
-                    ^.key := "title",
-                    <.div(^.`class` := "col-xs-11", breadcrumbs),
-                    <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, menu)))))
+      <.div(
+        ^.key := "header",
+        App.cardTitleBlock,
+        MuiCardTitle(key = "title")(
+          <.div(^.`class` := "row",
+                ^.key := "title",
+                <.div(^.`class` := "col-xs-11", breadcrumbs),
+                <.div(^.`class` := "col-xs-1", <.div(App.rightActionBlock, menu))))
+      )
     }
 
     def render(props: Props): ReactElement = {
