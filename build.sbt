@@ -5,12 +5,12 @@ import de.heikoseeberger.sbtheader.license.Apache2_0
 
 lazy val akkaHttpVersion     = "10.0.1"
 lazy val akkaVersion         = "2.4.16"
-lazy val bouncyCastleVersion = "1.55"
+lazy val bouncyCastleVersion = "1.56"
 lazy val catsVersion         = "0.8.1"
-lazy val circeVersion        = "0.7.0-M1"
+lazy val circeVersion        = "0.7.0-M2"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.5.4"
-lazy val guavaVersion        = "19.0"
+lazy val enumeratumVersion   = "1.5.6"
+lazy val guavaVersion        = "20.0"
 lazy val slickPgVersion      = "0.15.0-M4_0.7.0-M1"
 lazy val slickVersion        = "3.2.0-M2"
 
@@ -34,7 +34,7 @@ lazy val commonSettings =
       Resolver.sonatypeRepo("releases"),
       Resolver.sonatypeRepo("snapshots"),
       Resolver.bintrayRepo("fcomb", "maven"),
-      Resolver.bintrayRepo("etaty", "maven")
+      Resolver.bintrayRepo("tek", "maven")
     ),
     libraryDependencies ++= Seq(
       "com.chuusai"                %% "shapeless"     % "2.3.2",
@@ -62,6 +62,7 @@ lazy val commonSettings =
       "-Ywarn-unused",
       "-Ywarn-unused-import"
     ),
+    addCompilerPlugin("tryp" %% "splain" % "0.1.14"),
     publishArtifact in (Compile, packageDoc) := false,
     publishArtifact in packageDoc := false,
     sources in (Compile, doc) := Seq.empty /*,
@@ -175,7 +176,7 @@ lazy val crypto = project
     "commons-codec"     % "commons-codec"  % commonsVersion,
     "org.bouncycastle"  % "bcprov-jdk15on" % bouncyCastleVersion,
     "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
-    "org.bitbucket.b_c" % "jose4j"         % "0.5.2",
+    "org.bitbucket.b_c" % "jose4j"         % "0.5.4",
     "io.circe"          %% "circe-parser"  % circeVersion,
     "com.pauldijou"     %% "jwt-circe"     % "0.10.0_0.7.0-M1"
   ))
