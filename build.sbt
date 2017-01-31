@@ -17,11 +17,11 @@ lazy val buildSettings = Seq(
   organization := "io.fcomb",
   organizationName := "fcomb",
   description := "Cloud management stack",
-  startYear := Option(2016),
+  startYear := Option(2017),
   homepage := Option(url("https://fcomb.io")),
   organizationHomepage := Option(new URL("https://fcomb.io")),
   scalaVersion in ThisBuild := "2.12.1",
-  headers := Map("scala" -> Apache2_0("2016", "fcomb. <https://fcomb.io>"))
+  headers := Map("scala" -> Apache2_0("2017", "fcomb. <https://fcomb.io>"))
 )
 
 lazy val commonSettings =
