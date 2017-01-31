@@ -24,7 +24,8 @@ import scala.util.Try
 
 object Configuration extends LazyLogging {
   def loadConfig(defaults: Config = ConfigFactory.empty()): Config =
-    defaults.withFallback(ConfigFactory.parseString(defaultConfig))
+    defaults
+      .withFallback(ConfigFactory.parseString(defaultConfig))
       .withFallback(ConfigFactory.load())
       .resolve()
 
@@ -62,32 +63,32 @@ object Configuration extends LazyLogging {
   }
 
   private val defaultConfig = s"""
-    |akka {
-    |  logger-startup-timeout: 10s
-    |  log-dead-letters-during-shutdown: off
-    |  loglevel: "INFO"
-    |  loggers: ["akka.event.slf4j.Slf4jLogger"]
-    |  logging-filter: "akka.event.slf4j.Slf4jLoggingFilter"
-    |
-    |  actor.provider: "akka.cluster.ClusterActorRefProvider"
-    |
-    |  http {
-    |    server {
-    |      server-header = "fcomb"
-    |      transparent-head-requests = off
-    |      parsing.max-content-length = infinite
-    |    }
-    |
-    |    client.user-agent-header = "fcomb"
-    |  }
-    |
-    |  cluster.sharding.state-store-mode: "ddata"
-    |}
-    |
-    |jdbc-slick {
-    |  dataSourceClass = "org.postgresql.ds.PGSimpleDataSource"
-    |  maxConnections = 50
-    |  numThreads = 10
-    |}
+                                 |akka {
+                                 |  logger-startup-timeout: 10s
+                                 |  log-dead-letters-during-shutdown: off
+                                 |  loglevel: "INFO"
+                                 |  loggers: ["akka.event.slf4j.Slf4jLogger"]
+                                 |  logging-filter: "akka.event.slf4j.Slf4jLoggingFilter"
+                                 |
+                                 |  actor.provider: "akka.cluster.ClusterActorRefProvider"
+                                 |
+                                 |  http {
+                                 |    server {
+                                 |      server-header = "fcomb"
+                                 |      transparent-head-requests = off
+                                 |      parsing.max-content-length = infinite
+                                 |    }
+                                 |
+                                 |    client.user-agent-header = "fcomb"
+                                 |  }
+                                 |
+                                 |  cluster.sharding.state-store-mode: "ddata"
+                                 |}
+                                 |
+                                 |jdbc-slick {
+                                 |  dataSourceClass = "org.postgresql.ds.PGSimpleDataSource"
+                                 |  maxConnections = 50
+                                 |  numThreads = 10
+                                 |}
     """.stripMargin
 }

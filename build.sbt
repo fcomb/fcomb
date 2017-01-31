@@ -3,13 +3,12 @@ import com.typesafe.sbt.SbtGhPages.GhPagesKeys._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
-lazy val akkaHttpVersion     = "10.0.1"
+lazy val akkaHttpVersion     = "10.0.3"
 lazy val akkaVersion         = "2.4.16"
 lazy val bouncyCastleVersion = "1.56"
-lazy val catsVersion         = "0.8.1"
-lazy val circeVersion        = "0.7.0-M2"
+lazy val catsVersion         = "0.9.0"
+lazy val circeVersion        = "0.7.0"
 lazy val commonsVersion      = "1.10"
-lazy val enumeratumVersion   = "1.5.6"
 lazy val guavaVersion        = "20.0"
 lazy val slickPgVersion      = "0.15.0-M4_0.7.0-M1"
 lazy val slickVersion        = "3.2.0-M2"
@@ -62,7 +61,8 @@ lazy val commonSettings =
       "-Ywarn-unused",
       "-Ywarn-unused-import"
     ),
-    addCompilerPlugin("tryp" %% "splain" % "0.1.14"),
+    addCompilerPlugin("tryp" %% "splain" % "0.1.20"),
+    scalacOptions += "-P:clippy:colors=true",
     publishArtifact in (Compile, packageDoc) := false,
     publishArtifact in packageDoc := false,
     sources in (Compile, doc) := Seq.empty /*,
@@ -100,7 +100,7 @@ lazy val models = crossProject
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum" % enumeratumVersion
+      "com.beachape" %%% "enumeratum" % "1.5.6"
     ))
   .jvmSettings(
     libraryDependencies ++= Seq(
@@ -144,7 +144,7 @@ lazy val persist = project
     "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
     "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
-    "com.zaxxer"          % "HikariCP"             % "2.5.1"
+    "com.zaxxer"          % "HikariCP"             % "2.6.0"
   ))
 
 lazy val json = crossProject
@@ -154,7 +154,7 @@ lazy val json = crossProject
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum-circe" % enumeratumVersion,
+      "com.beachape" %%% "enumeratum-circe" % "1.5.8",
       "io.circe"     %%% "circe-parser"     % circeVersion,
       "io.circe"     %%% "circe-generic"    % circeVersion
     ))
@@ -235,12 +235,12 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % Test,
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % Test,
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
-      "com.lihaoyi"        % "ammonite"           % "0.8.1" % Test cross CrossVersion.full,
+      "com.lihaoyi"        % "ammonite"           % "0.8.2" % Test cross CrossVersion.full,
       "org.scalacheck"     %% "scalacheck"        % "1.13.4" % Test,
       "org.scalatest"      %% "scalatest"         % "3.0.1" % Test,
-      "com.ironcorelabs"   %% "cats-scalatest"    % "2.1.1" % Test,
+      "com.ironcorelabs"   %% "cats-scalatest"    % "2.2.0" % Test,
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % Test exclude ("junit", "junit-dep"),
-      "ch.qos.logback"     % "logback-classic"    % "1.1.8",
+      "ch.qos.logback"     % "logback-classic"    % "1.1.9",
       "junit"              % "junit-dep"          % "4.10" % Test
     ),
     initialCommands in (Test, console) := "ammonite.Main().run()",
@@ -268,8 +268,8 @@ lazy val frontend = project
       "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.6.0-SNAPSHOT",
       "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
       "org.typelevel"                                  %%% "cats"          % catsVersion,
-      "me.chrons"                                      %%% "diode-react"   % "1.1.0",
-      "io.circe"                                       %%% "circe-scalajs" % circeVersion
+      "io.circe"                                       %%% "circe-scalajs" % circeVersion,
+      "io.suzaku"                                      %%% "diode-react"   % "1.1.1"
     ),
     skip in packageJSDependencies := false,
     persistLauncher in Compile := true,
@@ -351,7 +351,7 @@ lazy val root = project
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
-      "ch.qos.logback"    % "logback-classic" % "1.1.8",
+      "ch.qos.logback"    % "logback-classic" % "1.1.9",
       "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion
     ),
