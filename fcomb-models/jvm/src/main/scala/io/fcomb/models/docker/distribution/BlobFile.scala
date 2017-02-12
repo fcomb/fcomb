@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import java.util.UUID
 sealed trait BlobFileState extends EnumItem
 
 object BlobFileState extends Enum[BlobFileState] {
-  final case object Available extends BlobFileState
-  final case object Deleting  extends BlobFileState
+  case object Available extends BlobFileState
+  case object Deleting  extends BlobFileState
 
   val values = findValues
 }

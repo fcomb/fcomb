@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,9 +29,9 @@ sealed trait Action extends EnumItem {
 }
 
 object Action extends Enum[Action] {
-  final case object Manage extends Action
-  final case object Write  extends Action
-  final case object Read   extends Action
+  case object Manage extends Action
+  case object Write  extends Action
+  case object Read   extends Action
 
   val values = findValues
 }

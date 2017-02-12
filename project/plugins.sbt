@@ -1,6 +1,6 @@
 addSbtPlugin("com.dwijnand"            % "sbt-dynver"          % "1.1.0")
 addSbtPlugin("com.fortysevendeg"       % "sbt-microsites"      % "0.4.0")
-addSbtPlugin("com.geirsson"            % "sbt-scalafmt"        % "0.5.4")
+addSbtPlugin("com.geirsson"            % "sbt-scalafmt"        % "0.5.6")
 addSbtPlugin("com.softwaremill.clippy" % "plugin-sbt"          % "0.5.0")
 addSbtPlugin("com.typesafe.sbt"        % "sbt-ghpages"         % "0.5.4")
 addSbtPlugin("com.typesafe.sbt"        % "sbt-native-packager" % "1.2.0-M8")

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,8 +49,8 @@ object GarbageCollectorService extends LazyLogging {
 private[this] sealed trait GarbageCollectorEntity
 
 private[this] object GarbageCollectorEntity {
-  final case object CheckOutdated extends GarbageCollectorEntity
-  final case object CheckDeleting extends GarbageCollectorEntity
+  case object CheckOutdated extends GarbageCollectorEntity
+  case object CheckDeleting extends GarbageCollectorEntity
 }
 
 private[this] class GarbageCollectorActor(implicit mat: Materializer)

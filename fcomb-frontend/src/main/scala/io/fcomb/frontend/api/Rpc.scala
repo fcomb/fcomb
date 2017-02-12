@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,11 +45,11 @@ import scala.scalajs.js.{JSON, URIUtils}
 sealed trait RpcMethod
 
 object RpcMethod {
-  final case object GET    extends RpcMethod
-  final case object HEAD   extends RpcMethod
-  final case object POST   extends RpcMethod
-  final case object PUT    extends RpcMethod
-  final case object DELETE extends RpcMethod
+  case object GET    extends RpcMethod
+  case object HEAD   extends RpcMethod
+  case object POST   extends RpcMethod
+  case object PUT    extends RpcMethod
+  case object DELETE extends RpcMethod
 }
 
 object Rpc {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,11 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait ErrorCode extends EnumItem
 
 object ErrorCode extends Enum[ErrorCode] {
-  final case object Validation      extends ErrorCode
-  final case object Internal        extends ErrorCode
-  final case object Deserialization extends ErrorCode
-  final case object Session         extends ErrorCode
-  final case object Security        extends ErrorCode
+  case object Validation      extends ErrorCode
+  case object Internal        extends ErrorCode
+  case object Deserialization extends ErrorCode
+  case object Session         extends ErrorCode
+  case object Security        extends ErrorCode
 
   val values = findValues
 }

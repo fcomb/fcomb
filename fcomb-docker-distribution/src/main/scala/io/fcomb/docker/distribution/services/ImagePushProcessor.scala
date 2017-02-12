@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -140,9 +140,9 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
       })
   }
 
-  final case object Begin extends Entity
+  case object Begin extends Entity
 
-  final case object Stop extends Entity
+  case object Stop extends Entity
 
   final case class Commit(md: MessageDigest) extends Entity
 
@@ -165,8 +165,8 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
 }
 
 object ProcessorActorMessages {
-  final case object Annihilation
-  final case object Unstash
+  case object Annihilation
+  case object Unstash
   final case class Failed(e: Throwable)
   final case class UpdateState[S](state: S)
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,9 @@ import java.util.UUID
 sealed trait ImageBlobState extends EnumItem
 
 object ImageBlobState extends Enum[ImageBlobState] {
-  final case object Created   extends ImageBlobState
-  final case object Uploading extends ImageBlobState
-  final case object Uploaded  extends ImageBlobState
+  case object Created   extends ImageBlobState
+  case object Uploading extends ImageBlobState
+  case object Uploaded  extends ImageBlobState
 
   val values = findValues
 }

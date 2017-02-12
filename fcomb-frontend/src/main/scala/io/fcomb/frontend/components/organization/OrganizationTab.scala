@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait OrganizationTab extends EnumItem
 
 object OrganizationTab extends Enum[OrganizationTab] {
-  final case object Repositories extends OrganizationTab
-  final case object Groups       extends OrganizationTab
-  final case object Settings     extends OrganizationTab
+  case object Repositories extends OrganizationTab
+  case object Groups       extends OrganizationTab
+  case object Settings     extends OrganizationTab
 
   val values = findValues
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,6 @@ sealed trait AuthenticationAction extends Action
 
 final case class Authenticated(session: String) extends AuthenticationAction
 
-final case object LogOut extends AuthenticationAction
+case object LogOut extends AuthenticationAction
 
-final case object LoadSession extends AuthenticationAction
+case object LoadSession extends AuthenticationAction

@@ -4,14 +4,14 @@ import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
 lazy val akkaHttpVersion     = "10.0.3"
-lazy val akkaVersion         = "2.4.16"
+lazy val akkaVersion         = "2.4.17"
 lazy val bouncyCastleVersion = "1.56"
 lazy val catsVersion         = "0.9.0"
 lazy val circeVersion        = "0.7.0"
 lazy val commonsVersion      = "1.10"
 lazy val guavaVersion        = "20.0"
 lazy val slickPgVersion      = "0.15.0-M4_0.7.0-M1"
-lazy val slickVersion        = "3.2.0-M2"
+lazy val slickVersion        = "3.2.0-RC1"
 
 lazy val buildSettings = Seq(
   organization := "io.fcomb",
@@ -21,6 +21,7 @@ lazy val buildSettings = Seq(
   homepage := Option(url("https://fcomb.io")),
   organizationHomepage := Option(new URL("https://fcomb.io")),
   scalaVersion in ThisBuild := "2.12.1",
+  scalaOrganization in ThisBuild := "org.typelevel",
   headers := Map("scala" -> Apache2_0("2017", "fcomb. <https://fcomb.io>"))
 )
 
@@ -62,7 +63,7 @@ lazy val commonSettings =
       "-Ywarn-unused-import"
     ),
     addCompilerPlugin("tryp" %% "splain" % "0.1.20"),
-    scalacOptions += "-P:clippy:colors=true",
+    clippyColorsEnabled := true,
     publishArtifact in (Compile, packageDoc) := false,
     publishArtifact in packageDoc := false,
     sources in (Compile, doc) := Seq.empty /*,
@@ -240,7 +241,7 @@ lazy val tests = project
       "org.scalatest"      %% "scalatest"         % "3.0.1" % Test,
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.2.0" % Test,
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % Test exclude ("junit", "junit-dep"),
-      "ch.qos.logback"     % "logback-classic"    % "1.1.9",
+      "ch.qos.logback"     % "logback-classic"    % "1.2.1",
       "junit"              % "junit-dep"          % "4.10" % Test
     ),
     initialCommands in (Test, console) := "ammonite.Main().run()",

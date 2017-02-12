@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,9 +29,9 @@ sealed trait Role extends EnumItem {
 }
 
 object Role extends Enum[Role] {
-  final case object Admin   extends Role
-  final case object Creator extends Role
-  final case object Member  extends Role
+  case object Admin   extends Role
+  case object Creator extends Role
+  case object Member  extends Role
 
   val values = findValues
 }

@@ -75,20 +75,20 @@ module.exports = {
         test: /\.(png|jpg|svg)$/,
         loaders: [
           'url-loader?limit=8192',
-          'image-webpack?optimizationLevel=7&progressive=true'
+          'image-webpack-loader?optimizationLevel=7&progressive=true'
         ]
       },
       {
         test: /\.json$/,
-        loader: 'json'
+        loader: 'json-loader'
       },
       {
         test: /\.html$/,
-        loader: 'raw!html-minify'
+        loader: 'raw-loader!html-minify-loader'
       },
       {
         test: /\.(ttf|eot|svg|woff|woff2)(\?[\s\S]+)?$/,
-        loader: 'file'
+        loader: 'file-loader'
       }
     ]
   }

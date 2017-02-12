@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,15 +27,15 @@ object Route {
     def title = route.title
   }
 
-  final case object SignIn extends Route {
+  case object SignIn extends Route {
     def title = "Sign in"
   }
 
-  final case object SignUp extends Route {
+  case object SignUp extends Route {
     def title = "Sign up"
   }
 
-  final case object SignOut extends Route {
+  case object SignOut extends Route {
     def title = "Sign out"
   }
 
@@ -47,7 +47,7 @@ sealed trait DashboardRoute {
 }
 
 object DashboardRoute {
-  final case object Root extends DashboardRoute {
+  case object Root extends DashboardRoute {
     def title = "Dashboard"
   }
 
@@ -56,10 +56,10 @@ object DashboardRoute {
 
     def title = s"${Repositories.title} – $slug"
   }
-  final case object Repositories extends DashboardRoute {
+  case object Repositories extends DashboardRoute {
     def title = "Repositories"
   }
-  final case object NewRepository extends DashboardRoute {
+  case object NewRepository extends DashboardRoute {
     def title = s"${Repositories.title} – New"
   }
   final case class Repository(slug: String)            extends RepositoryRoute
@@ -73,10 +73,10 @@ object DashboardRoute {
 
     def title = s"${Organizations.title} – $slug"
   }
-  final case object Organizations extends DashboardRoute {
+  case object Organizations extends DashboardRoute {
     def title = "Organizations"
   }
-  final case object NewOrganization extends DashboardRoute {
+  case object NewOrganization extends DashboardRoute {
     def title = s"${Organizations.title} – New"
   }
   final case class Organization(slug: String)                         extends OrganizationRoute
@@ -94,20 +94,20 @@ object DashboardRoute {
   final case class User(slug: String) extends UserRoute
 
   sealed trait SettingsRoute extends DashboardRoute
-  final case object Users extends SettingsRoute {
+  case object Users extends SettingsRoute {
     override def title = "Users"
   }
-  final case object NewUser extends SettingsRoute {
+  case object NewUser extends SettingsRoute {
     override def title = Users.title
   }
   final case class EditUser(slug: String) extends SettingsRoute {
     override def title = Users.title
   }
-  // final case object GarbageCollectorSettings  extends SettingsRoute
-  // final case object SecuritySettings          extends SettingsRoute
-  // final case object TlsSettings               extends SettingsRoute
+  // case object GarbageCollectorSettings  extends SettingsRoute
+  // case object SecuritySettings          extends SettingsRoute
+  // case object TlsSettings               extends SettingsRoute
 
-  final case object Global extends SettingsRoute {
+  case object Global extends SettingsRoute {
     override def title = "Global"
   }
 

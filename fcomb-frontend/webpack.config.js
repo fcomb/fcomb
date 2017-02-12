@@ -35,26 +35,29 @@ module.exports = {
         test: /\.(png|jpg|svg)$/,
         loaders: [
           'url-loader?limit=8192',
-          'image-webpack?optimizationLevel=7&progressive=true'
+          'image-webpack-loader?optimizationLevel=7&progressive=true'
         ]
       },
       {
         test: /\.json$/,
-        loader: 'json'
+        loader: 'json-loader'
       },
       {
         test: /\.(ttf|eot|svg|woff|woff2)(\?[\s\S]+)?$/,
-        loader: 'file'
+        loader: 'file-loader'
+      },
+      {
+        test: /\.html$/,
+        loader: 'html-minify-loader',
+        options: {
+          empty: true,
+          cdata: true,
+          comments: false
+        }
       }
     ]
   },
-  'html-minify-loader': {
-     empty: true,
-     cdata: true,
-     comments: false
-  },
   devServer: {
-    // hot: true,
     contentBase: webPath,
     proxy: {
       '/v1/*': {

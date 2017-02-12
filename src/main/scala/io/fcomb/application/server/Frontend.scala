@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,8 @@ object Frontend {
   val routes: Route =
     // format: OFF
     pathEndOrSingleSlash(getFromResource("public/index.html")) ~
-    getFromResourceDirectoryWithGzip("public")
+    getFromResourceDirectoryWithGzip("public") ~
+    path("robots.txt")(complete("User-agent: *\r\nDisallow: /\r\n"))
     // format: ON
 
   // Copied from akka-http

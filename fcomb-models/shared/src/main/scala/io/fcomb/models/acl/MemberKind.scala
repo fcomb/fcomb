@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait MemberKind extends EnumItem
 
 object MemberKind extends Enum[MemberKind] {
-  final case object Group extends MemberKind
-  final case object User  extends MemberKind
+  case object Group extends MemberKind
+  case object User  extends MemberKind
 
   val values = findValues
 }

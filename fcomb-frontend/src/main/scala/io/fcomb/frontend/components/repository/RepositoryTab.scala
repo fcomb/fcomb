@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait RepositoryTab extends EnumItem
 
 object RepositoryTab extends Enum[RepositoryTab] {
-  final case object Info        extends RepositoryTab
-  final case object Tags        extends RepositoryTab
-  final case object Permissions extends RepositoryTab
-  final case object Settings    extends RepositoryTab
+  case object Info        extends RepositoryTab
+  case object Tags        extends RepositoryTab
+  case object Permissions extends RepositoryTab
+  case object Settings    extends RepositoryTab
 
   val values = findValues
 }

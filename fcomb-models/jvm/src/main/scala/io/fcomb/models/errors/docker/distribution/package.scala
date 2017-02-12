@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,22 +22,22 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait DistributionErrorCode extends EnumItem with EnumEntry.Uppercase
 
 object DistributionErrorCode extends Enum[DistributionErrorCode] {
-  final case object BlobUnknown         extends DistributionErrorCode
-  final case object BlobUploadInvalid   extends DistributionErrorCode
-  final case object BlobUploadUnknown   extends DistributionErrorCode
-  final case object Denied              extends DistributionErrorCode
-  final case object DigestInvalid       extends DistributionErrorCode
-  final case object ManifestBlobUnknown extends DistributionErrorCode
-  final case object ManifestInvalid     extends DistributionErrorCode
-  final case object ManifestUnknown     extends DistributionErrorCode
-  final case object ManifestUnverified  extends DistributionErrorCode
-  final case object NameInvalid         extends DistributionErrorCode
-  final case object NameUnknown         extends DistributionErrorCode
-  final case object SizeInvalid         extends DistributionErrorCode
-  final case object TagInvalid          extends DistributionErrorCode
-  final case object Unauthorized        extends DistributionErrorCode
-  final case object Unknown             extends DistributionErrorCode
-  final case object Unsupported         extends DistributionErrorCode
+  case object BlobUnknown         extends DistributionErrorCode
+  case object BlobUploadInvalid   extends DistributionErrorCode
+  case object BlobUploadUnknown   extends DistributionErrorCode
+  case object Denied              extends DistributionErrorCode
+  case object DigestInvalid       extends DistributionErrorCode
+  case object ManifestBlobUnknown extends DistributionErrorCode
+  case object ManifestInvalid     extends DistributionErrorCode
+  case object ManifestUnknown     extends DistributionErrorCode
+  case object ManifestUnverified  extends DistributionErrorCode
+  case object NameInvalid         extends DistributionErrorCode
+  case object NameUnknown         extends DistributionErrorCode
+  case object SizeInvalid         extends DistributionErrorCode
+  case object TagInvalid          extends DistributionErrorCode
+  case object Unauthorized        extends DistributionErrorCode
+  case object Unknown             extends DistributionErrorCode
+  case object Unsupported         extends DistributionErrorCode
 
   val values = findValues
 }

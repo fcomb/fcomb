@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ sealed trait OwnerNamespace extends Namespace {
 }
 
 object Namespace {
-  final case object All extends Namespace
+  case object All extends Namespace
 
   final case class User(slug: String, id: Option[Int] = None) extends OwnerNamespace {
     def isCurrentUser = AppCircuit.currentUser.exists(_.username == slug)

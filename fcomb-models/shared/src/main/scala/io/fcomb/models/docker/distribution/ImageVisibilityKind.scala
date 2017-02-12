@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import io.fcomb.models.common.{Enum, EnumItem}
 sealed trait ImageVisibilityKind extends EnumItem
 
 object ImageVisibilityKind extends Enum[ImageVisibilityKind] {
-  final case object Private extends ImageVisibilityKind
-  final case object Public  extends ImageVisibilityKind
+  case object Private extends ImageVisibilityKind
+  case object Public  extends ImageVisibilityKind
 
   val values = findValues
 }
