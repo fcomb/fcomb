@@ -1,5 +1,5 @@
 import com.typesafe.sbt.packager.MappingsHelper._
-import com.typesafe.sbt.SbtGhPages.GhPagesKeys._
+// import com.typesafe.sbt.sbtghpages.GhpagesPlugin
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
@@ -291,39 +291,39 @@ lazy val frontend = project
   )
 
 lazy val docSettings = Seq(
-  micrositeName := "fcomb",
-  micrositeDescription := "Alternative to docker trusted registry and quay written in Scala",
-  micrositeAuthor := "Timothy Klim",
-  micrositeHighlightTheme := "atom-one-light",
-  micrositeHomepage := "https://fcomb.io",
-  micrositeGithubOwner := "fcomb",
-  // micrositeExtraMdFiles := Map(file("CONTRIBUTING.md") -> "contributing.md"),
-  micrositeGithubRepo := "fcomb",
-  micrositePalette := Map(
-    "brand-primary"   -> "#E05236",
-    "brand-secondary" -> "#3F3242",
-    "brand-tertiary"  -> "#2D232F",
-    "gray-dark"       -> "#453E46",
-    "gray"            -> "#837F84",
-    "gray-light"      -> "#E3E2E3",
-    "gray-lighter"    -> "#F4F3F4",
-    "white-color"     -> "#FFFFFF"
-  ),
-  ghpagesNoJekyll := false,
-  excludeFilter in cleanSite := "CNAME",
-  fork in tut := true,
-  git.remoteRepo := "git@github.com:fcomb/fcomb.git",
-  includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.yml" | "*.md"
+  // micrositeName := "fcomb",
+  // micrositeDescription := "Alternative to docker trusted registry and quay written in Scala",
+  // micrositeAuthor := "Timothy Klim",
+  // micrositeHighlightTheme := "atom-one-light",
+  // micrositeHomepage := "https://fcomb.io",
+  // micrositeGithubOwner := "fcomb",
+  // // micrositeExtraMdFiles := Map(file("CONTRIBUTING.md") -> "contributing.md"),
+  // micrositeGithubRepo := "fcomb",
+  // micrositePalette := Map(
+  //   "brand-primary"   -> "#E05236",
+  //   "brand-secondary" -> "#3F3242",
+  //   "brand-tertiary"  -> "#2D232F",
+  //   "gray-dark"       -> "#453E46",
+  //   "gray"            -> "#837F84",
+  //   "gray-light"      -> "#E3E2E3",
+  //   "gray-lighter"    -> "#F4F3F4",
+  //   "white-color"     -> "#FFFFFF"
+  // ),
+  // ghpagesNoJekyll := false,
+  // excludeFilter in ghpagesCleanSite := "CNAME",
+  // fork in tut := true,
+  // git.remoteRepo := "git@github.com:fcomb/fcomb.git",
+  // includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.yml" | "*.md"
 )
 
 lazy val docs = project
   .in(file("fcomb-docs"))
-  .enablePlugins(MicrositesPlugin)
+  // .enablePlugins(MicrositesPlugin)
   .settings(allSettings)
   .settings(noPublishSettings)
-  .settings(ghpages.settings)
+  // .settings(GhpagesPlugin.ghpagesProjectSettings)
   .settings(docSettings)
-  .settings(tutScalacOptions ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))))
+  // .settings(tutScalacOptions ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))))
 
 lazy val javaRunOptions = Seq(
   "-server",
