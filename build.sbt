@@ -323,7 +323,7 @@ lazy val docs = project
   .settings(noPublishSettings)
   // .settings(GhpagesPlugin.ghpagesProjectSettings)
   .settings(docSettings)
-  // .settings(tutScalacOptions ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))))
+// .settings(tutScalacOptions ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))))
 
 lazy val javaRunOptions = Seq(
   "-server",

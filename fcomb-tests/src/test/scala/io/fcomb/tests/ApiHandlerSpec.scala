@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
 import io.fcomb.akka.http.CirceSupport
+import io.fcomb.config.Configuration
 import io.fcomb.Db
 import io.fcomb.server.ApiHandlerConfig
 import org.scalatest.concurrent.ScalaFutures
@@ -34,9 +35,19 @@ abstract class ApiHandlerSpec
     with ScalaFutures
     with PersistSpec
     with CirceSupport {
-  final implicit val mat    = ActorMaterializer()
-  final implicit val ec     = system.dispatcher
-  final implicit val config = ApiHandlerConfig()(system, mat, Db.db)
+  final lazy val config = Configuration.loadConfig()
+
+  final implicit val settings = Configuration.loadSettings(config) match {
+    case Right(s) => s
+    case Left(error) =>
+      val e = error.configException
+      logger.error(s"Configuration load error: $e")
+      throw e
+  }
+
+  final implicit val mat           = ActorMaterializer()
+  final implicit val ec            = system.dispatcher
+  final implicit val handlerConfig = ApiHandlerConfig()(system, mat, Db.db, settings)
 
   override implicit val patienceConfig = PatienceConfig(timeout = Span(1500, Millis))
 

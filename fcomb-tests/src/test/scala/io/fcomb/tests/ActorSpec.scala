@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 fcomb. <https://fcomb.io>
+ * Copyright 2017 fcomb. <https://fcomb.io>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import akka.stream.scaladsl._
 import akka.stream._
 import akka.testkit._
 import akka.util.ByteString
+import com.typesafe.config.Config
+import io.fcomb.config.Configuration
 import io.fcomb.utils.Random
 import org.scalatest._
 import scala.concurrent.duration._
@@ -47,7 +49,9 @@ trait FutureSpec {
 }
 
 private object ActorSystemSpec {
-  implicit lazy val system = ActorSystem("fcomb-server")
+  protected lazy val config = Configuration.loadConfig()
+
+  implicit lazy val system = ActorSystem("fcomb-server", config)
 
   implicit lazy val mat = ActorMaterializer()
 
@@ -55,6 +59,8 @@ private object ActorSystemSpec {
 }
 
 sealed trait ActorSystemSpec extends FutureSpec {
+  protected val config: Config
+
   implicit val system: ActorSystem
 
   implicit lazy val mat = ActorSystemSpec.mat

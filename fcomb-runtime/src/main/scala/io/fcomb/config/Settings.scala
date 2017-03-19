@@ -20,44 +20,44 @@ import java.time.{Duration => JDuration}
 import scala.concurrent.duration.FiniteDuration
 
 final case class ApiSettings(
-  interface: String,
-  httpPort: Int,
-  httpsPort: Int
+    interface: String,
+    httpPort: Int,
+    httpsPort: Int
 )
 
 final case class StorageSettings(
-  path: String
+    path: String
 )
 
 final case class JdbcSettings(
-  url: String,
-  user: String,
-  password: String
+    url: String,
+    user: String,
+    password: String
 )
 
 final case class GcSettings(
-  outdatedPeriod: JDuration,
-  outdatedCheckInterval: FiniteDuration,
-  deletingCheckInterval: FiniteDuration
+    outdatedPeriod: JDuration,
+    outdatedCheckInterval: FiniteDuration,
+    deletingCheckInterval: FiniteDuration
 )
 
 final case class SecuritySettings(
-  realm: String,
-  openSignUp: Boolean,
-  anonymousPublicRepositories: Boolean
+    realm: String,
+    openSignUp: Boolean,
+    anonymousPublicRepositories: Boolean
 )
 
 final case class JwtSettings(
-  secret: String,
-  sessionTtl: JDuration,
-  resetPasswordTtl: JDuration
+    secret: String,
+    sessionTtl: JDuration,
+    resetPasswordTtl: JDuration
 )
 
 final case class Settings(
-  api: ApiSettings,
-  storage: StorageSettings,
-  jdbc: JdbcSettings,
-  gc: GcSettings,
-  security: SecuritySettings,
-  jwt: JwtSettings
+    api: ApiSettings,
+    storage: StorageSettings,
+    jdbc: JdbcSettings,
+    gc: GcSettings,
+    security: SecuritySettings,
+    jwt: JwtSettings
 )
