@@ -32,7 +32,7 @@ object LayoutComponent {
   final case class State(isOpen: Boolean)
 
   final class Backend($ : BackendScope[Props, State]) {
-    def openDrawer(e: ReactEventH): Callback =
+    def openDrawer(e: TouchTapEvent): Callback =
       $.modState(s => s.copy(isOpen = !s.isOpen))
 
     def closeDrawerCB() =
@@ -41,10 +41,10 @@ object LayoutComponent {
     def closeDrawer(open: Boolean, reason: String): Callback =
       closeDrawerCB()
 
-    def setRoute(route: Route)(e: ReactEventH): Callback =
+    def setRoute(route: Route)(e: TouchTapEvent): Callback =
       closeDrawerCB() >> $.props.flatMap(_.ctl.set(route))
 
-    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+    def setRoute(route: DashboardRoute)(e: TouchTapEvent): Callback =
       setRoute(Route.Dashboard(route))(e)
 
     lazy val copyrightBlock = <.footer(App.footer,

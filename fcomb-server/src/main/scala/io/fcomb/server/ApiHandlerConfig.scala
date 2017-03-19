@@ -19,7 +19,7 @@ package io.fcomb.server
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import io.fcomb.PostgresProfile.api.Database
-import io.fcomb.models.Settings
+import io.fcomb.config.Settings
 import scala.concurrent.ExecutionContext
 
 final case class ApiHandlerConfig(

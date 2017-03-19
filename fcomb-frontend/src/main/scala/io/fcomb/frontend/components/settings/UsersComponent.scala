@@ -79,7 +79,7 @@ object UsersComponent {
           $.modState(_.copy(pagination = pagination)) >> getUsers(pagination)
       }
 
-    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+    def setRoute(route: DashboardRoute)(e: TouchTapEvent): Callback =
       $.props.flatMap(_.ctl.set(route))
 
     def getUsers(pos: PaginationOrderState) =
@@ -90,7 +90,7 @@ object UsersComponent {
         case Left(errs) => $.modState(_.copy(users = Failed(ErrorsException(errs))))
       })
 
-    def confirmDelete(user: UserResponse)(e: ReactTouchEventH): Callback =
+    def confirmDelete(user: UserResponse)(e: TouchTapEvent): Callback =
       updateDeleteConfirmation(Some(user))
 
     def renderUser(ctl: RouterCtl[DashboardRoute], user: UserResponse) = {
@@ -117,7 +117,7 @@ object UsersComponent {
       )
     }
 
-    def updateSort(column: String)(e: ReactEventH): Callback =
+    def updateSort(column: String)(e: TouchTapEvent): Callback =
       for {
         _     <- e.preventDefaultCB
         state <- $.state.map(_.flipSortColumn(column))
@@ -139,7 +139,7 @@ object UsersComponent {
         TableComponent(columns, rows, p.page, limit, p.total, updatePage _)
       }
 
-    def deleteUser(e: ReactTouchEventH) =
+    def deleteUser(e: TouchTapEvent) =
       tryAcquireState { state =>
         state.userDeleteConfirmation match {
           case Some(user) =>

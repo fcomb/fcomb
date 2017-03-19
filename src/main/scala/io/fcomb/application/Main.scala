@@ -51,7 +51,13 @@ object Main extends App with LazyLogging {
     cluster.join(cluster.selfAddress)
   }
 
-  implicit val settings = Configuration.loadSettings(config)
+  implicit val settings = Configuration.loadSettings(config) match {
+    case Right(s) => s
+    case Left(error) =>
+      val e = error.configException
+      logger.error(s"Configuration load error: $e")
+      throw e
+  }
 
   implicit val apiHandlerConfig = ApiHandlerConfig()(sys, mat, Db.db, settings)
 

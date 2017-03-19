@@ -53,7 +53,7 @@ object Form {
       multiLine = multiLine,
       rowsMax = rowsMax,
       value = value,
-      onChange = (e: ReactEventI) => onChange(e.target.value)
+      onChange = (e: ReactEvent, v: String) => onChange(v)
     )()
 
   def selectEnum[E <: EnumItem](enum: Enum[E],
@@ -73,7 +73,7 @@ object Form {
       errorText = errors.get(key),
       value = value,
       fullWidth = fullWidth,
-      onChange = (e: ReactEventI, idx: Int, item: E) => onChange(item)
+      onChange = (e: TouchTapEvent, idx: Int, item: E) => onChange(item)
     )(items)
   }
 }

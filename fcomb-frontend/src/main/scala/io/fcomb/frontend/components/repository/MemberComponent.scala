@@ -55,24 +55,20 @@ object MemberComponent {
         })
       } yield ()
 
-    private def onNewRequest(chosen: Value, idx: js.UndefOr[Int], ds: js.Array[String]): Callback =
-      idx.toOption match {
-        case Some(index) =>
-          (for {
-            members <- $.state.map(_.members)
-            cb      <- $.props.map(_.cb)
-          } yield (members, cb)).flatMap {
-            case (members, cb) =>
-              members.lift(index) match {
-                case Some(member) if chosen == member.title =>
-                  $.modState(_.copy(member = Some(member))) >> cb(member)
-                case _ => Callback.warn(s"Unknown member: $chosen")
-              }
+    private def onNewRequest(value: String, index: Int): Callback =
+      (for {
+        members <- $.state.map(_.members)
+        cb      <- $.props.map(_.cb)
+      } yield (members, cb)).flatMap {
+        case (members, cb) =>
+          members.lift(index) match {
+            case Some(member) if value == member.title =>
+              $.modState(_.copy(member = Some(member))) >> cb(member)
+            case _ => Callback.warn(s"Unknown member: $value")
           }
-        case _ => Callback.warn("Empty index")
       }
 
-    private def onUpdateInput(search: SearchText, ds: js.Array[Value]): Callback =
+    private def onUpdateInput(search: String, ds: js.Array[String], obj: js.Object): Callback =
       getSuggestions(search)
 
     def render(props: Props, state: State) = {
@@ -83,7 +79,7 @@ object MemberComponent {
       MuiAutoComplete(
         id = "member",
         floatingLabelText = label,
-        filter = MuiAutoCompleteFilters.noFilter,
+        filter = js.defined(MuiAutoCompleteFilters.noFilter),
         fullWidth = props.isFullWidth,
         disabled = props.isDisabled,
         dataSource = state.data,

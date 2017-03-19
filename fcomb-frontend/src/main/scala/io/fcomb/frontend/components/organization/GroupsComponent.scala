@@ -83,7 +83,7 @@ object GroupsComponent {
             })
       }
 
-    def updateSort(column: String)(e: ReactEventH): Callback =
+    def updateSort(column: String)(e: TouchTapEvent): Callback =
       for {
         _     <- e.preventDefaultCB
         state <- $.state.map(_.flipSortColumn(column))
@@ -97,7 +97,7 @@ object GroupsComponent {
         $.modState(_.copy(pagination = pagination)) >> getGroups(pagination)
       }
 
-    def deleteGroup(slug: String, group: String)(e: ReactTouchEventH) =
+    def deleteGroup(slug: String, group: String)(e: TouchTapEvent) =
       tryAcquireState { state =>
         Callback.future(Rpc.deleteOrganizationGroup(slug, group).map {
           case Right(_)   => getGroups(state.pagination)
@@ -105,7 +105,7 @@ object GroupsComponent {
         })
       }
 
-    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+    def setRoute(route: DashboardRoute)(e: TouchTapEvent): Callback =
       $.props.flatMap(_.ctl.set(route))
 
     def renderGroup(props: Props, group: OrganizationGroupResponse, isDisabled: Boolean) = {
@@ -157,7 +157,7 @@ object GroupsComponent {
         })
       }
 
-    def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
+    def handleOnSubmit(props: Props)(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> add(props)
 
     def updateName(name: String): Callback =

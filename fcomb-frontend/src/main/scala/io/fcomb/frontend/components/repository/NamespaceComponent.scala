@@ -67,7 +67,7 @@ object NamespaceComponent {
     private def namespaceCallback(namespace: Option[Namespace]): Callback =
       namespace.fold(Callback.empty)(namespaceCallback)
 
-    private def onChange(e: ReactEventI, idx: Int, namespace: Namespace): Callback =
+    private def onChange(e: TouchTapEvent, idx: Int, namespace: Namespace): Callback =
       $.state.flatMap {
         case state if !state.namespace.contains(namespace) =>
           $.modState(_.copy(namespace = Some(namespace))) >> namespaceCallback(namespace)
@@ -85,8 +85,9 @@ object NamespaceComponent {
       val namespaceItems = prefix ++ state.namespaces.groupBy(_.groupTitle).flatMap {
         case (groupTitle, xs) =>
           MuiSubheader(key = groupTitle)(groupTitle) +:
-            xs.sortBy(_.slug)
-              .map(o => MuiMenuItem[Namespace](key = o.slug, value = o, primaryText = o.slug)())
+            xs
+            .sortBy(_.slug)
+            .map(o => MuiMenuItem[Namespace](key = o.slug, value = o, primaryText = o.slug)())
       }
       MuiSelectField[Namespace](
         floatingLabelText = "User or organization",

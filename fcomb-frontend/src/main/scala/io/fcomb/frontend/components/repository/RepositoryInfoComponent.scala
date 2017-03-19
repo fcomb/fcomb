@@ -24,6 +24,7 @@ import io.fcomb.frontend.utils.RepositoryUtils
 import io.fcomb.rpc.docker.distribution.RepositoryResponse
 import japgolly.scalajs.react.vdom.prefix_<^._
 import japgolly.scalajs.react._
+import org.scalajs.dom.html.Input
 import scala.scalajs.js
 import scalacss.ScalaCssReact._
 
@@ -31,8 +32,9 @@ object RepositoryInfoComponent {
   final case class Props(repo: RepositoryResponse)
 
   final class Backend($ : BackendScope[Props, Unit]) {
-    def selectAllText(e: ReactEventI): Callback =
-      e.preventDefaultCB >> CallbackTo(e.target.setSelectionRange(0, e.target.value.length))
+    def selectAllText(e: TouchTapEvent): Callback =
+      e.preventDefaultCB >> CallbackTo(
+        e.target.asInstanceOf[Input].setSelectionRange(0, e.target.nodeValue.length))
 
     lazy val copyBtnStyle =
       js.Dictionary("position" -> "absolute", "right" -> "12px", "float" -> "right")

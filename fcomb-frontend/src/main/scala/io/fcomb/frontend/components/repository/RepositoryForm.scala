@@ -27,7 +27,7 @@ import japgolly.scalajs.react._
 object RepositoryForm {
   def renderVisiblity(visibilityKind: ImageVisibilityKind,
                       isDisabled: Boolean,
-                      updateVisibilityKind: (ReactEventI, String) => Callback) = {
+                      updateVisibilityKind: (ReactEvent, String) => Callback) = {
     val label = <.label(
       ^.`for` := "visibilityKind",
       "Repository visibility for others: it can be public to everyone to read and pull or private accessible only to the owner.")

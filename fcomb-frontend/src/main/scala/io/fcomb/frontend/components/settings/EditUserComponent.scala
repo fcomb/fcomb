@@ -90,7 +90,7 @@ object EditUserComponent {
         }
       }
 
-    def handleOnSubmit(e: ReactEventH): Callback =
+    def handleOnSubmit(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> update()
 
     def updateEmail(email: String): Callback =

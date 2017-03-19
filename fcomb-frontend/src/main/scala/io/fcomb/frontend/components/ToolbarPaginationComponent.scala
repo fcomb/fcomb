@@ -26,7 +26,7 @@ object ToolbarPaginationComponent {
   final case class Props(page: Int, limit: Int, total: Int, cb: Int => Callback)
 
   final class Backend($ : BackendScope[Props, Unit]) {
-    def paginate(page: Int)(e: ReactTouchEventH): Callback =
+    def paginate(page: Int)(e: TouchTapEvent): Callback =
       $.props.flatMap(_.cb(page))
 
     val color = Mui.Styles.colors.lightBlack

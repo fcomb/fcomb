@@ -63,7 +63,7 @@ object NewUserComponent {
         }
       }
 
-    def handleOnSubmit(e: ReactEventH): Callback =
+    def handleOnSubmit(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> create()
 
     def updateUsername(username: String): Callback =

@@ -40,7 +40,7 @@ object OrganizationComponent {
                          slug: String)
 
   final class Backend($ : BackendScope[Props, Unit]) {
-    def onChange(tab: OrganizationTab, e: ReactEventH, el: ReactElement): Callback =
+    def onChange(tab: OrganizationTab, e: ReactEvent, el: ReactElement): Callback =
       $.props.flatMap { props =>
         val route = tab match {
           case OrganizationTab.Repositories => DashboardRoute.Organization(props.slug)

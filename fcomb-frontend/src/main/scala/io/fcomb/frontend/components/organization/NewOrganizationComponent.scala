@@ -49,7 +49,7 @@ object NewOrganizationComponent {
         }
       }
 
-    def handleOnSubmit(e: ReactEventH): Callback =
+    def handleOnSubmit(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> create()
 
     def updateName(name: String): Callback =
@@ -67,7 +67,7 @@ object NewOrganizationComponent {
         "name"
       )
 
-    def cancel(e: ReactEventH): Callback =
+    def cancel(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> $.props.flatMap(_.ctl.set(DashboardRoute.Organizations))
 
     def renderFormButtons(state: State) =

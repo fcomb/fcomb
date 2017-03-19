@@ -135,6 +135,6 @@ object UserForm {
       )
     )
 
-  def cancel(ctl: RouterCtl[DashboardRoute])(e: ReactEventH): Callback =
+  def cancel(ctl: RouterCtl[DashboardRoute])(e: TouchTapEvent): Callback =
     e.preventDefaultCB >> ctl.set(DashboardRoute.Users)
 }

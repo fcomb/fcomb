@@ -30,7 +30,7 @@ object TableComponent {
   def header(title: String,
              column: String,
              pagination: PaginationOrderState,
-             cb: String => ReactEventH => Callback,
+             cb: String => TouchTapEvent => Callback,
              style: js.Dictionary[String] = js.Dictionary.empty) = {
     val (sortIcon, sortCB) =
       if (pagination.total > 1) {
@@ -73,5 +73,5 @@ object TableComponent {
       ToolbarPaginationComponent(page, limit, total, cb)
     )
 
-  private def emptyCB(e: ReactEventH) = e.preventDefaultCB
+  private def emptyCB(e: TouchTapEvent) = e.preventDefaultCB
 }

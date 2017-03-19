@@ -78,7 +78,7 @@ object EditGroupComponent {
         }
       }
 
-    def handleOnSubmit(e: ReactEventH): Callback =
+    def handleOnSubmit(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> update()
 
     def updateName(name: String): Callback =
@@ -87,7 +87,7 @@ object EditGroupComponent {
     def updateRole(role: Role): Callback =
       modFormState(_.copy(role = role))
 
-    def cancel(e: ReactEventH): Callback =
+    def cancel(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> $.props.flatMap(p =>
         p.ctl.set(DashboardRoute.OrganizationGroups(p.slug)))
 

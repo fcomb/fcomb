@@ -405,7 +405,9 @@ object ImagesRepo extends PersistModelWithAutoIntPk[Image, ImageTable] {
       .sortBy(_._1.name)
 
   private lazy val findAvailableByUserOwnerCompiled = Compiled {
-    (ownerId: Rep[Int], currentUserId: Rep[Int], offset: ConstColumn[Long],
+    (ownerId: Rep[Int],
+     currentUserId: Rep[Int],
+     offset: ConstColumn[Long],
      limit: ConstColumn[Long]) =>
       findAvailableByUserOwnerDBIO(ownerId, currentUserId).drop(offset).take(limit)
   }

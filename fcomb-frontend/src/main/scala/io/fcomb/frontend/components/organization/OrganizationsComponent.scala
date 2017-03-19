@@ -58,7 +58,7 @@ object OrganizationsComponent {
           $.modState(_.copy(pagination = pagination)) >> getOrgs(pagination)
       }
 
-    def setRoute(route: DashboardRoute)(e: ReactEventH): Callback =
+    def setRoute(route: DashboardRoute)(e: TouchTapEvent): Callback =
       $.props.flatMap(_.ctl.set(route))
 
     def getOrgs(pos: PaginationOrderState) =
@@ -84,7 +84,7 @@ object OrganizationsComponent {
       )
     }
 
-    def updateSort(column: String)(e: ReactEventH): Callback =
+    def updateSort(column: String)(e: TouchTapEvent): Callback =
       for {
         _     <- e.preventDefaultCB
         state <- $.state.map(_.flipSortColumn(column))

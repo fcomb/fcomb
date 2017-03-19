@@ -18,9 +18,8 @@ package io.fcomb.config
 
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
-import io.fcomb.models._
-import scala.concurrent.ExecutionContext
-import scala.util.Try
+import configs.ConfigError
+import configs.syntax._
 
 object Configuration extends LazyLogging {
   def loadConfig(defaults: Config = ConfigFactory.empty()): Config =
@@ -29,52 +28,22 @@ object Configuration extends LazyLogging {
       .withFallback(ConfigFactory.load())
       .resolve()
 
-  def loadSettings(config: Config = loadConfig()): Settings = {
-    val fConf = config.getConfig("fcomb")
-    val api = ApiSettings(
-      interface = Try(fConf.getString("api.interface")).getOrElse("0.0.0.0"),
-      httpPort = Try(fConf.getInt("api.http-port")).getOrElse(8080),
-      httpsPort = Try(fConf.getInt("api.https-port")).getOrElse(8443)
-    )
-    final case class StorageSettings(
-        path: String
-    )
-    final case class JdbcSettings(
-        url: String,
-        user: String,
-        password: String
-    )
-    final case class GcSettings(
-        outdatedPeriod: JDuration,
-        outdatedCheckInterval: FiniteDuration,
-        deletingCheckInterval: FiniteDuration
-    )
-    final case class SecuritySettings(
-        realm: String,
-        isOpenSignUp: Boolean,
-        isAnonymousPublicRepositories: Boolean
-    )
-    final case class JwtSettings(
-        secret: String,
-        sessionTtl: JDuration,
-        resetPasswordTtl: JDuration
-    )
-    Settings(api, ???, ???, ???, ???, ???)
-  }
+  def loadSettings(config: Config = loadConfig()): Either[ConfigError, Settings] =
+    config.get[Settings]("fcomb").toEither
 
   private val defaultConfig = s"""
                                  |akka {
-                                 |  logger-startup-timeout: 10s
-                                 |  log-dead-letters-during-shutdown: off
-                                 |  loglevel: "INFO"
-                                 |  loggers: ["akka.event.slf4j.Slf4jLogger"]
-                                 |  logging-filter: "akka.event.slf4j.Slf4jLoggingFilter"
+                                 |  logger-startup-timeout = 10s
+                                 |  log-dead-letters-during-shutdown = off
+                                 |  loglevel = INFO
+                                 |  loggers = ["akka.event.slf4j.Slf4jLogger"]
+                                 |  logging-filter = "akka.event.slf4j.Slf4jLoggingFilter"
                                  |
-                                 |  actor.provider: "akka.cluster.ClusterActorRefProvider"
+                                 |  actor.provider = "akka.cluster.ClusterActorRefProvider"
                                  |
                                  |  http {
                                  |    server {
-                                 |      server-header = "fcomb"
+                                 |      server-header = fcomb
                                  |      transparent-head-requests = off
                                  |      parsing.max-content-length = infinite
                                  |    }
@@ -82,13 +51,47 @@ object Configuration extends LazyLogging {
                                  |    client.user-agent-header = "fcomb"
                                  |  }
                                  |
-                                 |  cluster.sharding.state-store-mode: "ddata"
+                                 |  cluster.sharding.state-store-mode = "ddata"
                                  |}
                                  |
                                  |jdbc-slick {
                                  |  dataSourceClass = "org.postgresql.ds.PGSimpleDataSource"
                                  |  maxConnections = 50
-                                 |  numThreads = 10
+                                 |  numThreads = 25
+                                 |}
+                                 |
+                                 |fcomb {
+                                 |  api {
+                                 |    interface = "0.0.0.0"
+                                 |    http-port = 8080
+                                 |    https-port = 8443
+                                 |  }
+                                 |
+                                 |  storage.path = "/data"
+                                 |
+                                 |  gc {
+                                 |    outdated-period = 1d
+                                 |    outdated-check-interval = 1h
+                                 |    deleting-check-interval = 10m
+                                 |  }
+                                 |
+                                 |  jdbc {
+                                 |    url = "jdbc:postgresql://127.0.0.1:5432/fcomb"
+                                 |    user = postgres
+                                 |    password = ""
+                                 |  }
+                                 |
+                                 |  jwt {
+                                 |    secret = ""
+                                 |    sessionTtl = 30d
+                                 |    resetPasswordTtl = 1h
+                                 |  }
+                                 |
+                                 |  security {
+                                 |    realm = "fcomb registry"
+                                 |    open-sign-up = false
+                                 |    anonymous-public-repositories = false
+                                 |  }
                                  |}
     """.stripMargin
 }

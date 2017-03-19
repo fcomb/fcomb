@@ -87,7 +87,7 @@ object RepositoryPermissionsComponent {
         }
 
     def updatePermission(slug: String, name: String, kind: MemberKind, prevAction: Action)(
-        e: ReactEventI,
+        e: TouchTapEvent,
         idx: Int,
         newAction: Action) =
       if (prevAction === newAction) Callback.empty
@@ -113,7 +113,7 @@ object RepositoryPermissionsComponent {
         onChange = updatePermission(slug, member.name, member.kind, permission.action) _)(actions)
     }
 
-    def deletePermission(slug: String, name: String, kind: MemberKind)(e: ReactTouchEventH) =
+    def deletePermission(slug: String, name: String, kind: MemberKind)(e: TouchTapEvent) =
       e.preventDefaultCB >>
         tryAcquireState { state =>
           Callback.future(Rpc.deletRepositoryPermission(slug, name, kind).map {
@@ -142,7 +142,7 @@ object RepositoryPermissionsComponent {
       )
     }
 
-    def updateSort(column: String)(e: ReactEventH): Callback =
+    def updateSort(column: String)(e: TouchTapEvent): Callback =
       for {
         _     <- e.preventDefaultCB
         state <- $.state.map(_.flipSortColumn(column))
@@ -184,7 +184,7 @@ object RepositoryPermissionsComponent {
         }
       }
 
-    def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
+    def handleOnSubmit(props: Props)(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> add(props)
 
     def updateMember(member: PermissionMemberResponse): Callback =

@@ -71,19 +71,19 @@ object EditRepositoryComponent {
           }
       }
 
-    def handleOnSubmit(e: ReactEventH): Callback =
+    def handleOnSubmit(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> updateRepositoryDescription
 
     def modFormState(f: FormState => FormState): Callback =
       $.modState(st => st.copy(form = st.form.map(f)))
 
-    def updateVisibilityKind(e: ReactEventI, value: String): Callback =
+    def updateVisibilityKind(e: ReactEvent, value: String): Callback =
       modFormState(_.copy(visibilityKind = ImageVisibilityKind.withName(value)))
 
     def updateDescription(description: String): Callback =
       modFormState(_.copy(description = description))
 
-    def cancel(e: ReactEventH): Callback =
+    def cancel(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> $.props.flatMap(p => p.ctl.set(DashboardRoute.Repository(p.slug)))
 
     def renderFormButtons(state: State) =

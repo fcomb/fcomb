@@ -3,15 +3,15 @@ import com.typesafe.sbt.SbtGhPages.GhPagesKeys._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
-lazy val akkaHttpVersion     = "10.0.3"
-lazy val akkaVersion         = "2.4.17"
+lazy val akkaHttpVersion     = "10.0.5"
+lazy val akkaVersion         = "2.5.0-RC1"
 lazy val bouncyCastleVersion = "1.56"
 lazy val catsVersion         = "0.9.0"
 lazy val circeVersion        = "0.7.0"
-lazy val commonsVersion      = "1.10"
-lazy val guavaVersion        = "20.0"
-lazy val slickPgVersion      = "0.15.0-M4_0.7.0-M1"
-lazy val slickVersion        = "3.2.0-RC1"
+lazy val commonsCodecVersion = "1.10"
+lazy val guavaVersion        = "21.0"
+lazy val slickPgVersion      = "0.15.0-RC"
+lazy val slickVersion        = "3.2.0"
 
 lazy val buildSettings = Seq(
   organization := "io.fcomb",
@@ -21,7 +21,6 @@ lazy val buildSettings = Seq(
   homepage := Option(url("https://fcomb.io")),
   organizationHomepage := Option(new URL("https://fcomb.io")),
   scalaVersion in ThisBuild := "2.12.1",
-  scalaOrganization in ThisBuild := "org.typelevel",
   headers := Map("scala" -> Apache2_0("2017", "fcomb. <https://fcomb.io>"))
 )
 
@@ -40,6 +39,7 @@ lazy val commonSettings =
       "com.chuusai"                %% "shapeless"     % "2.3.2",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
       "org.typelevel"              %% "cats"          % catsVersion
+      // "com.47deg" %% "freestyle" % "0.1.0"
     ),
     scalacOptions ++= Seq(
       "-unchecked",
@@ -62,7 +62,7 @@ lazy val commonSettings =
       "-Ywarn-unused",
       "-Ywarn-unused-import"
     ),
-    addCompilerPlugin("tryp" %% "splain" % "0.1.20"),
+    addCompilerPlugin("tryp" %% "splain" % "0.1.22"),
     clippyColorsEnabled := true,
     publishArtifact in (Compile, packageDoc) := false,
     publishArtifact in packageDoc := false,
@@ -87,6 +87,7 @@ lazy val allSettings = buildSettings ++ commonSettings ++ publishSettings
 
 lazy val utils = project
   .in(file("fcomb-utils"))
+  .dependsOn(runtime)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
   .settings(
@@ -101,7 +102,7 @@ lazy val models = crossProject
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum" % "1.5.6"
+      "com.beachape" %%% "enumeratum" % "1.5.9"
     ))
   .jvmSettings(
     libraryDependencies ++= Seq(
@@ -137,15 +138,16 @@ lazy val persist = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
   .settings(libraryDependencies ++= Seq(
-    "commons-codec"       % "commons-codec"        % commonsVersion,
-    "io.fcomb"            %% "db-migration"        % "0.3.5",
-    "org.postgresql"      % "postgresql"           % "9.4.1212" exclude ("org.slf4j", "slf4j-simple"),
+    "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
+    "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
+    "com.rms.miu"         %% "slick-cats"          % "0.5",
     "com.typesafe.akka"   %% "akka-http"           % akkaHttpVersion,
     "com.typesafe.slick"  %% "slick"               % slickVersion,
     "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
-    "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
-    "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
-    "com.zaxxer"          % "HikariCP"             % "2.6.0"
+    "com.zaxxer"          % "HikariCP"             % "2.6.1",
+    "commons-codec"       % "commons-codec"        % commonsCodecVersion,
+    "io.fcomb"            %% "db-migration"        % "0.3.5",
+    "org.postgresql"      % "postgresql"           % "42.0.0" exclude ("org.slf4j", "slf4j-simple")
   ))
 
 lazy val json = crossProject
@@ -155,7 +157,7 @@ lazy val json = crossProject
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum-circe" % "1.5.8",
+      "com.beachape" %%% "enumeratum-circe" % "1.5.11",
       "io.circe"     %%% "circe-parser"     % circeVersion,
       "io.circe"     %%% "circe-generic"    % circeVersion
     ))
@@ -174,12 +176,12 @@ lazy val crypto = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
   .settings(libraryDependencies ++= Seq(
-    "commons-codec"     % "commons-codec"  % commonsVersion,
+    "commons-codec"     % "commons-codec"  % commonsCodecVersion,
     "org.bouncycastle"  % "bcprov-jdk15on" % bouncyCastleVersion,
     "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
-    "org.bitbucket.b_c" % "jose4j"         % "0.5.4",
+    "org.bitbucket.b_c" % "jose4j"         % "0.5.5",
     "io.circe"          %% "circe-parser"  % circeVersion,
-    "com.pauldijou"     %% "jwt-circe"     % "0.10.0_0.7.0-M1"
+    "com.pauldijou"     %% "jwt-circe"     % "0.12.0"
   ))
 
 lazy val services = project
@@ -189,8 +191,8 @@ lazy val services = project
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-distributed-data-experimental" % akkaVersion,
-      "com.typesafe.akka" %% "akka-http"                          % akkaHttpVersion
+      "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion,
+      "com.typesafe.akka" %% "akka-http"             % akkaHttpVersion
     ))
 
 lazy val server = project
@@ -217,12 +219,12 @@ lazy val dockerDistribution = project
 
 lazy val runtime = project
   .in(file("fcomb-runtime"))
-  .dependsOn(modelsJVM, persist)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe" % "config" % "1.3.1"
+      "com.github.kxbmap" %% "configs" % "0.4.4",
+      "com.typesafe"      % "config"   % "1.3.1"
     )
   )
 
@@ -237,7 +239,7 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % Test,
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
       "com.lihaoyi"        % "ammonite"           % "0.8.2" % Test cross CrossVersion.full,
-      "org.scalacheck"     %% "scalacheck"        % "1.13.4" % Test,
+      "org.scalacheck"     %% "scalacheck"        % "1.13.5" % Test,
       "org.scalatest"      %% "scalatest"         % "3.0.1" % Test,
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.2.0" % Test,
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % Test exclude ("junit", "junit-dep"),
@@ -264,13 +266,13 @@ lazy val frontend = project
       assert(s"${baseDirectory.value}/build.sh".! == 0, "js build error")
     },
     libraryDependencies ++= Seq(
-      "com.github.japgolly.scalacss"                   %%% "ext-react"     % "0.5.1",
-      "com.github.japgolly.scalajs-react"              %%% "extra"         % "0.11.3",
-      "com.github.chandu0101.scalajs-react-components" %%% "core"          % "0.6.0-SNAPSHOT",
-      "org.scala-js"                                   %%% "scalajs-dom"   % "0.9.1",
-      "org.typelevel"                                  %%% "cats"          % catsVersion,
-      "io.circe"                                       %%% "circe-scalajs" % circeVersion,
-      "io.suzaku"                                      %%% "diode-react"   % "1.1.1"
+      "com.github.japgolly.scalacss"      %%% "ext-react"                % "0.5.1",
+      "com.github.japgolly.scalajs-react" %%% "extra"                    % "0.11.3",
+      "com.olvind"                        %%% "scalajs-react-components" % "0.6.0",
+      "io.circe"                          %%% "circe-scalajs"            % circeVersion,
+      "io.suzaku"                         %%% "diode-react"              % "1.1.1",
+      "org.scala-js"                      %%% "scalajs-dom"              % "0.9.1",
+      "org.typelevel"                     %%% "cats"                     % catsVersion
     ),
     skip in packageJSDependencies := false,
     persistLauncher in Compile := true,
@@ -352,7 +354,7 @@ lazy val root = project
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
-      "ch.qos.logback"    % "logback-classic" % "1.1.9",
+      "ch.qos.logback"    % "logback-classic" % "1.2.2",
       "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion
     ),

@@ -87,7 +87,7 @@ object GroupComponent {
             $.modState(_.copy(isDisabled = false)))
       }
 
-    def updateSort(column: String)(e: ReactEventH): Callback =
+    def updateSort(column: String)(e: TouchTapEvent): Callback =
       for {
         _     <- e.preventDefaultCB
         state <- $.state.map(_.flipSortColumn(column))
@@ -101,7 +101,7 @@ object GroupComponent {
         $.modState(_.copy(pagination = pagination)) >> getMembers(pagination)
       }
 
-    def deleteMember(username: String)(e: ReactTouchEventH) =
+    def deleteMember(username: String)(e: TouchTapEvent) =
       $.props.flatMap { props =>
         tryAcquireState { state =>
           Callback.future(
@@ -153,7 +153,7 @@ object GroupComponent {
         }
       }
 
-    def handleOnSubmit(props: Props)(e: ReactEventH): Callback =
+    def handleOnSubmit(props: Props)(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> add(props)
 
     def updateMember(member: UserProfileResponse): Callback =
@@ -191,7 +191,7 @@ object GroupComponent {
         renderFormButton(state)
       )
 
-    def setEditRoute(props: Props)(e: ReactEventH): Callback =
+    def setEditRoute(props: Props)(e: TouchTapEvent): Callback =
       props.ctl.set(DashboardRoute.EditOrganizationGroup(props.slug, props.group))
 
     def renderHeader(props: Props) = {

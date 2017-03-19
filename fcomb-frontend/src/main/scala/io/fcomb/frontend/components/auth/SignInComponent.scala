@@ -55,24 +55,20 @@ object SignInComponent {
           }
       }
 
-    def handleOnSubmit(e: ReactEventH): Callback =
+    def handleOnSubmit(e: TouchTapEvent): Callback =
       e.preventDefaultCB >> authenticate()
 
-    def updateEmail(e: ReactEventI): Callback = {
-      val value = e.target.value
+    def updateEmail(value: String): Callback =
       $.modState(_.copy(email = value))
-    }
 
-    def updatePassword(e: ReactEventI): Callback = {
-      val value = e.target.value
+    def updatePassword(value: String): Callback =
       $.modState(_.copy(password = value))
-    }
 
     def renderTextField(state: State,
                         value: String,
                         key: String,
                         label: String,
-                        cb: ReactEventI => Callback,
+                        cb: String => Callback,
                         `type`: String) =
       <.div(
         ^.`class` := "row",
@@ -88,7 +84,7 @@ object SignInComponent {
             errorText = state.errors.get(key),
             fullWidth = true,
             value = value,
-            onChange = cb
+            onChange = (e: ReactEvent, v: String) => cb(v)
           )()
         )
       )

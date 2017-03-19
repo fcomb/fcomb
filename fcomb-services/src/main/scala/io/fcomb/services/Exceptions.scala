@@ -16,6 +16,8 @@
 
 package io.fcomb.services
 
+import scala.util.control.NoStackTrace
+
 object Exceptions {
-  case object EmptyActorRefException extends Throwable
+  case object EmptyActorRefException extends Throwable with NoStackTrace
 }

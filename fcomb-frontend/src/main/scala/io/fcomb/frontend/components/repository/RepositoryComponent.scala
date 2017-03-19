@@ -42,7 +42,7 @@ object RepositoryComponent {
                          slug: String)
 
   final class Backend($ : BackendScope[Props, Unit]) {
-    def onChange(tab: RepositoryTab, e: ReactEventH, el: ReactElement): Callback =
+    def onChange(tab: RepositoryTab, e: ReactEvent, el: ReactElement): Callback =
       $.props.flatMap { props =>
         val route = tab match {
           case RepositoryTab.Info        => DashboardRoute.Repository(props.slug)
@@ -88,7 +88,7 @@ object RepositoryComponent {
           manageTabs))
     }
 
-    def setEditRoute(props: Props)(e: ReactEventH): Callback =
+    def setEditRoute(props: Props)(e: TouchTapEvent): Callback =
       props.ctl.set(DashboardRoute.EditRepository(props.slug))
 
     def renderHeader(props: Props, repo: RepositoryResponse, isManageable: Boolean) = {

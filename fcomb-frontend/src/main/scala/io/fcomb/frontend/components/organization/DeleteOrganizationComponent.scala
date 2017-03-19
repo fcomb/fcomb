@@ -40,7 +40,7 @@ object DeleteOrganizationComponent {
                          error: Option[String])
 
   final class Backend($ : BackendScope[Props, State]) {
-    def delete(e: ReactTouchEventH): Callback =
+    def delete(e: TouchTapEvent): Callback =
       (for {
         props <- $.props
         state <- $.state
@@ -57,13 +57,11 @@ object DeleteOrganizationComponent {
     def updateConfirmationState(isOpen: Boolean): Callback =
       $.modState(_.copy(isConfirmationOpen = isOpen))
 
-    def openDialog(e: ReactTouchEventH): Callback =
+    def openDialog(e: TouchTapEvent): Callback =
       updateConfirmationState(true)
 
-    def validateName(e: ReactEventI): Callback = {
-      val value = e.target.value.trim()
-      $.props.flatMap(props => $.modState(_.copy(isValid = props.slug == value)))
-    }
+    def validateName(slug: String): Callback =
+      $.props.flatMap(props => $.modState(_.copy(isValid = props.slug == slug.trim)))
 
     lazy val helpBlock = <.label(
       ^.`for` := "delete",
@@ -84,7 +82,7 @@ object DeleteOrganizationComponent {
         <.p("Enter this organization’s name to confirm"),
         MuiTextField(
           floatingLabelText = "Organization name",
-          onChange = validateName _
+          onChange = (e: ReactEvent, v: String) => validateName(v)
         )()
       )
       val confirmationDialog =

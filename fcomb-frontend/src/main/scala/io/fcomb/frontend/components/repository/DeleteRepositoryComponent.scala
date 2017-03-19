@@ -36,7 +36,7 @@ object DeleteRepositoryComponent {
   final case class State(isDisabled: Boolean, isConfirmationOpen: Boolean, error: Option[String])
 
   final class Backend($ : BackendScope[Props, State]) {
-    def delete(e: ReactTouchEventH): Callback =
+    def delete(e: TouchTapEvent): Callback =
       (for {
         props <- $.props
         state <- $.state
@@ -53,7 +53,7 @@ object DeleteRepositoryComponent {
     def updateConfirmationState(isOpen: Boolean): Callback =
       $.modState(_.copy(isConfirmationOpen = isOpen))
 
-    def openDialog(e: ReactTouchEventH): Callback =
+    def openDialog(e: TouchTapEvent): Callback =
       updateConfirmationState(true)
 
     lazy val actions = js.Array(
