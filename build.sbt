@@ -9,6 +9,7 @@ lazy val bouncyCastleVersion = "1.56"
 lazy val catsVersion         = "0.9.0"
 lazy val circeVersion        = "0.7.0"
 lazy val commonsCodecVersion = "1.10"
+lazy val doobieVersion       = "0.4.2-SNAPSHOT"
 lazy val guavaVersion        = "21.0"
 lazy val slickPgVersion      = "0.15.0-RC"
 lazy val slickVersion        = "3.2.0"
@@ -86,7 +87,7 @@ lazy val noPublishSettings = Seq(
 lazy val allSettings = buildSettings ++ commonSettings ++ publishSettings
 
 lazy val utils = project
-  .in(file("fcomb-utils"))
+  .in(file("modules/utils"))
   .dependsOn(runtime)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -97,12 +98,12 @@ lazy val utils = project
     ))
 
 lazy val models = crossProject
-  .in(file("fcomb-models"))
+  .in(file("modules/models"))
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum" % "1.5.9"
+      "com.beachape" %%% "enumeratum" % "1.5.10"
     ))
   .jvmSettings(
     libraryDependencies ++= Seq(
@@ -113,7 +114,7 @@ lazy val modelsJVM = models.jvm
 lazy val modelsJS  = models.js
 
 lazy val rpc = crossProject
-  .in(file("fcomb-rpc"))
+  .in(file("modules/rpc"))
   .dependsOn(models)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -122,7 +123,7 @@ lazy val rpcJVM = rpc.jvm
 lazy val rpcJS  = rpc.js
 
 lazy val validation = project
-  .in(file("fcomb-validation"))
+  .in(file("modules/validation"))
   .dependsOn(modelsJVM)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -133,7 +134,7 @@ lazy val validation = project
     ))
 
 lazy val persist = project
-  .in(file("fcomb-persist"))
+  .in(file("modules/persist"))
   .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -148,16 +149,19 @@ lazy val persist = project
     "commons-codec"       % "commons-codec"        % commonsCodecVersion,
     "io.fcomb"            %% "db-migration"        % "0.3.5",
     "org.postgresql"      % "postgresql"           % "42.0.0" exclude ("org.slf4j", "slf4j-simple")
+    // "org.tpolecat"        %% "doobie-hikari-cats"   % doobieVersion,
+    // "org.tpolecat"        %% "doobie-postgres-cats" % doobieVersion,
+    // "org.tpolecat"        %% "doobie-core-cats"     % doobieVersion
   ))
 
 lazy val json = crossProject
-  .in(file("fcomb-json"))
+  .in(file("modules/json"))
   .dependsOn(models, rpc)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum-circe" % "1.5.11",
+      "com.beachape" %%% "enumeratum-circe" % "1.5.12",
       "io.circe"     %%% "circe-parser"     % circeVersion,
       "io.circe"     %%% "circe-generic"    % circeVersion
     ))
@@ -171,7 +175,7 @@ lazy val jsonJVM = json.jvm
 lazy val jsonJS  = json.js
 
 lazy val crypto = project
-  .in(file("fcomb-crypto"))
+  .in(file("modules/crypto"))
   .dependsOn(modelsJVM, jsonJVM)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -181,11 +185,11 @@ lazy val crypto = project
     "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
     "org.bitbucket.b_c" % "jose4j"         % "0.5.5",
     "io.circe"          %% "circe-parser"  % circeVersion,
-    "com.pauldijou"     %% "jwt-circe"     % "0.12.0"
+    "com.pauldijou"     %% "jwt-circe"     % "0.12.1"
   ))
 
 lazy val services = project
-  .in(file("fcomb-services"))
+  .in(file("modules/services"))
   .dependsOn(persist, utils, crypto)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -196,7 +200,7 @@ lazy val services = project
     ))
 
 lazy val server = project
-  .in(file("fcomb-server"))
+  .in(file("modules/server"))
   .dependsOn(persist, utils, jsonJVM, validation, services)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -207,7 +211,7 @@ lazy val server = project
     ))
 
 lazy val dockerDistribution = project
-  .in(file("fcomb-docker-distribution"))
+  .in(file("modules/docker-distribution"))
   .dependsOn(server)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -218,18 +222,18 @@ lazy val dockerDistribution = project
     ))
 
 lazy val runtime = project
-  .in(file("fcomb-runtime"))
+  .in(file("modules/runtime"))
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.github.kxbmap" %% "configs" % "0.4.4",
-      "com.typesafe"      % "config"   % "1.3.1"
+      "com.github.melrief" %% "pureconfig" % "0.6.0",
+      "com.typesafe"       % "config"      % "1.3.1"
     )
   )
 
 lazy val tests = project
-  .in(file("fcomb-tests"))
+  .in(file("modules/tests"))
   .dependsOn(server, dockerDistribution)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -243,7 +247,7 @@ lazy val tests = project
       "org.scalatest"      %% "scalatest"         % "3.0.1" % Test,
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.2.0" % Test,
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % Test exclude ("junit", "junit-dep"),
-      "ch.qos.logback"     % "logback-classic"    % "1.2.1",
+      "ch.qos.logback"     % "logback-classic"    % "1.2.2",
       "junit"              % "junit-dep"          % "4.10" % Test
     ),
     initialCommands in (Test, console) := "ammonite.Main().run()",
@@ -256,7 +260,7 @@ lazy val frontendBundleBuild =
   taskKey[Unit]("Build frontend assets through webpack")
 
 lazy val frontend = project
-  .in(file("fcomb-frontend"))
+  .in(file("modules/frontend"))
   .dependsOn(modelsJS, rpcJS, jsonJS)
   .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
   .settings(allSettings)
@@ -275,8 +279,8 @@ lazy val frontend = project
       "org.typelevel"                     %%% "cats"                     % catsVersion
     ),
     skip in packageJSDependencies := false,
-    persistLauncher in Compile := true,
-    persistLauncher in Test := false,
+    scalaJSUseMainModuleInitializer in Compile := true,
+    scalaJSUseMainModuleInitializer in Test := false,
     artifactPath in (Compile, fastOptJS) := ((crossTarget in (Compile, fastOptJS)).value /
       ((moduleName in fastOptJS).value + "-opt.js")),
     mappings in (Compile, packageBin) ~= { (ms: Seq[(File, String)]) =>
@@ -317,7 +321,7 @@ lazy val docSettings = Seq(
 )
 
 lazy val docs = project
-  .in(file("fcomb-docs"))
+  .in(file("modules/docs"))
   // .enablePlugins(MicrositesPlugin)
   .settings(allSettings)
   .settings(noPublishSettings)
@@ -343,14 +347,12 @@ lazy val javaRunOptions = Seq(
   "-XX:ReservedCodeCacheSize=256m"
 )
 
-lazy val root = project
-  .in(file("."))
+lazy val application = project
+  .in(file("modules/application"))
   .aggregate(tests)
   .dependsOn(runtime, server, dockerDistribution, frontend)
   .enablePlugins(AutomateHeaderPlugin, JavaAppPackaging)
-  .settings(allSettings)
-  .settings(noPublishSettings)
-  .settings(RevolverPlugin.settings)
+  .settings(allSettings, noPublishSettings, RevolverPlugin.settings)
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
