@@ -37,5 +37,5 @@ object Db {
   }
 
   def migrate(settings: JdbcSettings)(implicit ec: ExecutionContext) =
-    Migration.run(settings.url, settings.user, settings.password)
+    Migration.run(settings.url, settings.user, settings.password.value)
 }

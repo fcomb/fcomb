@@ -34,14 +34,14 @@ object SessionsService {
     db.run(UsersRepo.findByEmail(req.email)).map {
       case Some(user) if user.isValidPassword(req.password) =>
         val timeNow = Instant.now()
-        val token   = Jwt.encode(user, settings.jwt.secret, timeNow, settings.jwt.sessionTtl.toSeconds)
+        val token   = Jwt.encode(user, settings.jwt.secret.value, timeNow, settings.jwt.sessionTtl.toSeconds)
         Right(Session(token))
       case _ => invalidEmailOrPassword
     }
 
   def find(token: String)(implicit ec: ExecutionContext, db: Database,
                                         settings: Settings): Future[Option[User]] =
-    Jwt.decode(token, settings.jwt.secret) match {
+    Jwt.decode(token, settings.jwt.secret.value) match {
       case Right(payload) => db.run(UsersRepo.findById(payload.id))
       case _              => Future.successful(None)
     }

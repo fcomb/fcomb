@@ -18,6 +18,11 @@ package io.fcomb.config
 
 import scala.concurrent.duration.FiniteDuration
 
+@specialized
+final case class Hidden[+T](val value: T) {
+  final override def toString(): String = "..."
+}
+
 final case class ApiSettings(
     interface: String,
     httpPort: Int,
@@ -31,7 +36,7 @@ final case class StorageSettings(
 final case class JdbcSettings(
     url: String,
     user: String,
-    password: String
+    password: Hidden[String]
 )
 
 final case class GcSettings(
@@ -47,7 +52,7 @@ final case class SecuritySettings(
 )
 
 final case class JwtSettings(
-    secret: String,
+    secret: Hidden[String],
     sessionTtl: FiniteDuration,
     resetPasswordTtl: FiniteDuration
 )

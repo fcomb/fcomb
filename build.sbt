@@ -4,10 +4,10 @@ import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
 lazy val akkaHttpVersion     = "10.0.5"
-lazy val akkaVersion         = "2.5.0-RC1"
+lazy val akkaVersion         = "2.5.0-RC2"
 lazy val bouncyCastleVersion = "1.56"
 lazy val catsVersion         = "0.9.0"
-lazy val circeVersion        = "0.7.0"
+lazy val circeVersion        = "0.7.1"
 lazy val commonsCodecVersion = "1.10"
 lazy val doobieVersion       = "0.4.2-SNAPSHOT"
 lazy val guavaVersion        = "21.0"
