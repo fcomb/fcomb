@@ -52,7 +52,7 @@ object LayoutComponent {
                                            Seq(^.color := style.palette.primary3Color.toString),
                                            ^.href := "https://fcomb.io",
                                            ^.target := "_blank",
-                                           "© 2016 fcomb"))
+                                           "© 2017 fcomb"))
 
     def renderRightMenu(page: Route) =
       page match {

@@ -32,26 +32,26 @@ import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.PersistDirectives._
 
 object WebhooksHandler {
   def index(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      image(slug, user.getId(), Action.Read) { image =>
+    authenticateUser.apply { user =>
+      image(slug, user.getId(), Action.Read).apply { image =>
         extractPagination { pg =>
-          import config._
-          onSuccess(ImageWebhooksRepo.paginateByImageId(image.getId(), pg)) { p =>
-            completePagination(ImageWebhooksRepo.label, p)
-          }
+          import config.ec
+          transact(ImageWebhooksRepo.paginateByImageId(image.getId(), pg))
+            .apply(completePagination(ImageWebhooksRepo.label, _))
         }
       }
     }
 
   def upsert(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      image(slug, user.getId(), Action.Write) { image =>
+    authenticateUser.apply { user =>
+      image(slug, user.getId(), Action.Write).apply { image =>
         entity(as[ImageWebhookRequest]) { req =>
-          import config._
-          onSuccess(ImageWebhooksRepo.upsert(image.getId(), req.url)) {
+          import config.ec
+          transact(ImageWebhooksRepo.upsert(image.getId(), req.url)).apply {
             case Validated.Valid(webhook) =>
               val res = ImageWebhookHelpers.response(webhook)
               completeWithEtag(StatusCodes.OK, res)

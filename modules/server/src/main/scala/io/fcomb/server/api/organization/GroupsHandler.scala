@@ -37,26 +37,26 @@ import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.OrganizationGroupDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.PathMatchers._
+import io.fcomb.server.PersistDirectives._
 
 object GroupsHandler {
   def index(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+    authenticateUser.apply { user =>
+      organizationBySlugWithAcl(slug, user.getId(), Role.Admin).apply { org =>
         extractPagination { pg =>
-          import config._
-          onSuccess(OrganizationGroupsRepo.paginate(org.getId(), pg)) { p =>
-            completePagination(OrganizationGroupsRepo.label, p)
-          }
+          import config.ec
+          transact(OrganizationGroupsRepo.paginate(org.getId(), pg))
+            .apply(completePagination(OrganizationGroupsRepo.label, _))
         }
       }
     }
 
   def create(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
+    authenticateUser.apply { user =>
+      organizationBySlugWithAcl(slug, user.getId(), Role.Admin).apply { org =>
         entity(as[OrganizationGroupRequest]) { req =>
-          import config._
-          onSuccess(OrganizationGroupsRepo.create(org.getId(), req)) {
+          import config.ec
+          transact(OrganizationGroupsRepo.create(org.getId(), req)).apply {
             case Validated.Valid(group) =>
               completeCreated(OrganizationGroupHelpers.response(group))
             case Validated.Invalid(errs) => completeErrors(errs)
@@ -65,23 +65,21 @@ object GroupsHandler {
       }
     }
 
-  def show(slug: Slug, group: Slug) =
-    authenticateUser { user =>
-      groupBySlugWithAcl(slug, group, user.getId()) { group =>
-        val res = OrganizationGroupHelpers.response(group)
-        completeWithEtag(StatusCodes.OK, res)
+  def show(slug: Slug, group: Slug)(implicit config: ApiHandlerConfig) =
+    authenticateUser.apply { user =>
+      groupBySlugWithAcl(slug, group, user.getId()).apply { group =>
+        completeWithEtag(StatusCodes.OK, OrganizationGroupHelpers.response(group))
       }
     }
 
   def update(slug: Slug, group: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      groupBySlugWithAcl(slug, group, user.getId()) { group =>
+    authenticateUser.apply { user =>
+      groupBySlugWithAcl(slug, group, user.getId()).apply { group =>
         entity(as[OrganizationGroupRequest]) { req =>
-          import config._
-          onSuccess(OrganizationGroupsRepo.update(group.getId(), user.getId(), req)) {
+          import config.ec
+          transact(OrganizationGroupsRepo.update(group.getId(), user.getId(), req)).apply {
             case Validated.Valid(updated) =>
-              val res = OrganizationGroupHelpers.response(updated)
-              complete((StatusCodes.Accepted, res))
+              complete((StatusCodes.Accepted, OrganizationGroupHelpers.response(updated)))
             case Validated.Invalid(errs) => completeErrors(errs)
           }
         }
@@ -89,20 +87,21 @@ object GroupsHandler {
     }
 
   def destroy(slug: Slug, group: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      groupBySlugWithAcl(slug, group, user.getId()) { group =>
-        import config._
-        completeAsAccepted(OrganizationGroupsRepo.destroy(group.getId(), user.getId()))
+    authenticateUser.apply { user =>
+      groupBySlugWithAcl(slug, group, user.getId()).apply { group =>
+        import config.ec
+        transact(OrganizationGroupsRepo.destroy(group.getId(), user.getId()))
+          .apply(completeAsAccepted(_))
       }
     }
 
   def suggestions(slug: Slug, group: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
+    authenticateUser.apply { user =>
       parameter('q) { q =>
-        groupBySlugWithAcl(slug, group, user.getId()) { group =>
-          import config._
-          onSuccess(OrganizationGroupUsersRepo.findSuggestionsUsers(group.getId(), q))(
-            completeData)
+        groupBySlugWithAcl(slug, group, user.getId()).apply { group =>
+          import config.ec
+          transact(OrganizationGroupUsersRepo.findSuggestionsUsers(group.getId(), q))
+            .apply(completeData)
         }
       }
     }

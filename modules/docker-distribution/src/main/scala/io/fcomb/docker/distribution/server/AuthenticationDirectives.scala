@@ -21,35 +21,33 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import io.fcomb.docker.distribution.server.Api.defaultHeaders
 import io.fcomb.docker.distribution.server.CommonDirectives._
-import io.fcomb.models.User
 import io.fcomb.models.errors.docker.distribution.DistributionError
+import io.fcomb.models.User
 import io.fcomb.persist.UsersRepo
-import io.fcomb.utils.Config.docker.distribution.realm
+import io.fcomb.server.ApiHandlerConfig
+import io.fcomb.server.PersistDirectives._
 
 object AuthenticationDirectives {
-  def tryAuthenticateUserBasic: Directive1[Option[User]] =
-    extractExecutionContext.flatMap { implicit ec =>
-      extractCredentials.flatMap {
-        case Some(BasicHttpCredentials(username, password)) =>
-          onSuccess(UsersRepo.matchByUsernameAndPassword(username, password)).flatMap(provide)
-        case _ => provide(None)
-      }
+  def tryAuthenticateUserBasic()(implicit config: ApiHandlerConfig): Directive1[Option[User]] =
+    extractCredentials.flatMap {
+      case Some(BasicHttpCredentials(username, password)) =>
+        import config.ec
+        transact(UsersRepo.matchByUsernameAndPassword(username, password)).flatMap(provide)
+      case _ => provide(None)
     }
 
-  def authenticateUserBasic: Directive1[User] =
+  def authenticateUserBasic()(implicit config: ApiHandlerConfig): Directive1[User] =
     tryAuthenticateUserBasic.flatMap {
       case Some(user) => provide(user)
       case None       => unauthorizedError()
     }
 
-  private def unauthorizedError[T](): Directive1[T] =
+  private def unauthorizedError[T]()(implicit config: ApiHandlerConfig): Directive1[T] =
     Directive { _ =>
-      respondWithHeaders(defaultAuthenticateHeaders) {
+      val authenticateHeader =
+        `WWW-Authenticate`(HttpChallenges.basic(config.settings.security.realm))
+      respondWithHeaders(authenticateHeader :: defaultHeaders) {
         completeError(DistributionError.unauthorized)
       }
     }
-
-  private val authenticateHeader = `WWW-Authenticate`(HttpChallenges.basic(realm))
-
-  private val defaultAuthenticateHeaders = authenticateHeader :: defaultHeaders
 }

@@ -19,25 +19,24 @@ package io.fcomb.server
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import io.fcomb.models.OrganizationGroup
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
+import io.fcomb.models.OrganizationGroup
 import io.fcomb.persist.OrganizationGroupsRepo
 import io.fcomb.server.OrganizationDirectives._
+import io.fcomb.server.PersistDirectives._
 
 object OrganizationGroupDirectives {
-  def groupBySlug(slug: Slug, group: Slug): Directive1[OrganizationGroup] =
+  def groupBySlug(slug: Slug, group: Slug)(
+      implicit config: ApiHandlerConfig): Directive1[OrganizationGroup] =
     organizationBySlug(slug).flatMap { org =>
-      extractExecutionContext.flatMap { implicit ec =>
-        onSuccess(OrganizationGroupsRepo.findBySlug(org.getId(), group)).flatMap(provideGroup)
-      }
+      transact(OrganizationGroupsRepo.findBySlug(org.getId(), group)).flatMap(provideGroup)
     }
 
-  def groupBySlugWithAcl(slug: Slug, group: Slug, userId: Int): Directive1[OrganizationGroup] =
+  def groupBySlugWithAcl(slug: Slug, group: Slug, userId: Int)(
+      implicit config: ApiHandlerConfig): Directive1[OrganizationGroup] =
     organizationBySlugWithAcl(slug, userId, Role.Admin).flatMap { org =>
-      extractExecutionContext.flatMap { implicit ec =>
-        onSuccess(OrganizationGroupsRepo.findBySlug(org.getId(), group)).flatMap(provideGroup)
-      }
+      transact(OrganizationGroupsRepo.findBySlug(org.getId(), group)).flatMap(provideGroup)
     }
 
   final def provideGroup(groupOpt: Option[OrganizationGroup]): Directive1[OrganizationGroup] =

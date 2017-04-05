@@ -27,7 +27,7 @@ import io.fcomb.server.CommonDirectives._
 
 object UserHandler {
   def current()(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
+    authenticateUser.apply { user =>
       completeWithEtag(StatusCodes.OK, UserHelpers.response(user))
     }
 

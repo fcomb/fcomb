@@ -20,7 +20,7 @@ module.exports = {
       template: 'src/main/assets/index.html',
       inject: true
     }),
-    new webpack.NoErrorsPlugin(),
+    new webpack.NoEmitOnErrorsPlugin(),
     new CommonsChunkPlugin({
       name: 'app'
     })
@@ -48,12 +48,7 @@ module.exports = {
       },
       {
         test: /\.html$/,
-        loader: 'html-minify-loader',
-        options: {
-          empty: true,
-          cdata: true,
-          comments: false
-        }
+        loader: 'html-loader'
       }
     ]
   },

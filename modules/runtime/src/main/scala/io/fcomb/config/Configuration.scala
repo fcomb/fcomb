@@ -16,10 +16,10 @@
 
 package io.fcomb.config
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
 import com.typesafe.scalalogging.LazyLogging
 import pureconfig.error.ConfigReaderFailures
-import pureconfig.{loadConfig => pureLoadConfig}
+import pureconfig.{loadConfig => pureLoadConfig, _}
 
 object Configuration extends LazyLogging {
   def loadConfig(defaults: Config = ConfigFactory.empty()): Config =
@@ -88,4 +88,10 @@ object Configuration extends LazyLogging {
                                  |  }
                                  |}
     """.stripMargin
+
+  implicit def hiddenConfigReader[T](implicit cr: ConfigReader[T]): ConfigReader[Hidden[T]] =
+    new ConfigReader[Hidden[T]] {
+      override def from(config: ConfigValue): Either[ConfigReaderFailures, Hidden[T]] =
+        cr.from(config).map(Hidden(_))
+    }
 }

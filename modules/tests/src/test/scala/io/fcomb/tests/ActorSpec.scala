@@ -51,11 +51,9 @@ trait FutureSpec {
 private object ActorSystemSpec {
   protected lazy val config = Configuration.loadConfig()
 
-  implicit lazy val system = ActorSystem("fcomb-server", config)
-
-  implicit lazy val mat = ActorMaterializer()
-
-  implicit lazy val ec = system.dispatcher
+  implicit lazy val system = ActorSystem("fcomb", config)
+  implicit lazy val mat    = ActorMaterializer()
+  implicit lazy val ec     = system.dispatcher
 }
 
 sealed trait ActorSystemSpec extends FutureSpec {
@@ -64,8 +62,7 @@ sealed trait ActorSystemSpec extends FutureSpec {
   implicit val system: ActorSystem
 
   implicit lazy val mat = ActorSystemSpec.mat
-
-  implicit lazy val ec = system.dispatcher
+  implicit lazy val ec  = system.dispatcher
 }
 
 abstract class ActorSpec

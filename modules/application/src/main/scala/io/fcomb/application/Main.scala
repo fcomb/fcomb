@@ -20,6 +20,7 @@ import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.application.server.Frontend
 import io.fcomb.config.Configuration
@@ -28,6 +29,7 @@ import io.fcomb.docker.distribution.server.{Api => DockerApi}
 import io.fcomb.docker.distribution.services.{GarbageCollectorService, ImageBlobPushProcessor}
 import io.fcomb.server.{Api, ApiHandlerConfig}
 import io.fcomb.services.EventService
+import pureconfig.error._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -53,25 +55,19 @@ object Main extends App with LazyLogging {
 
   implicit val settings = Configuration.loadSettings(config) match {
     case Right(s) => s
-    case Left(error) =>
-      val e = error.configException
-      logger.error(s"Configuration load error: $e")
+    case Left(failures) =>
+      val e = ConfigReaderException[Config](failures)
+      logger.error(s"Configuration load failures: $failures")
       throw e
   }
 
-  val db = Db(settings.db)
-
+  implicit val db = Db(settings.jdbc)
   implicit val apiHandlerConfig = ApiHandlerConfig()(sys, mat, db, settings)
 
-  val routes =
-    // format: off
-    Api.routes() ~
-    DockerApi.routes() ~
-    Frontend.routes
-    // format: on
+  val routes = Api.routes() ~ DockerApi.routes() ~ Frontend.routes
 
   (for {
-    _ <- Db.migrate(settings.db)
+    _ <- Db.migrate(settings.jdbc)
     _ <- server.HttpApiService.start(settings.api.httpPort, settings.api.interface, routes)
   } yield ()).onComplete {
     case Success(_) =>

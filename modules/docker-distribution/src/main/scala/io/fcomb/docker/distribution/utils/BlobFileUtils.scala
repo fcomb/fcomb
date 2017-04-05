@@ -20,19 +20,20 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import com.google.common.io.ByteStreams
+import io.fcomb.config.Settings
 import io.fcomb.docker.distribution.services.ImageBlobPushProcessor
 import io.fcomb.models.docker.distribution.ImageBlob
-import io.fcomb.utils.Config
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
 import scala.concurrent.{blocking, ExecutionContext, Future}
 
 object BlobFileUtils {
-  def getUploadFilePath(uuid: UUID): File =
+  def getUploadFilePath(uuid: UUID)(implicit settings: Settings): File =
     imageFilePath("uploads", uuid.toString)
 
-  def createUploadFile(uuid: UUID)(implicit ec: ExecutionContext): Future[File] = {
+  def createUploadFile(uuid: UUID)(implicit settings: Settings,
+                                   ec: ExecutionContext): Future[File] = {
     val file = getUploadFilePath(uuid)
     Future(blocking {
       if (!file.getParentFile.exists) file.getParentFile.mkdirs()
@@ -40,19 +41,20 @@ object BlobFileUtils {
     })
   }
 
-  def getBlobFilePath(digest: String): File =
+  def getBlobFilePath(digest: String)(implicit settings: Settings): File =
     imageFilePath("blobs", digest)
 
-  private def imageFilePath(path: String, name: String): File =
-    new File(s"${Config.docker.distribution.imageStorage}/$path/${name.take(2)}/${name.drop(2)}")
+  private def imageFilePath(path: String, name: String)(implicit settings: Settings): File =
+    new File(s"${settings.storage.path}/$path/${name.take(2)}/${name.drop(2)}")
 
-  def getFile(blob: ImageBlob): File =
+  def getFile(blob: ImageBlob)(implicit settings: Settings): File =
     blob.digest match {
       case Some(digest) if blob.isUploaded => getBlobFilePath(digest)
       case _                               => getUploadFilePath(blob.getId())
     }
 
-  def rename(file: File, digest: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def rename(file: File, digest: String)(implicit settings: Settings,
+                                         ec: ExecutionContext): Future[Unit] =
     Future(blocking {
       val newFile = getBlobFilePath(digest)
       if (!newFile.exists()) {
@@ -62,12 +64,13 @@ object BlobFileUtils {
       ()
     })
 
-  def rename(uuid: UUID, digest: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def rename(uuid: UUID, digest: String)(implicit settings: Settings,
+                                         ec: ExecutionContext): Future[Unit] =
     rename(getUploadFilePath(uuid), digest)
 
   def uploadBlobChunk(uuid: UUID, data: Source[ByteString, Any])(
-      implicit mat: Materializer
-  ): Future[(Long, String)] = {
+      implicit settings: Settings,
+      mat: Materializer): Future[(Long, String)] = {
     import mat.executionContext
     for {
       file             <- createUploadFile(uuid)
@@ -75,7 +78,8 @@ object BlobFileUtils {
     } yield (length, digest)
   }
 
-  def streamBlob(digest: String, offset: Long, limit: Long): Source[ByteString, Any] = {
+  def streamBlob(digest: String, offset: Long, limit: Long)(
+      implicit settings: Settings): Source[ByteString, Any] = {
     val file = getBlobFilePath(digest)
     val is   = Files.newInputStream(file.toPath)
     if (offset > 0) is.skip(offset)
@@ -83,13 +87,15 @@ object BlobFileUtils {
     StreamConverters.fromInputStream(() => bs, 8192)
   }
 
-  def destroyUploadBlob(uuid: UUID)(implicit ec: ExecutionContext): Future[Unit] =
+  def destroyUploadBlob(uuid: UUID)(implicit settings: Settings,
+                                    ec: ExecutionContext): Future[Unit] =
     Future(blocking {
       getUploadFilePath(uuid).delete
       ()
     })
 
-  def destroyBlob(digest: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def destroyBlob(digest: String)(implicit settings: Settings,
+                                  ec: ExecutionContext): Future[Unit] =
     Future(blocking {
       getBlobFilePath(digest).delete
       ()

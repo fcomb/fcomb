@@ -23,15 +23,15 @@ import io.fcomb.persist.OrganizationsRepo
 import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.PersistDirectives._
 
 object OrganizationsHandler {
   def index()(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
+    authenticateUser.apply { user =>
       extractPagination { pg =>
-        import config._
-        onSuccess(OrganizationsRepo.paginateAvailableByUserId(user.getId(), pg)) { p =>
-          completePagination(OrganizationsRepo.label, p)
-        }
+        import config.ec
+        transact(OrganizationsRepo.paginateAvailableByUserId(user.getId(), pg))
+          .apply(completePagination(OrganizationsRepo.label, _))
       }
     }
 

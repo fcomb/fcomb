@@ -26,20 +26,19 @@ import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.PersistDirectives._
 
 object RepositoriesHandler {
   def index(slug: Slug)(implicit config: ApiHandlerConfig) =
-    tryAuthenticateUser { currentUserOpt =>
-      import config._
-      onSuccess(UsersRepo.find(slug)) {
+    tryAuthenticateUser.apply { currentUserOpt =>
+      import config.ec
+      transact(UsersRepo.find(slug)).apply {
         case Some(user) =>
           extractPagination { pg =>
             val res = ImagesRepo.paginateAvailableByUserOwner(user.getId(),
                                                               currentUserOpt.flatMap(_.id),
                                                               pg)
-            onSuccess(res) { p =>
-              completePagination(ImagesRepo.label, p)
-            }
+            transact(res).apply(completePagination(ImagesRepo.label, _))
           }
         case None => completeNotFound()
       }

@@ -25,30 +25,35 @@ import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
 import io.fcomb.models.errors.docker.distribution._
 import io.fcomb.persist.docker.distribution.ImagesRepo
+import io.fcomb.server.ApiHandlerConfig
+import io.fcomb.server.PersistDirectives._
 
 object ImageDirectives {
-  def imageByNameWithAcl(name: String, userId: Int, action: Action): Directive1[Image] =
-    extractExecutionContext.flatMap { implicit ec =>
-      onSuccess(ImagesRepo.findBySlugWithAcl(Slug.Name(name), userId, action)).flatMap {
-        case Right(Some((image, _))) => provide(image)
-        case _                       => nameUnknownError()
-      }
+  def imageByNameWithAcl(name: String, userId: Int, action: Action)(
+      implicit config: ApiHandlerConfig): Directive1[Image] = {
+    import config.ec
+    transact(ImagesRepo.findBySlugWithAcl(Slug.Name(name), userId, action)).flatMap {
+      case Right(Some((image, _))) => provide(image)
+      case _                       => nameUnknownError()
     }
+  }
 
-  def imageByNameWithReadAcl(name: String, userIdOpt: Option[Int]): Directive1[Image] =
+  def imageByNameWithReadAcl(name: String, userIdOpt: Option[Int])(
+      implicit config: ApiHandlerConfig): Directive1[Image] =
     userIdOpt match {
       case Some(userId) => imageByNameWithAcl(name, userId, Action.Read)
       case _            => publicImageByName(name)
     }
 
-  private def publicImageByName(name: String): Directive1[Image] =
-    extractExecutionContext.flatMap { implicit ec =>
-      onSuccess(ImagesRepo.findBySlug(Slug.Name(name))).flatMap {
-        case Some(image) if image.visibilityKind === ImageVisibilityKind.Public =>
-          provide(image)
-        case _ => nameUnknownError()
-      }
+  private def publicImageByName(name: String)(
+      implicit config: ApiHandlerConfig): Directive1[Image] = {
+    import config.ec
+    transact(ImagesRepo.findBySlug(Slug.Name(name))).flatMap {
+      case Some(image) if image.visibilityKind === ImageVisibilityKind.Public =>
+        provide(image)
+      case _ => nameUnknownError()
     }
+  }
 
   private def nameUnknownError[T](): Directive1[T] =
     Directive(_ => completeError(DistributionError.nameUnknown))

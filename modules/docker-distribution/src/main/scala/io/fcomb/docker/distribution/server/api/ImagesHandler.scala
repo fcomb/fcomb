@@ -44,39 +44,43 @@ import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageManifestsRepo, ImagesRepo}
 import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.PersistDirectives._
 import scala.collection.immutable
 
 object ImagesHandler {
   def getManifest(imageName: String, reference: Reference)(implicit config: ApiHandlerConfig) =
     extractRequest { req =>
-      tryAuthenticateUserBasic { userOpt =>
+      tryAuthenticateUserBasic.apply { userOpt =>
         optionalHeaderValueByType[Accept]() { acceptOpt =>
-          imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
-            import config._
-            onSuccess(ImageManifestsRepo.findByImageIdAndReference(image.getId(), reference)) {
-              case Some(im) =>
-                val headers = immutable.Seq(
-                  ETag(im.sha256Digest),
-                  `Docker-Content-Digest`("sha256", im.digest)
-                )
-                respondWithHeaders(headers) {
-                  im.schemaVersion match {
-                    case 1 =>
-                      completeSchemaV1Manifest(SchemaV1Manifest.addSignature(im.schemaV1JsonBlob))
-                    case _ =>
-                      reference match {
-                        case Reference.Tag(tag) if !acceptOpt.exists(acceptIsAManifestV2) =>
-                          completeSchemaV1Manifest(
-                            SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag))
-                        case _ =>
-                          val e = ByteString(im.getSchemaV2JsonBlob)
-                          complete(
-                            HttpEntity(`application/vnd.docker.distribution.manifest.v2+json`, e))
-                      }
+          imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)).apply { image =>
+            import config.ec
+            transact(ImageManifestsRepo.findByImageIdAndReference(image.getId(), reference))
+              .apply {
+                case Some(im) =>
+                  val headers = immutable.Seq(
+                    ETag(im.sha256Digest),
+                    `Docker-Content-Digest`("sha256", im.digest)
+                  )
+                  respondWithHeaders(headers) {
+                    im.schemaVersion match {
+                      case 1 =>
+                        completeSchemaV1Manifest(
+                          SchemaV1Manifest.addSignature(im.schemaV1JsonBlob))
+                      case _ =>
+                        reference match {
+                          case Reference.Tag(tag) if !acceptOpt.exists(acceptIsAManifestV2) =>
+                            completeSchemaV1Manifest(
+                              SchemaV1Manifest.addTagAndSignature(im.schemaV1JsonBlob, tag))
+                          case _ =>
+                            val e = ByteString(im.getSchemaV2JsonBlob)
+                            complete(
+                              HttpEntity(`application/vnd.docker.distribution.manifest.v2+json`,
+                                         e))
+                        }
+                    }
                   }
-                }
-              case _ => completeError(DistributionError.manifestUnknown)
-            }
+                case _ => completeError(DistributionError.manifestUnknown)
+              }
           }
         }
       }
@@ -97,9 +101,9 @@ object ImagesHandler {
     }
 
   def uploadManifest(imageName: String, reference: Reference)(implicit config: ApiHandlerConfig) =
-    authenticateUserBasic { user =>
+    authenticateUserBasic.apply { user =>
       val userId = user.getId()
-      imageByNameWithAcl(imageName, userId, Action.Write) { image =>
+      imageByNameWithAcl(imageName, userId, Action.Write).apply { image =>
         import config._
         entity(as[ByteString]) { rawManifestBs =>
           respondWithContentType(`application/json`) {
@@ -137,12 +141,12 @@ object ImagesHandler {
     }
 
   def destroyManifest(imageName: String, reference: Reference)(implicit config: ApiHandlerConfig) =
-    authenticateUserBasic { user =>
-      imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
+    authenticateUserBasic.apply { user =>
+      imageByNameWithAcl(imageName, user.getId(), Action.Manage).apply { image =>
         reference match {
           case Reference.Digest(digest) =>
-            import config._
-            onSuccess(ImageManifestsRepo.destroy(image.getId(), digest)) { res =>
+            import config.ec
+            transact(ImageManifestsRepo.destroy(image.getId(), digest)).apply { res =>
               if (res) completeAccepted()
               else completeError(DistributionError.manifestUnknown)
             }
@@ -152,12 +156,12 @@ object ImagesHandler {
     }
 
   def tags(imageName: String)(implicit config: ApiHandlerConfig) =
-    tryAuthenticateUserBasic { userOpt =>
+    tryAuthenticateUserBasic.apply { userOpt =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
-        imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
-          import config._
-          onSuccess(ImageManifestsRepo.findTagsByImageId(image.getId(), n, last)) {
-            (tags, limit, hasNext) =>
+        imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)).apply { image =>
+          import config.ec
+          transact(ImageManifestsRepo.findTagsByImageId(image.getId(), n, last)).apply {
+            case (tags, limit, hasNext) =>
               val headers = if (hasNext) {
                 val uri = Uri(s"/v2/$imageName/tags/list?n=$limit&last=${tags.last}")
                 immutable.Seq(Link(uri, LinkParams.next))
@@ -171,11 +175,11 @@ object ImagesHandler {
     }
 
   def catalog()(implicit config: ApiHandlerConfig) =
-    authenticateUserBasic { user =>
+    authenticateUserBasic.apply { user =>
       parameters('n.as[Int].?, 'last.?) { (n, last) =>
-        import config._
-        onSuccess(ImagesRepo.findRepositoriesByUserId(user.getId(), n, last)) {
-          (repositories, limit, hasNext) =>
+        import config.ec
+        transact(ImagesRepo.findRepositoriesByUserId(user.getId(), n, last)).apply {
+          case (repositories, limit, hasNext) =>
             val headers = if (hasNext) {
               val uri = Uri(s"/v2/_catalog?n=$limit&last=${repositories.last}")
               immutable.Seq(Link(uri, LinkParams.next))

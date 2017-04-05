@@ -34,13 +34,14 @@ import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.PathMatchers._
+import io.fcomb.server.PersistDirectives._
 
 object OrganizationsHandler {
   def create()(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
+    authenticateUser.apply { user =>
       entity(as[OrganizationCreateRequest]) { req =>
-        import config._
-        onSuccess(OrganizationsRepo.create(req, user.getId())) {
+        import config.ec
+        transact(OrganizationsRepo.create(req, user.getId())).apply {
           case Validated.Valid(org) =>
             completeCreated(OrganizationHelpers.response(org, Role.Admin))
           case Validated.Invalid(errs) => completeErrors(errs)
@@ -49,13 +50,13 @@ object OrganizationsHandler {
     }
 
   def show(slug: Slug)(implicit config: ApiHandlerConfig) =
-    tryAuthenticateUser { userOpt =>
-      import config._
+    tryAuthenticateUser.apply { userOpt =>
+      import config.ec
       val futRes = userOpt match {
         case Some(user) => OrganizationsRepo.findWithRoleBySlug(slug, user.getId())
         case _          => OrganizationsRepo.findBySlug(slug).map(_.map(org => (org, None)))
       }
-      onSuccess(futRes) {
+      transact(futRes).apply {
         case Some((org, role)) =>
           completeWithEtag(StatusCodes.OK, OrganizationHelpers.response(org, role))
         case _ => completeNotFound()
@@ -63,7 +64,7 @@ object OrganizationsHandler {
     }
 
   // def update(slug: Slug) = {
-  //     authenticateUser { user =>
+  //     authenticateUser.apply { user =>
   //       organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
   //         entity(as[OrganizationUpdateRequest]) { req =>
   //           onSuccess(OrganizationsRepo.update(org.getId(), req)) {
@@ -78,10 +79,10 @@ object OrganizationsHandler {
   //   }
 
   def destroy(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      organizationBySlugWithAcl(slug, user.getId(), Role.Admin) { org =>
-        import config._
-        onSuccess(OrganizationsRepo.destroy(org.getId())) { _ =>
+    authenticateUser.apply { user =>
+      organizationBySlugWithAcl(slug, user.getId(), Role.Admin).apply { org =>
+        import config.ec
+        transact(OrganizationsRepo.destroy(org.getId())).apply { _ =>
           completeAccepted()
         }
       }

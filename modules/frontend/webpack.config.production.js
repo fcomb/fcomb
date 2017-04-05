@@ -39,11 +39,10 @@ module.exports = {
         useShortDoctype: true
       }
     }),
-    new webpack.NoErrorsPlugin(),
+    new webpack.NoEmitOnErrorsPlugin(),
     new CommonsChunkPlugin({
       name: 'app'
     }),
-    new webpack.optimize.DedupePlugin(),
     new webpack.DefinePlugin({
       'process.env':{
         'NODE_ENV': JSON.stringify('production')
@@ -84,7 +83,7 @@ module.exports = {
       },
       {
         test: /\.html$/,
-        loader: 'raw-loader!html-minify-loader'
+        loader: 'html-loader'
       },
       {
         test: /\.(ttf|eot|svg|woff|woff2)(\?[\s\S]+)?$/,

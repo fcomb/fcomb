@@ -20,49 +20,44 @@ import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import io.fcomb.config.Settings
 import io.fcomb.models.User
-import io.fcomb.PostgresProfile.api.Database
 import io.fcomb.services.user.SessionsService
-import scala.concurrent.ExecutionContext
 
 object AuthenticationDirectives {
-  def tryAuthenticateUser(implicit db: Database, settings: Settings): Directive1[Option[User]] =
-    extractExecutionContext.flatMap { implicit ec =>
-      extractCredentials.flatMap {
-        case Some(OAuth2BearerToken(token)) => tryFindByToken(token)
-        case _ =>
-          parameter('token.?).flatMap {
-            case Some(token) => tryFindByToken(token)
-            case _           => provide(None)
-          }
-      }
+  def tryAuthenticateUser()(implicit config: ApiHandlerConfig): Directive1[Option[User]] =
+    extractCredentials.flatMap {
+      case Some(OAuth2BearerToken(token)) => tryFindByToken(token)
+      case _ =>
+        parameter('token.?).flatMap {
+          case Some(token) => tryFindByToken(token)
+          case _           => provide(None)
+        }
     }
 
-  def authenticateUser(implicit db: Database, settings: Settings): Directive1[User] =
-    extractExecutionContext.flatMap { implicit ec =>
-      extractCredentials.flatMap {
-        case Some(OAuth2BearerToken(token)) => findByToken(token)
-        case _ =>
-          parameter('token.?).flatMap {
-            case Some(token) => findByToken(token)
-            case _           => reject(AuthorizationFailedRejection)
-          }
-      }
+  def authenticateUser()(implicit config: ApiHandlerConfig): Directive1[User] =
+    extractCredentials.flatMap {
+      case Some(OAuth2BearerToken(token)) => findByToken(token)
+      case _ =>
+        parameter('token.?).flatMap {
+          case Some(token) => findByToken(token)
+          case _           => reject(AuthorizationFailedRejection)
+        }
     }
 
-  def authorizeAdminUser(implicit db: Database, settings: Settings): Directive1[User] =
+  def authorizeAdminUser()(implicit config: ApiHandlerConfig): Directive1[User] =
     authenticateUser.flatMap { user =>
       if (user.isAdmin) provide(user)
       else complete(HttpResponse(StatusCodes.Forbidden))
     }
 
   private def tryFindByToken(token: String)(
-      implicit ec: ExecutionContext, db: Database, settings: Settings): Directive1[Option[User]] =
+      implicit config: ApiHandlerConfig): Directive1[Option[User]] = {
+    import config._
     onSuccess(SessionsService.find(token)).flatMap(provide)
+  }
 
-  private def findByToken(token: String)(implicit ec: ExecutionContext, db: Database, settings: Settings): Directive1[User] =
-    onSuccess(SessionsService.find(token)).flatMap {
+  private def findByToken(token: String)(implicit config: ApiHandlerConfig): Directive1[User] =
+    tryFindByToken(token).flatMap {
       case Some(user) => provide(user)
       case None       => reject(AuthorizationFailedRejection)
     }

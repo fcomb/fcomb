@@ -21,7 +21,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Validated
 import io.fcomb.akka.http.CirceSupport._
-import io.fcomb.config.Settings
 import io.fcomb.json.models.errors.Formats._
 import io.fcomb.json.rpc.Formats._
 import io.fcomb.models.common.Slug
@@ -35,51 +34,52 @@ import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.PathMatchers._
+import io.fcomb.server.PersistDirectives._
 
 object UsersHandler {
   def index()(implicit config: ApiHandlerConfig) =
-    authorizeAdminUser { user =>
+    authorizeAdminUser.apply { user =>
       extractPagination { pg =>
-        import config._
-        onSuccess(UsersRepo.paginate(pg)) { p =>
-          completePagination(UsersRepo.label, p)
-        }
+        import config.ec
+        transact(UsersRepo.paginate(pg)).apply(completePagination(UsersRepo.label, _))
       }
     }
 
   def create()(implicit config: ApiHandlerConfig) =
-    authorizeAdminUser { user =>
+    authorizeAdminUser.apply { user =>
       entity(as[UserCreateRequest]) { req =>
-        import config._
-        completeAsCreated(UsersRepo.create(req).map(_.map(UserHelpers.response)))
+        import config.ec
+        transact(UsersRepo.create(req)).apply(res =>
+          completeAsCreated(res.map(UserHelpers.response)))
       }
     }
 
   def update(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authorizeAdminUser { user =>
+    authorizeAdminUser.apply { user =>
       entity(as[UserUpdateRequest]) { req =>
-        import config._
-        completeAsAccepted(UsersRepo.update(slug, user, req).map(_.map(UserHelpers.response)))
+        import config.ec
+        transact(UsersRepo.update(slug, user, req)).apply(res =>
+          completeAsAccepted(res.map(UserHelpers.response)))
       }
     }
 
   def show(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authorizeAdminUser { user =>
-      import config._
-      completeOrNotFound(UsersRepo.find(slug).map(_.map(UserHelpers.response)))
+    authorizeAdminUser.apply { user =>
+      transact(UsersRepo.find(slug)).apply(res =>
+        completeOrNotFound(res.map(UserHelpers.response)))
     }
 
   def destroy(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authorizeAdminUser { user =>
-      import config._
-      completeAsAccepted(UsersRepo.destroy(slug, user))
+    authorizeAdminUser.apply { user =>
+      import config.ec
+      transact(UsersRepo.destroy(slug, user)).apply(completeAsAccepted(_))
     }
 
   def signUp()(implicit config: ApiHandlerConfig) =
     if (config.settings.security.openSignUp) {
       entity(as[UserSignUpRequest]) { req =>
-        import config._
-        onSuccess(UsersRepo.create(req)) {
+        import config.ec
+        transact(UsersRepo.create(req)).apply {
           case Validated.Valid(_)      => completeWithStatus(StatusCodes.Created)
           case Validated.Invalid(errs) => completeErrors(errs)
         }

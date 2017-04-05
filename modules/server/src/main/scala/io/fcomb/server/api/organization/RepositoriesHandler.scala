@@ -32,29 +32,28 @@ import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationDirectives._
 import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.PersistDirectives._
 
 object RepositoriesHandler {
   def index(slug: Slug)(implicit config: ApiHandlerConfig) =
-    organizationBySlug(slug) { org =>
-      tryAuthenticateUser { userOpt =>
+    organizationBySlug(slug).apply { org =>
+      tryAuthenticateUser.apply { userOpt =>
         extractPagination { pg =>
-          import config._
+          import config.ec
           val res =
             ImagesRepo.paginateAvailableByOrganizationOwner(org.getId(), userOpt.flatMap(_.id), pg)
-          onSuccess(res) { p =>
-            completePagination(ImagesRepo.label, p)
-          }
+          transact(res).apply(completePagination(ImagesRepo.label, _))
         }
       }
     }
 
   def create(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
+    authenticateUser.apply { user =>
       val userId = user.getId()
-      organizationBySlugWithAcl(slug, userId, Role.Admin) { org =>
+      organizationBySlugWithAcl(slug, userId, Role.Admin).apply { org =>
         entity(as[ImageCreateRequest]) { req =>
-          import config._
-          onSuccess(ImagesRepo.create(req, org, userId)) {
+          import config.ec
+          transact(ImagesRepo.create(req, org, userId)).apply {
             case Validated.Valid(image) =>
               completeCreated(ImageHelpers.response(image, Action.Manage))
             case Validated.Invalid(errs) => completeErrors(errs)

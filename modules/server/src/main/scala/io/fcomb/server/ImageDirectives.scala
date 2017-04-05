@@ -19,40 +19,44 @@ package io.fcomb.server
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import io.fcomb.models.User
 import io.fcomb.models.acl.Action
 import io.fcomb.models.common.Slug
 import io.fcomb.models.docker.distribution.{Image, ImageVisibilityKind}
+import io.fcomb.models.User
 import io.fcomb.persist.docker.distribution.ImagesRepo
+import io.fcomb.server.PersistDirectives._
 
 object ImageDirectives {
-  def imageAndAction(slug: Slug, userId: Int, action: Action): Directive1[(Image, Action)] =
-    extractExecutionContext.flatMap { implicit ec =>
-      onSuccess(ImagesRepo.findBySlugWithAcl(slug, userId, action)).flatMap {
-        case Right(Some(res @ (image, _))) => provide(res)
-        case Right(_)                      => complete(HttpResponse(StatusCodes.NotFound))
-        case _                             => complete(HttpResponse(StatusCodes.Forbidden))
-      }
+  def imageAndAction(slug: Slug, userId: Int, action: Action)(
+      implicit config: ApiHandlerConfig): Directive1[(Image, Action)] = {
+    import config.ec
+    transact(ImagesRepo.findBySlugWithAcl(slug, userId, action)).flatMap {
+      case Right(Some(res @ (image, _))) => provide(res)
+      case Right(_)                      => complete(HttpResponse(StatusCodes.NotFound))
+      case _                             => complete(HttpResponse(StatusCodes.Forbidden))
     }
+  }
 
-  def image(slug: Slug, userId: Int, action: Action): Directive1[Image] =
+  def image(slug: Slug, userId: Int, action: Action)(
+      implicit config: ApiHandlerConfig): Directive1[Image] =
     imageAndAction(slug, userId, action).flatMap(provideImage)
 
-  def imageAndActionRead(slug: Slug, userOpt: Option[User]): Directive1[(Image, Action)] =
+  def imageAndActionRead(slug: Slug, userOpt: Option[User])(
+      implicit config: ApiHandlerConfig): Directive1[(Image, Action)] =
     userOpt match {
       case Some(user) => imageAndAction(slug, user.getId(), Action.Read)
       case _ =>
-        extractExecutionContext.flatMap { implicit ec =>
-          onSuccess(ImagesRepo.findBySlug(slug)).flatMap {
-            case Some(image) if image.visibilityKind == ImageVisibilityKind.Public =>
-              provide((image, Action.Read))
-            case Some(image) => complete(HttpResponse(StatusCodes.Forbidden))
-            case _           => complete(HttpResponse(StatusCodes.NotFound))
-          }
+        import config.ec
+        transact(ImagesRepo.findBySlug(slug)).flatMap {
+          case Some(image) if image.visibilityKind == ImageVisibilityKind.Public =>
+            provide((image, Action.Read))
+          case Some(image) => complete(HttpResponse(StatusCodes.Forbidden))
+          case _           => complete(HttpResponse(StatusCodes.NotFound))
         }
     }
 
-  def imageRead(slug: Slug, userOpt: Option[User]): Directive1[Image] =
+  def imageRead(slug: Slug, userOpt: Option[User])(
+      implicit config: ApiHandlerConfig): Directive1[Image] =
     imageAndActionRead(slug, userOpt).flatMap(provideImage)
 
   private def provideImage(t: (Image, Action)): Directive1[Image] = provide(t._1)

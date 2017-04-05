@@ -20,14 +20,16 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.FileIO
 import cats.data.Validated
 import cats.syntax.either._
-import io.circe.Json
 import io.circe.jawn.CirceSupportParser._
+import io.circe.Json
+import io.fcomb.config.Settings
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.docker.distribution.SchemaV2.{Manifest => ManifestV2}
 import io.fcomb.models.docker.distribution.{Image, Reference}
 import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.{ImageBlobsRepo, ImageManifestsRepo}
+import io.fcomb.PostgresProfile.api.Database
 import io.fcomb.services.EventService
 import io.fcomb.utils.Units._
 import java.io.File
@@ -43,15 +45,17 @@ object SchemaV2 {
       manifest: ManifestV2,
       rawManifest: String,
       createdByUserId: Int
-  )(implicit mat: Materializer): Future[Either[DistributionError, String]] = {
+  )(implicit db: Database,
+    settings: Settings,
+    mat: Materializer): Future[Either[DistributionError, String]] = {
     import mat.executionContext
     val digest = DigestUtils.sha256Hex(rawManifest)
-    ImageManifestsRepo.findByImageIdAndDigest(image.getId(), digest).flatMap {
+    db.run(ImageManifestsRepo.findByImageIdAndDigest(image.getId(), digest)).flatMap {
       case Some(im) =>
-        ImageManifestsRepo.updateTagsByReference(im, reference).map(_ => Right(im.digest))
+        db.run(ImageManifestsRepo.updateTagsByReference(im, reference).map(_ => Right(im.digest)))
       case None =>
         val configDigest = manifest.config.getDigest
-        ImageBlobsRepo.findUploaded(image.getId(), configDigest).flatMap {
+        db.run(ImageBlobsRepo.findUploaded(image.getId(), configDigest)).flatMap {
           case Some(configBlob) =>
             if (configBlob.length > 16.MB)
               Future.successful(unknowError("Config JSON size is more than 16 MB"))
@@ -61,14 +65,15 @@ object SchemaV2 {
                 case Right(imageConfig) =>
                   SchemaV1.convertFromSchemaV2(image, manifest, imageConfig) match {
                     case Right(schemaV1JsonBlob) =>
-                      ImageManifestsRepo
-                        .upsertSchemaV2(image,
-                                        manifest,
-                                        reference,
-                                        configBlob,
-                                        schemaV1JsonBlob,
-                                        rawManifest,
-                                        digest)
+                      db.run(
+                          ImageManifestsRepo
+                            .upsertSchemaV2(image,
+                                            manifest,
+                                            reference,
+                                            configBlob,
+                                            schemaV1JsonBlob,
+                                            rawManifest,
+                                            digest))
                         .map {
                           case Validated.Valid(imageManifest) =>
                             EventService.pushRepoEvent(image,

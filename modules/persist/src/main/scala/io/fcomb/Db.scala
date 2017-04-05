@@ -26,12 +26,11 @@ object Db {
   def apply(settings: JdbcSettings): Database = {
     val config = ConfigFactory.parseString(s"""
       {
-        dataSourceClass = "org.postgresql.ds.PGSimpleDataSource"
         maxConnections = 50
         numThreads = 25
         url = "${settings.url}"
         user = "${settings.user}"
-        password = "${settings.password}"
+        password = "${settings.password.value}"
       }""")
     Database.forConfig("", config)
   }

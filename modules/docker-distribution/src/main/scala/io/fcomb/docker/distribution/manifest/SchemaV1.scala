@@ -20,11 +20,10 @@ import cats.data.Validated
 import cats.instances.either.catsStdInstancesForEither
 import cats.syntax.cartesian._
 import cats.syntax.show._
-import io.circe._
 import io.circe.jawn._
 import io.circe.syntax._
+import io.circe._
 import io.fcomb.crypto.Jws
-import io.fcomb.services.EventService
 import io.fcomb.json.models.docker.distribution.CompatibleFormats._
 import io.fcomb.models.docker.distribution.ImageManifest.sha256Prefix
 import io.fcomb.models.docker.distribution.SchemaV1.{Manifest => ManifestV1, _}
@@ -32,6 +31,8 @@ import io.fcomb.models.docker.distribution.SchemaV2.{Manifest => ManifestV2}
 import io.fcomb.models.docker.distribution.{Image, ImageManifest, Reference}
 import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.ImageManifestsRepo
+import io.fcomb.PostgresProfile.api.Database
+import io.fcomb.services.EventService
 import io.fcomb.utils.StringUtils
 import java.time.OffsetDateTime
 import org.apache.commons.codec.digest.DigestUtils
@@ -46,10 +47,10 @@ object SchemaV1 {
       manifest: ManifestV1,
       rawManifest: String,
       createdByUserId: Int
-  )(implicit ec: ExecutionContext): Future[Either[DistributionError, String]] =
+  )(implicit db: Database, ec: ExecutionContext): Future[Either[DistributionError, String]] =
     verify(manifest, rawManifest) match {
       case Right((schemaV1JsonBlob, digest)) =>
-        ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest).map {
+        db.run(ImageManifestsRepo.upsertSchemaV1(image, manifest, schemaV1JsonBlob, digest)).map {
           case Validated.Valid(imageManifest) =>
             EventService
               .pushRepoEvent(image, imageManifest.getId(), reference.value, createdByUserId)

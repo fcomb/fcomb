@@ -30,31 +30,32 @@ import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.PersistDirectives._
 
 object RepositoriesHandler {
   def index()(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
+    authenticateUser.apply { user =>
       extractPagination { pg =>
-        import config._
-        onSuccess(ImagesRepo.paginateByUser(user.getId(), pg))(
-          completePagination(ImagesRepo.label, _))
+        import config.ec
+        transact(ImagesRepo.paginateByUser(user.getId(), pg))
+          .apply(completePagination(ImagesRepo.label, _))
       }
     }
 
   def available()(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
+    authenticateUser.apply { user =>
       extractPagination { pg =>
-        import config._
-        onSuccess(ImagesRepo.paginateAvailableByUserId(user.getId(), pg))(
-          completePagination(ImagesRepo.label, _))
+        import config.ec
+        transact(ImagesRepo.paginateAvailableByUserId(user.getId(), pg))
+          .apply(completePagination(ImagesRepo.label, _))
       }
     }
 
   def create()(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
+    authenticateUser.apply { user =>
       entity(as[ImageCreateRequest]) { req =>
-        import config._
-        onSuccess(ImagesRepo.create(req, user)) {
+        import config.ec
+        transact(ImagesRepo.create(req, user)).apply {
           case Validated.Valid(image) =>
             completeCreated(ImageHelpers.response(image, Action.Manage))
           case Validated.Invalid(errs) => completeErrors(errs)

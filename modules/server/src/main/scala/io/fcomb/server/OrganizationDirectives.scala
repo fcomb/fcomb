@@ -19,22 +19,24 @@ package io.fcomb.server
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import io.fcomb.models.Organization
 import io.fcomb.models.acl.Role
 import io.fcomb.models.common.Slug
+import io.fcomb.models.Organization
 import io.fcomb.persist.OrganizationsRepo
+import io.fcomb.server.PersistDirectives._
 
 object OrganizationDirectives {
-  def organizationBySlugWithAcl(slug: Slug, userId: Int, role: Role): Directive1[Organization] =
-    extractExecutionContext.flatMap { implicit ec =>
-      onSuccess(OrganizationsRepo.findBySlugWithAcl(slug, userId, role))
-        .flatMap(provideOrganization)
-    }
+  def organizationBySlugWithAcl(slug: Slug, userId: Int, role: Role)(
+      implicit config: ApiHandlerConfig): Directive1[Organization] = {
+    import config.ec
+    transact(OrganizationsRepo.findBySlugWithAcl(slug, userId, role))
+      .flatMap(provideOrganization)
+  }
 
-  def organizationBySlug(slug: Slug): Directive1[Organization] =
-    extractExecutionContext.flatMap { implicit ec =>
-      onSuccess(OrganizationsRepo.findBySlug(slug)).flatMap(provideOrganization)
-    }
+  def organizationBySlug(slug: Slug)(implicit config: ApiHandlerConfig): Directive1[Organization] = {
+    import config.ec
+    transact(OrganizationsRepo.findBySlug(slug)).flatMap(provideOrganization)
+  }
 
   private def provideOrganization(orgOpt: Option[Organization]): Directive1[Organization] =
     orgOpt match {

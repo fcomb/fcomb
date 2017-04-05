@@ -25,16 +25,16 @@ import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
+import io.fcomb.server.PersistDirectives._
 
 object TagsHandler {
   def index(slug: Slug)(implicit config: ApiHandlerConfig) =
-    tryAuthenticateUser { userOpt =>
-      imageRead(slug, userOpt) { image =>
+    tryAuthenticateUser.apply { userOpt =>
+      imageRead(slug, userOpt).apply { image =>
         extractPagination { pg =>
-          import config._
-          onSuccess(ImageManifestTagsRepo.paginateByImageId(image.getId(), pg)) { p =>
-            completePagination(ImageManifestTagsRepo.label, p)
-          }
+          import config.ec
+          transact(ImageManifestTagsRepo.paginateByImageId(image.getId(), pg))
+            .apply(completePagination(ImageManifestTagsRepo.label, _))
         }
       }
     }

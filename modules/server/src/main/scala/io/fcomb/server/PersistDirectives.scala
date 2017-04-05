@@ -16,17 +16,13 @@
 
 package io.fcomb.server
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import io.fcomb.config.Settings
-import io.fcomb.PostgresProfile.api.Database
-import scala.concurrent.ExecutionContext
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server._
+import io.fcomb.PostgresProfile.api._
 
-final case class ApiHandlerConfig(
-    implicit val sys: ActorSystem,
-    val mat: Materializer,
-    val db: Database,
-    val settings: Settings
-) {
-  implicit val ec: ExecutionContext = sys.dispatcher
+object PersistDirectives {
+  def transact[T](q: DBIO[T])(implicit config: ApiHandlerConfig): Directive1[T] =
+    extractExecutionContext.flatMap { implicit ec =>
+      onSuccess(config.db.run(q))
+    }
 }

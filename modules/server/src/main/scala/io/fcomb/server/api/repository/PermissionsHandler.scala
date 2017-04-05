@@ -33,26 +33,26 @@ import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.PathMatchers._
+import io.fcomb.server.PersistDirectives._
 
 object PermissionsHandler {
   def index(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      image(slug, user.getId(), Action.Manage) { image =>
+    authenticateUser.apply { user =>
+      image(slug, user.getId(), Action.Manage).apply { image =>
         extractPagination { pg =>
-          import config._
-          onSuccess(PermissionsRepo.paginateByImageId(image, pg)) { p =>
-            completePagination(PermissionsRepo.label, p)
-          }
+          import config.ec
+          transact(PermissionsRepo.paginateByImageId(image, pg))
+            .apply(completePagination(PermissionsRepo.label, _))
         }
       }
     }
 
   def upsert(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      image(slug, user.getId(), Action.Manage) { image =>
+    authenticateUser.apply { user =>
+      image(slug, user.getId(), Action.Manage).apply { image =>
         entity(as[PermissionCreateRequest]) { req =>
-          import config._
-          onSuccess(PermissionsRepo.upsertByImage(image, req)) {
+          import config.ec
+          transact(PermissionsRepo.upsertByImage(image, req)).apply {
             case Validated.Valid(p)      => complete((StatusCodes.Accepted, p))
             case Validated.Invalid(errs) => completeErrors(errs)
           }
@@ -62,10 +62,10 @@ object PermissionsHandler {
 
   def destroy(slug: Slug, memberKind: MemberKind, memberSlug: Slug)(
       implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      image(slug, user.getId(), Action.Manage) { image =>
-        import config._
-        onSuccess(PermissionsRepo.destroyByImage(image, memberKind, memberSlug)) {
+    authenticateUser.apply { user =>
+      image(slug, user.getId(), Action.Manage).apply { image =>
+        import config.ec
+        transact(PermissionsRepo.destroyByImage(image, memberKind, memberSlug)).apply {
           case Validated.Valid(p)      => completeAccepted()
           case Validated.Invalid(errs) => completeErrors(errs)
         }
@@ -73,11 +73,11 @@ object PermissionsHandler {
     }
 
   def suggestions(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
+    authenticateUser.apply { user =>
       parameter('q) { q =>
-        image(slug, user.getId(), Action.Manage) { image =>
-          import config._
-          onSuccess(PermissionsRepo.findSuggestions(image, q))(completeData)
+        image(slug, user.getId(), Action.Manage).apply { image =>
+          import config.ec
+          transact(PermissionsRepo.findSuggestions(image, q)).apply(completeData)
         }
       }
     }

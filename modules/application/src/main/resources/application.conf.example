@@ -1,4 +1,4 @@
-fcomb-server {
+fcomb {
   jwt.secret = "2AD69A36899039C708DB5729B1C8455AA8748D489C5A56E883A988044AF32424"
 
   jdbc {
@@ -7,13 +7,9 @@ fcomb-server {
     password = ""
   }
 
-  jdbc-slick.properties = ${fcomb-server.jdbc}
-
   smtp {
     host = "smtp.googlemail.com"
     user = "fcomb"
     password = ""
   }
 }
-
-akka-persistence-jdbc.slick.db = ${fcomb-server.jdbc}

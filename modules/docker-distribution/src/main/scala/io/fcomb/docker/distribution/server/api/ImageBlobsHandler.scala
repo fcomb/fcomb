@@ -33,6 +33,7 @@ import io.fcomb.models.errors.docker.distribution.DistributionError
 import io.fcomb.persist.docker.distribution.ImageBlobsRepo
 import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.CommonDirectives._
+import io.fcomb.server.PersistDirectives._
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration._
@@ -40,10 +41,10 @@ import scala.concurrent.Future
 
 object ImageBlobsHandler {
   def show(imageName: String, digest: String)(implicit config: ApiHandlerConfig) =
-    tryAuthenticateUserBasic { userOpt =>
-      imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
-        import config._
-        onSuccess(ImageBlobsRepo.findUploaded(image.getId(), digest)) {
+    tryAuthenticateUserBasic.apply { userOpt =>
+      imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)).apply { image =>
+        import config.ec
+        transact(ImageBlobsRepo.findUploaded(image.getId(), digest)).apply {
           case Some(blob) =>
             val headers = immutable.Seq(
               `Docker-Content-Digest`("sha256", digest),
@@ -66,10 +67,10 @@ object ImageBlobsHandler {
   private val emptyTarSource = Source.single(ByteString(ImageManifest.emptyTar))
 
   def download(imageName: String, digest: String)(implicit config: ApiHandlerConfig) =
-    tryAuthenticateUserBasic { userOpt =>
-      imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)) { image =>
+    tryAuthenticateUserBasic.apply { userOpt =>
+      imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)).apply { image =>
         import config._
-        onSuccess(ImageBlobsRepo.findUploaded(image.getId(), digest)) {
+        transact(ImageBlobsRepo.findUploaded(image.getId(), digest)).apply {
           case Some(blob) =>
             val ct = contentType(blob.contentType)
             optionalHeaderValueByType[Range]() {
@@ -122,14 +123,14 @@ object ImageBlobsHandler {
     }
 
   def destroy(imageName: String, digest: String)(implicit config: ApiHandlerConfig) =
-    authenticateUserBasic { user =>
-      imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
+    authenticateUserBasic.apply { user =>
+      imageByNameWithAcl(imageName, user.getId(), Action.Manage).apply { image =>
         import config._
-        onSuccess(ImageBlobsRepo.findUploaded(image.getId(), digest)) {
+        transact(ImageBlobsRepo.findUploaded(image.getId(), digest)).apply {
           case Some(blob) =>
-            onSuccess(ImageBlobsRepo.tryDestroy(blob.getId())) {
+            transact(ImageBlobsRepo.tryDestroy(blob.getId())).apply {
               case Right(_) =>
-                val fut = ImageBlobsRepo.existByDigest(digest).flatMap { exist =>
+                val fut = db.run(ImageBlobsRepo.existByDigest(digest)).flatMap { exist =>
                   if (exist) Future.unit
                   else BlobFileUtils.destroyUploadBlob(blob.getId())
                 }

@@ -227,8 +227,8 @@ lazy val runtime = project
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.github.melrief" %% "pureconfig" % "0.6.0",
-      "com.typesafe"       % "config"      % "1.3.1"
+      "com.github.pureconfig" %% "pureconfig" % "0.7.0",
+      "com.typesafe"          % "config"      % "1.3.1"
     )
   )
 
@@ -246,9 +246,8 @@ lazy val tests = project
       "org.scalacheck"     %% "scalacheck"        % "1.13.5" % Test,
       "org.scalatest"      %% "scalatest"         % "3.0.1" % Test,
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.2.0" % Test,
-      "com.typesafe.slick" %% "slick-testkit"     % slickVersion % Test exclude ("junit", "junit-dep"),
-      "ch.qos.logback"     % "logback-classic"    % "1.2.2",
-      "junit"              % "junit-dep"          % "4.10" % Test
+      "com.typesafe.slick" %% "slick-testkit"     % slickVersion % Test,
+      "ch.qos.logback"     % "logback-classic"    % "1.2.3"
     ),
     initialCommands in (Test, console) := "ammonite.Main().run()",
     parallelExecution in Test := false,
@@ -356,7 +355,7 @@ lazy val application = project
   .settings(
     autoCompilerPlugins := true,
     libraryDependencies ++= Seq(
-      "ch.qos.logback"    % "logback-classic" % "1.2.2",
+      "ch.qos.logback"    % "logback-classic" % "1.2.3",
       "com.typesafe.akka" %% "akka-http"      % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion
     ),

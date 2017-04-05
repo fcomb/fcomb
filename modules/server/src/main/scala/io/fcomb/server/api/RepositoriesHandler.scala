@@ -34,24 +34,24 @@ import io.fcomb.server.AuthenticationDirectives._
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.ImageDirectives._
+import io.fcomb.server.PersistDirectives._
 
 object RepositoriesHandler {
-  def show(slug: Slug) =
-    tryAuthenticateUser { userOpt =>
-      imageAndActionRead(slug, userOpt) {
+  def show(slug: Slug)(implicit config: ApiHandlerConfig) =
+    tryAuthenticateUser.apply { userOpt =>
+      imageAndActionRead(slug, userOpt).apply {
         case (image, action) =>
-          val res = ImageHelpers.response(image, action)
-          completeWithEtag(StatusCodes.OK, res)
+          completeWithEtag(StatusCodes.OK, ImageHelpers.response(image, action))
       }
     }
 
   def update(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      imageAndAction(slug, user.getId(), Action.Manage) {
+    authenticateUser.apply { user =>
+      imageAndAction(slug, user.getId(), Action.Manage).apply {
         case (image, action) =>
           entity(as[ImageUpdateRequest]) { req =>
-            import config._
-            onSuccess(ImagesRepo.update(image.getId(), req)) {
+            import config.ec
+            transact(ImagesRepo.update(image.getId(), req)).apply {
               case Validated.Valid(updated) =>
                 complete((StatusCodes.Accepted, ImageHelpers.response(updated, action)))
               case Validated.Invalid(errs) => completeErrors(errs)
@@ -62,19 +62,18 @@ object RepositoriesHandler {
 
   def updateVisibility(slug: Slug, visibilityKind: ImageVisibilityKind)(
       implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      image(slug, user.getId(), Action.Manage) { image =>
-        onSuccess(ImagesRepo.updateVisibility(image.getId(), visibilityKind)) { _ =>
-          completeAccepted()
-        }
+    authenticateUser.apply { user =>
+      image(slug, user.getId(), Action.Manage).apply { image =>
+        transact(ImagesRepo.updateVisibility(image.getId(), visibilityKind)).apply(_ =>
+          completeAccepted())
       }
     }
 
   def destroy(slug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      image(slug, user.getId(), Action.Manage) { image =>
-        import config._
-        completeAsAccepted(ImagesRepo.destroy(image.getId()))
+    authenticateUser.apply { user =>
+      image(slug, user.getId(), Action.Manage).apply { image =>
+        import config.ec
+        transact(ImagesRepo.destroy(image.getId())).apply(completeAsAccepted(_))
       }
     }
 
@@ -85,8 +84,7 @@ object RepositoriesHandler {
         nestedRoutes(Slug.Id(id))
       } ~
       pathPrefix(Segments(2)) { xs =>
-        val name = xs.mkString("/")
-        nestedRoutes(Slug.Name(name))
+        nestedRoutes(Slug.Name(xs.mkString("/")))
       }
     }
     // format: on

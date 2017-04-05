@@ -31,26 +31,26 @@ import io.fcomb.server.ErrorDirectives._
 import io.fcomb.server.OrganizationGroupDirectives._
 import io.fcomb.server.PaginationDirectives._
 import io.fcomb.server.PathMatchers._
+import io.fcomb.server.PersistDirectives._
 
 object MembersHandler {
   def index(slug: Slug, group: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      groupBySlugWithAcl(slug, group, user.getId()) { group =>
+    authenticateUser.apply { user =>
+      groupBySlugWithAcl(slug, group, user.getId()).apply { group =>
         extractPagination { pg =>
-          import config._
-          onSuccess(OrganizationGroupUsersRepo.paginateByGroupId(group.getId(), pg)) { p =>
-            completePagination(OrganizationGroupUsersRepo.label, p)
-          }
+          import config.ec
+          transact(OrganizationGroupUsersRepo.paginateByGroupId(group.getId(), pg))
+            .apply(completePagination(OrganizationGroupUsersRepo.label, _))
         }
       }
     }
 
   def upsert(slug: Slug, group: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      groupBySlugWithAcl(slug, group, user.getId()) { group =>
+    authenticateUser.apply { user =>
+      groupBySlugWithAcl(slug, group, user.getId()).apply { group =>
         entity(as[MemberUserRequest]) { req =>
-          import config._
-          onSuccess(OrganizationGroupUsersRepo.upsert(group.getId(), req)) {
+          import config.ec
+          transact(OrganizationGroupUsersRepo.upsert(group.getId(), req)).apply {
             case Validated.Valid(p)      => completeAccepted()
             case Validated.Invalid(errs) => completeErrors(errs)
           }
@@ -59,13 +59,14 @@ object MembersHandler {
     }
 
   def destroy(slug: Slug, group: Slug, memberSlug: Slug)(implicit config: ApiHandlerConfig) =
-    authenticateUser { user =>
-      groupBySlugWithAcl(slug, group, user.getId()) { group =>
-        import config._
-        onSuccess(OrganizationGroupUsersRepo.destroy(group.getId(), user.getId(), memberSlug)) {
-          case Validated.Valid(p)      => completeAccepted()
-          case Validated.Invalid(errs) => completeErrors(errs)
-        }
+    authenticateUser.apply { user =>
+      groupBySlugWithAcl(slug, group, user.getId()).apply { group =>
+        import config.ec
+        transact(OrganizationGroupUsersRepo.destroy(group.getId(), user.getId(), memberSlug))
+          .apply {
+            case Validated.Valid(p)      => completeAccepted()
+            case Validated.Invalid(errs) => completeErrors(errs)
+          }
       }
     }
 

@@ -21,7 +21,6 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import cats.data.Validated
-import io.fcomb.akka.http.CirceSupport._
 import io.fcomb.docker.distribution.server.AuthenticationDirectives._
 import io.fcomb.docker.distribution.server.CommonDirectives._
 import io.fcomb.docker.distribution.server.headers._
@@ -35,6 +34,7 @@ import io.fcomb.persist.docker.distribution.ImageBlobsRepo
 import io.fcomb.server.ApiHandlerConfig
 import io.fcomb.server.CommonDirectives._
 import io.fcomb.server.ErrorDirectives._
+import io.fcomb.server.PersistDirectives._
 import java.util.UUID
 import scala.collection.immutable
 import scala.compat.java8.OptionConverters._
@@ -42,7 +42,7 @@ import scala.compat.java8.OptionConverters._
 object ImageBlobUploadsHandler {
   def create(imageName: String)(implicit config: ApiHandlerConfig): Route =
     extractRequest { req =>
-      authenticateUserBasic { user =>
+      authenticateUserBasic.apply { user =>
         parameters('mount.?, 'from.?, 'digest.?) { (mountOpt, fromOpt, digestOpt) =>
           (mountOpt, fromOpt, digestOpt) match {
             case (Some(mount), Some(from), _) => mountImageBlob(req, user, imageName, mount, from)
@@ -56,9 +56,9 @@ object ImageBlobUploadsHandler {
   private def createImageBlobUpload(req: HttpRequest, user: User, imageName: String)(
       implicit config: ApiHandlerConfig): Route = {
     val contentType = req.entity.contentType.mediaType.value
-    imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
+    imageByNameWithAcl(imageName, user.getId(), Action.Write).apply { image =>
       import config._
-      onSuccess(ImageBlobsRepo.create(image.getId(), contentType)) {
+      transact(ImageBlobsRepo.create(image.getId(), contentType)).apply {
         case Validated.Valid(blob) =>
           val uuid = blob.getId
           val headers = immutable.Seq(
@@ -80,12 +80,11 @@ object ImageBlobUploadsHandler {
                              sha256Digest: String,
                              from: String)(implicit config: ApiHandlerConfig): Route = {
     val userId = user.getId()
-    imageByNameWithAcl(imageName, userId, Action.Write) { toImage =>
-      imageByNameWithAcl(from, userId, Action.Read) { fromImage =>
+    imageByNameWithAcl(imageName, userId, Action.Write).apply { toImage =>
+      imageByNameWithAcl(from, userId, Action.Read).apply { fromImage =>
         import config._
-        val digest      = Reference.getDigest(sha256Digest)
-        val mountResFut = ImageBlobsRepo.mount(fromImage.getId(), toImage.getId(), digest, userId)
-        onSuccess(mountResFut) {
+        val digest = Reference.getDigest(sha256Digest)
+        transact(ImageBlobsRepo.mount(fromImage.getId(), toImage.getId(), digest, userId)).apply {
           case Some(blob) =>
             val headers = immutable.Seq(
               Location(s"/v2/$imageName/blobs/$sha256Digest"),
@@ -104,13 +103,14 @@ object ImageBlobUploadsHandler {
                               user: User,
                               imageName: String,
                               sha256Digest: String)(implicit config: ApiHandlerConfig): Route =
-    imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
+    imageByNameWithAcl(imageName, user.getId(), Action.Write).apply { image =>
       import config._
       val contentType = req.entity.contentType.mediaType.value
       val blobResFut = for {
-        Validated.Valid(blob) <- ImageBlobsRepo.create(image.getId(), contentType)
+        Validated.Valid(blob) <- db.run(ImageBlobsRepo.create(image.getId(), contentType))
         (length, digest)      <- BlobFileUtils.uploadBlobChunk(blob.getId(), req.entity.dataBytes)
-        _                     <- ImageBlobsRepo.completeUploadOrDelete(blob.getId(), blob.imageId, length, digest)
+        _ <- db.run(
+          ImageBlobsRepo.completeUploadOrDelete(blob.getId(), blob.imageId, length, digest))
       } yield (blob, digest)
       onSuccess(blobResFut) {
         case (blob, digest) =>
@@ -127,7 +127,7 @@ object ImageBlobUploadsHandler {
               }
             }
           } else {
-            onSuccess(ImageBlobsRepo.destroy(uuid)) { _ =>
+            transact(ImageBlobsRepo.destroy(uuid)).apply { _ =>
               completeError(DistributionError.digestInvalid)
             }
           }
@@ -136,11 +136,11 @@ object ImageBlobUploadsHandler {
 
   def uploadChunk(imageName: String, uuid: UUID)(implicit config: ApiHandlerConfig) =
     extractRequest { req =>
-      authenticateUserBasic { user =>
+      authenticateUserBasic.apply { user =>
         optionalHeaderValueByType[`Content-Range`]() { rangeOpt =>
-          imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
+          imageByNameWithAcl(imageName, user.getId(), Action.Write).apply { image =>
             import config._
-            onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
+            transact(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)).apply {
               case Some(blob) if !blob.isUploaded =>
                 val (rangeFrom, rangeTo) = rangeOpt match {
                   case Some(r) =>
@@ -165,10 +165,8 @@ object ImageBlobUploadsHandler {
                   val totalLengthFut = for {
                     (length, digest) <- BlobFileUtils.uploadBlobChunk(uuid, data)
                     totalLength = blob.length + length
-                    _ <- ImageBlobsRepo.updateState(uuid,
-                                                    totalLength,
-                                                    digest,
-                                                    ImageBlobState.Uploading)
+                    _ <- db.run(ImageBlobsRepo
+                      .updateState(uuid, totalLength, digest, ImageBlobState.Uploading))
                   } yield totalLength
                   onSuccess(totalLengthFut) { totalLength =>
                     val headers = immutable.Seq(
@@ -190,11 +188,12 @@ object ImageBlobUploadsHandler {
 
   def uploadComplete(imageName: String, uuid: UUID)(implicit config: ApiHandlerConfig) =
     extractRequest { req =>
-      authenticateUserBasic { user =>
+      authenticateUserBasic.apply { user =>
         parameters('digest) { sha256Digest =>
-          imageByNameWithAcl(imageName, user.getId(), Action.Write) { image =>
+          imageByNameWithAcl(imageName, user.getId(), Action.Write).apply { image =>
             import config._
-            onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
+
+            transact(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)).apply {
               case Some(blob) if !blob.isUploaded =>
                 onSuccess(BlobFileUtils.uploadBlobChunk(uuid, req.entity.dataBytes)) {
                   case (length, digest) =>
@@ -207,10 +206,8 @@ object ImageBlobUploadsHandler {
                       )
                       val fut = for {
                         _ <- BlobFileUtils.rename(uuid, digest)
-                        _ <- ImageBlobsRepo.completeUploadOrDelete(uuid,
-                                                                   blob.imageId,
-                                                                   totalLength,
-                                                                   digest)
+                        _ <- db.run(ImageBlobsRepo
+                          .completeUploadOrDelete(uuid, blob.imageId, totalLength, digest))
                       } yield HttpResponse(StatusCodes.Created, headers)
                       onSuccess(fut)(complete(_))
                     } else completeError(DistributionError.digestInvalid)
@@ -223,14 +220,14 @@ object ImageBlobUploadsHandler {
     }
 
   def destroy(imageName: String, uuid: UUID)(implicit config: ApiHandlerConfig) =
-    authenticateUserBasic { user =>
-      imageByNameWithAcl(imageName, user.getId(), Action.Manage) { image =>
+    authenticateUserBasic.apply { user =>
+      imageByNameWithAcl(imageName, user.getId(), Action.Manage).apply { image =>
         import config._
-        onSuccess(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)) {
+        transact(ImageBlobsRepo.findByImageIdAndUuid(image.getId(), uuid)).apply {
           case Some(blob) if !blob.isUploaded =>
             complete(for {
               _ <- BlobFileUtils.destroyUploadBlob(blob.getId())
-              _ <- ImageBlobsRepo.destroy(uuid)
+              _ <- db.run(ImageBlobsRepo.destroy(uuid))
             } yield HttpResponse(StatusCodes.NoContent))
           case _ => completeError(DistributionError.blobUploadInvalid)
         }

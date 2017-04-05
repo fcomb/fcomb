@@ -18,11 +18,12 @@ package io.fcomb.docker.distribution.services
 
 import akka.actor._
 import akka.stream.Materializer
-import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.scalalogging.LazyLogging
+import io.fcomb.config.Settings
 import io.fcomb.docker.distribution.utils.BlobFileUtils
 import io.fcomb.persist.docker.distribution.{BlobFilesRepo, ImageBlobsRepo}
-import io.fcomb.utils.Config.docker.distribution.gc
+import io.fcomb.PostgresProfile.api.Database
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.collection.mutable
@@ -34,7 +35,10 @@ object GarbageCollectorService extends LazyLogging {
 
   private var actorRef: ActorRef = _
 
-  def start()(implicit system: ActorSystem, mat: Materializer): ActorRef = {
+  def start()(implicit system: ActorSystem,
+              mat: Materializer,
+              db: Database,
+              settings: Settings): ActorRef = {
     if (actorRef eq null) {
       logger.info("Start garbage collector")
       actorRef = system.actorOf(props(), name = actorName)
@@ -42,7 +46,7 @@ object GarbageCollectorService extends LazyLogging {
     actorRef
   }
 
-  def props()(implicit mat: Materializer) =
+  def props()(implicit mat: Materializer, db: Database, settings: Settings) =
     Props(new GarbageCollectorActor())
 }
 
@@ -53,20 +57,22 @@ private[this] object GarbageCollectorEntity {
   case object CheckDeleting extends GarbageCollectorEntity
 }
 
-private[this] class GarbageCollectorActor(implicit mat: Materializer)
+private[this] class GarbageCollectorActor(implicit mat: Materializer,
+                                          db: Database,
+                                          settings: Settings)
     extends Actor
     with ActorLogging {
   import context.dispatcher
   import context.system
   import GarbageCollectorEntity._
 
-  log.info("Outdated check interval {}", gc.outdatedCheckInterval)
-  system.scheduler.schedule(gc.outdatedCheckInterval, gc.outdatedCheckInterval) {
+  log.info("Outdated check interval {}", settings.gc.outdatedCheckInterval)
+  system.scheduler.schedule(settings.gc.outdatedCheckInterval, settings.gc.outdatedCheckInterval) {
     self ! CheckOutdated
   }
 
-  log.info("Deleting check interval {}", gc.deletingCheckInterval)
-  system.scheduler.schedule(gc.deletingCheckInterval, gc.deletingCheckInterval) {
+  log.info("Deleting check interval {}", settings.gc.deletingCheckInterval)
+  system.scheduler.schedule(settings.gc.deletingCheckInterval, settings.gc.deletingCheckInterval) {
     self ! CheckDeleting
   }
 
@@ -83,8 +89,8 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
       context.become(busy, false)
       val fut = e match {
         case CheckOutdated =>
-          val until = OffsetDateTime.now().minus(gc.outdatedPeriod)
-          ImageBlobsRepo.destroyOutdatedUploads(until)
+          val until = OffsetDateTime.now().minusSeconds(settings.gc.outdatedPeriod.toSeconds)
+          db.run(ImageBlobsRepo.destroyOutdatedUploads(until))
         case CheckDeleting => runDeleting()
       }
       fut.onComplete { res =>
@@ -102,8 +108,8 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
   def receive = idle
 
   private def runDeleting() =
-    BlobFilesRepo
-      .findDeleting()
+    Source
+      .fromPublisher(db.stream(BlobFilesRepo.findDeleting()))
       .mapAsyncUnordered(8) { bf =>
         val fut = bf.digest match {
           case Some(digest) => BlobFileUtils.destroyBlob(digest)
@@ -117,10 +123,11 @@ private[this] class GarbageCollectorActor(implicit mat: Materializer)
           case ((sxs, fxs), Right(uuid)) => (uuid :: sxs, fxs)
           case ((sxs, fxs), Left(uuid))  => (sxs, uuid :: fxs)
         }
-        for {
+        val q = for {
           _ <- BlobFilesRepo.destroy(successful)
           _ <- BlobFilesRepo.updateRetryCount(failed)
         } yield ()
+        db.run(q)
       }
       .runWith(Sink.ignore)
 }
