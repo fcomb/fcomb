@@ -126,8 +126,7 @@ object SignUpComponent {
         <.div(^.`class` := "col-xs-10",
               <.p(App.authRightTipBlock,
                   "Have an account? ",
-                  props.ctl.link(Route.SignIn)(LayoutComponent.linkStyle, "Sign in"),
-                  "."))
+                  props.ctl.link(Route.SignIn)(LayoutComponent.linkStyle, "Sign in")))
       )
 
     def renderForm(props: Props, state: State) =

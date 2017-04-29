@@ -4,7 +4,7 @@ import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
 lazy val akkaHttpVersion     = "10.0.5"
-lazy val akkaVersion         = "2.5.0-RC2"
+lazy val akkaVersion         = "2.5.0"
 lazy val bouncyCastleVersion = "1.56"
 lazy val catsVersion         = "0.9.0"
 lazy val circeVersion        = "0.7.1"
@@ -21,7 +21,7 @@ lazy val buildSettings = Seq(
   startYear := Option(2017),
   homepage := Option(url("https://fcomb.io")),
   organizationHomepage := Option(new URL("https://fcomb.io")),
-  scalaVersion in ThisBuild := "2.12.1",
+  scalaVersion in ThisBuild := "2.12.2",
   headers := Map("scala" -> Apache2_0("2017", "fcomb. <https://fcomb.io>"))
 )
 
@@ -43,25 +43,30 @@ lazy val commonSettings =
       // "com.47deg" %% "freestyle" % "0.1.0"
     ),
     scalacOptions ++= Seq(
-      "-unchecked",
       "-deprecation",
+      "-encoding", "utf-8",
+      "-explaintypes",
       "-feature",
-      "-language:higherKinds",
-      "-language:existentials",
-      "-language:postfixOps",
-      "-opt:l:classpath",
-      // "-opt-warnings:_",
+      "-language:_",
+      "-opt:_",
+      "-opt-warnings:_",
+      "-unchecked",
+      "-Xcheckinit",
       "-Xexperimental",
-      "-Xlint",
       // "-Xfatal-warnings",
       "-Xfuture",
+      "-Xlint:_",
       "-Yno-adapted-args",
-      "-Ywarn-value-discard",
+      "-Ypartial-unification",
       "-Ywarn-dead-code",
+      "-Ywarn-extra-implicit",
+      "-Ywarn-inaccessible",
       "-Ywarn-infer-any",
+      "-Ywarn-nullary-override",
+      "-Ywarn-nullary-unit",
       "-Ywarn-numeric-widen",
-      "-Ywarn-unused",
-      "-Ywarn-unused-import"
+      "-Ywarn-unused:_",
+      "-Ywarn-value-discard"
     ),
     addCompilerPlugin("tryp" %% "splain" % "0.1.22"),
     clippyColorsEnabled := true,
@@ -103,7 +108,7 @@ lazy val models = crossProject
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum" % "1.5.10"
+      "com.beachape" %%% "enumeratum" % "1.5.12"
     ))
   .jvmSettings(
     libraryDependencies ++= Seq(
@@ -141,8 +146,6 @@ lazy val persist = project
   .settings(libraryDependencies ++= Seq(
     "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
-    "com.rms.miu"         %% "slick-cats"          % "0.5",
-    "com.typesafe.akka"   %% "akka-http"           % akkaHttpVersion,
     "com.typesafe.slick"  %% "slick"               % slickVersion,
     "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
     "com.zaxxer"          % "HikariCP"             % "2.6.1",
@@ -161,7 +164,7 @@ lazy val json = crossProject
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum-circe" % "1.5.12",
+      "com.beachape" %%% "enumeratum-circe" % "1.5.13",
       "io.circe"     %%% "circe-parser"     % circeVersion,
       "io.circe"     %%% "circe-generic"    % circeVersion
     ))
@@ -195,6 +198,7 @@ lazy val services = project
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
       "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion,
       "com.typesafe.akka" %% "akka-http"             % akkaHttpVersion
     ))
@@ -217,8 +221,7 @@ lazy val dockerDistribution = project
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
-      "com.google.guava"  % "guava"                  % guavaVersion
+      "com.google.guava" % "guava" % guavaVersion
     ))
 
 lazy val runtime = project
@@ -242,9 +245,9 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % Test,
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % Test,
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
-      "com.lihaoyi"        % "ammonite"           % "0.8.2" % Test cross CrossVersion.full,
+      "com.lihaoyi"        % "ammonite"           % "0.8.3" % Test cross CrossVersion.full,
       "org.scalacheck"     %% "scalacheck"        % "1.13.5" % Test,
-      "org.scalatest"      %% "scalatest"         % "3.0.1" % Test,
+      "org.scalatest"      %% "scalatest"         % "3.0.3" % Test,
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.2.0" % Test,
       "com.typesafe.slick" %% "slick-testkit"     % slickVersion % Test,
       "ch.qos.logback"     % "logback-classic"    % "1.2.3"

@@ -43,7 +43,7 @@ object ImageBlobUploadsHandler {
   def create(imageName: String)(implicit config: ApiHandlerConfig): Route =
     extractRequest { req =>
       authenticateUserBasic.apply { user =>
-        parameters('mount.?, 'from.?, 'digest.?) { (mountOpt, fromOpt, digestOpt) =>
+        parameters(('mount.?, 'from.?, 'digest.?)) { (mountOpt, fromOpt, digestOpt) =>
           (mountOpt, fromOpt, digestOpt) match {
             case (Some(mount), Some(from), _) => mountImageBlob(req, user, imageName, mount, from)
             case (_, _, Some(digest))         => createImageBlob(req, user, imageName, digest)

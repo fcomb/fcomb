@@ -17,10 +17,9 @@
 package io.fcomb.application
 
 import akka.actor.ActorSystem
-import akka.cluster.Cluster
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.application.server.Frontend
 import io.fcomb.config.Configuration
@@ -35,24 +34,10 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object Main extends App with LazyLogging {
-  val config = Configuration.loadConfig()
+  val config = ConfigFactory.load()
 
   implicit val sys = ActorSystem("fcomb", config)
   implicit val mat = ActorMaterializer()
-  import sys.dispatcher
-
-  val cluster = Cluster(sys)
-  cluster.registerOnMemberRemoved {
-    sys.registerOnTermination(System.exit(-1))
-    sys.scheduler.scheduleOnce(10.seconds)(System.exit(-1))(sys.dispatcher)
-    sys.terminate()
-  }
-
-  if (config.getList("akka.cluster.seed-nodes").isEmpty) {
-    logger.info("Going to a single-node cluster mode")
-    cluster.join(cluster.selfAddress)
-  }
-
   implicit val settings = Configuration.loadSettings(config) match {
     case Right(s) => s
     case Left(failures) =>
@@ -60,9 +45,12 @@ object Main extends App with LazyLogging {
       logger.error(s"Configuration load failures: $failures")
       throw e
   }
+  implicit val db               = Db(settings.jdbc)
+  implicit val apiHandlerConfig = ApiHandlerConfig()
 
-  implicit val db = Db(settings.jdbc)
-  implicit val apiHandlerConfig = ApiHandlerConfig()(sys, mat, db, settings)
+  import sys.dispatcher
+
+  logger.info("Settings: {}", settings)
 
   val routes = Api.routes() ~ DockerApi.routes() ~ Frontend.routes
 

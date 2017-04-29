@@ -157,7 +157,7 @@ object ImagesHandler {
 
   def tags(imageName: String)(implicit config: ApiHandlerConfig) =
     tryAuthenticateUserBasic.apply { userOpt =>
-      parameters('n.as[Int].?, 'last.?) { (n, last) =>
+      parameters(('n.as[Int].?, 'last.?)) { (n, last) =>
         imageByNameWithReadAcl(imageName, userOpt.flatMap(_.id)).apply { image =>
           import config.ec
           transact(ImageManifestsRepo.findTagsByImageId(image.getId(), n, last)).apply {
@@ -176,7 +176,7 @@ object ImagesHandler {
 
   def catalog()(implicit config: ApiHandlerConfig) =
     authenticateUserBasic.apply { user =>
-      parameters('n.as[Int].?, 'last.?) { (n, last) =>
+      parameters(('n.as[Int].?, 'last.?)) { (n, last) =>
         import config.ec
         transact(ImagesRepo.findRepositoriesByUserId(user.getId(), n, last)).apply {
           case (repositories, limit, hasNext) =>

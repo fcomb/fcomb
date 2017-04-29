@@ -16,78 +16,14 @@
 
 package io.fcomb.config
 
-import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
+import com.typesafe.config.{Config, ConfigValue}
 import com.typesafe.scalalogging.LazyLogging
 import pureconfig.error.ConfigReaderFailures
 import pureconfig.{loadConfig => pureLoadConfig, _}
 
 object Configuration extends LazyLogging {
-  def loadConfig(defaults: Config = ConfigFactory.empty()): Config =
-    defaults
-      .withFallback(ConfigFactory.parseString(defaultConfig))
-      .withFallback(ConfigFactory.load())
-      .resolve()
-
-  def loadSettings(config: Config = loadConfig()): Either[ConfigReaderFailures, Settings] =
+  def loadSettings(config: Config): Either[ConfigReaderFailures, Settings] =
     pureLoadConfig[Settings](config, "fcomb")
-
-  private val defaultConfig = s"""
-                                 |akka {
-                                 |  logger-startup-timeout = 10s
-                                 |  log-dead-letters-during-shutdown = off
-                                 |  loglevel = INFO
-                                 |  loggers = ["akka.event.slf4j.Slf4jLogger"]
-                                 |  logging-filter = "akka.event.slf4j.Slf4jLoggingFilter"
-                                 |
-                                 |  actor.provider = "akka.cluster.ClusterActorRefProvider"
-                                 |
-                                 |  http {
-                                 |    server {
-                                 |      server-header = fcomb
-                                 |      transparent-head-requests = off
-                                 |      parsing.max-content-length = infinite
-                                 |    }
-                                 |
-                                 |    client.user-agent-header = "fcomb"
-                                 |  }
-                                 |
-                                 |  cluster.sharding.state-store-mode = "ddata"
-                                 |}
-                                 |
-                                 |fcomb {
-                                 |  api {
-                                 |    interface = "0.0.0.0"
-                                 |    http-port = 8080
-                                 |    https-port = 8443
-                                 |  }
-                                 |
-                                 |  storage.path = "/data"
-                                 |
-                                 |  gc {
-                                 |    outdated-period = 1d
-                                 |    outdated-check-interval = 1h
-                                 |    deleting-check-interval = 10m
-                                 |  }
-                                 |
-                                 |  jdbc {
-                                 |    url = "jdbc:postgresql://127.0.0.1:5432/fcomb"
-                                 |    user = postgres
-                                 |    password = ""
-                                 |  }
-                                 |
-                                 |  jwt {
-                                 |    secret = ""
-                                 |    sessionTtl = 30d
-                                 |    resetPasswordTtl = 1h
-                                 |  }
-                                 |
-                                 |  security {
-                                 |    realm = "fcomb registry"
-                                 |    open-sign-up = false
-                                 |    anonymous-public-repositories = false
-                                 |  }
-                                 |}
-    """.stripMargin
 
   implicit def hiddenConfigReader[T](implicit cr: ConfigReader[T]): ConfigReader[Hidden[T]] =
     new ConfigReader[Hidden[T]] {

@@ -18,6 +18,7 @@ package io.fcomb.docker.distribution.services
 
 import akka.actor._
 import akka.cluster.sharding._
+import akka.cluster._
 import akka.pattern.ask
 import akka.stream.Materializer
 import akka.stream.scaladsl._

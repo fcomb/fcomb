@@ -17,7 +17,6 @@
 package io.fcomb.tests
 
 import akka.actor._
-import akka.cluster.Cluster
 import akka.http.scaladsl.server._
 import akka.http.scaladsl._
 import akka.stream.scaladsl._
@@ -88,15 +87,4 @@ abstract class ActorSpec
 
   def source2String(s: Source[ByteString, Any]): Future[String] =
     source2ByteString(s).map(_.utf8String)
-}
-
-trait ActorClusterSpec {
-  implicit val system: ActorSystem
-
-  val cluster = Cluster(system)
-
-  if (system.settings.config.getList("akka.cluster.seed-nodes").isEmpty) {
-    println("Going to a single-node cluster mode")
-    cluster.join(cluster.selfAddress)
-  }
 }
