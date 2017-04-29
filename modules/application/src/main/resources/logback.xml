@@ -1,0 +1,19 @@
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%date{ISO8601} %-5level %logger %X{akkaSource} %X{sourceThread} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="async" class="ch.qos.logback.classic.AsyncAppender">
+    <queueSize>500</queueSize>
+    <appender-ref ref="STDOUT"/>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="async" />
+  </root>
+
+  <logger name="slick" level="INFO" />
+  <logger name="com.zaxxer.hikari" level="INFO" />
+</configuration>
