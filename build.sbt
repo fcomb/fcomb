@@ -3,18 +3,18 @@ import com.typesafe.sbt.packager.MappingsHelper._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
 
-lazy val akkaHttpVersion     = "10.0.5"
-lazy val akkaVersion         = "2.5.0"
-lazy val bouncyCastleVersion = "1.56"
-lazy val catsVersion         = "0.9.0"
-lazy val circeVersion        = "0.7.1"
-lazy val commonsCodecVersion = "1.10"
-lazy val doobieVersion       = "0.4.2-SNAPSHOT"
-lazy val guavaVersion        = "21.0"
-lazy val slickPgVersion      = "0.15.0-RC"
-lazy val slickVersion        = "3.2.0"
+val akkaHttpVersion     = "10.0.7"
+val akkaVersion         = "2.5.2"
+val bouncyCastleVersion = "1.57"
+val catsVersion         = "0.9.0"
+val circeVersion        = "0.8.0"
+val commonsCodecVersion = "1.10"
+val doobieVersion       = "0.4.2-SNAPSHOT"
+val guavaVersion        = "22.0"
+val slickPgVersion      = "0.15.0"
+val slickVersion        = "3.2.0"
 
-lazy val buildSettings = Seq(
+val buildSettings = Seq(
   organization := "io.fcomb",
   organizationName := "fcomb",
   description := "Cloud management stack",
@@ -25,7 +25,7 @@ lazy val buildSettings = Seq(
   headers := Map("scala" -> Apache2_0("2017", "fcomb. <https://fcomb.io>"))
 )
 
-lazy val commonSettings =
+val commonSettings =
   // reformatOnCompileSettings ++
   Seq(
     resolvers ++= Seq(
@@ -44,7 +44,8 @@ lazy val commonSettings =
     ),
     scalacOptions ++= Seq(
       "-deprecation",
-      "-encoding", "utf-8",
+      "-encoding",
+      "utf-8",
       "-explaintypes",
       "-feature",
       "-language:_",
@@ -68,7 +69,7 @@ lazy val commonSettings =
       "-Ywarn-unused:_",
       "-Ywarn-value-discard"
     ),
-    addCompilerPlugin("tryp" %% "splain" % "0.1.22"),
+    addCompilerPlugin("tryp" %% "splain" % "0.1.24"),
     clippyColorsEnabled := true,
     publishArtifact in (Compile, packageDoc) := false,
     publishArtifact in packageDoc := false,
@@ -76,22 +77,33 @@ lazy val commonSettings =
       wartremoverWarnings ++= Warts.all */
   )
 
-lazy val publishSettings = Seq(
+val publishSettings = Seq(
   homepage := Some(url("https://fcomb.io")),
   scmInfo := Some(
     ScmInfo(url("https://github.com/fcomb/fcomb"), "https://github.com/fcomb/fcomb.git")),
   licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 )
 
-lazy val noPublishSettings = Seq(
+val noPublishSettings = Seq(
   publish := (),
   publishLocal := (),
   publishArtifact := false
 )
 
-lazy val allSettings = buildSettings ++ commonSettings ++ publishSettings
+val allSettings = buildSettings ++ commonSettings ++ publishSettings
 
-lazy val utils = project
+val runtime = project
+  .in(file("modules/runtime"))
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(allSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.github.pureconfig" %% "pureconfig" % "0.7.0",
+      "com.typesafe"          % "config"      % "1.3.1"
+    )
+  )
+
+val utils = project
   .in(file("modules/utils"))
   .dependsOn(runtime)
   .enablePlugins(AutomateHeaderPlugin)
@@ -102,7 +114,7 @@ lazy val utils = project
       "com.typesafe.akka" %% "akka-stream" % akkaVersion
     ))
 
-lazy val models = crossProject
+val models = crossProject
   .in(file("modules/models"))
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
@@ -115,19 +127,19 @@ lazy val models = crossProject
       "com.github.t3hnar" %% "scala-bcrypt" % "3.0"
     ))
 
-lazy val modelsJVM = models.jvm
-lazy val modelsJS  = models.js
+val modelsJVM = models.jvm
+val modelsJS  = models.js
 
-lazy val rpc = crossProject
+val rpc = crossProject
   .in(file("modules/rpc"))
   .dependsOn(models)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
 
-lazy val rpcJVM = rpc.jvm
-lazy val rpcJS  = rpc.js
+val rpcJVM = rpc.jvm
+val rpcJS  = rpc.js
 
-lazy val validation = project
+val validation = project
   .in(file("modules/validation"))
   .dependsOn(modelsJVM)
   .enablePlugins(AutomateHeaderPlugin)
@@ -138,33 +150,14 @@ lazy val validation = project
       "org.typelevel"      %% "cats-free" % catsVersion
     ))
 
-lazy val persist = project
-  .in(file("modules/persist"))
-  .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
-  .enablePlugins(AutomateHeaderPlugin)
-  .settings(allSettings)
-  .settings(libraryDependencies ++= Seq(
-    "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
-    "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
-    "com.typesafe.slick"  %% "slick"               % slickVersion,
-    "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
-    "com.zaxxer"          % "HikariCP"             % "2.6.1",
-    "commons-codec"       % "commons-codec"        % commonsCodecVersion,
-    "io.fcomb"            %% "db-migration"        % "0.3.5",
-    "org.postgresql"      % "postgresql"           % "42.0.0" exclude ("org.slf4j", "slf4j-simple")
-    // "org.tpolecat"        %% "doobie-hikari-cats"   % doobieVersion,
-    // "org.tpolecat"        %% "doobie-postgres-cats" % doobieVersion,
-    // "org.tpolecat"        %% "doobie-core-cats"     % doobieVersion
-  ))
-
-lazy val json = crossProject
+val json = crossProject
   .in(file("modules/json"))
   .dependsOn(models, rpc)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %%% "enumeratum-circe" % "1.5.13",
+      "com.beachape" %%% "enumeratum-circe" % "1.5.14",
       "io.circe"     %%% "circe-parser"     % circeVersion,
       "io.circe"     %%% "circe-generic"    % circeVersion
     ))
@@ -174,10 +167,29 @@ lazy val json = crossProject
       "io.circe" %% "circe-jawn"  % circeVersion
     ))
 
-lazy val jsonJVM = json.jvm
-lazy val jsonJS  = json.js
+val jsonJVM = json.jvm
+val jsonJS  = json.js
 
-lazy val crypto = project
+val persist = project
+  .in(file("modules/persist"))
+  .dependsOn(modelsJVM, rpcJVM, jsonJVM, utils, validation)
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(allSettings)
+  .settings(libraryDependencies ++= Seq(
+    "com.github.tminglei" %% "slick-pg"            % slickPgVersion,
+    "com.github.tminglei" %% "slick-pg_circe-json" % slickPgVersion,
+    "com.typesafe.slick"  %% "slick"               % slickVersion,
+    "com.typesafe.slick"  %% "slick-hikaricp"      % slickVersion exclude ("com.zaxxer", "HikariCP-java6"),
+    "com.zaxxer"          % "HikariCP"             % "2.6.2",
+    "commons-codec"       % "commons-codec"        % commonsCodecVersion,
+    "io.fcomb"            %% "db-migration"        % "0.3.5",
+    "org.postgresql"      % "postgresql"           % "42.1.1" exclude ("org.slf4j", "slf4j-simple")
+    // "org.tpolecat"        %% "doobie-hikari-cats"   % doobieVersion,
+    // "org.tpolecat"        %% "doobie-postgres-cats" % doobieVersion,
+    // "org.tpolecat"        %% "doobie-core-cats"     % doobieVersion
+  ))
+
+val crypto = project
   .in(file("modules/crypto"))
   .dependsOn(modelsJVM, jsonJVM)
   .enablePlugins(AutomateHeaderPlugin)
@@ -186,24 +198,23 @@ lazy val crypto = project
     "commons-codec"     % "commons-codec"  % commonsCodecVersion,
     "org.bouncycastle"  % "bcprov-jdk15on" % bouncyCastleVersion,
     "org.bouncycastle"  % "bcpkix-jdk15on" % bouncyCastleVersion,
-    "org.bitbucket.b_c" % "jose4j"         % "0.5.5",
+    "org.bitbucket.b_c" % "jose4j"         % "0.5.6",
     "io.circe"          %% "circe-parser"  % circeVersion,
     "com.pauldijou"     %% "jwt-circe"     % "0.12.1"
   ))
 
-lazy val services = project
+val services = project
   .in(file("modules/services"))
   .dependsOn(persist, utils, crypto)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(allSettings)
-  .settings(
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
-      "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion,
-      "com.typesafe.akka" %% "akka-http"             % akkaHttpVersion
-    ))
+  .settings(libraryDependencies ++= Seq(
+    "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
+    "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion,
+    "com.typesafe.akka" %% "akka-http"             % akkaHttpVersion
+  ))
 
-lazy val server = project
+val server = project
   .in(file("modules/server"))
   .dependsOn(persist, utils, jsonJVM, validation, services)
   .enablePlugins(AutomateHeaderPlugin)
@@ -214,7 +225,7 @@ lazy val server = project
       "io.fcomb"          %% "akka-http-circe" % s"${akkaHttpVersion}_$circeVersion"
     ))
 
-lazy val dockerDistribution = project
+val dockerDistribution = project
   .in(file("modules/docker-distribution"))
   .dependsOn(server)
   .enablePlugins(AutomateHeaderPlugin)
@@ -224,18 +235,7 @@ lazy val dockerDistribution = project
       "com.google.guava" % "guava" % guavaVersion
     ))
 
-lazy val runtime = project
-  .in(file("modules/runtime"))
-  .enablePlugins(AutomateHeaderPlugin)
-  .settings(allSettings)
-  .settings(
-    libraryDependencies ++= Seq(
-      "com.github.pureconfig" %% "pureconfig" % "0.7.0",
-      "com.typesafe"          % "config"      % "1.3.1"
-    )
-  )
-
-lazy val tests = project
+val tests = project
   .in(file("modules/tests"))
   .dependsOn(server, dockerDistribution)
   .enablePlugins(AutomateHeaderPlugin)
@@ -245,7 +245,7 @@ lazy val tests = project
       "com.typesafe.akka"  %% "akka-testkit"      % akkaVersion % Test,
       "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpVersion % Test,
       "com.typesafe.akka"  %% "akka-slf4j"        % akkaVersion,
-      "com.lihaoyi"        % "ammonite"           % "0.8.3" % Test cross CrossVersion.full,
+      "com.lihaoyi"        % "ammonite"           % "0.9.3" % Test cross CrossVersion.full,
       "org.scalacheck"     %% "scalacheck"        % "1.13.5" % Test,
       "org.scalatest"      %% "scalatest"         % "3.0.3" % Test,
       "com.ironcorelabs"   %% "cats-scalatest"    % "2.2.0" % Test,
@@ -257,11 +257,11 @@ lazy val tests = project
     fork in Test := true
   )
 
-lazy val frontendAssetsDirectory = settingKey[File]("Assets directory path")
-lazy val frontendBundleBuild =
+val frontendAssetsDirectory = settingKey[File]("Assets directory path")
+val frontendBundleBuild =
   taskKey[Unit]("Build frontend assets through webpack")
 
-lazy val frontend = project
+val frontend = project
   .in(file("modules/frontend"))
   .dependsOn(modelsJS, rpcJS, jsonJS)
   .enablePlugins(AutomateHeaderPlugin, ScalaJSPlugin)
@@ -277,7 +277,7 @@ lazy val frontend = project
       "com.olvind"                        %%% "scalajs-react-components" % "0.6.0",
       "io.circe"                          %%% "circe-scalajs"            % circeVersion,
       "io.suzaku"                         %%% "diode-react"              % "1.1.1",
-      "org.scala-js"                      %%% "scalajs-dom"              % "0.9.1",
+      "org.scala-js"                      %%% "scalajs-dom"              % "0.9.2",
       "org.typelevel"                     %%% "cats"                     % catsVersion
     ),
     skip in packageJSDependencies := false,
@@ -296,7 +296,7 @@ lazy val frontend = project
     }
   )
 
-lazy val docSettings = Seq(
+val docSettings = Seq(
   // micrositeName := "fcomb",
   // micrositeDescription := "Alternative to docker trusted registry and quay written in Scala",
   // micrositeAuthor := "Timothy Klim",
@@ -322,7 +322,7 @@ lazy val docSettings = Seq(
   // includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.yml" | "*.md"
 )
 
-lazy val docs = project
+val docs = project
   .in(file("modules/docs"))
   // .enablePlugins(MicrositesPlugin)
   .settings(allSettings)
@@ -331,7 +331,7 @@ lazy val docs = project
   .settings(docSettings)
 // .settings(tutScalacOptions ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))))
 
-lazy val javaRunOptions = Seq(
+val javaRunOptions = Seq(
   "-server",
   "-Xms1g",
   "-Xmx2g",
@@ -349,7 +349,7 @@ lazy val javaRunOptions = Seq(
   "-XX:ReservedCodeCacheSize=256m"
 )
 
-lazy val application = project
+val application = project
   .in(file("modules/application"))
   .aggregate(tests)
   .dependsOn(runtime, server, dockerDistribution, frontend)

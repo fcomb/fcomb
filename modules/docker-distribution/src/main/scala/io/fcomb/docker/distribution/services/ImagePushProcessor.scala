@@ -29,7 +29,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.fcomb.services.Exceptions._
 import io.fcomb.utils.StringUtils
 import java.io.File
-import java.nio.file.StandardOpenOption
+import java.nio.file.{OpenOption, StandardOpenOption}
 import java.security.MessageDigest
 import java.util.UUID
 import scala.concurrent.duration._
@@ -117,7 +117,7 @@ object ImageBlobPushProcessor extends ProcessorClustedSharding[UUID] {
     } yield (length, StringUtils.hexify(fileDigest.digest))
 
   private def uploadChunkGraph(md: MessageDigest, source: Source[ByteString, Any], file: File) = {
-    val fileOptions = Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
+    val fileOptions: Set[OpenOption] = Set(StandardOpenOption.APPEND, StandardOpenOption.CREATE)
 
     val sink = Sink.fold[(Long, MessageDigest), ByteString]((0L, md)) {
       case ((length, md), bs) =>
